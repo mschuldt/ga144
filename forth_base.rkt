@@ -72,11 +72,13 @@
 
 ; Dictionary
 (define dict (make-rvector 100))
+(define visible_address 0)
 (define next_address 1)
 
 (define (add-entry! prim prec name code [data '()])
   (let [(new (entry prim prec name code data))]
     (rvector-set! dict next_address new)
+    (set! next_address (add1 next_address))
     new))
 
 ; Codespace - somewhat like assembly instructions
@@ -102,7 +104,7 @@
 (add-compiled-code! exit-addr) ; The word HERE also has to have an EXIT
 
 (define (reveal-entry!)
-  (set! next_address (add1 next_address)))
+  (set! visible_address (sub1 next_address)))
 
 (define (add-and-reveal-entry! prim prec name code data)
   (let [(entry (add-entry! prim prec name code data))]
@@ -125,7 +127,7 @@
       (cond [(string-ci=? name (entry-name word)) address]
             [(= address 1) #f]
             [else (loop (sub1 address))])))
-  (loop (- next_address 1)))
+  (loop visible_address))
 
 (define (find-entry name)
   (let [(address (find-address name))]
@@ -216,18 +218,22 @@
 (define compiler-addr (entry-code (find-entry "]")))
 
 ; Colon definition - Uses the colon compiler
-(void (add-word! #f #f ":")) ; Don't want Racket saying #<entry> when this is loaded
+(void (add-word! #f #t ":")) ; Don't want Racket saying #<entry> when this is loaded
 ; Can't be primitive because it has more than one entry in the codespace (not counting EXIT)
 (add-compiled-code! (lambda () (add-entry! #f #f (forth_read_no_eof) (entry-data here-entry))))
 (add-compiled-code! (entry-code (find-entry "]")))
 (add-compiled-code! exit-addr)
 
 (define (stop-compilation)
+  ;(print-stack rstack) (newline)
   (define (loop pos)
-    (if (= (get-int #:stack rstack #f pos) compiler-addr)
-        (pop-double! #:type 'rstack #f pos) ; Pop off the place to go back to (the exit), as well as the link for colon-compiler
-        (loop (sub1 pos))))
+    (cond [(<= pos 0) (void)]
+          [(= (get-int #:stack rstack #f pos) compiler-addr)
+           (pop-double! #:type 'rstack #f pos)
+           (loop (- pos 2))] ; Pop off the place to go back to (the exit), as well as the link for colon-compiler
+          [else (loop (sub1 pos))]))
   (loop (sub1 (/ (bytes-length rstack) 4))))
+  ;(print-stack rstack) (newline))
 (add-primitive-word! #t "[" stop-compilation)
 
 (void (add-word! #f #t ";")) ; Can't be primitive since it uses multiple spaces in codespace
@@ -238,7 +244,7 @@
 
 
 (define (immediate)
-  (set-entry-precedence! (rvector-ref dict (sub1 next_address)) #t))
+  (set-entry-precedence! (rvector-ref dict visible_address) #t))
 (add-primitive-word! #f "immediate" immediate)
 
 
@@ -264,14 +270,14 @@
 ; Dictionary manipulation words
 
 (define (forget name)
-  (set! next_address (find-address name)))
+  (set! next_address (find-address name))
+  (set! visible_address (sub1 next_address)))
 (add-primitive-word! #f "forget" (lambda () (forget (forth_read_no_eof))))
 
 (define (marker name)
   (let [(addr next_address)]
-    (add-primitive-word! #f name (lambda () (set! next_address addr)))))
+    (add-primitive-word! #f name (lambda () (set! next_address addr) (set! visible_address (sub1 next_address))))))
 (add-primitive-word! #f "marker" (lambda () (marker (forth_read_no_eof))))
-
 
 ; Control
 (define (dummy-proc) (void))
@@ -537,9 +543,6 @@
                          (push-int! (remainder intermediate n3))
                          (push-int! (quotient intermediate n3)))))
 
-(add-primitive-word! #f "abs"
-                     (lambda () (push-int! (abs (pop-int! #t)))))
-
 (add-primitive-word! #f "min"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -683,6 +686,8 @@
                                    (lambda () (if (= (pop-int! #t) false)
                                                   (void)
                                                   (raise str)))))))
+
+(add-primitive-word! #f ".s" (lambda () (print-stack stack)))
 
 (let [(old_in (current-input-port))
       (old_out (current-output-port))]

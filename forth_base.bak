@@ -1,6 +1,3 @@
-; Problem: Execute turns itself into an infinite loop, when we actually want it to end after doing its work.
-; Can't end compilation as currently implemented because the 'stop returned by stop-compilation is lost in execute.
-
 #lang racket
 
 (require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
@@ -119,7 +116,8 @@
   (add-word! #t prec name data)
   (add-compiled-code! code)
   (add-compiled-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
-(add-primitive-word! #f "exit" exit)
+(void (add-word! #f #f "exit"))
+(add-compiled-code! exit)
 
 (define (find-address name)
   (define (loop address)
@@ -311,6 +309,88 @@
 (add-primitive-word! #t "then" then-proc)
 
 
+; Loops
+
+; Stack for compiling LEAVEs.  Each LEAVE will leave HERE on this stack
+; LOOP or +LOOP will clean up all of the LEAVEs.
+(define leave-stack '())
+(define (resolve-leaves addr do-addr)
+  (if (or (null? leave-stack) (< (car leave-stack) do-addr)) ; Must be strictly less than.  DO LEAVE LOOP will have a LEAVE with the same address as DO.
+      (void)
+      (begin (rvector-set! codespace (car leave-stack) (lambda () (pop-double! #:type 'rstack #t)
+                                                         (set! pc addr)))
+             (set! leave-stack (cdr leave-stack))
+             (resolve-leaves addr do-addr))))
+
+; DO
+(define (do-proc)
+  (add-compiled-code! (lambda () (push-cells! #:type 'rstack (pop-cells! 0 2))))
+  (push-int! (entry-data here-entry)))
+(add-primitive-word! #t "do" do-proc)
+
+; LEAVE
+(define (leave-proc)
+  (set! leave-stack (cons (entry-data here-entry) leave-stack))
+  (add-compiled-code! dummy-proc))
+(add-primitive-word! #t "leave" leave-proc)
+
+; LOOP
+(define (loop-proc)
+  (let [(addr (pop-int! #f))]
+    (add-compiled-code!
+     (lambda ()
+       (if (= (add1 (get-int #:stack rstack #t)) (get-int #:stack rstack #t 1))
+           (pop-double! #:type 'rstack #t)
+           (begin (push-int! #:type 'rstack (add1 (pop-int! #:type 'rstack #t)))
+                  (set! pc addr)))))
+    (resolve-leaves (entry-data here-entry) addr)))
+(add-primitive-word! #t "loop" loop-proc)
+
+; +LOOP
+(define (plusloop-proc)
+  (let [(addr (pop-int! #f))]
+    (add-compiled-code!
+     (lambda ()
+       (let [(n (pop-int! #t))
+             (old (pop-int! #:type 'rstack #t))
+             (limit (get-int #:stack rstack #t))]
+         (let [(new (+ n old))]
+           (if (and (< (min old new) limit) (>= (max old new) limit))
+               (pop-int! #:type 'rstack #t) ; Remove the limit (index already removed)
+               (begin (push-int! #:type 'rstack new)
+                      (set! pc addr)))))))
+    (resolve-leaves (entry-data here-entry) addr)))
+(add-primitive-word! #t "+loop" plusloop-proc)
+
+; UNLOOP
+(add-primitive-word! #f "unloop" (lambda () (pop-double! #:type 'rstack #t)))
+
+; BEGIN
+; Put HERE on the stack, to be used by UNTIL or REPEAT.
+(add-primitive-word! #t "begin" (lambda () (push-int! (entry-data here-entry))))
+
+; UNTIL
+; Jumps back to the address left by BEGIN if it sees a false flag.
+(define (until-proc)
+  (let [(addr (pop-int! #f))]
+    (add-compiled-code! (lambda ()
+                          (if (= (pop-int! #t) 0)
+                              (set! pc addr)
+                              (void))))))
+(add-primitive-word! #t "until" until-proc)
+
+; WHILE
+; Does the same thing as IF.
+; BEGIN - WHILE - REPEAT is like BEGIN - IF - LOOP THEN
+(add-primitive-word! #t "while" if-proc)
+
+; REPEAT
+(define (repeat-proc)
+  (let [(addr (pop-int! #f 1))] ; Get the second address (the one left by BEGIN)
+    (add-compiled-code! (lambda () (set! pc addr)))
+    (then-proc)))
+(add-primitive-word! #t "repeat" repeat-proc)
+
 ; Comments
 (define (comment)
   (if (equal? (read-char) #\))
@@ -457,9 +537,6 @@
                          (push-int! (remainder intermediate n3))
                          (push-int! (quotient intermediate n3)))))
 
-(add-primitive-word! #f "abs"
-                     (lambda () (push-int! (abs (pop-int! #t)))))
-
 (add-primitive-word! #f "min"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -471,6 +548,19 @@
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
                          (push-int! (max arg2 arg1)))))
+
+(add-primitive-word! #f "um*"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #f))
+                              (arg2 (pop-int! #f))]
+                         (push-double! (* arg2 arg1)))))
+
+(add-primitive-word! #f "um/mod"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #f))
+                              (arg2 (pop-double! #f))]
+                         (push-int! (remainder arg2 arg1))
+                         (push-int! (quotient arg2 arg1)))))
 
 (add-primitive-word! #f "d+"
                      (lambda ()
@@ -545,6 +635,12 @@
                               (arg2 (pop-int! #t))]
                          (push-int! (if (< arg2 arg1) true false)))))
 
+(add-primitive-word! #f "u<"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #f))
+                              (arg2 (pop-int! #f))]
+                         (push-int! (if (< arg2 arg1) true false)))))
+
 (add-primitive-word! #f "="
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -584,6 +680,8 @@
                                    (lambda () (if (= (pop-int! #t) false)
                                                   (void)
                                                   (raise str)))))))
+
+(add-primitive-word! #f ".s" (lambda () (print-stack stack)))
 
 (let [(old_in (current-input-port))
       (old_out (current-output-port))]
