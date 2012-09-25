@@ -1,0 +1,14 @@
+#lang racket
+
+(require "forth_base.rkt")
+
+(let [(old_in (current-input-port))
+      (old_out (current-output-port))]
+  (current-input-port (open-input-file "forth.test"))
+  (current-output-port (open-output-file "forth.out"))
+  (interpret)
+  (close-input-port (current-input-port))
+  (close-output-port (current-output-port))
+  (current-input-port old_in)
+  (current-output-port old_out)
+  "Test complete")
