@@ -136,31 +136,12 @@ table
      6 1 DO  ." Year " I .
            2DUP R% +  DUP ."    Balance " . cr
            DUP 2000 > IF ." More than doubled in "
-                             I . ." years " LEAVE
+                             I . ." years " 2drop unloop exit
                     THEN
       LOOP 2DROP ;
 10 1000 doubled
 20 1000 doubled
 1 . exit 2 .
-: nothing 5 0 do leave i . loop ;
-nothing
-: apl-2d-iota 1+ swap 1+ 1 do
-                dup 1 do
-                     j . i . dup i 1+ = if leave then 2 spaces
-                      loop
-                  cr loop drop ;
-2 3 apl-2d-iota
-: prime-finder ( low-limit high-limit -- prime | 0 )
-    swap do 
-      i 2 do
-          j i mod 0= if leave then
-          i j 2/ > if j unloop unloop exit then
-          loop
-    loop 0 ;
-: prime-envelope prime-finder ?dup if ." Found a prime - " . else ." No prime found " then ;
-32 40 prime-envelope
-32 35 prime-envelope
-1002 1100 prime-envelope
 5 2 um* 2dup d. 3 um/mod . .
 -1 2 < . -1 2 u< .
 : ** 1 swap 0 ?do over * loop nip ;

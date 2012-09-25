@@ -11,8 +11,17 @@
   (display arg)
   (display " "))
 
+; State for a core
+; Currently, stacks and dict are infinite.
+; Once a size is determined, a dict can be just a vector, not an rvector.
+(struct state (stack rstack dict) #:mutable)
+;; TODO: make-core, which puts garbage in the stacks and dict
+
+(define (make-zeroed-core)
+  (state (make-bytes 0) (make-bytes 0) (make-rvector 100)))
 
 ; Stacks
+;; TODO: Remove
 (define stack (make-bytes 0))
 (define rstack (make-bytes 0))
 
@@ -225,6 +234,7 @@
 (add-compiled-code! exit-addr)
 
 (define (stop-compilation)
+  ;(print-stack rstack) (newline)
   (define (loop pos)
     (cond [(<= pos 0) (void)]
           [(= (get-int #:stack rstack #f pos) compiler-addr)
@@ -232,6 +242,7 @@
            (loop (- pos 2))] ; Pop off the place to go back to (the exit), as well as the link for colon-compiler
           [else (loop (sub1 pos))]))
   (loop (sub1 (/ (bytes-length rstack) 4))))
+  ;(print-stack rstack) (newline))
 (add-primitive-word! #t "[" stop-compilation)
 
 (void (add-word! #f #t ";")) ; Can't be primitive since it uses multiple spaces in codespace
