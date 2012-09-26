@@ -17,13 +17,14 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (stack rstack codespace dict next-address visible-address pc) #:mutable)
+(struct state (stack rstack codespace dict next-address visible-address pc rega regb) #:mutable)
 
 ; Codespace - somewhat like assembly instructions
 ;; TODO: make-core, which puts garbage in the stacks and dict
+;; TODO: regb is initialized to io
 
 (define (make-zeroed-core)
-  (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0))
+  (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0 0 0))
 
 (define cores (make-vector 144))
 (for ((i (in-range 0 144)))
@@ -43,6 +44,8 @@
 (generate-macro next-address state-next-address set-state-next-address!)
 (generate-macro visible-address state-visible-address set-state-visible-address!)
 (generate-macro pc state-pc set-state-pc!)
+(generate-macro rega state-rega set-state-rega!)
+(generate-macro regb state-regb set-state-regb!)
 
 ; Stacks
 (define (push-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] bstr [pos 0])
@@ -316,7 +319,7 @@
 ; This will later be replaced by an unconditional branch by ELSE or THEN.
 (define (nif-proc)
   (add-compiled-code!
-   (lambda () (if (>= (pop-int! #f) 0)
+   (lambda () (if (>= (pop-int! #t) 0)
                   (void)
                   (set! pc (add1 pc)))))
   (push-int! (entry-data here-entry))
@@ -364,22 +367,30 @@
 (add-primitive-word! #t "loop" loop-proc)
 
 ; FOR
+; 1. Add to compiled code the PUSH command.
+; 2. Put HERE on the stack, to be used by NEXT.
 (define (for-proc)
-  (add-compiled-code!
-   (push-proc))
-  (add-compiled-code!
-   (lambda () (push-int! (entry-data here-entry)))))
+  (add-compiled-code!(push-proc))
+  (push-int! (entry-data here-entry)))
 (add-primitive-word! #t "for" for-proc)
+
   
 ; NEXT
+; 1. Pop counter from the top of rstack.
+; 2. If counter is 0, continue.
+; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
+(define (next-loop-proc counter addr)
+  (push-int! #:getter state-rstack #:setter set-state-rstack! (- counter 1))
+  (set! pc addr))
+  
 (define (next-proc)
-  (let [(addr (pop-int! #f)) (counter (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))]
+  (let [(addr (pop-int! #f))]
     (add-compiled-code! (lambda ()
+                        (let [(counter (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))]
                           (if (= counter 0)
                               (void)
-                              ((set! pc addr) (push-int! #:getter state-rstack #:setter set-state-rstack! (- counter 1))))))
-    )
-  )
+                              (next-loop-proc counter addr)))))))
+
 (add-primitive-word! #t "next" next-proc)
 
 ; +LOOP
@@ -521,6 +532,14 @@
 (add-primitive-word! #f "2r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack! 0 2))))
 (add-primitive-word! #f "2r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state) 0 2))))
 
+; register manipulation
+
+;; TODO: @+ is not working yet
+(add-primitive-word! #f "@+"
+                     (lambda ()
+                         (push-int! (rvector-ref codespace rega))
+                         (set-state-rega! current-state (+ rega 1))))
+(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace rega))))
 
 ; Math
 
