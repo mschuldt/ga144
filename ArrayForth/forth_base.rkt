@@ -1,7 +1,7 @@
 #lang racket
 
 (require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
-(provide interpret)
+(provide interpret run-file)
 
 (define (displaynl arg)
   (display arg)
@@ -686,12 +686,15 @@
 
 (add-primitive-word! #f ".s" (lambda () (print-stack (state-stack current-state))))
 
-(let [(old-in (current-input-port))
-      (old-out (current-output-port))]
-  (current-input-port (open-input-file "basewords.forth"))
-  (current-output-port (open-output-string)) ; Discard the output
-  (interpret)
-  (close-input-port (current-input-port))
-  (close-output-port (current-output-port))
-  (current-input-port old-in)
-  (current-output-port old-out))
+(define (run-file file-string)
+  (let [(old-in (current-input-port))
+	(old-out (current-output-port))]
+    (current-input-port (open-input-file file-string))
+    (current-output-port (open-output-string)) ; Discard the output
+    (interpret)
+    (close-input-port (current-input-port))
+    (close-output-port (current-output-port))
+    (current-input-port old-in)
+    (current-output-port old-out)))
+
+(run-file "basewords.forth")
