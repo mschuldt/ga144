@@ -172,7 +172,7 @@
 
 (define execute (compose execute-code entry-code))
 
-(add-primitive-word! #f "execute" (lambda () (execute (rvector-ref dict (pop-int! #f)))))
+(add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! #f)))))
 
 (define (abort msg)
   (displaynl msg)
@@ -310,6 +310,19 @@
   (add-compiled-code! dummy-proc))
 (add-primitive-word! #t "if" if-proc)
 
+; -IF
+; 1. Puts a procedure which jumps over one slot if the top of stack is negative.
+; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
+; This will later be replaced by an unconditional branch by ELSE or THEN.
+(define (nif-proc)
+  (add-compiled-code!
+   (lambda () (if (>= (pop-int! #f) 0)
+                  (void)
+                  (set! pc (add1 pc)))))
+  (push-int! (entry-data here-entry))
+  (add-compiled-code! dummy-proc))
+(add-primitive-word! #t "-if" nif-proc)
+
 ; ELSE
 ; 1. Put HERE as the second item on the stack.  Fill it with a dummy procedure.
 ; This will be replaced with an unconditional branch by THEN.
@@ -349,6 +362,25 @@
            (begin (push-int! #:getter state-rstack #:setter set-state-rstack! (add1 (pop-int! #:getter state-rstack #:setter set-state-rstack! #t)))
                   (set! pc addr)))))))
 (add-primitive-word! #t "loop" loop-proc)
+
+; FOR
+(define (for-proc)
+  (add-compiled-code!
+   (push-proc))
+  (add-compiled-code!
+   (lambda () (push-int! (entry-data here-entry)))))
+(add-primitive-word! #t "for" for-proc)
+  
+; NEXT
+(define (next-proc)
+  (let [(addr (pop-int! #f)) (counter (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))]
+    (add-compiled-code! (lambda ()
+                          (if (= counter 0)
+                              (void)
+                              ((set! pc addr) (push-int! #:getter state-rstack #:setter set-state-rstack! (- counter 1))))))
+    )
+  )
+(add-primitive-word! #t "next" next-proc)
 
 ; +LOOP
 (define (plusloop-proc)
@@ -471,8 +503,15 @@
 
 ; rstack manipulation words
 
-(add-primitive-word! #f ">r" (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells!))))
-(add-primitive-word! #f "r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
+(define (push-proc) 
+  (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells!))))
+(define (pop-proc)
+  (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
+
+(add-primitive-word! #f ">r" (push-proc))
+(add-primitive-word! #f "push" (push-proc))
+(add-primitive-word! #f "r>" (pop-proc))
+(add-primitive-word! #f "pop" (pop-proc))
 (add-primitive-word! #f "r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
 
 (add-primitive-word! #f "i" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
@@ -685,6 +724,8 @@
                                                   (raise str)))))))
 
 (add-primitive-word! #f ".s" (lambda () (print-stack (state-stack current-state))))
+
+(add-primitive-word! #f ".r" (lambda () (print-stack (state-rstack current-state))))
 
 (let [(old-in (current-input-port))
       (old-out (current-output-port))]
