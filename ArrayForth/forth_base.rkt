@@ -400,6 +400,10 @@
 
 (add-primitive-word! #t "next" next-proc)
 
+; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
+;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
+(add-primitive-word! #t "unext" next-proc)
+
 ; +LOOP
 (define (plusloop-proc)
   (let [(addr (pop-int! #f))]
@@ -471,12 +475,6 @@
 
 
 ; Stack manipulation words
-(define (swap)
-  (let* [(arg1 (pop-cells!))
-         (arg2 (pop-cells!))]
-    (push-cells! arg1)
-    (push-cells! arg2)))
-(add-primitive-word! #f "swap" swap)
 
 (define (dup)
   (push-cells! (get-cells))) ; Get the first cell and push it back on
@@ -486,14 +484,22 @@
   (push-cells! (get-cells 1 2)))
 (add-primitive-word! #f "over" over)
 
+(define (drop)
+  (pop-cells!))
+(add-primitive-word! #f "drop" drop)
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+(define (swap)
+  (let* [(arg1 (pop-cells!))
+         (arg2 (pop-cells!))]
+    (push-cells! arg1)
+    (push-cells! arg2)))
+(add-primitive-word! #f "swap" swap)
+
 (define (rot)
   (push-cells! (pop-cells! 2 3)))
 
 (add-primitive-word! #f "rot" rot)
-
-(define (drop)
-  (pop-cells!))
-(add-primitive-word! #f "drop" drop)
 
 (define (2swap)
   (let* [(arg1 (pop-2cells!))
@@ -517,7 +523,7 @@
 (define (2drop)
   (pop-2cells!))
 (add-primitive-word! #f "2drop" 2drop)
-
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; rstack manipulation words
 
@@ -526,10 +532,12 @@
 (define (pop-proc)
   (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
 
-(add-primitive-word! #f ">r" (push-proc))
 (add-primitive-word! #f "push" (push-proc))
-(add-primitive-word! #f "r>" (pop-proc))
 (add-primitive-word! #f "pop" (pop-proc))
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+(add-primitive-word! #f ">r" (push-proc))
+(add-primitive-word! #f "r>" (pop-proc))
 (add-primitive-word! #f "r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
 
 (add-primitive-word! #f "i" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
@@ -538,6 +546,7 @@
 (add-primitive-word! #f "2>r" (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells! 0 2))))
 (add-primitive-word! #f "2r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack! 0 2))))
 (add-primitive-word! #f "2r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state) 0 2))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; register manipulation
 
@@ -579,31 +588,55 @@
                               (arg2 (pop-int! #t))]
                          (push-int! (+ arg1 arg2)))))
 
+; Invert
+(add-primitive-word! #f "-"(lambda () (push-int! (bitwise-not (pop-int! #t)))))
+
+; Multiply step. 
+; Signed Multiplicand is in S, unsigned multiplier in A, T=0 at start of a step sequence.
+; Uses T:A as a 36-bit shift register with multiplier in A. Does the following:
+
+; 1. If bit A0 is one, S and T are added as though they had both been extended to be
+; 19 bit signed numbers, and the 37-bit concatenation of this sum and A is shifted
+; right one bit to replace T:A. Overflow may occur if S and T are both nonzero and
+; their signs differ; this can only occur through improper initialization of T.
+
+(define (multiply-step-one a t)
+  (let* [(newt (+ t (get-int #f)))]
+    (if (= (bitwise-and newt 1) 1)
+      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
+      (set-state-rega! current-state (+ 131072 (quotient a 2)))
+      (set-state-rega! current-state (quotient a 2)))
+    (push-int! (quotient newt 2))))
+
+; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
+; (T17 is not changed and is copied into T16. T0 is copied to A17 and A0 is discarded.)
+
+(define (multiply-step-zero a t)
+  (if (= (bitwise-and t 1) 1)
+      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
+      (set-state-rega! current-state (+ 131072 (quotient a 2)))
+      (set-state-rega! current-state (quotient a 2)))
+  (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
+
+(add-primitive-word! #f "+*"
+                     (lambda ()
+                       (let* [(a (state-rega current-state)) (t (pop-int! #f))]
+                         (if (= (bitwise-and a 1) 1)
+                             (multiply-step-one a t)
+                             (multiply-step-zero a t)))))
+
+(add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
+(add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
+
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
 ; Normal minus
 (add-primitive-word! #f ".-"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
                          (push-int! (- arg2 arg1)))))
-
-; Invert
-(add-primitive-word! #f "-"
-                     (lambda ()
-                       (let* [(arg (pop-int! #t))]
-                         (push-int! (- -1 arg)))))
-
-; Multiply step. Add S to T if A0 = 1 then shift T and A right.
-;(add-primitive-word! #f "+*"
-;                     (lambda ()
-;                       (let* [(a (state-rega current-state))]
-;                         (if (= (or a 1) 1)
-;                             (push-int! (+ (pop-int!) (get-int)))
-;                             (void))
-;                         (let* [(t (pop-int!))]
-;                           (if (= (or t 1) 1)
-;                             (set-state-rega! current-state (+ (<< 1 17) (>> a 1)))
-;                             (set-state-rega! current-state (>> a 1)))
-;                           (push-int! (>> t 1))))))
 
 (add-primitive-word! #f "*"
                      (lambda ()
@@ -683,11 +716,18 @@
                        (let* [(arg1 (pop-double! #t))
                               (arg2 (pop-double! #t))]
                          (push-double! (- arg2 arg1)))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
+; NOP
+(add-primitive-word! #f "." (lambda () (void)))
+
+; Word alignment
+(add-primitive-word! #f ".." (lambda () (void)))
 
 ; Output
 
 ; Displays an int, interpreted as a signed number
-(add-primitive-word! #f "." (lambda () (displayspace (pop-int! #t))))
+; (add-primitive-word! #f "." (lambda () (displayspace (pop-int! #t))))
 ; Displays an int, interpreted as an unsigned number
 (add-primitive-word! #f "u." (lambda () (displayspace (pop-int! #f))))
 ; Displays a double, interpreted as a signed number
@@ -730,6 +770,7 @@
 (define true -1)
 (define false 0)
 
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 (add-primitive-word! #f "true" (lambda () (push-int! true)))
 (add-primitive-word! #f "false" (lambda () (push-int! false)))
 
@@ -761,6 +802,15 @@
 (add-primitive-word! #f "0<" (lambda () (push-int! (if (< (pop-int! #t) 0) true false))))
 (add-primitive-word! #f "0>" (lambda () (push-int! (if (> (pop-int! #t) 0) true false))))
 
+(add-primitive-word! #f "ior"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #t))
+                              (arg2 (pop-int! #t))]
+                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+
+(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
 (add-primitive-word! #f "and"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -771,9 +821,8 @@
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+                         (push-int! (bitwise-xor arg1 arg2))))) ; xor - exclusive or
 
-(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
 
 ; ?stack is supposed to check for stack underflow.  However, here Racket's own
 ; error checking will notice the stack underflow, so it has to be checked on every
@@ -797,7 +846,7 @@
 
 (let [(old-in (current-input-port))
       (old-out (current-output-port))]
-  (current-input-port (open-input-file "example.forth"))
+  (current-input-port (open-input-file "basewords.forth"))
   (current-output-port (open-output-string)) ; Discard the output
   (interpret)
   (close-input-port (current-input-port))

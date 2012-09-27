@@ -13,8 +13,10 @@
 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
 
-: store 
-a! 15 for pop dup push - 17 + !+ next ;
+: store a! 15 for pop dup push - 17 + !+ next ;
+: print a! 15 for @+ unext .s ;
+267 store
+167 print
 
 : iter 15 for pop dup push - 17 + next ;
 
