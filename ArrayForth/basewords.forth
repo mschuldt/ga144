@@ -1,8 +1,8 @@
 : ;  postpone exit reveal postpone [ ; immediate
 : 1+  1 + ;
-: 1-  1 - ;
+: 1-  1 .- ;
 : 2+  2 + ;
-: 2-  2 - ;
+: 2-  2 .- ;
 : 2*  2 * ;
 : 2/  2 / ;
 : negate  0 swap - ;

@@ -113,8 +113,10 @@
     (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
 
 (define (add-compiled-code! proc-or-addr)
+  ;(printf "add-compile ~e\n" (entry-data here-entry))
   (rvector-set! codespace (entry-data here-entry) proc-or-addr)
-  (set-entry-data! here-entry (add1 (entry-data here-entry))))
+  (set-entry-data! here-entry (add1 (entry-data here-entry)))
+  )
 
 (define exit-addr 3) ; Kind of hacky, but not too bad.
 ; It's obvious that it will be at address 3.
@@ -284,6 +286,11 @@
                        (let [(num (pop-int! #t))]
                          (add-compiled-code! (lambda () (push-int! num))))))
 
+; ,
+(add-primitive-word! #t ","
+                     (lambda ()
+                       (let [(num (pop-int! #t))]
+                         (add-compiled-code! num))))
 
 ; Dictionary manipulation words
 
@@ -534,12 +541,34 @@
 
 ; register manipulation
 
-;; TODO: @+ is not working yet
+; fetch via register
 (add-primitive-word! #f "@+"
                      (lambda ()
-                         (push-int! (rvector-ref codespace rega))
-                         (set-state-rega! current-state (+ rega 1))))
-(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace rega))))
+                         (push-int! (rvector-ref codespace (state-rega current-state)))
+                         (set-state-rega! current-state (+ (state-rega current-state) 1))))
+(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace (state-rega current-state)))))
+(add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace (state-regb current-state)))))
+
+; store via register
+
+;; TODO: check if !p does the rigth thing.
+(add-primitive-word! #f "!p" 
+                     (lambda () 
+                       (rvector-set! codespace (state-pc current-state) (pop-cells!))
+                       (set-state-pc! current-state (+ (state-pc current-state) 1))))
+(add-primitive-word! #f "!+" 
+                     (lambda () 
+                       (rvector-set! codespace (state-rega current-state) (pop-int! #t))
+                       (set-state-rega! current-state (+ (state-rega current-state) 1))))
+(add-primitive-word! #f "!" (lambda () (rvector-set! codespace (state-rega current-state) (pop-int! #t))))
+(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace (state-regb current-state) (pop-int! #t))))
+
+; fetch from register
+(add-primitive-word! #f "a" (lambda () (push-int! (state-rega current-state))))
+
+; store to register
+(add-primitive-word! #f "a!" (lambda () (set-state-rega! current-state (pop-int! #f))))
+(add-primitive-word! #f "b!" (lambda () (set-state-regb! current-state (pop-int! #f))))
 
 ; Math
 
@@ -550,11 +579,31 @@
                               (arg2 (pop-int! #t))]
                          (push-int! (+ arg1 arg2)))))
 
-(add-primitive-word! #f "-"
+; Normal minus
+(add-primitive-word! #f ".-"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
                          (push-int! (- arg2 arg1)))))
+
+; Invert
+(add-primitive-word! #f "-"
+                     (lambda ()
+                       (let* [(arg (pop-int! #t))]
+                         (push-int! (- -1 arg)))))
+
+; Multiply step. Add S to T if A0 = 1 then shift T and A right.
+;(add-primitive-word! #f "+*"
+;                     (lambda ()
+;                       (let* [(a (state-rega current-state))]
+;                         (if (= (or a 1) 1)
+;                             (push-int! (+ (pop-int!) (get-int)))
+;                             (void))
+;                         (let* [(t (pop-int!))]
+;                           (if (= (or t 1) 1)
+;                             (set-state-rega! current-state (+ (<< 1 17) (>> a 1)))
+;                             (set-state-rega! current-state (>> a 1)))
+;                           (push-int! (>> t 1))))))
 
 (add-primitive-word! #f "*"
                      (lambda ()
@@ -748,7 +797,7 @@
 
 (let [(old-in (current-input-port))
       (old-out (current-output-port))]
-  (current-input-port (open-input-file "basewords.forth"))
+  (current-input-port (open-input-file "example.forth"))
   (current-output-port (open-output-string)) ; Discard the output
   (interpret)
   (close-input-port (current-input-port))
