@@ -1,7 +1,7 @@
 #lang racket
 
 (require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
-(provide interpret)
+(provide interpret run-file)
 
 (define (displaynl arg)
   (display arg)
@@ -17,13 +17,14 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (stack rstack codespace dict next-address visible-address pc) #:mutable)
+(struct state (stack rstack codespace dict next-address visible-address pc rega regb) #:mutable)
 
 ; Codespace - somewhat like assembly instructions
 ;; TODO: make-core, which puts garbage in the stacks and dict
+;; TODO: regb is initialized to io
 
 (define (make-zeroed-core)
-  (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0))
+  (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0 0 0))
 
 (define cores (make-vector 144))
 (for ((i (in-range 0 144)))
@@ -43,6 +44,8 @@
 (generate-macro next-address state-next-address set-state-next-address!)
 (generate-macro visible-address state-visible-address set-state-visible-address!)
 (generate-macro pc state-pc set-state-pc!)
+(generate-macro rega state-rega set-state-rega!)
+(generate-macro regb state-regb set-state-regb!)
 
 ; Stacks
 (define (push-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] bstr [pos 0])
@@ -110,8 +113,10 @@
     (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
 
 (define (add-compiled-code! proc-or-addr)
+  ;(printf "add-compile ~e\n" (entry-data here-entry))
   (rvector-set! codespace (entry-data here-entry) proc-or-addr)
-  (set-entry-data! here-entry (add1 (entry-data here-entry))))
+  (set-entry-data! here-entry (add1 (entry-data here-entry)))
+  )
 
 (define exit-addr 3) ; Kind of hacky, but not too bad.
 ; It's obvious that it will be at address 3.
@@ -172,7 +177,7 @@
 
 (define execute (compose execute-code entry-code))
 
-(add-primitive-word! #f "execute" (lambda () (execute (rvector-ref dict (pop-int! #f)))))
+(add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! #f)))))
 
 (define (abort msg)
   (displaynl msg)
@@ -281,6 +286,11 @@
                        (let [(num (pop-int! #t))]
                          (add-compiled-code! (lambda () (push-int! num))))))
 
+; ,
+(add-primitive-word! #t ","
+                     (lambda ()
+                       (let [(num (pop-int! #t))]
+                         (add-compiled-code! num))))
 
 ; Dictionary manipulation words
 
@@ -309,6 +319,19 @@
   (push-int! (entry-data here-entry))
   (add-compiled-code! dummy-proc))
 (add-primitive-word! #t "if" if-proc)
+
+; -IF
+; 1. Puts a procedure which jumps over one slot if the top of stack is negative.
+; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
+; This will later be replaced by an unconditional branch by ELSE or THEN.
+(define (nif-proc)
+  (add-compiled-code!
+   (lambda () (if (>= (pop-int! #t) 0)
+                  (void)
+                  (set! pc (add1 pc)))))
+  (push-int! (entry-data here-entry))
+  (add-compiled-code! dummy-proc))
+(add-primitive-word! #t "-if" nif-proc)
 
 ; ELSE
 ; 1. Put HERE as the second item on the stack.  Fill it with a dummy procedure.
@@ -349,6 +372,37 @@
            (begin (push-int! #:getter state-rstack #:setter set-state-rstack! (add1 (pop-int! #:getter state-rstack #:setter set-state-rstack! #t)))
                   (set! pc addr)))))))
 (add-primitive-word! #t "loop" loop-proc)
+
+; FOR
+; 1. Add to compiled code the PUSH command.
+; 2. Put HERE on the stack, to be used by NEXT.
+(define (for-proc)
+  (add-compiled-code!(push-proc))
+  (push-int! (entry-data here-entry)))
+(add-primitive-word! #t "for" for-proc)
+
+  
+; NEXT
+; 1. Pop counter from the top of rstack.
+; 2. If counter is 0, continue.
+; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
+(define (next-loop-proc counter addr)
+  (push-int! #:getter state-rstack #:setter set-state-rstack! (- counter 1))
+  (set! pc addr))
+  
+(define (next-proc)
+  (let [(addr (pop-int! #f))]
+    (add-compiled-code! (lambda ()
+                        (let [(counter (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))]
+                          (if (= counter 0)
+                              (void)
+                              (next-loop-proc counter addr)))))))
+
+(add-primitive-word! #t "next" next-proc)
+
+; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
+;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
+(add-primitive-word! #t "unext" next-proc)
 
 ; +LOOP
 (define (plusloop-proc)
@@ -421,12 +475,6 @@
 
 
 ; Stack manipulation words
-(define (swap)
-  (let* [(arg1 (pop-cells!))
-         (arg2 (pop-cells!))]
-    (push-cells! arg1)
-    (push-cells! arg2)))
-(add-primitive-word! #f "swap" swap)
 
 (define (dup)
   (push-cells! (get-cells))) ; Get the first cell and push it back on
@@ -436,14 +484,22 @@
   (push-cells! (get-cells 1 2)))
 (add-primitive-word! #f "over" over)
 
+(define (drop)
+  (pop-cells!))
+(add-primitive-word! #f "drop" drop)
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+(define (swap)
+  (let* [(arg1 (pop-cells!))
+         (arg2 (pop-cells!))]
+    (push-cells! arg1)
+    (push-cells! arg2)))
+(add-primitive-word! #f "swap" swap)
+
 (define (rot)
   (push-cells! (pop-cells! 2 3)))
 
 (add-primitive-word! #f "rot" rot)
-
-(define (drop)
-  (pop-cells!))
-(add-primitive-word! #f "drop" drop)
 
 (define (2swap)
   (let* [(arg1 (pop-2cells!))
@@ -467,12 +523,21 @@
 (define (2drop)
   (pop-2cells!))
 (add-primitive-word! #f "2drop" 2drop)
-
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; rstack manipulation words
 
-(add-primitive-word! #f ">r" (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells!))))
-(add-primitive-word! #f "r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
+(define (push-proc) 
+  (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells!))))
+(define (pop-proc)
+  (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
+
+(add-primitive-word! #f "push" (push-proc))
+(add-primitive-word! #f "pop" (pop-proc))
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+(add-primitive-word! #f ">r" (push-proc))
+(add-primitive-word! #f "r>" (pop-proc))
 (add-primitive-word! #f "r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
 
 (add-primitive-word! #f "i" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
@@ -481,7 +546,38 @@
 (add-primitive-word! #f "2>r" (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells! 0 2))))
 (add-primitive-word! #f "2r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack! 0 2))))
 (add-primitive-word! #f "2r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state) 0 2))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
+; register manipulation
+
+; fetch via register
+(add-primitive-word! #f "@+"
+                     (lambda ()
+                         (push-int! (rvector-ref codespace (state-rega current-state)))
+                         (set-state-rega! current-state (+ (state-rega current-state) 1))))
+(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace (state-rega current-state)))))
+(add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace (state-regb current-state)))))
+
+; store via register
+
+;; TODO: check if !p does the rigth thing.
+(add-primitive-word! #f "!p" 
+                     (lambda () 
+                       (rvector-set! codespace (state-pc current-state) (pop-cells!))
+                       (set-state-pc! current-state (+ (state-pc current-state) 1))))
+(add-primitive-word! #f "!+" 
+                     (lambda () 
+                       (rvector-set! codespace (state-rega current-state) (pop-int! #t))
+                       (set-state-rega! current-state (+ (state-rega current-state) 1))))
+(add-primitive-word! #f "!" (lambda () (rvector-set! codespace (state-rega current-state) (pop-int! #t))))
+(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace (state-regb current-state) (pop-int! #t))))
+
+; fetch from register
+(add-primitive-word! #f "a" (lambda () (push-int! (state-rega current-state))))
+
+; store to register
+(add-primitive-word! #f "a!" (lambda () (set-state-rega! current-state (pop-int! #f))))
+(add-primitive-word! #f "b!" (lambda () (set-state-regb! current-state (pop-int! #f))))
 
 ; Math
 
@@ -492,7 +588,51 @@
                               (arg2 (pop-int! #t))]
                          (push-int! (+ arg1 arg2)))))
 
-(add-primitive-word! #f "-"
+; Invert
+(add-primitive-word! #f "-"(lambda () (push-int! (bitwise-not (pop-int! #t)))))
+
+; Multiply step. 
+; Signed Multiplicand is in S, unsigned multiplier in A, T=0 at start of a step sequence.
+; Uses T:A as a 36-bit shift register with multiplier in A. Does the following:
+
+; 1. If bit A0 is one, S and T are added as though they had both been extended to be
+; 19 bit signed numbers, and the 37-bit concatenation of this sum and A is shifted
+; right one bit to replace T:A. Overflow may occur if S and T are both nonzero and
+; their signs differ; this can only occur through improper initialization of T.
+
+(define (multiply-step-one a t)
+  (let* [(newt (+ t (get-int #f)))]
+    (if (= (bitwise-and newt 1) 1)
+      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
+      (set-state-rega! current-state (+ 131072 (quotient a 2)))
+      (set-state-rega! current-state (quotient a 2)))
+    (push-int! (quotient newt 2))))
+
+; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
+; (T17 is not changed and is copied into T16. T0 is copied to A17 and A0 is discarded.)
+
+(define (multiply-step-zero a t)
+  (if (= (bitwise-and t 1) 1)
+      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
+      (set-state-rega! current-state (+ 131072 (quotient a 2)))
+      (set-state-rega! current-state (quotient a 2)))
+  (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
+
+(add-primitive-word! #f "+*"
+                     (lambda ()
+                       (let* [(a (state-rega current-state)) (t (pop-int! #f))]
+                         (if (= (bitwise-and a 1) 1)
+                             (multiply-step-one a t)
+                             (multiply-step-zero a t)))))
+
+(add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
+(add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
+
+
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
+; Normal minus
+(add-primitive-word! #f ".-"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
@@ -576,11 +716,18 @@
                        (let* [(arg1 (pop-double! #t))
                               (arg2 (pop-double! #t))]
                          (push-double! (- arg2 arg1)))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
+; NOP
+(add-primitive-word! #f "." (lambda () (void)))
+
+; Word alignment
+(add-primitive-word! #f ".." (lambda () (void)))
 
 ; Output
 
 ; Displays an int, interpreted as a signed number
-(add-primitive-word! #f "." (lambda () (displayspace (pop-int! #t))))
+; (add-primitive-word! #f "." (lambda () (displayspace (pop-int! #t))))
 ; Displays an int, interpreted as an unsigned number
 (add-primitive-word! #f "u." (lambda () (displayspace (pop-int! #f))))
 ; Displays a double, interpreted as a signed number
@@ -623,6 +770,7 @@
 (define true -1)
 (define false 0)
 
+;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 (add-primitive-word! #f "true" (lambda () (push-int! true)))
 (add-primitive-word! #f "false" (lambda () (push-int! false)))
 
@@ -654,6 +802,15 @@
 (add-primitive-word! #f "0<" (lambda () (push-int! (if (< (pop-int! #t) 0) true false))))
 (add-primitive-word! #f "0>" (lambda () (push-int! (if (> (pop-int! #t) 0) true false))))
 
+(add-primitive-word! #f "ior"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #t))
+                              (arg2 (pop-int! #t))]
+                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+
+(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
+;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+
 (add-primitive-word! #f "and"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -664,9 +821,8 @@
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+                         (push-int! (bitwise-xor arg1 arg2))))) ; xor - exclusive or
 
-(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
 
 ; ?stack is supposed to check for stack underflow.  However, here Racket's own
 ; error checking will notice the stack underflow, so it has to be checked on every
@@ -686,12 +842,17 @@
 
 (add-primitive-word! #f ".s" (lambda () (print-stack (state-stack current-state))))
 
-(let [(old-in (current-input-port))
-      (old-out (current-output-port))]
-  (current-input-port (open-input-file "basewords.forth"))
-  (current-output-port (open-output-string)) ; Discard the output
-  (interpret)
-  (close-input-port (current-input-port))
-  (close-output-port (current-output-port))
-  (current-input-port old-in)
-  (current-output-port old-out))
+(add-primitive-word! #f ".r" (lambda () (print-stack (state-rstack current-state))))
+
+(define (run-file file-string)
+  (let [(old-in (current-input-port))
+	(old-out (current-output-port))]
+    (current-input-port (open-input-file file-string))
+    (current-output-port (open-output-string)) ; Discard the output
+    (interpret)
+    (close-input-port (current-input-port))
+    (close-output-port (current-output-port))
+    (current-input-port old-in)
+    (current-output-port old-out)))
+
+(run-file "basewords.forth")
