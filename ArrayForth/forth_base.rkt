@@ -553,10 +553,10 @@
 ; fetch via register
 (add-primitive-word! #f "@+"
                      (lambda ()
-                         (push-int! (rvector-ref codespace (state-rega current-state)))
-                         (set-state-rega! current-state (+ (state-rega current-state) 1))))
-(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace (state-rega current-state)))))
-(add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace (state-regb current-state)))))
+                         (push-int! (rvector-ref codespace rega))
+                         (set! rega (+ rega 1))))
+(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace rega))))
+(add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace regb))))
 
 ; store via register
 
@@ -569,8 +569,8 @@
                      (lambda () 
                        (rvector-set! codespace (state-rega current-state) (pop-int! #t))
                        (set-state-rega! current-state (+ (state-rega current-state) 1))))
-(add-primitive-word! #f "!" (lambda () (rvector-set! codespace (state-rega current-state) (pop-int! #t))))
-(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace (state-regb current-state) (pop-int! #t))))
+(add-primitive-word! #f "!" (lambda () (rvector-set! codespace rega (pop-int! #t))))
+(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace regb (pop-int! #t))))
 
 ; fetch from register
 (add-primitive-word! #f "a" (lambda () (push-int! (state-rega current-state))))
