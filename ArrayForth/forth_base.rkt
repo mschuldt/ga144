@@ -855,4 +855,11 @@
     (current-input-port old-in)
     (current-output-port old-out)))
 
-(run-file "basewords.forth")
+(define (run-file-with-output file-string)
+  (let [(old-in (current-input-port))]
+    (current-input-port (open-input-file file-string))
+    (interpret)
+    (close-input-port (current-input-port))
+    (current-input-port old-in)))
+
+(run-file-with-output "basewords.forth")
