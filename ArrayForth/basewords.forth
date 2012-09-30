@@ -9,3 +9,6 @@
 : page  ." sorry, can't clear screen" ;
 : ['] ' postpone literal ; immediate
 : mult a! 0 17 for +* next a ;
+: smult a! 15 push dup dup or 
+begin +* unext - +* a -if
+drop - 2* ; ] then drop 2* - ;

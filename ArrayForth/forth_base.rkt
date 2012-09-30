@@ -26,6 +26,11 @@
 (define (make-zeroed-core)
   (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0 0 0))
 
+; Hack for @p { .. }
+(define literal-mode 0)
+(define litspace (make-rvector 100))
+(define lit-entry 0)
+
 (define cores (make-vector 144))
 (for ((i (in-range 0 144)))
      (vector-set! cores i (make-zeroed-core)))
@@ -112,11 +117,19 @@
     (rvector-set! codespace 1 (lambda () (push-int! addr)))
     (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
 
-(define (add-compiled-code! proc-or-addr)
-  ;(printf "add-compile ~e\n" (entry-data here-entry))
+(define (add-to-codespace proc-or-addr)
+  (printf "add-compile ~e\n" (entry-data here-entry))
   (rvector-set! codespace (entry-data here-entry) proc-or-addr)
-  (set-entry-data! here-entry (add1 (entry-data here-entry)))
-  )
+  (set-entry-data! here-entry (add1 (entry-data here-entry))))
+  
+(define (add-to-litspace proc-or-addr)
+  (rvector-set! litspace lit-entry proc-or-addr) 
+  (set! lit-entry (add1 lit-entry)))
+
+(define (add-compiled-code! proc-or-addr)
+  (if (= literal-mode 0)
+      (add-to-codespace proc-or-addr)
+      (add-to-litspace proc-or-addr)))
 
 (define exit-addr 3) ; Kind of hacky, but not too bad.
 ; It's obvious that it will be at address 3.
@@ -133,6 +146,8 @@
   (let [(entry (add-entry! prim prec name code data))]
     (reveal-entry!)
     entry))
+
+(define (lamb) (lambda() (displaynl "ok")))
 
 (define (add-word! prim prec name [data '()])
   (add-and-reveal-entry! prim prec name (entry-data here-entry) '()))
@@ -255,6 +270,26 @@
           [else (loop (sub1 pos))]))
   (loop (sub1 (/ (bytes-length (state-rstack current-state)) 4))))
 (add-primitive-word! #t "[" stop-compilation)
+
+(define (start-literal)
+  (set! literal-mode 1)
+  (set! lit-entry 0)
+  (for* ([i (in-range 0 4)])
+    (rvector-set! litspace i (lambda () (void)))))
+(add-primitive-word! #t "{" start-literal)
+
+(define (stop-literal)
+  (set! literal-mode 0)
+  (printf "{")
+  (add-compiled-code! (lambda () 
+                        ((rvector-ref litspace 0)) 
+                        ((rvector-ref litspace 1))
+                        ((rvector-ref litspace 2))
+                        ((rvector-ref litspace 3))
+                        ))
+  (printf "}\n"))
+
+(add-primitive-word! #t "}" stop-literal)
 
 (void (add-word! #f #t ";")) ; Can't be primitive since it uses multiple spaces in codespace
 (add-compiled-code! (lambda () (add-compiled-code! exit-addr)))
@@ -554,30 +589,42 @@
 (add-primitive-word! #f "@+"
                      (lambda ()
                          (push-int! (rvector-ref codespace rega))
-                         (set! rega (+ rega 1))))
+                         (set! rega (add1 rega))))
 (add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace rega))))
 (add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace regb))))
 
+; @p only works when it is immediately followed by { .. }
+(define (fetch-p-proc)
+  (push-int! (entry-data here-entry))
+  (add-compiled-code! dummy-proc))
+(add-primitive-word! #f "@p" 
+                     (lambda ()
+                         (push-int! (rvector-ref codespace pc))
+                         (set! pc (add1 pc))))
+
 ; store via register
 
-;; TODO: check if !p does the rigth thing.
+;; TODO: !p doesn't work if write to memory
 (add-primitive-word! #f "!p" 
                      (lambda () 
-                       (rvector-set! codespace (state-pc current-state) (pop-cells!))
-                       (set-state-pc! current-state (+ (state-pc current-state) 1))))
+                       (rvector-set! codespace pc (pop-cells!))
+                       (set! pc (add1 pc))))
 (add-primitive-word! #f "!+" 
                      (lambda () 
-                       (rvector-set! codespace (state-rega current-state) (pop-int! #t))
-                       (set-state-rega! current-state (+ (state-rega current-state) 1))))
+                       (rvector-set! codespace rega (pop-int! #t))
+                       (set! rega (add1 rega))))
 (add-primitive-word! #f "!" (lambda () (rvector-set! codespace rega (pop-int! #t))))
 (add-primitive-word! #f "!b" (lambda () (rvector-set! codespace regb (pop-int! #t))))
 
 ; fetch from register
-(add-primitive-word! #f "a" (lambda () (push-int! (state-rega current-state))))
+(add-primitive-word! #f "a" (lambda () (push-int! rega)))
 
 ; store to register
-(add-primitive-word! #f "a!" (lambda () (set-state-rega! current-state (pop-int! #f))))
-(add-primitive-word! #f "b!" (lambda () (set-state-regb! current-state (pop-int! #f))))
+(add-primitive-word! #f "a!" (lambda () (set! rega (pop-int! #f))))
+(add-primitive-word! #f "b!" (lambda () (set! regb (pop-int! #f))))
+
+;;;;;;;;;;;;;;;;;;;; (testing only) : store to pc ;;;;;;;;;;;;;;;;;;;
+(add-primitive-word! #f "p!" (lambda () (set! pc (pop-int! #f))))
 
 ; Math
 
@@ -604,8 +651,8 @@
   (let* [(newt (+ t (get-int #f)))]
     (if (= (bitwise-and newt 1) 1)
       ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
-      (set-state-rega! current-state (+ 131072 (quotient a 2)))
-      (set-state-rega! current-state (quotient a 2)))
+      (set! rega (+ 131072 (quotient a 2)))
+      (set! rega (quotient a 2)))
     (push-int! (quotient newt 2))))
 
 ; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
@@ -614,13 +661,13 @@
 (define (multiply-step-zero a t)
   (if (= (bitwise-and t 1) 1)
       ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
-      (set-state-rega! current-state (+ 131072 (quotient a 2)))
-      (set-state-rega! current-state (quotient a 2)))
+      (set! rega (+ 131072 (quotient a 2)))
+      (set! rega (quotient a 2)))
   (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
 
 (add-primitive-word! #f "+*"
                      (lambda ()
-                       (let* [(a (state-rega current-state)) (t (pop-int! #f))]
+                       (let* [(a (rega)) (t (pop-int! #f))]
                          (if (= (bitwise-and a 1) 1)
                              (multiply-step-one a t)
                              (multiply-step-zero a t)))))
@@ -862,4 +909,5 @@
     (close-input-port (current-input-port))
     (current-input-port old-in)))
 
-(run-file-with-output "basewords.forth")
+(run-file "basewords.forth")
+;(run-file-with-output "example.forth")
