@@ -7,8 +7,10 @@
 (addr store)
 (addr print -> 1 2 ... 16)
 
-: iter 15 for pop dup push - 17 + next ;
-(.s -> 1 2 ... 16)
+: 1iter 15 push begin pop dup push - 17 + next ;
+: 2iter 15 for pop dup push - 17 + next ;
+(before | >)
+(after  | 1 2 .. 16 >)
 
 11 12 mult .s
 (-> 11 0 132)
@@ -16,8 +18,16 @@
 -1 1 mult .s
 (-> ???)
 
-: ftchp1 @p { a } .s 400 b! !b 400 p! ;
-: ftchp2 @p { a } ;
-: ftchp3 .s 400 b! !b 400 p! ;
-: ftchp4 ftchp2 ftchp3 ;
-(fchp1 and fchp2 should have the same behavior)
+(assume that addr 400 is empty)
+: 1ftchp @p { a } 400 b! !b 123 a! 400 p! ;
+: 2ftchp @p { a } ;
+: 3ftchp 400 b! !b 123 a! 400 p! ;
+: 4ftchp ftchp2 ftchp3 ;
+1ftchp .s
+(| 123 >)
+4ftchp .s
+(| 123 >)
+
+: lita { a! !+ } ;
+: litfor { 15 for 1 unext } ;
+(we don't support for inside {})

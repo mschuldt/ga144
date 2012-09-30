@@ -523,6 +523,8 @@
   (pop-cells!))
 (add-primitive-word! #f "drop" drop)
 
+(add-primitive-word! #f "c" (lambda () (set-state-stack! current-state (make-bytes 0))))
+
 ;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 (define (swap)
   (let* [(arg1 (pop-cells!))
@@ -646,18 +648,8 @@
 ; 19 bit signed numbers, and the 37-bit concatenation of this sum and A is shifted
 ; right one bit to replace T:A. Overflow may occur if S and T are both nonzero and
 ; their signs differ; this can only occur through improper initialization of T.
-
-(define (multiply-step-one a t)
-  (let* [(newt (+ t (get-int #f)))]
-    (if (= (bitwise-and newt 1) 1)
-      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
-      (set! rega (+ 131072 (quotient a 2)))
-      (set! rega (quotient a 2)))
-    (push-int! (quotient newt 2))))
-
 ; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
 ; (T17 is not changed and is copied into T16. T0 is copied to A17 and A0 is discarded.)
-
 (define (multiply-step-zero a t)
   (if (= (bitwise-and t 1) 1)
       ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
@@ -665,12 +657,18 @@
       (set! rega (quotient a 2)))
   (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
 
-(add-primitive-word! #f "+*"
-                     (lambda ()
-                       (let* [(a (rega)) (t (pop-int! #f))]
-                         (if (= (bitwise-and a 1) 1)
-                             (multiply-step-one a t)
-                             (multiply-step-zero a t)))))
+(define (multiply-step-proc)
+  (let* [(a (rega))]
+    (if (= (bitwise-and a 1) 1)
+        (push-int! (+ (pop-int! #f) (get-int #f)))
+        (void))
+    (let* [(t (pop-int! #f))]
+      (if (= (bitwise-and t 1) 1)
+          (set! rega (+ 131072 (quotient a 2)))
+          (set! rega (quotient a 2)))
+      (push-int! (+ (bitwise-and t 131072) (quotient (bitwise-and t 262143) 2))))))
+
+(add-primitive-word! #f "+*" multiply-step-proc)
 
 (add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
 (add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
