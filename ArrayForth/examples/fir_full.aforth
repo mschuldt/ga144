@@ -1,0 +1,48 @@
+{code info}
+( result storage) | cr
+400 node 926 load
+( compute node) | cr
+500 node 928 load
+( input storage) | cr
+600 node 930 load
+
+{load info}
+400 /node | cr
+500 /node | cr
+600 /node $10 /p | cr
+
+{block 926}
+( -) # 400 ( store fir results) 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+
+: start down b! | cr
+: store dup or a! 31 for @b !+ next store ;
+
+{block 928}
+( -) # 500 ( perform fir filtering) 0 org | cr
+( counter) | cr
+: /start = $0 down b! @p [ .. start .. ] !b up b! | cr
+: fir 0 @b 15 42 push taps | cr
+[ $3fd3e , 0 , $3fb3c , 0 , $00aeb , 0 , $016dd , 0 ,
+$3d48d , 0 , $3b05a , 0 , $09d41 , 0 , $1ffff , 0 ,
+$1ffff , 0 , $09d41 , 0 , $3b05a , 0 , $3d48d , 0 ,
+$016dd , 0 , $00aeb , 0 , $3fb3c , 0 , $3fd3e , 0 ,
+] drop down b! !b up b! fir ; | cr
+
+{block 930}
+( -) # 600 ( source of input samples) 0 org | cr
+( one cycle of a sine wave) | cr
+$00000 , $0c3ef , $16a09 , $1d906 , $1ffff , $1d906 , $16a09 , $0c3ef , | cr
+$00000 , $33c11 , $295f7 , $226fa , $20001 , $226fa , $295f7 , $33c11 , | cr
+| cr
+$10 org ]
+: go io b! $30000 !b up b! @p [ .. /start .. ] !b | cr
+: rep dup or a! 15 for @+ !b next | cr
+( toggle LED if counter is 0) | cr
+@ -1 . + dup ! if rep ; ] then | cr
+$03fff ! io b! @b -if $20000 !b up b! rep ; ] then | cr
+$30000 !b up b! rep ;
+
