@@ -11,8 +11,7 @@ stepmultiply = simple program with one node
 .forth
 .aforth
 
-equivalent    
-.forth
+equivalent, loop
 
 <more to come>
 
