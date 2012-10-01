@@ -13,3 +13,4 @@
 begin +* unext - +* a -if
 drop - 2* ; ] then drop 2* - ;
 (: for push begin ;)
+(: invert begin - ; ???)

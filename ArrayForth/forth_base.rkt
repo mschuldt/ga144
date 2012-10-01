@@ -391,12 +391,6 @@
 ; Loops
 ;; Removed LEAVE
 
-; DO
-(define (do-proc)
-  (add-compiled-code! (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells! 0 2))))
-  (push-int! (entry-data here-entry)))
-(add-primitive-word! #t "do" do-proc)
-
 ; LOOP
 (define (loop-proc)
   (let [(addr (pop-int! #f))]
@@ -439,24 +433,6 @@
 ;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
 (add-primitive-word! #t "unext" next-proc)
 
-; +LOOP
-(define (plusloop-proc)
-  (let [(addr (pop-int! #f))]
-    (add-compiled-code!
-     (lambda ()
-       (let [(n (pop-int! #t))
-             (old (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))
-             (limit (get-int #:stack (state-rstack current-state) #t))]
-         (let [(new (+ n old))]
-           (if (and (< (min old new) limit) (>= (max old new) limit))
-               (pop-int! #:getter state-rstack #:setter set-state-rstack! #t) ; Remove the limit (index already removed)
-               (begin (push-int! #:getter state-rstack #:setter set-state-rstack! new)
-                      (set! pc addr)))))))))
-(add-primitive-word! #t "+loop" plusloop-proc)
-
-; UNLOOP
-(add-primitive-word! #f "unloop" (lambda () (pop-double! #:getter state-rstack #:setter set-state-rstack! #t)))
-
 ; BEGIN
 ; Put HERE on the stack, to be used by UNTIL or REPEAT.
 (add-primitive-word! #t "begin" (lambda () (push-int! (entry-data here-entry))))
@@ -476,37 +452,12 @@
 ; BEGIN - WHILE - REPEAT is like BEGIN - IF - LOOP THEN
 (add-primitive-word! #t "while" if-proc)
 
-; REPEAT
-(define (repeat-proc)
-  (let [(addr (pop-int! #f 1))] ; Get the second address (the one left by BEGIN)
-    (add-compiled-code! (lambda () (set! pc addr)))
-    (then-proc)))
-(add-primitive-word! #t "repeat" repeat-proc)
-
 ; Comments
 (define (comment)
   (if (equal? (read-char) #\))
       (void)
       (comment)))
 (add-primitive-word! #t "(" comment)
-
-
-; Constants
-(define get-constant-value entry-data)
-(define (constant)
-  (let* [(name (forth_read_no_eof))
-         (data (pop-cells!))]
-    (add-primitive-word! #f name
-                         (lambda () (push-cells! data))
-                         data)))
-(add-primitive-word! #f "constant" constant)
-(define (2constant)
-  (let* [(name (forth_read_no_eof))
-         (data (pop-2cells!))]
-    (add-primitive-word! #f name
-                           (lambda () (push-cells! data))
-                           data)))
-(add-primitive-word! #f "2constant" 2constant)
 
 
 ; Stack manipulation words
@@ -525,7 +476,6 @@
 
 (add-primitive-word! #f "c" (lambda () (set-state-stack! current-state (make-bytes 0))))
 
-;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 (define (swap)
   (let* [(arg1 (pop-cells!))
          (arg2 (pop-cells!))]
@@ -538,6 +488,8 @@
 
 (add-primitive-word! #f "rot" rot)
 
+
+;;;;;;;;;;;;;;;;;;;;; END - not sure if in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 (define (2swap)
   (let* [(arg1 (pop-2cells!))
          (arg2 (pop-2cells!))]
@@ -560,7 +512,7 @@
 (define (2drop)
   (pop-2cells!))
 (add-primitive-word! #f "2drop" 2drop)
-;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; END - not sure in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; rstack manipulation words
 
@@ -572,18 +524,8 @@
 (add-primitive-word! #f "push" (push-proc))
 (add-primitive-word! #f "pop" (pop-proc))
 
-;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-(add-primitive-word! #f ">r" (push-proc))
-(add-primitive-word! #f "r>" (pop-proc))
-(add-primitive-word! #f "r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
-
+;; TODO: check if it means the same thing in arrayforth
 (add-primitive-word! #f "i" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
-(add-primitive-word! #f "j" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state) 2 3))))
-
-(add-primitive-word! #f "2>r" (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells! 0 2))))
-(add-primitive-word! #f "2r>" (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack! 0 2))))
-(add-primitive-word! #f "2r@" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state) 0 2))))
-;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; register manipulation
 
@@ -673,16 +615,6 @@
 (add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
 (add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
 
-
-;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-
-; Normal minus
-(add-primitive-word! #f ".-"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (- arg2 arg1)))))
-
 (add-primitive-word! #f "*"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -716,15 +648,6 @@
                               (intermediate (* n1 n2))]
                          (push-int! (quotient intermediate n3)))))
 
-(add-primitive-word! #f "*/mod"
-                     (lambda ()
-                       (let* [(n3 (pop-int! #t))
-                              (n2 (pop-int! #t))
-                              (n1 (pop-int! #t))
-                              (intermediate (* n1 n2))]
-                         (push-int! (remainder intermediate n3))
-                         (push-int! (quotient intermediate n3)))))
-
 (add-primitive-word! #f "min"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
@@ -736,32 +659,6 @@
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
                          (push-int! (max arg2 arg1)))))
-
-(add-primitive-word! #f "um*"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #f))
-                              (arg2 (pop-int! #f))]
-                         (push-double! (* arg2 arg1)))))
-
-(add-primitive-word! #f "um/mod"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #f))
-                              (arg2 (pop-double! #f))]
-                         (push-int! (remainder arg2 arg1))
-                         (push-int! (quotient arg2 arg1)))))
-
-(add-primitive-word! #f "d+"
-                     (lambda ()
-                       (let* [(arg1 (pop-double! #t))
-                              (arg2 (pop-double! #t))]
-                         (push-double! (+ arg1 arg2)))))
-
-(add-primitive-word! #f "d-"
-                     (lambda ()
-                       (let* [(arg1 (pop-double! #t))
-                              (arg2 (pop-double! #t))]
-                         (push-double! (- arg2 arg1)))))
-;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 ; NOP
 (add-primitive-word! #f "." (lambda () (void)))
@@ -815,46 +712,15 @@
 (define true -1)
 (define false 0)
 
-;;;;;;;;;;;;;;;;;;;;; BEGIN - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-(add-primitive-word! #f "true" (lambda () (push-int! true)))
-(add-primitive-word! #f "false" (lambda () (push-int! false)))
-
-(add-primitive-word! #f ">"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (if (> arg2 arg1) true false)))))
-
-(add-primitive-word! #f "<"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (if (< arg2 arg1) true false)))))
-
-(add-primitive-word! #f "u<"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #f))
-                              (arg2 (pop-int! #f))]
-                         (push-int! (if (< arg2 arg1) true false)))))
-
-(add-primitive-word! #f "="
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (if (= arg2 arg1) true false)))))
-
-(add-primitive-word! #f "0=" (lambda () (push-int! (if (= (pop-int! #t) 0) true false))))
-(add-primitive-word! #f "0<" (lambda () (push-int! (if (< (pop-int! #t) 0) true false))))
-(add-primitive-word! #f "0>" (lambda () (push-int! (if (> (pop-int! #t) 0) true false))))
-
+;; TODO: there is no ior but i couldn't find where they define ior. i think it should be somewhere
 (add-primitive-word! #f "ior"
                      (lambda ()
                        (let* [(arg1 (pop-int! #t))
                               (arg2 (pop-int! #t))]
                          (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
 
+;; TODO: this is how they define invert : invert begin - ; ???
 (add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
-;;;;;;;;;;;;;;;;;;;;; END - not in arrayForth ;;;;;;;;;;;;;;;;;;;;;
 
 (add-primitive-word! #f "and"
                      (lambda ()
