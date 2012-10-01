@@ -774,4 +774,4 @@
     (current-input-port old-in)))
 
 (run-file "basewords.forth")
-;(run-file-with-output "example.forth")
+(run-file-with-output "examples/loop.forth")
