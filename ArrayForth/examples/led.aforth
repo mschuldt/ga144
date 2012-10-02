@@ -1,0 +1,28 @@
+{code info}
+500 node 928 load
+600 node 930 load
+
+{load info}
+500 /node $0 /p
+600 /node $0 /p
+
+(b is default to io)
+
+{block 928}
+: init $20000 !b $3ffff
+: loop
+1000 for $3ffff for @b next next
+$10000 !b
+1000 for $3ffff for @b next next
+$20000 !b
+loop ;
+
+{block 930}
+: init $20000 !b $3ffff
+: loop
+1000 for $3ffff for @b next next
+$10000 !b
+1000 for $3ffff for @b next next
+$20000 !b
+loop ;
+

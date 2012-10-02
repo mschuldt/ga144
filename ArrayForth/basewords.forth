@@ -12,3 +12,5 @@
 : *.17 a! 15 push dup dup or 
 begin +* unext - +* a -if
 drop - 2* ; ] then drop 2* - ;
+(: for push begin ;)
+(: invert begin - ; ???)

@@ -1,0 +1,9 @@
+{code info}
+600 node 930 fh load
+
+{load info}
+200 /node $0 /p
+
+{block 930}
+: mult 2726 261738 a! 0 17 for +* next ;
+(result -> s = 2726 t = 2721 a = 203964)

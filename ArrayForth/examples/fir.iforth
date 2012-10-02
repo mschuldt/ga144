@@ -1,0 +1,48 @@
+926 /block 5 recv (p is set to multiport execute as default)
+928 /block 1 recv 
+930 /block $10 /p
+
+(ignore fake blocks. all start at 0)
+
+block 926
+( store fir results)
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
+
+: store dup or a! 31 for 5 recv !+ next store ;
+
+block 928
+( perform fir filtering)
+: /start @p { .. store .. } 5 send 
+: fir 0 2 recv 15 42 push taps
+[ $3fd3e , 0 , $3fb3c , 0 , $00aeb , 0 , $016dd , 0 ,
+$3d48d , 0 , $3b05a , 0 , $09d41 , 0 , $1ffff , 0 ,
+$1ffff , 0 , $09d41 , 0 , $3b05a , 0 , $3d48d , 0 ,
+$016dd , 0 , $00aeb , 0 , $3fb3c , 0 , $3fd3e , 0 ,
+] drop 5 send fir ;
+
+block 930
+( source of input samples)
+( one cycle of a sine wave)
+$00000 , $0c3ef , $16a09 , $1d906 , $1ffff , $1d906 , $16a09 , $0c3ef , 
+$00000 , $33c11 , $295f7 , $226fa , $20001 , $226fa , $295f7 , $33c11 ,
+
+$10 org
+: go $30000 0 send 
+@p [ .. /start .. ] 1 send
+: rep dup or a! 15 for @+ 2 send next
+( toggle LED if counter is 0)
+@ -1 . + dup ! if rep ; ] then
+$03fff ! 3 recv -if $20000 4 send rep ; ] then
+$30000 4 send rep ;
+
+(1 send and 2 send can be combined into one chanel.
+we can use the same chanel when we know that both pieces are sent to the same node.
+look at 5 send as example.)
+
+fblock 0
+(fake block for node 600's io)
+0 recv
+: rep 3 send 4 recv rep ;

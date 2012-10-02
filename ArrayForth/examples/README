@@ -1,0 +1,27 @@
+file ext  language                description
+-----------------------------------------------------------------------------
+.forth    normal "forth"          normal forth
+.iforth   "i"ntermediat "forth"   partitioned forth with send/recv
+.aforth   "a"rray "forth"         simplified arrayforth
+.cfs      actual arrayforth       use python script to compile to OkadWork.cf
+
+
+================= TEST ORDER =================
+stepmultiply = simple program with one node
+.forth
+.aforth
+
+equivalent, loop
+
+<more to come>
+
+led = two nodes, no communication, write to io
+.aforth
+
+fir = 3 nodes with communication and io
+.iforth _nodec
+_nodec.aforth (comment and display code removed)
+_full.aforth (with comment and display code)
+.iforth
+.forth (incomplete?)
+

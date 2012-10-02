@@ -1,0 +1,109 @@
+{block 120}
+( - node) # 708 ( paths)
+: line ( ncd) swap push swap | indent
+     begin dup , over + -next drop drop ;
+: count ( nc-ncd) dup [ 100 ] mod [ 0 ] + if | cr
+( horz) swap drop [ 1 ] ; ( vert) ] then drop [ 100 ] / [ 100 ] ;
+: to ( nn) over negate + -if | cr
+( back) negate count negate line ; | cr
+( forw) ] then count line ; | br
+
+: 0pa align create [ 708 700 to 600 0 to | cr
+1 17 to 117 717 to 716 708 to -1 , ]
+: 1pa align create [ 708 701 to 601 101 to | cr
+102 116 to 216 716 to 715 708 to -1 , ]
+: 2pa align create [ 708 717 to 617 17 to | cr
+16 0 to 100 , 101 116 to 216 200 to | cr
+300 316 to 416 400 to 500 516 to | cr
+616 600 to 700 708 to -1 ,
+
+{block 148}
+( f18 software simulator) empty compile | , ( demo bootstream) # 1242 ( load empty) | , ( prelude) 1250 load ( boot descriptors) 1236 load | , ( engine) 1252 8 loads ( opcodes) 1268 4 loads | , ( boot loader) 1238 load | , ( display) 1276 6 loads 1248 load 1288 2 loads | , ( preserve variables) :var nmem [0x18] :var n2mem [0x18]
+: nm2m [ nod2 ] @ !node [ n2mem ] @ mem ! | , | ... [ nod ] @ !node [ nmem ] @ mem ! ; :var big [0x64]
+: puka ( nn-a) nn-n 2* $8000 + block ;
+: code ( nn nn) puka push puka pop 64 move ; | , ( keyboard) 1292 2 loads | , ( ports and pins) 1296 2 loads | , ( interactive) 1240 load | , | ,
+: /softsim 0 [ time ] ! power | , [ first ] @ 1 + if drop nm2m ; ] then # 0 [ first ] ! | , 100 [ big ] ! 1 [ gap ] ! -1 [ wind? ] ! | , [ 100 ] !node [ 0 ] mem ! [ 100 ] other | , [ 0 ] !node [ 0 ] mem ! [ 0 ] node 0 [ xo ] ! 0 [ yo ] ! !vis ; | , | , ( init and testbeds) 902 load | , ( start) /softsim ok h
+
+{block 200}
+( user f18 code) reclaim 900 load | br
+
+( softsim example reclaim) # 0 ( node) # 1342 ( load) | cr
+( practical example pwm code reclaim) # 842 ( load)
+
+{block 202}
+( ga application tools)
+: a-com [ 3 ] ; | *
+: a-bps 921600 ;
+: c-com [ 5 ] ; | *
+: c-bps 921600 ;
+: host 206 ; | *
+: target 208 ; | , ( modules) | *
+: sram [ 264 ] ; | , ( utils) | *
+: streamer [ 282 ] ; | *
+: loader [ 210 ] ; | , | ,
+: selftest ( port) [ 708 ] load ; :var stp [0x3]
+: autotest ( port) [ 712 ] load ;
+
+{block 900}
+( fir) host | *
+: offset 400 ;
+: +n offset + node ;
+target | cr
+( result storage) | cr
+0 +n 26 fh load = $26 | cr
+( compute node) | cr
+100 +n 28 fh load = $d8 | cr
+( input storage) | cr
+200 +n 30 fh load = $28
+
+{block 902}
+( - load descriptor)
+: offset 400 ;
+: /node ( n) offset + dup +node /ram ; | cr
+0 /node | cr
+100 /node | cr
+200 /node $10 /p | cr
+
+{block 904}
+( loader template) target load loader load | cr
+( using default ide paths) | cr 
+( kill boots) 0 708 hook 0 -hook | cr
+( setup application) 902 load | cr
+( visit perimeter nodes) 0 ship panel | cr
+( susp boot-) $0 $0 ( warm) $a9 /frame wos !frame
+
+{block 926}
+( -) # 400 ( store fir results) 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+
+: start = $20 down b! | cr
+: store = $0 dup or a! 31 for @b !+ next store ;
+
+{block 928}
+( -) # 500 ( perform fir filtering) 0 org = $0 | cr
+( counter) | cr
+: /start = $0 down b! @p [ .. start .. ] !b up b! | cr
+: fir 0 @b 15 42 push taps = $0 | cr
+[ $3fd3e , 0 , $3fb3c , 0 , $00aeb , 0 , $016dd , 0 ,
+$3d48d , 0 , $3b05a , 0 , $09d41 , 0 , $1ffff , 0 ,
+$1ffff , 0 , $09d41 , 0 , $3b05a , 0 , $3d48d , 0 ,
+$016dd , 0 , $00aeb , 0 , $3fb3c , 0 , $3fd3e , 0 ,
+] = $0 drop down b! !b up b! fir = $0 ; | cr
+
+{block 930}
+( -) # 600 ( source of input samples) 0 org | cr
+( one cycle of a sine wave) | cr
+$00000 , $0c3ef , $16a09 , $1d906 , $1ffff , $1d906 , $16a09 , $0c3ef , | cr
+$00000 , $33c11 , $295f7 , $226fa , $20001 , $226fa , $295f7 , $33c11 , | cr
+| cr
+= $20 $10 org ]
+: go = $20 io b! $30000 !b up b! @p [ .. /start .. ] !b | cr
+: rep dup or a! 15 for @+ !b next | cr
+( toggle LED if counter is 0) | cr
+@ -1 . + dup ! if rep ; ] then | cr
+$03fff ! io b! @b -if $20000 !b up b! rep ; ] then | cr
+$30000 !b up b! rep ;
+
