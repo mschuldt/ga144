@@ -1,7 +1,7 @@
 #lang racket
 
 (require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
-(provide interpret run-file)
+(provide interpret load-primitive-file run-file-with-cores)
 
 (define (displaynl arg)
   (display arg)
@@ -31,8 +31,9 @@
 (define litspace (make-rvector 100))
 (define lit-entry 0)
 
-(define cores (make-vector 144))
-(for ((i (in-range 0 144)))
+(define num-cores 144)
+(define cores (make-vector num-cores))
+(for [(i (in-range 0 num-cores))]
      (vector-set! cores i (make-zeroed-core)))
 
 (define state-index 0)
@@ -225,11 +226,22 @@
                         (raise (string-append name " ?"))))))))))
 (add-primitive-word! #f "interpret" interpret-proc)
 
-(define (interpret)
-  (set-state-stack! current-state (make-bytes 0))
-  (set-state-rstack! current-state (make-bytes 0))
-  (set! pc interpreter-addr)
-  (code-loop))
+(define (reset-states!)
+  (for [(i (in-range 0 num-cores))]
+       (set-state-stack! (vector-ref cores i) (make-bytes 0))
+       (set-state-rstack! (vector-ref cores i) (make-bytes 0))
+       (set-state-pc! (vector-ref cores i) interpreter-addr)))
+
+(define intepret code-loop)
+
+(struct blockend exn:fail ())
+(add-primitive-word! #t "block" (lambda () (raise (blockend "Block end" (current-continuation-marks)))))
+
+(define (interpret-multiple)
+  (with-handlers ([blockend? (lambda (err) (forth_read_no_eof) (forth_read_no_eof) (forth_read_no_eof)
+				     (set! state-index (string->num (forth_read_no_eof)))
+				     (interpret-multiple))])
+		 (interpret-single)))
 
 ; Colon compiler
 (define (colon-compiler)
@@ -889,23 +901,32 @@
 
 (add-primitive-word! #f ".r" (lambda () (print-stack (state-rstack current-state))))
 
-(define (run-file file-string)
-  (let [(old-in (current-input-port))
-	(old-out (current-output-port))]
-    (current-input-port (open-input-file file-string))
-    (current-output-port (open-output-string)) ; Discard the output
-    (interpret)
-    (close-input-port (current-input-port))
-    (close-output-port (current-output-port))
-    (current-input-port old-in)
-    (current-output-port old-out)))
+(define (load-primitive-file name)
+  (call-with-input-file name
+    (lambda (in)
+      (let [(old-in (current-input-port))
+            (old-out (current-output-port))]
+        (current-input-port in)
+        (current-output-port (open-output-string))
+        (interpret)
+        (close-output-port (current-output-port))
+        (current-input-port old-in)
+        (current-output-port old-out))))
+  (void))
 
-(define (run-file-with-output file-string)
-  (let [(old-in (current-input-port))]
-    (current-input-port (open-input-file file-string))
-    (interpret)
-    (close-input-port (current-input-port))
-    (current-input-port old-in)))
+(define (run-file-with-cores name)
+  (call-with-input-file name
+    (lambda (in)
+      (let [(old-in (current-input-port))]
+        (current-input-port in)
+        (interpret)
+        (current-input-port old-in))))
+  (call-with-input-file name
+    (lambda (in)
+      (let [(old-in (current-input-port))]
+        (current-input-port in)
+        (interpret)
+        (current-input-port old-in))))
+  (void))
 
-(run-file "basewords.forth")
-;(run-file-with-output "example.forth")
+; (load-primitive-file "basewords.forth")
