@@ -2,7 +2,7 @@
 500 node 928 load
 600 node 930 load
 
-{block 902}
+{load info}
 500 /node $0 /p
 600 /node $0 /p
 

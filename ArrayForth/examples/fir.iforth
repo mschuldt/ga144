@@ -1,16 +1,10 @@
-{code info}
-400 node 926 load
-500 node 928 load
-600 node 930 load
-
-{load info}
-400 /node 5 recv (p is set to multiport execute as default)
-500 /node 1 recv 
-600 /node $10 /p
+926 /block 5 recv (p is set to multiport execute as default)
+928 /block 1 recv 
+930 /block $10 /p
 
 (ignore fake blocks. all start at 0)
 
-{block 926}
+block 926
 ( store fir results)
 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 
@@ -19,7 +13,7 @@
 
 : store dup or a! 31 for 5 recv !+ next store ;
 
-{block 928}
+block 928
 ( perform fir filtering)
 : /start @p { .. store .. } 5 send 
 : fir 0 2 recv 15 42 push taps
@@ -29,7 +23,7 @@ $1ffff , 0 , $09d41 , 0 , $3b05a , 0 , $3d48d , 0 ,
 $016dd , 0 , $00aeb , 0 , $3fb3c , 0 , $3fd3e , 0 ,
 ] drop 5 send fir ;
 
-{block 930}
+block 930
 ( source of input samples)
 ( one cycle of a sine wave)
 $00000 , $0c3ef , $16a09 , $1d906 , $1ffff , $1d906 , $16a09 , $0c3ef , 
@@ -48,7 +42,7 @@ $30000 4 send rep ;
 we can use the same chanel when we know that both pieces are sent to the same node.
 look at 5 send as example.)
 
-{fblock 0}
+fblock 0
 (fake block for node 600's io)
 0 recv
 : rep 3 send 4 recv rep ;
