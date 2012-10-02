@@ -105,6 +105,7 @@
 
 ; Dictionary
 (define (add-entry! prim prec name code [data '()])
+  (printf "add-entry ~e\n" code)
   (let [(new (entry prim prec name code data))]
     (rvector-set! dict next-address new)
     (set! next-address (add1 next-address))
@@ -114,12 +115,12 @@
 ; procedures that manipulate the dictionary and the codespace.
 (define here-entry
   (let [(addr next-address)]
-    (rvector-set! codespace 1 (lambda () (push-int! addr)))
+    (rvector-set! codespace 1 (lambda () (push-int! addr))) ;; TODO(codespace)
     (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
 
 (define (add-to-codespace proc-or-addr)
   (printf "add-compile ~e\n" (entry-data here-entry))
-  (rvector-set! codespace (entry-data here-entry) proc-or-addr)
+  (proc-add! codespace (entry-data here-entry) proc-or-addr)
   (set-entry-data! here-entry (add1 (entry-data here-entry))))
   
 (define (add-to-litspace proc-or-addr)
@@ -178,7 +179,8 @@
 (define (code-loop)
   (if (= pc 0)
       'Exiting
-      (let [(code (rvector-ref codespace pc))]
+      (let [(code (proc-ref codespace pc))]
+        (printf "pc = ~e\n" pc)
         (set! pc (add1 pc))
         (with-handlers ([string? abort])
           (if (number? code)
@@ -245,7 +247,7 @@
                 [(entry-precedence entry)
                  (execute entry)]
                 [(entry-primitive entry)
-                 (add-compiled-code! (rvector-ref codespace (entry-code entry)))]
+                 (add-compiled-code! (proc-ref codespace (entry-code entry)))]
                 [else
                  (add-compiled-code! (entry-code entry))] ))
         (void))))
@@ -281,12 +283,16 @@
 (define (stop-literal)
   (set! literal-mode 0)
   (printf "{")
-  (add-compiled-code! (lambda () 
-                        ((rvector-ref litspace 0)) 
-                        ((rvector-ref litspace 1))
-                        ((rvector-ref litspace 2))
-                        ((rvector-ref litspace 3))
-                        ))
+  (let [(code0 (rvector-ref litspace 0)) 
+        (code1 (rvector-ref litspace 1)) 
+        (code2 (rvector-ref litspace 2)) 
+        (code3 (rvector-ref litspace 3))]
+    (add-compiled-code! (lambda () 
+                        (code0) 
+                        (code1)
+                        (code2)
+                        (code3)
+                        )))
   (printf "}\n"))
 
 (add-primitive-word! #t "}" stop-literal)
@@ -376,7 +382,7 @@
   (push-int! (entry-data here-entry) 1)
   (add-compiled-code! dummy-proc)
   (let [(here-addr (entry-data here-entry))]
-    (rvector-set! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
+    (proc-replace! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
 (add-primitive-word! #t "else" else-proc)
 
 ; THEN
@@ -384,7 +390,7 @@
 ; This will patch up the dummy procedure left by IF or ELSE.
 (define (then-proc)
   (let [(here-addr (entry-data here-entry))]
-    (rvector-set! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
+    (proc-replace! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
 (add-primitive-word! #t "then" then-proc)
 
 
