@@ -105,7 +105,6 @@
 
 ; Dictionary
 (define (add-entry! prim prec name code [data '()])
-  (printf "add-entry ~e\n" code)
   (let [(new (entry prim prec name code data))]
     (rvector-set! dict next-address new)
     (set! next-address (add1 next-address))
@@ -119,7 +118,7 @@
     (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
 
 (define (add-to-codespace proc-or-addr)
-  (printf "add-compile ~e\n" (entry-data here-entry))
+  ;(printf "add-compile ~e\n" (entry-data here-entry))
   (proc-add! codespace (entry-data here-entry) proc-or-addr)
   (set-entry-data! here-entry (add1 (entry-data here-entry))))
   
@@ -180,7 +179,7 @@
   (if (= pc 0)
       'Exiting
       (let [(code (proc-ref codespace pc))]
-        (printf "pc = ~e\n" pc)
+        ;(printf "pc = ~e\n" pc)
         (set! pc (add1 pc))
         (with-handlers ([string? abort])
           (if (number? code)
@@ -282,7 +281,6 @@
 
 (define (stop-literal)
   (set! literal-mode 0)
-  (printf "{")
   (let [(code0 (rvector-ref litspace 0)) 
         (code1 (rvector-ref litspace 1)) 
         (code2 (rvector-ref litspace 2)) 
@@ -292,8 +290,7 @@
                         (code1)
                         (code2)
                         (code3)
-                        )))
-  (printf "}\n"))
+                        ))))
 
 (add-primitive-word! #t "}" stop-literal)
 
@@ -354,7 +351,7 @@
 ; This will later be replaced by an unconditional branch by ELSE or THEN.
 (define (if-proc)
   (add-compiled-code!
-   (lambda () (if (= (pop-int! #f) 0)
+   (lambda () (if (= (get-int #f) 0)
                   (void)
                   (set! pc (add1 pc)))))
   (push-int! (entry-data here-entry))
@@ -367,7 +364,7 @@
 ; This will later be replaced by an unconditional branch by ELSE or THEN.
 (define (nif-proc)
   (add-compiled-code!
-   (lambda () (if (>= (pop-int! #t) 0)
+   (lambda () (if (>= (get-int #t) 0)
                   (void)
                   (set! pc (add1 pc)))))
   (push-int! (entry-data here-entry))
@@ -780,4 +777,4 @@
     (current-input-port old-in)))
 
 (run-file "basewords.forth")
-(run-file-with-output "examples/loop.forth")
+;(run-file-with-output "example.forth")

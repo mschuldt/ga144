@@ -1,7 +1,5 @@
 *.dep
 *.zo
 *.bak
-*.out
-*.tmp
 *~
 

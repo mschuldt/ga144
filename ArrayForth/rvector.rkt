@@ -29,7 +29,7 @@
   (rvector-ref procedures (rvector-ref vlist index)))
 
 (define (proc-add! vlist index value)
-  (printf "add-proc ~e\n" proc-index)
+  ;(printf "add-proc ~e\n" proc-index)
   (rvector-set! vlist index proc-index)
   (rvector-set! procedures proc-index value)
   (set! proc-index (add1 proc-index)))
