@@ -7,11 +7,11 @@ file ext  language                description
 
 
 ================= TEST ORDER =================
-stepmultiply = simple program with one node
+multiply = simple program with one node
 .forth
 .aforth
 
-equivalent, loop
+control, literal
 
 <more to come>
 
