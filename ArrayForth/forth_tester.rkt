@@ -17,6 +17,11 @@
     (current-input-port old_in)
     (current-output-port old_out)))
 
+(define (remove-return str)
+  (if (equal? (string-ref str (sub1 (string-length str))) #\return)
+      (substring str 0 (sub1 (string-length str)))
+      str))
+
 (define (check-equal-files a b [line 1])
   (let [(aline (read-line a))
         (bline (read-line b))]
@@ -25,7 +30,7 @@
           [(or (eof-object? aline) (eof-object? bline))
            (displaynl (string-append "Line " (number->string line)
                                    ": Encountered end of file for only 1 file"))]
-          [(equal? aline bline)
+          [(equal? (remove-return aline) (remove-return bline)) ; Returns appear only on Unix, so remove them.
            (check-equal-files a b (+ line 1))]
           [else
            (displaynl (string-append "Line " (number->string line)

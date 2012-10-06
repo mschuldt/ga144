@@ -1,7 +1,7 @@
 #lang racket
 
 (require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
-(provide interpret load-primitive-file run-file-with-cores)
+(provide interpret interpret-cores run-tests)
 
 (define (displaynl arg)
   (display arg)
@@ -17,14 +17,19 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (stack rstack codespace dict next-address visible-address pc rega regb) #:mutable)
+(struct state (stack rstack pc rega regb input) #:mutable)
+
+(define dict (make-rvector 100))
+(define codespace (make-rvector 500))
+(define next-address 1)
+(define visible-address 0)
 
 ; Codespace - somewhat like assembly instructions
 ;; TODO: make-core, which puts garbage in the stacks and dict
 ;; TODO: regb is initialized to io
 
 (define (make-zeroed-core)
-  (state (make-bytes 0) (make-bytes 0) (make-rvector 500) (make-rvector 100) 1 0 0 0 0))
+  (state (make-bytes 0) (make-bytes 0) 0 0 0 '()))
 
 ; Hack for @p { .. }
 (define literal-mode 0)
@@ -45,13 +50,14 @@
       [(set! name x) (setter current-state x)]
       [name (getter current-state)])))
 
-(generate-macro codespace state-codespace set-state-codespace!)
-(generate-macro dict state-dict set-state-dict!)
-(generate-macro next-address state-next-address set-state-next-address!)
-(generate-macro visible-address state-visible-address set-state-visible-address!)
+;(generate-macro codespace state-codespace set-state-codespace!)
+;(generate-macro dict state-dict set-state-dict!)
+;(generate-macro next-address state-next-address set-state-next-address!)
+;(generate-macro visible-address state-visible-address set-state-visible-address!)
 (generate-macro pc state-pc set-state-pc!)
 (generate-macro rega state-rega set-state-rega!)
 (generate-macro regb state-regb set-state-regb!)
+(generate-macro input state-input set-state-input!)
 
 ; Stacks
 (define (push-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] bstr [pos 0])
@@ -113,10 +119,13 @@
 
 ; Create the HERE variable first, so that it can be used by other
 ; procedures that manipulate the dictionary and the codespace.
-(define here-entry
-  (let [(addr next-address)]
-    (rvector-set! codespace 1 (lambda () (push-int! addr))) ;; TODO(codespace)
-    (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
+;(define here-entry
+;  (let [(addr next-address)]
+;    (rvector-set! codespace 1 (lambda () (push-int! addr))) ;; TODO(codespace)
+;    (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
+
+(define here-entry (add-entry! #t #f "here" 1 1)) ; a primitive variable named "here" whose code starts at address 1, value is 1.
+; Code to deal with "here" will be inserted later.
 
 (define (add-to-codespace proc-or-addr)
   ;(printf "add-compile ~e\n" (entry-data here-entry))
@@ -138,10 +147,14 @@
 (define (exit)
   (pop-int! #:getter state-rstack #:setter set-state-rstack! #f) ; Don't return to wherever exit came from
   (set! pc (pop-int! #:getter state-rstack #:setter set-state-rstack! #f)))
-(add-compiled-code! exit-addr) ; The word HERE also has to have an EXIT
 
 (define (reveal-entry!)
   (set! visible-address (sub1 next-address)))
+
+; Now we can add the code for HERE.
+(add-compiled-code! (lambda () (push-int! next-address))) ; Adds this code to codespace at address 1 (value of HERE)
+(add-compiled-code! exit-addr) ; Adding the EXIT for HERE.
+(reveal-entry!)
 
 (define (add-and-reveal-entry! prim prec name code data)
   (let [(entry (add-entry! prim prec name code data))]
@@ -151,14 +164,14 @@
 (define (lamb) (lambda() (displaynl "ok")))
 
 (define (add-word! prim prec name [data '()])
-  (add-and-reveal-entry! prim prec name (entry-data here-entry) '()))
+  (add-and-reveal-entry! prim prec name (entry-data here-entry) data))
+(void (add-word! #f #f "exit"))
+(add-compiled-code! exit)
 
 (define (add-primitive-word! prec name code [data '()])
   (add-word! #t prec name data)
   (add-compiled-code! code)
   (add-compiled-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
-(void (add-word! #f #f "exit"))
-(add-compiled-code! exit)
 
 (define (find-address name)
   (define (loop address)
@@ -176,17 +189,26 @@
 
 ; Interpreter and associated procedures
 
+; This code is ugly, because I don't know how to use Racket well.
 (define (code-loop)
-  (if (= pc 0)
-      'Exiting
-      (let [(code (proc-ref codespace pc))]
-        ;(printf "pc = ~e\n" pc)
-        (set! pc (add1 pc))
-        (with-handlers ([string? abort])
-          (if (number? code)
-              (execute-code code)
-              (code)))
-        (code-loop))))
+  (let [(ended-list
+	 (map
+	  (lambda (num)
+	    (set! state-index num)
+	    (set! current-state (vector-ref cores state-index))
+	    (if (= pc 0)
+		#t
+		(let [(code (proc-ref codespace pc))]
+		  (current-input-port input)
+		  (set! pc (add1 pc))
+		  (with-handlers ([string? abort])
+				 (if (number? code)
+				     (execute-code code)
+				     (code)))
+		  #f)))
+	  used-cores))]
+    (unless (for/and ([bool ended-list]) bool)
+	    (code-loop))))
 
 (define (execute-code addr)
   (push-int! #:getter state-rstack #:setter set-state-rstack! pc) ; pc will be the address of the next instruction to execute
@@ -233,16 +255,33 @@
        (set-state-rstack! (vector-ref cores i) (make-bytes 0))
        (set-state-pc! (vector-ref cores i) interpreter-addr)))
 
-(define intepret code-loop)
+(define (interpret)
+  (set! used-cores '(0))
+  (set! state-index 0)
+  (set! current-state (vector-ref cores state-index))
+  (set! input (current-input-port))
+  (reset-states!)
+  (code-loop))
 
-(struct blockend exn:fail ())
-(add-primitive-word! #t "block" (lambda () (raise (blockend "Block end" (current-continuation-marks)))))
+;(struct blockend exn:fail ())
+;(add-primitive-word! #t "block" (lambda () (raise (blockend "Block end" (current-continuation-marks)))))
 
-(define (interpret-multiple)
-  (with-handlers ([blockend? (lambda (err) (forth_read_no_eof) (forth_read_no_eof) (forth_read_no_eof)
-				     (set! state-index (string->num (forth_read_no_eof)))
-				     (interpret-multiple))])
-		 (interpret-single)))
+(define used-cores '())
+
+(define (interpret-cores code-info)
+  (define (setup-loop code)
+    (set! state-index (get-core-num (car code)))
+    (set! used-cores (cons state-index used-cores))
+    (set! current-state (vector-ref cores state-index))
+    (set! input (get-core-port (car code)))
+    (set! pc interpreter-addr)
+    (if (null? (cdr code))
+	(void)
+	(setup-loop (cdr code))))
+  (setup-loop code-info)
+  (set! state-index (get-core-num (car code-info)))
+  (set! current-state (vector-ref cores state-index))
+  (code-loop))
 
 ; Colon compiler
 (define (colon-compiler)
@@ -767,6 +806,7 @@
                                                   (raise str)))))))
 
 (add-primitive-word! #f ".s" (lambda () (print-stack (state-stack current-state))))
+(add-primitive-word! #f ".ns" (lambda () (print state-index) (display ": ") (print-stack (state-stack current-state)) (newline)))
 
 (add-primitive-word! #f ".r" (lambda () (print-stack (state-rstack current-state))))
 
@@ -786,16 +826,8 @@
 (define (run-file-with-cores name)
   (call-with-input-file name
     (lambda (in)
-      (let [(old-in (current-input-port))]
-        (current-input-port in)
-        (interpret)
-        (current-input-port old-in))))
-  (call-with-input-file name
-    (lambda (in)
-      (let [(old-in (current-input-port))]
-        (current-input-port in)
-        (interpret)
-        (current-input-port old-in))))
+      (let* [(core-info (get-core-info-and-code in))]
+        (interpret-cores core-info))))
   (void))
 
 (define (run-file file-string)
@@ -816,5 +848,23 @@
     (close-input-port (current-input-port))
     (current-input-port old-in)))
 
-(run-file "basewords.forth")
+(define make-core-info cons)
+(define get-core-num car)
+(define get-core-port cdr)
+
+;(run-file "basewords.forth")
 ;(run-file-with-output "example.forth")
+; Stub for get-core-info-and-code
+(define (get-core-info-and-code input) (void))
+
+(define (run-tests)
+  (display "Start of test 1:") (newline)
+  (interpret-cores
+   (list
+    (make-core-info 0 (open-input-string "1 2 .ns + .ns"))
+    (make-core-info 40 (open-input-string "7 .ns .ns"))))
+  (display "Start of test 2:") (newline)
+  (interpret-cores
+   (list
+    (make-core-info 22 (open-input-string "9 dup if .ns ; then 1 .ns"))
+    (make-core-info 143 (open-input-string "7 .ns .ns")))))
