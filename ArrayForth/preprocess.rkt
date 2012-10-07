@@ -1,5 +1,10 @@
 #lang racket
 
+(provide scan-blocks)
+
+(require "forth_read.rkt")
+(require "rewrite.rkt")
+
 (require racket/string)
 (require racket/function)
 
@@ -32,17 +37,25 @@
 (define (scan-blocks lines)
   (define (go line blocks)
     (let ([num (regexp-match block-syntax line)])
-      (if num
-          (cons (block (string->number (cadr num)) '()) blocks)
-          (cons (add-line (car blocks) line) (cdr blocks)))))
-  (map block-to-port (reverse (foldl go '() (drop-while (negate is-block?) lines)))))
+      (if num (cons (block (string->number (cadr num)) '()) blocks)
+              (cons (add-line (car blocks) line) (cdr blocks)))))
+  (map (compose rewrite-block block-to-port)
+       (reverse (foldl go '() (drop-while (negate is-block?) lines)))))
 
 ;;; Maps a block with a list of strings to one with an output port instead.
 (define (block-to-port old-block)
   (struct-copy block old-block
                [code (open-input-string (string-join (block-code old-block) "\n"))]))
 
-;;; Reads a file until eof, returning a list of lines in the file.
+;;; Rewrites a block's code with the default rewrite rules.
+(define (rewrite-block old-block)
+  (struct-copy block old-block
+               [code (open-input-string
+                      (string-join (rewrites
+                                    (map (lambda (s) (if (char? s) (string s) s))
+                                         (read-to-list (block-code old-block)))) " "))]))
+
+;;; Reads a port until eof, returning a list of lines in the file.
 (define (slurp file)
   (define (go line lines)
     (let ([c (read-char file)])
