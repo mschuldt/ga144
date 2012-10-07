@@ -2,4 +2,4 @@
 
 (require "forth_base.rkt")
 
-(interpret)
+;(interpret)

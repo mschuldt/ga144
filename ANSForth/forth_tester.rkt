@@ -6,16 +6,9 @@
   (display arg)
   (newline))
 
-(let [(old_in (current-input-port))
-      (old_out (current-output-port))]
-  (current-input-port (open-input-file "forth.test"))
-  (current-output-port (open-output-file "forth.tmp" #:exists 'truncate))
-  (interpret)
-  (close-input-port (current-input-port))
-  (close-output-port (current-output-port))
-  (current-input-port old_in)
-  (current-output-port old_out)
-  (displaynl "Tests executed"))
+(call-with-output-file "forth.tmp" #:exists 'truncate
+  (lambda (out) (run-file "forth.test" out)))
+(displaynl "Tests executed")
 
 (define (check-equal-files a b [line 1])
   (let [(aline (read-line a))
