@@ -60,7 +60,7 @@
   (define (go line lines)
     (let ([c (read-char file)])
       (cond
-       [(eof-object? c) lines]
+       [(eof-object? c) (cons line lines)]
        [(char=? c #\newline) (go "" (cons line lines))]
        [else (go (string-append line (string c)) lines)])))
  (reverse (go "" '())))
