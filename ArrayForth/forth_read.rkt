@@ -1,6 +1,6 @@
 #lang racket
 
-(provide forth_read_no_eof forth_read read read-syntax)
+(provide forth_read_no_eof forth_read read read-syntax read-to-list)
 
 (define (read in)
   (define (get_first_char_in_list)
@@ -25,6 +25,11 @@
         first_char
         (let [(lst (iter first_char))]
           (list->string lst)))))
+
+;;; Given a port, returns a list of forth tokens.
+(define (read-to-list port)
+  (let ([token (read port)])
+    (if (eof-object? token) '() (cons token (read-to-list port)))))
 
 (define (read-syntax src in)
   (read in))
