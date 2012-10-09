@@ -30,10 +30,7 @@
 ;;; A bunch of useful rewrite rules for Forth programs.
 (define rules
   (list (rewrite-rule '("\\|" ".*") '())
-        (rewrite-rule '("\\[" ".*" "\\]") '("{" 1 "}"))
-        (rewrite-rule '("\\[" ".*" ".*" "\\]") '("{" 1 2 "}"))
-        (rewrite-rule '("\\[" ".*" ".*" ".*" "\\]") '("{" 1 2 3 "}"))
-        (rewrite-rule '("\\[" ".*" ".*" ".*" ".*" "\\]") '("{" 1 2 3 4 "}"))
+        (rewrite-rule '("#" ".*") '())
         (rewrite-rule '("\\[" ".*" ".*" ".*" ".*" ".*")
                       (lambda args (error "Too many words between [ and ]!")))
         (rewrite-rule '("\\$([0-9A-Fa-f]+)") hex->decimal)))
