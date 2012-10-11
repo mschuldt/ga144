@@ -1,25 +1,34 @@
 #lang racket
 
-(provide stack make-stack)
+(provide stack make-stack push! pop! peek)
 
-;;; How big the circular stack bodies are.
-(define stack-body-size 8)
+;;; Push an element onto the given stack:
+(define (push! old-stack element)
+  (let-values ([(new-registers next)
+                (vector-split-at-right (stack-registers old-stack) 1)])
+    (set-stack-registers! old-stack (vector-append `#(,element) new-registers))
+    (set-stack-sp! old-stack (modulo (add1 (stack-sp old-stack)) 8))
+    (vector-set! (stack-rest old-stack) (stack-sp old-stack)
+                 (vector-ref next 0))))
 
-;;; Pushes the specified element onto the given vector.
-(define (push-vector vector value)
-  (list->vector (cons value (drop-right (vector->list vector)))))
+;;; Pops an element off the stack and returns it.
+(define (pop! old-stack)
+  (let-values ([(ret new-registers)
+                (vector-split-at (stack-registers old-stack) 1)])
+    (let ([element (vector-ref (stack-rest old-stack) (stack-sp old-stack))])
+      (set-stack-registers! old-stack (vector-append new-registers `#(,element))))
+    (set-stack-sp! old-stack (modulo (sub1 (stack-sp old-stack)) 8))
+    (vector-ref ret 0)))
 
-;;; Pops an element off the vector, copying it to the end. Returns
-;;; both the element and the new vector.
-(define (pop-vector vector value)
-  (let ([ls (vector->list vector)])
-    `(,(cons ls) ,(list->vector (append (cdr ls) (list (cons ls)))))))
+;;; Returns the top value of the stack without taking it off the stack.
+(define (peek old-stack)
+  (vector-ref (stack-registers old-stack) 0))
 
 ;;; Represents a stack with its top registers and the rest of its
 ;;; elements as vectors.
-(struct stack (top rest))
+(struct stack ([registers #:mutable] [sp #:mutable] rest))
 
 ;;; Creates an empty stack with the specified number of top registers
 ;;; (2 by default).
-(define (make-stack [registers 2])
-  (stack (make-vector registers) (make-vector stack-body-size)))
+(define (make-stack [registers 2] [stack-body-size 8])
+  (stack (make-vector registers) 0 (make-vector stack-body-size)))
