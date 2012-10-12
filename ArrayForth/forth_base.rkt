@@ -24,6 +24,11 @@
 (define next-address 1)
 (define visible-address 0)
 
+; TODO: Make an rvector with default always #f (right now, when expanded, will have default 0).
+(define send-recv-table (make-rvector 100))
+(for ([i (in-range 100)])
+     (rvector-set! send-recv-table i #f))
+
 ; Codespace - somewhat like assembly instructions
 ;; TODO: make-core, which puts garbage in the stacks and dict
 ;; TODO: regb is initialized to io
@@ -788,6 +793,21 @@
                               (arg2 (pop-int! #t))]
                          (push-int! (bitwise-xor arg1 arg2))))) ; xor - exclusive or
 
+(add-primitive-word! #f "send"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #t))
+                              (arg2 (pop-int! #t))]
+			 (if (rvector-ref send-recv-table arg1)
+			     (set! pc (sub1 pc))
+			     (rvector-set! send-recv-table arg1 arg2)))))
+
+(add-primitive-word! #f "recv"
+                     (lambda ()
+                       (let* [(arg1 (pop-int! #t))
+			      (val (rvector-ref send-recv-table arg1))]
+			 (if val
+			     (push-int! val)
+			     (begin (push-int! arg1) (set! pc (sub1 pc)))))))
 
 ; ?stack is supposed to check for stack underflow.  However, here Racket's own
 ; error checking will notice the stack underflow, so it has to be checked on every
@@ -861,10 +881,17 @@
   (display "Start of test 1:") (newline)
   (interpret-cores
    (list
-    (make-core-info 0 (open-input-string "1 2 .ns + .ns"))
+    (make-core-info 5 (open-input-string "1 2 .ns + .ns"))
     (make-core-info 40 (open-input-string "7 .ns .ns"))))
   (display "Start of test 2:") (newline)
   (interpret-cores
    (list
     (make-core-info 22 (open-input-string "9 dup if .ns ; then 1 .ns"))
-    (make-core-info 143 (open-input-string "7 .ns .ns")))))
+    (make-core-info 143 (open-input-string "7 .ns .ns"))))
+  (display "Start of test 3:") (newline)
+  (interpret-cores
+   (list
+    (make-core-info 0 (open-input-string "1 2 + 1 .ns send .ns 2 recv .ns"))
+    (make-core-info 1 (open-input-string ".ns 1 recv .ns - 2 send")))))
+
+(run-tests)

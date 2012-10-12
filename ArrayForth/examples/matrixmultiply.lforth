@@ -1,0 +1,88 @@
+926 /block 400 /node 36 /p
+928 /block 500 /node $24 /p
+930 /block 600 /node $d /p
+932 /block 700 /node 36 /p
+
+channel 0
+...
+
+{block 926}
+( -) # 400 0 org | cr
+5 , 2 , 5 , 0 , 8 , 0 , 6 , 1 , | cr
+1 , 4 , 0 , 7 , 5 , 2 , 9 , 1 , | cr
+2 , 5 , 1 , 5 , 6 , 8 , 0 , 5 , | cr
+4 , 7 , 7 , 3 , 1 , 2 , 2 , 9 , | cr
+5 , 0 , 9 , 3 ,
+
+36 org
+: main = $0 dup or a! down b! 35 for @+ !b next = $0 ;
+
+{block 928}
+( -) # 500 0 org | cr
+2 , 1 , 9 , 4 , 0 , 0 , 5 , 1 , | cr
+1 , 2 , 0 , 4 , 2 , 8 , 3 , 7 , | cr
+6 , 4 , 0 , 0 , 1 , 5 , 4 , 9 , | cr
+1 , 1 , 7 , 2 , 3 , 1 , 2 , 3 , | cr
+7 , 2 , 1 , 4 , | cr
+$24 org
+: main = $24
+  up b!
+  5 for 
+    ( pass row of IN1 )
+    down a!
+    5 for 
+      @ !b
+    next
+
+    ( send entire IN2 )
+    5 for
+      pop dup push - 6 + a! 
+      5 for
+        @ a 6 + a! !b
+      next
+    next
+  next = $36 ;
+
+{block 930}
+( -) # 600 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 
+: mult 
+  ( save rega value in return stack )
+  a push 
+  ( S-in1 T-0 A-in2 ) 
+  a! 0 17 for +* next 
+  ( S T A-result )
+  drop drop a
+  ( restore rega value from return stack )
+  pop a! ;
+$d org
+: main = $0
+  5 for
+    ( row of IN1 )
+    up b! dup or a!
+    5 for
+      @b !+
+    next
+
+    5 for
+      ( set sum to 0 , set a to 0 , set b to up)
+      dup or dup a! up b!
+      5 for
+        ( multiply then add to sum )
+        @b @+ mult + 
+      next
+      ( send sum )
+      down b! !b
+    next
+  next = $0 ;
+
+{block 932}
+( -) # 700 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 
+36 org
+: main = $0 down b! dup or a! 35 for @b !+ next = $0 ;
+

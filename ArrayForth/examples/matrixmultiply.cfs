@@ -1,0 +1,154 @@
+{block 120}
+( - node) # 708 ( paths)
+: line ( ncd) swap push swap | indent
+     begin dup , over + -next drop drop ;
+: count ( nc-ncd) dup [ 100 ] mod [ 0 ] + if | cr
+( horz) swap drop [ 1 ] ; ( vert) ] then drop [ 100 ] / [ 100 ] ;
+: to ( nn) over negate + -if | cr
+( back) negate count negate line ; | cr
+( forw) ] then count line ; | br
+
+: 0pa align create [ 708 700 to 600 0 to | cr
+1 17 to 117 717 to 716 708 to -1 , ]
+: 1pa align create [ 708 701 to 601 101 to | cr
+102 116 to 216 716 to 715 708 to -1 , ]
+: 2pa align create [ 708 717 to 617 17 to | cr
+16 0 to 100 , 101 116 to 216 200 to | cr
+300 316 to 416 400 to 500 516 to | cr
+616 600 to 700 708 to -1 ,
+
+{block 148}
+( f18 software simulator) empty compile | , ( demo bootstream) # 1242 ( load empty) | , ( prelude) 1250 load ( boot descriptors) 1236 load | , ( engine) 1252 8 loads ( opcodes) 1268 4 loads | , ( boot loader) 1238 load | , ( display) 1276 6 loads 1248 load 1288 2 loads | , ( preserve variables) :var nmem [0x18] :var n2mem [0x18]
+: nm2m [ nod2 ] @ !node [ n2mem ] @ mem ! | , | ... [ nod ] @ !node [ nmem ] @ mem ! ; :var big [0x64]
+: puka ( nn-a) nn-n 2* $8000 + block ;
+: code ( nn nn) puka push puka pop 64 move ; | , ( keyboard) 1292 2 loads | , ( ports and pins) 1296 2 loads | , ( interactive) 1240 load | , | ,
+: /softsim 0 [ time ] ! power | , [ first ] @ 1 + if drop nm2m ; ] then # 0 [ first ] ! | , 100 [ big ] ! 1 [ gap ] ! -1 [ wind? ] ! | , [ 100 ] !node [ 0 ] mem ! [ 100 ] other | , [ 0 ] !node [ 0 ] mem ! [ 0 ] node 0 [ xo ] ! 0 [ yo ] ! !vis ; | , | , ( init and testbeds) 902 load | , ( start) /softsim ok h
+
+{block 200}
+( user f18 code) reclaim 900 load | br
+
+( softsim example reclaim) # 0 ( node) # 1342 ( load) | cr
+( practical example pwm code reclaim) # 842 ( load)
+
+{block 202}
+( ga application tools)
+: a-com [ 1 ] ; | *
+: a-bps 921600 ;
+: c-com [ 3 ] ; | *
+: c-bps 921600 ;
+: host 206 ; | *
+: target 208 ; | , ( modules) | *
+: sram [ 264 ] ; | , ( utils) | *
+: streamer [ 282 ] ; | *
+: loader [ 210 ] ; | , | ,
+: selftest ( port) [ 708 ] load ; :var stp [0x3]
+: autotest ( port) [ 712 ] load ;
+
+{block 900}
+( fir) host | *
+: offset 400 ;
+: +n offset + node ;
+target | cr
+( A matrix ) | cr
+0 +n 26 fh load = $26 | cr
+100 +n 28 fh load = $26 | cr
+200 +n 30 fh load = $26 | cr
+300 +n 32 fh load = $26 | cr
+
+{block 902}
+( - load descriptor)
+: offset 400 ;
+: /node ( n) offset + dup +node /ram ; | cr
+0 /node 36 /p | cr
+100 /node $24 /p | cr
+200 /node $d /p | cr
+300 /node 36 /p | cr
+
+{block 904}
+( loader template) target load loader load | cr
+( using default ide paths) | cr 
+( kill boots) 0 708 hook 0 -hook | cr
+( setup application) 902 load | cr
+( visit perimeter nodes) 0 ship panel | cr
+( susp boot-) $0 $0 ( warm) $a9 /frame wos !frame
+
+{block 926}
+( -) # 400 0 org | cr
+5 , 2 , 5 , 0 , 8 , 0 , 6 , 1 , | cr
+1 , 4 , 0 , 7 , 5 , 2 , 9 , 1 , | cr
+2 , 5 , 1 , 5 , 6 , 8 , 0 , 5 , | cr
+4 , 7 , 7 , 3 , 1 , 2 , 2 , 9 , | cr
+5 , 0 , 9 , 3 ,
+
+36 org
+: main = $0 dup or a! down b! 35 for @+ !b next = $0 ;
+
+{block 928}
+( -) # 500 0 org | cr
+2 , 1 , 9 , 4 , 0 , 0 , 5 , 1 , | cr
+1 , 2 , 0 , 4 , 2 , 8 , 3 , 7 , | cr
+6 , 4 , 0 , 0 , 1 , 5 , 4 , 9 , | cr
+1 , 1 , 7 , 2 , 3 , 1 , 2 , 3 , | cr
+7 , 2 , 1 , 4 , | cr
+$24 org
+: main = $24
+  up b!
+  5 for 
+    ( pass row of IN1 )
+    down a!
+    5 for 
+      @ !b
+    next
+
+    ( send entire IN2 )
+    5 for
+      pop dup push - 6 + a! 
+      5 for
+        @ a 6 + a! !b
+      next
+    next
+  next = $36 ;
+
+{block 930}
+( -) # 600 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 
+: mult 
+  ( save rega value in return stack )
+  a push 
+  ( S-in1 T-0 A-in2 ) 
+  a! 0 17 for +* next 
+  ( S T A-result )
+  drop drop a
+  ( restore rega value from return stack )
+  pop a! ;
+$d org
+: main = $0
+  5 for
+    ( row of IN1 )
+    up b! dup or a!
+    5 for
+      @b !+
+    next
+
+    5 for
+      ( set sum to 0 , set a to 0 , set b to up)
+      dup or dup a! up b!
+      5 for
+        ( multiply then add to sum )
+        @b @+ mult + 
+      next
+      ( send sum )
+      down b! !b
+    next
+  next = $0 ;
+
+{block 932}
+( -) # 700 0 org | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , | cr
+0 , 0 , 0 , 0 , 
+36 org
+: main = $0 down b! dup or a! 35 for @b !+ next = $0 ;
+
