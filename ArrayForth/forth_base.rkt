@@ -1,6 +1,6 @@
 #lang racket
 
-(require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
+(require "arithmetic.rkt" "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
 (provide interpret interpret-cores run-tests)
 
 (define (displaynl arg)
@@ -70,7 +70,7 @@
 			       bstr
 			       (subbytes (getter current-state) (* pos 4)))))
 (define (push-int! #:getter [getter state-stack] #:setter [setter set-state-stack!] num [pos 0])
-  (push-cells! #:getter getter #:setter setter (int->bytes num) pos))
+  (push-cells! #:getter getter #:setter setter (word->bytes num #t) pos))
 (define (push-double! #:getter [getter state-stack] #:setter [setter set-state-stack!] num [pos 0])
   (push-cells! #:getter getter #:setter setter (double->bytes num) pos))
 
@@ -81,9 +81,9 @@
 (define (get-2cells #:stack [stack (state-stack current-state)] [pos 0])
   (get-cells #:stack stack pos (+ pos 2)))
 (define (get-int #:stack [stack (state-stack current-state)] signed? [pos 0])
-  (integer-bytes->integer (get-cells #:stack stack pos (+ pos 1)) signed? #t))
+  (bytes->word (get-cells #:stack stack pos (+ pos 1)) signed? #t))
 (define (get-double #:stack [stack (state-stack current-state)] signed? [pos 0])
-  (integer-bytes->integer (get-2cells #:stack stack pos) signed? #t))
+  (bytes->word (get-2cells #:stack stack pos) signed? #t))
 
 (define (pop-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] [start 0] [end 1])
   (if (< (bytes-length (getter current-state)) (* end 4))
@@ -95,9 +95,9 @@
 (define (pop-2cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] [pos 0])
   (pop-cells! #:getter getter #:setter setter pos (+ pos 2)))
 (define (pop-int! #:getter [getter state-stack] #:setter [setter set-state-stack!] signed? [pos 0])
-  (integer-bytes->integer (pop-cells! #:getter getter #:setter setter pos (+ pos 1)) signed? #t))
+  (bytes->word (pop-cells! #:getter getter #:setter setter pos (+ pos 1)) signed?))
 (define (pop-double! #:getter [getter state-stack] #:setter [setter set-state-stack!] signed? [pos 0])
-  (integer-bytes->integer (pop-2cells! #:getter getter #:setter setter pos) signed? #t))
+  (bytes->word (pop-2cells! #:getter getter #:setter setter pos) signed?))
 ; Debugging
 
 (define (print-stack stack)
@@ -894,4 +894,4 @@
     (make-core-info 0 (open-input-string "1 2 + 1 .ns send .ns 2 recv .ns"))
     (make-core-info 1 (open-input-string ".ns 1 recv .ns - 2 send")))))
 
-(run-tests)
+;; (run-tests)
