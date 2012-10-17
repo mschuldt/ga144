@@ -1,196 +1,7 @@
 #lang racket
 
-(require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt")
+(require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt" "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt")
 (provide interpret interpret-cores run-tests)
-
-(define (displaynl arg)
-  (display arg)
-  (newline))
-
-(define (displayspace arg)
-  (display arg)
-  (display " "))
-
-; State for a core
-; Currently, stacks and dict are infinite.
-; Once a size is determined, a dict can be just a vector, not an rvector.
-; Need to add ports for each core.
-; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
-
-(struct state (stack rstack pc rega regb input) #:mutable)
-
-(define dict (make-rvector 100))
-(define codespace (make-rvector 500))
-(define next-address 1)
-(define visible-address 0)
-
-; TODO: Make an rvector with default always #f (right now, when expanded, will have default 0).
-(define send-recv-table (make-rvector 100))
-(for ([i (in-range 100)])
-     (rvector-set! send-recv-table i #f))
-
-; Codespace - somewhat like assembly instructions
-;; TODO: make-core, which puts garbage in the stacks and dict
-;; TODO: regb is initialized to io
-
-(define (make-zeroed-core)
-  (state (make-bytes 0) (make-bytes 0) 0 0 0 '()))
-
-; Hack for @p { .. }
-(define literal-mode 0)
-(define litspace (make-rvector 100))
-(define lit-entry 0)
-
-(define num-cores 144)
-(define cores (make-vector num-cores))
-(for [(i (in-range 0 num-cores))]
-     (vector-set! cores i (make-zeroed-core)))
-
-(define state-index 0)
-(define current-state (vector-ref cores state-index))
-
-(define-syntax-rule (generate-macro name getter setter)
-  (define-syntax name
-    (syntax-id-rules (set!)
-      [(set! name x) (setter current-state x)]
-      [name (getter current-state)])))
-
-;(generate-macro codespace state-codespace set-state-codespace!)
-;(generate-macro dict state-dict set-state-dict!)
-;(generate-macro next-address state-next-address set-state-next-address!)
-;(generate-macro visible-address state-visible-address set-state-visible-address!)
-(generate-macro pc state-pc set-state-pc!)
-(generate-macro rega state-rega set-state-rega!)
-(generate-macro regb state-regb set-state-regb!)
-(generate-macro input state-input set-state-input!)
-
-; Stacks
-(define (push-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] bstr [pos 0])
-  (setter current-state (bytes-append (subbytes (getter current-state) 0 (* pos 4))
-			       bstr
-			       (subbytes (getter current-state) (* pos 4)))))
-(define (push-int! #:getter [getter state-stack] #:setter [setter set-state-stack!] num [pos 0])
-  (push-cells! #:getter getter #:setter setter (int->bytes num) pos))
-(define (push-double! #:getter [getter state-stack] #:setter [setter set-state-stack!] num [pos 0])
-  (push-cells! #:getter getter #:setter setter (double->bytes num) pos))
-
-(define (get-cells #:stack [stack (state-stack current-state)] [start 0] [end 1])
-  (if (< (bytes-length stack) (* end 4))
-      (raise "Stack underflow")
-      (subbytes stack (* start 4) (* end 4))))
-(define (get-2cells #:stack [stack (state-stack current-state)] [pos 0])
-  (get-cells #:stack stack pos (+ pos 2)))
-(define (get-int #:stack [stack (state-stack current-state)] signed? [pos 0])
-  (integer-bytes->integer (get-cells #:stack stack pos (+ pos 1)) signed? #t))
-(define (get-double #:stack [stack (state-stack current-state)] signed? [pos 0])
-  (integer-bytes->integer (get-2cells #:stack stack pos) signed? #t))
-
-(define (pop-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] [start 0] [end 1])
-  (if (< (bytes-length (getter current-state)) (* end 4))
-      (raise "Stack underflow")
-      (let [(res (subbytes (getter current-state) (* start 4) (* end 4)))]
-	(setter current-state (bytes-append (subbytes (getter current-state) 0 (* start 4))
-				     (subbytes (getter current-state) (* end 4))))
-	res)))
-(define (pop-2cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] [pos 0])
-  (pop-cells! #:getter getter #:setter setter pos (+ pos 2)))
-(define (pop-int! #:getter [getter state-stack] #:setter [setter set-state-stack!] signed? [pos 0])
-  (integer-bytes->integer (pop-cells! #:getter getter #:setter setter pos (+ pos 1)) signed? #t))
-(define (pop-double! #:getter [getter state-stack] #:setter [setter set-state-stack!] signed? [pos 0])
-  (integer-bytes->integer (pop-2cells! #:getter getter #:setter setter pos) signed? #t))
-; Debugging
-
-(define (print-stack stack)
-  (define (loop pos)
-    (if (>= pos 0)
-        (begin (print (get-int #:stack stack #t pos))
-               (display " ")
-               (loop (sub1 pos)))
-        (void)))
-  (display "| ")
-  (loop (sub1 (/ (bytes-length stack) 4)))
-  (display ">"))
-
-
-; Entry for the dictionary.  Code must be mutable to allow procs which refer to the entry itself.
-(struct entry (primitive [precedence #:mutable] name [code #:mutable] [data #:mutable]))
-
-; Dictionary
-(define (add-entry! prim prec name code [data '()])
-  (let [(new (entry prim prec name code data))]
-    (rvector-set! dict next-address new)
-    (set! next-address (add1 next-address))
-    new))
-
-; Create the HERE variable first, so that it can be used by other
-; procedures that manipulate the dictionary and the codespace.
-;(define here-entry
-;  (let [(addr next-address)]
-;    (rvector-set! codespace 1 (lambda () (push-int! addr))) ;; TODO(codespace)
-;    (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
-
-(define here-entry (add-entry! #t #f "here" 1 1)) ; a primitive variable named "here" whose code starts at address 1, value is 1.
-; Code to deal with "here" will be inserted later.
-
-(define (add-to-codespace proc-or-addr)
-  ;(printf "add-compile ~e\n" (entry-data here-entry))
-  (proc-add! codespace (entry-data here-entry) proc-or-addr)
-  (set-entry-data! here-entry (add1 (entry-data here-entry))))
-  
-(define (add-to-litspace proc-or-addr)
-  (rvector-set! litspace lit-entry proc-or-addr) 
-  (set! lit-entry (add1 lit-entry)))
-
-(define (add-compiled-code! proc-or-addr)
-  (if (= literal-mode 0)
-      (add-to-codespace proc-or-addr)
-      (add-to-litspace proc-or-addr)))
-
-(define exit-addr 3) ; Kind of hacky, but not too bad.
-; It's obvious that it will be at address 3.
-
-(define (exit)
-  (pop-int! #:getter state-rstack #:setter set-state-rstack! #f) ; Don't return to wherever exit came from
-  (set! pc (pop-int! #:getter state-rstack #:setter set-state-rstack! #f)))
-
-(define (reveal-entry!)
-  (set! visible-address (sub1 next-address)))
-
-; Now we can add the code for HERE.
-(add-compiled-code! (lambda () (push-int! next-address))) ; Adds this code to codespace at address 1 (value of HERE)
-(add-compiled-code! exit-addr) ; Adding the EXIT for HERE.
-(reveal-entry!)
-
-(define (add-and-reveal-entry! prim prec name code data)
-  (let [(entry (add-entry! prim prec name code data))]
-    (reveal-entry!)
-    entry))
-
-(define (lamb) (lambda() (displaynl "ok")))
-
-(define (add-word! prim prec name [data '()])
-  (add-and-reveal-entry! prim prec name (entry-data here-entry) data))
-(void (add-word! #f #f "exit"))
-(add-compiled-code! exit)
-
-(define (add-primitive-word! prec name code [data '()])
-  (add-word! #t prec name data)
-  (add-compiled-code! code)
-  (add-compiled-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
-
-(define (find-address name)
-  (define (loop address)
-    (let [(word (rvector-ref dict address))]
-      (cond [(string-ci=? name (entry-name word)) address]
-            [(= address 1) #f]
-            [else (loop (sub1 address))])))
-  (loop visible-address))
-
-(define (find-entry name)
-  (let [(address (find-address name))]
-    (if address
-        (rvector-ref dict address)
-        #f)))
 
 ; Interpreter and associated procedures
 
@@ -200,7 +11,6 @@
 	 (map
 	  (lambda (num)
 	    (set! state-index num)
-	    (set! current-state (vector-ref cores state-index))
 	    (if (= pc 0)
 		#t
 		(let [(code (proc-ref codespace pc))]
@@ -225,12 +35,12 @@
 
 (define (abort msg)
   (displaynl msg)
-  (set-state-stack! current-state (make-bytes 0))
+  (set-state-stack! (vector-ref cores state-index) (make-bytes 0))
   (quit))
 
 (define (quit)
   (read-line) ; The rest of the line should not be used as input
-  (set-state-rstack! current-state (make-bytes 0))
+  (set-state-rstack! (vector-ref cores state-index) (make-bytes 0))
   (set! pc interpreter-addr))
 (add-primitive-word! #f "quit" quit)
 
@@ -263,13 +73,9 @@
 (define (interpret)
   (set! used-cores '(0))
   (set! state-index 0)
-  (set! current-state (vector-ref cores state-index))
   (set! input (current-input-port))
   (reset-states!)
   (code-loop))
-
-;(struct blockend exn:fail ())
-;(add-primitive-word! #t "block" (lambda () (raise (blockend "Block end" (current-continuation-marks)))))
 
 (define used-cores '())
 
@@ -277,7 +83,6 @@
   (define (setup-loop code)
     (set! state-index (get-core-num (car code)))
     (set! used-cores (cons state-index used-cores))
-    (set! current-state (vector-ref cores state-index))
     (set! input (get-core-port (car code)))
     (set! pc interpreter-addr)
     (if (null? (cdr code))
@@ -285,7 +90,6 @@
 	(setup-loop (cdr code))))
   (setup-loop code-info)
   (set! state-index (get-core-num (car code-info)))
-  (set! current-state (vector-ref cores state-index))
   (code-loop))
 
 ; Colon compiler
@@ -321,11 +125,11 @@
 (define (stop-compilation)
   (define (loop pos)
     (cond [(<= pos 0) (void)]
-          [(= (get-int #:stack (state-rstack current-state) #f pos) compiler-addr)
+          [(= (get-int #:stack (state-rstack (vector-ref cores state-index)) #f pos) compiler-addr)
            (pop-double! #:getter state-rstack #:setter set-state-rstack! #f pos)
            (loop (- pos 2))] ; Pop off the place to go back to (the exit), as well as the link for colon-compiler
           [else (loop (sub1 pos))]))
-  (loop (sub1 (/ (bytes-length (state-rstack current-state)) 4))))
+  (loop (sub1 (/ (bytes-length (state-rstack (vector-ref cores state-index))) 4))))
 (add-primitive-word! #t "[" stop-compilation)
 
 (define (start-literal)
@@ -455,7 +259,7 @@
   (let [(addr (pop-int! #f))]
     (add-compiled-code!
      (lambda ()
-       (if (= (add1 (get-int #:stack (state-rstack current-state) #t)) (get-int #:stack (state-rstack current-state) #t 1))
+       (if (= (add1 (get-int #:stack (state-rstack (vector-ref cores state-index)) #t)) (get-int #:stack (state-rstack (vector-ref cores state-index)) #t 1))
            (pop-double! #:getter state-rstack #:setter set-state-rstack! #t)
            (begin (push-int! #:getter state-rstack #:setter set-state-rstack! (add1 (pop-int! #:getter state-rstack #:setter set-state-rstack! #t)))
                   (set! pc addr)))))))
@@ -511,309 +315,6 @@
 ; BEGIN - WHILE - REPEAT is like BEGIN - IF - LOOP THEN
 (add-primitive-word! #t "while" if-proc)
 
-; Comments
-(define (comment)
-  (if (equal? (read-char) #\))
-      (void)
-      (comment)))
-(add-primitive-word! #t "(" comment)
-
-
-; Stack manipulation words
-
-(define (dup)
-  (push-cells! (get-cells))) ; Get the first cell and push it back on
-(add-primitive-word! #f "dup" dup)
-
-(define (over)
-  (push-cells! (get-cells 1 2)))
-(add-primitive-word! #f "over" over)
-
-(define (drop)
-  (pop-cells!))
-(add-primitive-word! #f "drop" drop)
-
-(add-primitive-word! #f "c" (lambda () (set-state-stack! current-state (make-bytes 0))))
-
-(define (swap)
-  (let* [(arg1 (pop-cells!))
-         (arg2 (pop-cells!))]
-    (push-cells! arg1)
-    (push-cells! arg2)))
-(add-primitive-word! #f "swap" swap)
-
-(define (rot)
-  (push-cells! (pop-cells! 2 3)))
-
-(add-primitive-word! #f "rot" rot)
-
-
-;;;;;;;;;;;;;;;;;;;;; END - not sure if in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-(define (2swap)
-  (let* [(arg1 (pop-2cells!))
-         (arg2 (pop-2cells!))]
-    (push-cells! arg1)
-    (push-cells! arg2)))
-(add-primitive-word! #f "2swap" 2swap)
-
-(define (2dup)
-  (push-cells! (get-cells 0 2))) ; Get the first cell and push it back on
-(add-primitive-word! #f "2dup" 2dup)
-
-(define (2over)
-  (push-cells! (get-cells 2 4)))
-(add-primitive-word! #f "2over" 2over)
-
-(define (2rot)
-  (push-cells! (pop-cells! 4 6)))
-(add-primitive-word! #f "2rot" 2rot)
-
-(define (2drop)
-  (pop-2cells!))
-(add-primitive-word! #f "2drop" 2drop)
-;;;;;;;;;;;;;;;;;;;;; END - not sure in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-
-; rstack manipulation words
-
-(define (push-proc) 
-  (lambda () (push-cells! #:getter state-rstack #:setter set-state-rstack! (pop-cells!))))
-(define (pop-proc)
-  (lambda () (push-cells! (pop-cells! #:getter state-rstack #:setter set-state-rstack!))))
-
-(add-primitive-word! #f "push" (push-proc))
-(add-primitive-word! #f "pop" (pop-proc))
-
-;; TODO: check if it means the same thing in arrayforth
-(add-primitive-word! #f "i" (lambda () (push-cells! (get-cells #:stack (state-rstack current-state)))))
-
-; register manipulation
-
-; fetch via register
-(add-primitive-word! #f "@+"
-                     (lambda ()
-                         (push-int! (rvector-ref codespace rega))
-                         (set! rega (add1 rega))))
-(add-primitive-word! #f "@" (lambda () (push-int! (rvector-ref codespace rega))))
-(add-primitive-word! #f "@b" (lambda () (push-int! (rvector-ref codespace regb))))
-
-; @p only works when it is immediately followed by { .. }
-(define (fetch-p-proc)
-  (push-int! (entry-data here-entry))
-  (add-compiled-code! dummy-proc))
-(add-primitive-word! #f "@p" 
-                     (lambda ()
-                         (push-int! (rvector-ref codespace pc))
-                         (set! pc (add1 pc))))
-
-; store via register
-
-;; TODO: !p doesn't work if write to memory
-(add-primitive-word! #f "!p" 
-                     (lambda () 
-                       (rvector-set! codespace pc (pop-cells!))
-                       (set! pc (add1 pc))))
-(add-primitive-word! #f "!+" 
-                     (lambda () 
-                       (rvector-set! codespace rega (pop-int! #t))
-                       (set! rega (add1 rega))))
-(add-primitive-word! #f "!" (lambda () (rvector-set! codespace rega (pop-int! #t))))
-(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace regb (pop-int! #t))))
-
-; fetch from register
-(add-primitive-word! #f "a" (lambda () (push-int! rega)))
-
-; store to register
-(add-primitive-word! #f "a!" (lambda () (set! rega (pop-int! #f))))
-(add-primitive-word! #f "b!" (lambda () (set! regb (pop-int! #f))))
-
-;;;;;;;;;;;;;;;;;;;; (testing only) : store to pc ;;;;;;;;;;;;;;;;;;;
-(add-primitive-word! #f "p!" (lambda () (set! pc (pop-int! #f))))
-
-; Math
-
-; Addition - adds 2 ints, pushes it back onto the stack.  Treated as signed, but works for unsigned as well.
-(add-primitive-word! #f "+"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (+ arg1 arg2)))))
-
-; Invert
-(add-primitive-word! #f "-"(lambda () (push-int! (bitwise-not (pop-int! #t)))))
-
-; Multiply step. 
-; Signed Multiplicand is in S, unsigned multiplier in A, T=0 at start of a step sequence.
-; Uses T:A as a 36-bit shift register with multiplier in A. Does the following:
-
-; 1. If bit A0 is one, S and T are added as though they had both been extended to be
-; 19 bit signed numbers, and the 37-bit concatenation of this sum and A is shifted
-; right one bit to replace T:A. Overflow may occur if S and T are both nonzero and
-; their signs differ; this can only occur through improper initialization of T.
-; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
-; (T17 is not changed and is copied into T16. T0 is copied to A17 and A0 is discarded.)
-(define (multiply-step-zero a t)
-  (if (= (bitwise-and t 1) 1)
-      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
-      (set! rega (+ 131072 (quotient a 2)))
-      (set! rega (quotient a 2)))
-  (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
-
-(define (multiply-step-proc)
-  (let* [(a (rega))]
-    (if (= (bitwise-and a 1) 1)
-        (push-int! (+ (pop-int! #f) (get-int #f)))
-        (void))
-    (let* [(t (pop-int! #f))]
-      (if (= (bitwise-and t 1) 1)
-          (set! rega (+ 131072 (quotient a 2)))
-          (set! rega (quotient a 2)))
-      (push-int! (+ (bitwise-and t 131072) (quotient (bitwise-and t 262143) 2))))))
-
-(add-primitive-word! #f "+*" multiply-step-proc)
-
-(add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
-(add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
-
-(add-primitive-word! #f "*"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (* arg1 arg2)))))
-
-(add-primitive-word! #f "/"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (quotient arg2 arg1)))))
-
-(add-primitive-word! #f "mod"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (remainder arg2 arg1)))))
-
-(add-primitive-word! #f "/mod"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (remainder arg2 arg1))
-                         (push-int! (quotient arg2 arg1)))))
-
-(add-primitive-word! #f "*/"
-                     (lambda ()
-                       (let* [(n3 (pop-int! #t))
-                              (n2 (pop-int! #t))
-                              (n1 (pop-int! #t))
-                              (intermediate (* n1 n2))]
-                         (push-int! (quotient intermediate n3)))))
-
-(add-primitive-word! #f "min"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (min arg2 arg1)))))
-
-(add-primitive-word! #f "max"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (max arg2 arg1)))))
-
-; NOP
-(add-primitive-word! #f "." (lambda () (void)))
-
-; Word alignment
-(add-primitive-word! #f ".." (lambda () (void)))
-
-; Output
-
-; Displays an int, interpreted as a signed number
-; (add-primitive-word! #f "." (lambda () (displayspace (pop-int! #t))))
-; Displays an int, interpreted as an unsigned number
-(add-primitive-word! #f "u." (lambda () (displayspace (pop-int! #f))))
-; Displays a double, interpreted as a signed number
-(add-primitive-word! #f "d." (lambda () (displayspace (pop-double! #t))))
-; Displays a double, interpreted as an unsigned number
-(add-primitive-word! #f "du." (lambda () (displayspace (pop-double! #f))))
-
-; Compiles a string and displays it upon execution.
-; Note: Can only be used in the colon compiler.
-(define (read-string)
-  (define (iter lst)
-    (let [(new-char (read-char))]
-      (if (eq? new-char #\")
-          (list->string lst)
-          (iter (append lst (list new-char))))))
-  (iter '()))
-
-(define (dot-quote)
-  (let [(str (read-string))]
-    (add-compiled-code! (lambda () (display str)))))
-(add-primitive-word! #t ".\"" dot-quote)
-
-(add-primitive-word! #f "cr" newline)
-(add-primitive-word! #f "space" (lambda () (display " ")))
-
-(define (spaces)
-  (define (loop num)
-    (if (= num 0)
-        'done
-        (begin (display " ") (loop (sub1 num)))))
-  (loop (pop-int! #f)))
-(add-primitive-word! #f "spaces" spaces)
-
-(add-primitive-word! #f "emit"
-                     (lambda () (display (integer->char (pop-int! #f)))))
-
-
-; Booleans
-
-(define true -1)
-(define false 0)
-
-;; TODO: there is no ior but i couldn't find where they define ior. i think it should be somewhere
-(add-primitive-word! #f "ior"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
-
-;; TODO: this is how they define invert : invert begin - ; ???
-(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
-
-(add-primitive-word! #f "and"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-and arg1 arg2)))))
-
-(add-primitive-word! #f "or"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-xor arg1 arg2))))) ; xor - exclusive or
-
-(add-primitive-word! #f "send"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-			 (if (rvector-ref send-recv-table arg1)
-			     (set! pc (sub1 pc))
-			     (rvector-set! send-recv-table arg1 arg2)))))
-
-(add-primitive-word! #f "recv"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-			      (val (rvector-ref send-recv-table arg1))]
-			 (if val
-			     (push-int! val)
-			     (begin (push-int! arg1) (set! pc (sub1 pc)))))))
-
-; ?stack is supposed to check for stack underflow.  However, here Racket's own
-; error checking will notice the stack underflow, so it has to be checked on every
-; access.  As a result, whenever you manually check the stack, it will be fine.
-(add-primitive-word! #f "?stack" (lambda () false))
-
 (add-primitive-word! #f "?dup" (lambda () (if (= 0 (get-int #f))
                                               (void)
                                               (push-cells! (get-cells)))))
@@ -824,11 +325,6 @@
                                    (lambda () (if (= (pop-int! #t) false)
                                                   (void)
                                                   (raise str)))))))
-
-(add-primitive-word! #f ".s" (lambda () (print-stack (state-stack current-state))))
-(add-primitive-word! #f ".ns" (lambda () (print state-index) (display ": ") (print-stack (state-stack current-state)) (newline)))
-
-(add-primitive-word! #f ".r" (lambda () (print-stack (state-rstack current-state))))
 
 (define (load-primitive-file name)
   (call-with-input-file name
