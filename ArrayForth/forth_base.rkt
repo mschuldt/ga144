@@ -1,6 +1,6 @@
 #lang racket
 
-(require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt" "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt")
+(require "arithmetic.rkt" "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt" "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt")
 (provide interpret interpret-cores run-tests)
 
 ; Interpreter and associated procedures
@@ -390,4 +390,4 @@
     (make-core-info 0 (open-input-string "1 2 + 1 .ns send .ns 2 recv .ns"))
     (make-core-info 1 (open-input-string ".ns 1 recv .ns - 2 send")))))
 
-(run-tests)
+;; (run-tests)
