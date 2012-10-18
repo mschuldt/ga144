@@ -6,13 +6,6 @@
 
 ; TODO: Make an rvector with default always #f (right now, when expanded, will have default 0).
 
-; Codespace - somewhat like assembly instructions
-;; TODO: make-core, which puts garbage in the stacks and dict
-;; TODO: regb is initialized to io
-
-(define (make-zeroed-core)
-  (state (make-bytes 0) (make-bytes 0) 0 0 0 '()))
-
 ; Hack for @p { .. }
 ;(define literal-mode 0)
 ;(define litspace (make-rvector 100))
@@ -27,9 +20,15 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (stack rstack pc rega regb input) #:mutable)
+(struct state (stack rstack pc rega regb input rom ram) #:mutable)
+; Codespace - somewhat like assembly instructions
+;; TODO: make-core, which puts garbage in the stacks and dict
+;; TODO: regb is initialized to io
 
-(struct interpreter-struct (dict codespace next-address visible-address cores state-index literal-mode litspace lit-entry send-recv-table) #:mutable)
+(define (make-zeroed-core)
+  (state (make-bytes 0) (make-bytes 0) 0 0 0 '() (make-rvector 100) (make-rvector 100)))
+
+(struct interpreter-struct (primitive-dict dict codespace next-address visible-address cores state-index literal-mode litspace lit-entry send-recv-table) #:mutable)
 
 (define (make-interpreter)
   (let ((core-list (make-vector num-cores))
@@ -38,7 +37,7 @@
 	 (vector-set! core-list i (make-zeroed-core)))
     (for ([i (in-range 100)])
 	 (rvector-set! srtable i #f))
-    (interpreter-struct (make-rvector 100) (make-rvector 500) 1 0 core-list 0 0 (make-rvector 100) 0 srtable)))
+    (interpreter-struct (make-rvector 100) (make-rvector 100) (make-rvector 500) 1 0 core-list 0 0 (make-rvector 100) 0 srtable)))
 
 (define interpreter (make-interpreter))
 
@@ -48,7 +47,7 @@
       [(set! name x) (setter interpreter x)]
       [name (getter interpreter)])))
 
-; Doesn't work, it appears that the lexical scoping means the the generated macro is not visible elsewhere.
+#| Doesn't work, it appears that the lexical scoping means the the generated macro is not visible elsewhere.
 (define-syntax gen-i-macro
   (lambda (stx)
     (syntax-case stx ()
@@ -64,10 +63,12 @@
 	     (syntax-id-rules (set!)
 			      [(set! #,sym x) (#,setter interpreter x)]
 			      [#,sym (#,getter interpreter)])))])))
-
 ;(gen-i-macro codespace)
-(generate-interpreter-macro codespace interpreter-struct-codespace set-interpreter-struct-codespace!)
+|#
+
+(generate-interpreter-macro primitive-dict interpreter-struct-primitive-dict set-interpreter-struct-primitive-dict!)
 (generate-interpreter-macro dict interpreter-struct-dict set-interpreter-struct-dict!)
+(generate-interpreter-macro codespace interpreter-struct-codespace set-interpreter-struct-codespace!)
 (generate-interpreter-macro next-address interpreter-struct-next-address set-interpreter-struct-next-address!)
 (generate-interpreter-macro visible-address interpreter-struct-visible-address set-interpreter-struct-visible-address!)
 (generate-interpreter-macro cores interpreter-struct-cores set-interpreter-struct-cores!)
@@ -89,6 +90,8 @@
 (generate-core-macro input state-input set-state-input!)
 ;(generate-core-macro stk state-stack set-state-stack!)
 ;(generate-core-macro rstk state-rstack set-state-rstack!)
+(generate-core-macro rom state-rom set-state-rom!)
+(generate-core-macro ram state-ram set-state-ram!)
 
 ; Stacks
 (define (push-cells! #:getter [getter state-stack] #:setter [setter set-state-stack!] bstr [pos 0])
@@ -144,6 +147,7 @@
 ; Dictionary
 (define (add-entry! prim prec name code [data '()])
   (let [(new (entry prim prec name code data))]
+    (rvector-set! primitive-dict next-address new)
     (rvector-set! dict next-address new)
     (set! next-address (add1 next-address))
     new))
@@ -201,6 +205,11 @@
   (add-word! #t prec name data)
   (add-compiled-code! code)
   (add-compiled-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
+
+(define (add-compiled-word! prec name)
+  (let [(new (entry #f prec name (entry-data here-entry)))]
+    (rvector-set! dict next-address new)
+    (set! next-address (add1 next-address))))
 
 (define (find-address name)
   (define (loop address)

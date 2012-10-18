@@ -1,6 +1,7 @@
 #lang racket
 
-(require "arithmetic.rkt" "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt" "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt")
+(require "arithmetic.rkt" "rvector.rkt" "forth_read.rkt" "forth_num_convert.rkt")
+(require "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt" "forth_control_words.rkt")
 (provide interpret interpret-cores run-tests)
 
 ; Interpreter and associated procedures
@@ -132,6 +133,50 @@
   (loop (sub1 (/ (bytes-length (state-rstack (vector-ref cores state-index))) 4))))
 (add-primitive-word! #t "[" stop-compilation)
 
+
+;;;;;;;;;; NEW COMPILER FOR ARRAYFORTH ;;;;;;;;;;;;;;
+
+(define (compile code-port)
+  (let [(old (current-input-port))]
+    (current-input-port code-port)
+    (rvector-copy! dict 0 primitive-dict)
+    (for ([i (in-range num-cores)])
+	 (set! state-index i)
+	 (rvector-copy! rom 0 primitive-dict))
+    (compile-loop)
+    (current-input-port old)))
+
+(define (compile-loop)
+  (let [(to-compile (forth_read))]
+    (unless (eof-object? to-compile)
+	    (unless (eq? to-compile #\newline)
+		    (let [(entry (find-entry to-compile))]
+		      (cond [(not entry)
+			     (let [(num (string->bytes to-compile))]
+			       (if num
+				   (add-compiled-code! (lambda () (push-cells! num)))
+;				   (begin
+;				     (add-compiled-code! (proc-ref codespace (entry-code (find-entry "@p"))))
+;				     (add-compiled-code! num))
+				   (raise (string-append to-compile " ?"))))]
+			    [(entry-precedence entry)
+			     (execute entry)]
+			    [(entry-primitive entry)
+			     (add-compiled-code! (proc-ref codespace (entry-code entry)))]
+			    [else
+			     (add-compiled-code! (entry-code entry))] )))
+	    (compile-loop))))
+
+;; TODO:  Clear node's codespace and set location counter
+(add-primitive-word! #t "node"
+		     (lambda ()
+		       (set! state-index (pop-int!))
+		       (rvector-copy! rom 0 primitive-dict)))
+
+;;;;;;;;;; CHANGES END HERE (mostly) ;;;;;;;;;;;;;;;;
+
+
+
 (define (start-literal)
   (set! literal-mode 1)
   (set! lit-entry 0)
@@ -202,130 +247,6 @@
     (add-primitive-word! #f name (lambda () (set! next-address addr) (set! visible-address (sub1 next-address))))))
 (add-primitive-word! #f "marker" (lambda () (marker (forth_read_no_eof))))
 
-; Control
-(define (dummy-proc) (void))
-
-; IF - 
-; 1. Puts a procedure which jumps over one slot if TRUE is on the stack.
-; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
-; This will later be replaced by an unconditional branch by ELSE or THEN.
-(define (if-proc)
-  (add-compiled-code!
-   (lambda () (if (= (get-int #f) 0)
-                  (void)
-                  (set! pc (add1 pc)))))
-  (push-int! (entry-data here-entry))
-  (add-compiled-code! dummy-proc))
-(add-primitive-word! #t "if" if-proc)
-
-; -IF
-; 1. Puts a procedure which jumps over one slot if the top of stack is negative.
-; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
-; This will later be replaced by an unconditional branch by ELSE or THEN.
-(define (nif-proc)
-  (add-compiled-code!
-   (lambda () (if (>= (get-int #t) 0)
-                  (void)
-                  (set! pc (add1 pc)))))
-  (push-int! (entry-data here-entry))
-  (add-compiled-code! dummy-proc))
-(add-primitive-word! #t "-if" nif-proc)
-
-; ELSE
-; 1. Put HERE as the second item on the stack.  Fill it with a dummy procedure.
-; This will be replaced with an unconditional branch by THEN.
-; 2. Replace the dummy procedure put by IF with a conditional branch to HERE.
-(define (else-proc)
-  (push-int! (entry-data here-entry) 1)
-  (add-compiled-code! dummy-proc)
-  (let [(here-addr (entry-data here-entry))]
-    (proc-replace! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
-(add-primitive-word! #t "else" else-proc)
-
-; THEN
-; Put an unconditional branch to HERE.
-; This will patch up the dummy procedure left by IF or ELSE.
-(define (then-proc)
-  (let [(here-addr (entry-data here-entry))]
-    (proc-replace! codespace (pop-int! #f) (lambda () (set! pc here-addr)))))
-(add-primitive-word! #t "then" then-proc)
-
-
-; Loops
-;; Removed LEAVE
-
-; LOOP
-(define (loop-proc)
-  (let [(addr (pop-int! #f))]
-    (add-compiled-code!
-     (lambda ()
-       (if (= (add1 (get-int #:stack (state-rstack (vector-ref cores state-index)) #t)) (get-int #:stack (state-rstack (vector-ref cores state-index)) #t 1))
-           (pop-double! #:getter state-rstack #:setter set-state-rstack! #t)
-           (begin (push-int! #:getter state-rstack #:setter set-state-rstack! (add1 (pop-int! #:getter state-rstack #:setter set-state-rstack! #t)))
-                  (set! pc addr)))))))
-(add-primitive-word! #t "loop" loop-proc)
-
-; FOR
-; 1. Add to compiled code the PUSH command.
-; 2. Put HERE on the stack, to be used by NEXT.
-(define (for-proc)
-  (add-compiled-code!(push-proc))
-  (push-int! (entry-data here-entry)))
-(add-primitive-word! #t "for" for-proc)
-
-  
-; NEXT
-; 1. Pop counter from the top of rstack.
-; 2. If counter is 0, continue.
-; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
-(define (next-loop-proc counter addr)
-  (push-int! #:getter state-rstack #:setter set-state-rstack! (- counter 1))
-  (set! pc addr))
-  
-(define (next-proc)
-  (let [(addr (pop-int! #f))]
-    (add-compiled-code! (lambda ()
-                        (let [(counter (pop-int! #:getter state-rstack #:setter set-state-rstack! #t))]
-                          (if (= counter 0)
-                              (void)
-                              (next-loop-proc counter addr)))))))
-
-(add-primitive-word! #t "next" next-proc)
-
-; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
-;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
-(add-primitive-word! #t "unext" next-proc)
-
-; BEGIN
-; Put HERE on the stack, to be used by UNTIL or REPEAT.
-(add-primitive-word! #t "begin" (lambda () (push-int! (entry-data here-entry))))
-
-; UNTIL
-; Jumps back to the address left by BEGIN if it sees a false flag.
-(define (until-proc)
-  (let [(addr (pop-int! #f))]
-    (add-compiled-code! (lambda ()
-                          (if (= (pop-int! #t) 0)
-                              (set! pc addr)
-                              (void))))))
-(add-primitive-word! #t "until" until-proc)
-
-; WHILE
-; Does the same thing as IF.
-; BEGIN - WHILE - REPEAT is like BEGIN - IF - LOOP THEN
-(add-primitive-word! #t "while" if-proc)
-
-(add-primitive-word! #f "?dup" (lambda () (if (= 0 (get-int #f))
-                                              (void)
-                                              (push-cells! (get-cells)))))
-
-(add-primitive-word! #t "abort\""
-                     (lambda () (let [(str (read-string))]
-                                  (add-compiled-code!
-                                   (lambda () (if (= (pop-int! #t) false)
-                                                  (void)
-                                                  (raise str)))))))
-
 (define (load-primitive-file name)
   (call-with-input-file name
     (lambda (in)
@@ -390,4 +311,4 @@
     (make-core-info 0 (open-input-string "1 2 + 1 .ns send .ns 2 recv .ns"))
     (make-core-info 1 (open-input-string ".ns 1 recv .ns - 2 send")))))
 
-;; (run-tests)
+(run-tests)
