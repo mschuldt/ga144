@@ -23,7 +23,7 @@
 
 (define (dot-quote)
   (let [(str (read-string))]
-    (add-compiled-code! (lambda () (display str)))))
+    (add-primitive-code! (lambda () (display str)))))
 (add-primitive-word! #t ".\"" dot-quote)
 
 (add-primitive-word! #f "cr" newline)

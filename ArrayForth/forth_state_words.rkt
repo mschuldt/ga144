@@ -84,7 +84,7 @@
 ; @p only works when it is immediately followed by { .. }
 (define (fetch-p-proc)
   (push-int! (entry-data here-entry))
-  (add-compiled-code! (lambda () (void))))
+  (add-primitive-code! (lambda () (void))))
 (add-primitive-word! #f "@p" 
                      (lambda ()
                          (push-int! (rvector-ref codespace pc))

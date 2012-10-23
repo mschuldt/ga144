@@ -28,7 +28,7 @@
 (define (make-zeroed-core)
   (state (make-bytes 0) (make-bytes 0) 0 0 0 '() (make-rvector 100) (make-rvector 100)))
 
-(struct interpreter-struct (primitive-dict dict codespace next-address visible-address cores state-index literal-mode litspace lit-entry send-recv-table) #:mutable)
+(struct interpreter-struct (primitive-dict dict codespace next-address visible-address cores state-index literal-mode litspace lit-entry send-recv-table cstack) #:mutable)
 
 (define (make-interpreter)
   (let ((core-list (make-vector num-cores))
@@ -37,9 +37,22 @@
 	 (vector-set! core-list i (make-zeroed-core)))
     (for ([i (in-range 100)])
 	 (rvector-set! srtable i #f))
-    (interpreter-struct (make-rvector 100) (make-rvector 100) (make-rvector 500) 1 0 core-list 0 0 (make-rvector 100) 0 srtable)))
+    (interpreter-struct (make-rvector 100) (make-rvector 100) (make-rvector 500) 1 0 core-list 0 0 (make-rvector 100) 0 srtable (make-bytes 0))))
 
 (define interpreter (make-interpreter))
+
+(struct compiler-struct (location-counter execute?) #:mutable)
+
+(define compiler (compiler-struct 0 #f))
+
+(define-syntax-rule (generate-compiler-macro name getter setter)
+  (define-syntax name
+    (syntax-id-rules (set!)
+      [(set! name x) (setter compiler x)]
+      [name (getter compiler)])))
+
+(generate-compiler-macro location-counter compiler-struct-location-counter set-compiler-struct-location-counter!)
+(generate-compiler-macro execute? compiler-struct-execute? set-compiler-struct-execute?!)
 
 (define-syntax-rule (generate-interpreter-macro name getter setter)
   (define-syntax name
@@ -63,7 +76,7 @@
 	     (syntax-id-rules (set!)
 			      [(set! #,sym x) (#,setter interpreter x)]
 			      [#,sym (#,getter interpreter)])))])))
-;(gen-i-macro codespace)
+(gen-i-macro codespace)
 |#
 
 (generate-interpreter-macro primitive-dict interpreter-struct-primitive-dict set-interpreter-struct-primitive-dict!)
@@ -171,7 +184,7 @@
   (rvector-set! litspace lit-entry proc-or-addr) 
   (set! lit-entry (add1 lit-entry)))
 
-(define (add-compiled-code! proc-or-addr)
+(define (add-primitive-code! proc-or-addr)
   (if (= literal-mode 0)
       (add-to-codespace proc-or-addr)
       (add-to-litspace proc-or-addr)))
@@ -187,8 +200,8 @@
   (set! visible-address (sub1 next-address)))
 
 ; Now we can add the code for HERE.
-(add-compiled-code! (lambda () (push-int! next-address))) ; Adds this code to codespace at address 1 (value of HERE)
-(add-compiled-code! exit-addr) ; Adding the EXIT for HERE.
+(add-primitive-code! (lambda () (push-int! next-address))) ; Adds this code to codespace at address 1 (value of HERE)
+(add-primitive-code! exit-addr) ; Adding the EXIT for HERE.
 (reveal-entry!)
 
 (define (add-and-reveal-entry! prim prec name code data)
@@ -199,12 +212,12 @@
 (define (add-word! prim prec name [data '()])
   (add-and-reveal-entry! prim prec name (entry-data here-entry) data))
 (void (add-word! #f #f "exit"))
-(add-compiled-code! exit)
+(add-primitive-code! exit)
 
 (define (add-primitive-word! prec name code [data '()])
   (add-word! #t prec name data)
-  (add-compiled-code! code)
-  (add-compiled-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
+  (add-primitive-code! code)
+  (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
 
 (define (add-compiled-word! prec name)
   (let [(new (entry #f prec name (entry-data here-entry)))]

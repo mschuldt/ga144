@@ -12,16 +12,16 @@
 	 (map
 	  (lambda (num)
 	    (set! state-index num)
-	    (if (= pc 0)
-		#t
-		(let [(code (proc-ref codespace pc))]
-		  (current-input-port input)
-		  (set! pc (add1 pc))
-		  (with-handlers ([string? abort])
-				 (if (number? code)
-				     (execute-code code)
-				     (code)))
-		  #f)))
+	    (let [(code (rvector-ref ram pc))]
+	      (if (equal? code 0)
+		  #t
+		  (begin
+		    (set! pc (add1 pc))
+		    (with-handlers ([string? abort])
+				   (if (number? code)
+				       (execute-code code)
+				       (code)))
+		    #f))))
 	  used-cores))]
     (unless (for/and ([bool ended-list]) bool)
 	    (code-loop))))
@@ -53,7 +53,7 @@
   (push-int! #:getter state-rstack #:setter set-state-rstack! (sub1 pc)) ; When interpret exits, go back to interpret itself.
   (let [(name (forth_read))]
     (if (eof-object? name)
-        (set! pc 0)
+        (set! pc -1)
         (if (eq? name #\newline)
             (displaynl " ok")
             (let [(entry (find-entry name))]
@@ -102,14 +102,14 @@
           (cond [(not entry)
                  (let [(num (string->bytes to-compile))]
                    (if num
-                       (add-compiled-code! (lambda () (push-cells! num)))
+                       (add-primitive-code! (lambda () (push-cells! num)))
                        (raise (string-append to-compile " ?"))))]
                 [(entry-precedence entry)
                  (execute entry)]
                 [(entry-primitive entry)
-                 (add-compiled-code! (proc-ref codespace (entry-code entry)))]
+                 (add-primitive-code! (proc-ref codespace (entry-code entry)))]
                 [else
-                 (add-compiled-code! (entry-code entry))] ))
+                 (add-primitive-code! (entry-code entry))] ))
         (void))))
 (add-primitive-word! #f "]" colon-compiler)
 
@@ -119,9 +119,9 @@
 ; Colon definition - Uses the colon compiler
 (void (add-word! #f #t ":")) ; Don't want Racket saying #<entry> when this is loaded
 ; Can't be primitive because it has more than one entry in the codespace (not counting EXIT)
-(add-compiled-code! (lambda () (add-entry! #f #f (forth_read_no_eof) (entry-data here-entry))))
-(add-compiled-code! (entry-code (find-entry "]")))
-(add-compiled-code! exit-addr)
+(add-primitive-code! (lambda () (add-entry! #f #f (forth_read_no_eof) (entry-data here-entry))))
+(add-primitive-code! (entry-code (find-entry "]")))
+(add-primitive-code! exit-addr)
 
 (define (stop-compilation)
   (define (loop pos)
@@ -136,13 +136,24 @@
 
 ;;;;;;;;;; NEW COMPILER FOR ARRAYFORTH ;;;;;;;;;;;;;;
 
+;; Input:  Code, which by default we assume to be compiled.
+;; If a word is an immediate word, it is executed instead.
+;; To compile an immediate word, you need to postpone it.
+;; Compiler directives are added in this section.
+
+(define (add-compiled-code! code)
+  (rvector-set! ram location-counter code)
+  (set! location-counter (add1 location-counter)))
+
 (define (compile code-port)
+  (set! used-cores '())
+  (rvector-copy! dict 0 primitive-dict)
+  (for ([i (in-range num-cores)])
+       (set! state-index i)
+       (rvector-copy! rom 0 primitive-dict))
   (let [(old (current-input-port))]
     (current-input-port code-port)
-    (rvector-copy! dict 0 primitive-dict)
-    (for ([i (in-range num-cores)])
-	 (set! state-index i)
-	 (rvector-copy! rom 0 primitive-dict))
+    (set! execute? #f)
     (compile-loop)
     (current-input-port old)))
 
@@ -151,27 +162,43 @@
     (unless (eof-object? to-compile)
 	    (unless (eq? to-compile #\newline)
 		    (let [(entry (find-entry to-compile))]
+;		      (when entry (display (entry-name entry)) (display " ") (display (entry-precedence entry)) (newline))
 		      (cond [(not entry)
 			     (let [(num (string->bytes to-compile))]
 			       (if num
-				   (add-compiled-code! (lambda () (push-cells! num)))
-;				   (begin
-;				     (add-compiled-code! (proc-ref codespace (entry-code (find-entry "@p"))))
-;				     (add-compiled-code! num))
+				   (if execute?
+				       (push-cells! num)
+				       (add-compiled-code! (lambda () (push-cells! num))))
+					;				   (begin
+					;				     (add-compiled-code! (proc-ref codespace (entry-code (find-entry "@p"))))
+					;				     (add-compiled-code! num))
 				   (raise (string-append to-compile " ?"))))]
-			    [(entry-precedence entry)
-			     (execute entry)]
+			    [(or execute? (entry-precedence entry))
+			     ((proc-ref codespace (entry-code entry)))]
 			    [(entry-primitive entry)
 			     (add-compiled-code! (proc-ref codespace (entry-code entry)))]
 			    [else
 			     (add-compiled-code! (entry-code entry))] )))
 	    (compile-loop))))
 
-;; TODO:  Clear node's codespace and set location counter
+;; TODO:  Clear node's codespace
 (add-primitive-word! #t "node"
 		     (lambda ()
-		       (set! state-index (pop-int!))
+		       (set! state-index (pop-int! #f))
+		       (unless (member state-index used-cores)
+			       (set! used-cores (cons state-index used-cores)))
+		       (set! location-counter 0)
 		       (rvector-copy! rom 0 primitive-dict)))
+
+(add-primitive-word! #t "org"
+		     (lambda ()
+		       (set! location-counter (pop-int! #f))))
+
+(add-primitive-word! #t "yellow"
+		     (lambda () (set! execute? #t)))
+
+(add-primitive-word! #t "green"
+		     (lambda () (set! execute? #f)))
 
 ;;;;;;;;;; CHANGES END HERE (mostly) ;;;;;;;;;;;;;;;;
 
@@ -190,7 +217,7 @@
         (code1 (rvector-ref litspace 1)) 
         (code2 (rvector-ref litspace 2)) 
         (code3 (rvector-ref litspace 3))]
-    (add-compiled-code! (lambda () 
+    (add-primitive-code! (lambda () 
                         (code0) 
                         (code1)
                         (code2)
@@ -200,10 +227,10 @@
 (add-primitive-word! #t "}" stop-literal)
 
 (void (add-word! #f #t ";")) ; Can't be primitive since it uses multiple spaces in codespace
-(add-compiled-code! (lambda () (add-compiled-code! exit-addr)))
-(add-compiled-code! reveal-entry!)
-(add-compiled-code! stop-compilation)
-(add-compiled-code! exit-addr)
+(add-primitive-code! (lambda () (add-primitive-code! exit-addr)))
+(add-primitive-code! reveal-entry!)
+(add-primitive-code! stop-compilation)
+(add-primitive-code! exit-addr)
 
 
 (define (immediate)
@@ -217,9 +244,9 @@
     (cond [(not entry)
            (raise (string-append name " ?"))]
           [(entry-precedence entry)
-           (add-compiled-code! (entry-code entry))]
+           (add-primitive-code! (entry-code entry))]
           [else
-           (add-compiled-code! (lambda () (add-compiled-code! (entry-code entry))))])))
+           (add-primitive-code! (lambda () (add-primitive-code! (entry-code entry))))])))
 (add-primitive-word! #t "postpone" postpone)
 
 (add-primitive-word! #f "reveal" reveal-entry!)
@@ -227,13 +254,13 @@
 (add-primitive-word! #t "literal"
                      (lambda ()
                        (let [(num (pop-int! #t))]
-                         (add-compiled-code! (lambda () (push-int! num))))))
+                         (add-primitive-code! (lambda () (push-int! num))))))
 
 ; ,
 (add-primitive-word! #t ","
                      (lambda ()
                        (let [(num (pop-int! #t))]
-                         (add-compiled-code! num))))
+                         (add-primitive-code! num))))
 
 ; Dictionary manipulation words
 
@@ -311,4 +338,14 @@
     (make-core-info 0 (open-input-string "1 2 + 1 .ns send .ns 2 recv .ns"))
     (make-core-info 1 (open-input-string ".ns 1 recv .ns - 2 send")))))
 
-(run-tests)
+;(run-tests)
+
+(define (run-compiler-tests)
+  (let ((test-port (open-input-string "yellow 2 node
+green 1 2 + 1 .ns send 2 recv .ns
+yellow 44 node
+green 1 recv .ns - .ns 2 send .ns")))
+    (compile test-port)
+    (code-loop)))
+
+(run-compiler-tests)
