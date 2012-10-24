@@ -63,13 +63,13 @@
 
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)
-  (define (execute! opcode jump-addr-pos)
+  (define (execute! opcode [jump-addr-pos 0])
     (let ([jump-addr (bitwise-bit-field 0 jump-addr-pos)])
       ((vector-ref instructions opcode) jump-addr)))
   (and (execute! (bitwise-bit-field i 13 18) 10)
        (execute! (bitwise-bit-field i 8 13)  8)
        (execute! (bitwise-bit-field i 3 8)   3)
-       (execute! (bitwise-bit-field i 0 3)   0)))
+       (execute! (arithmetic-shift (bitwise-bit-field i 0 3) 2))))
 
 ;;; Return the value of p or a incremented as appropriately. If the
 ;;; register points to an IO region, does nothing. Otherwise increment

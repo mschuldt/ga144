@@ -25,4 +25,4 @@
     (bitwise-ior (arithmetic-shift (to-opcode a) 13)
                  (arithmetic-shift (to-opcode b) 8)
                  (arithmetic-shift (to-opcode c) 3)
-                 (bitwise-and #x7 (to-opcode d)))))
+                 (bitwise-bit-field 2 5 (to-opcode d)))))
