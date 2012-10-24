@@ -11,24 +11,24 @@
 ;; TODO: there is no ior but i couldn't find where they define ior. i think it should be somewhere
 (add-primitive-word! #f "ior"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (bitwise-ior arg1 arg2))))) ; ior - inclusive or
 
 ;; TODO: this is how they define invert : invert begin - ; ???
-(add-primitive-word! #f "invert" (lambda () (push-int! (bitwise-not (pop-int! #t)))))
+(add-primitive-word! #f "invert" (lambda () (push-int! dstack (bitwise-not (pop-int! dstack #t)))))
 
 (add-primitive-word! #f "and"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-and arg1 arg2)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (bitwise-and arg1 arg2)))))
 
 (add-primitive-word! #f "or"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (bitwise-xor arg1 arg2))))) ; xor - exclusive or
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (bitwise-xor arg1 arg2))))) ; xor - exclusive or
 
 
 ; Math
@@ -36,12 +36,12 @@
 ; Addition - adds 2 ints, pushes it back onto the stack.  Treated as signed, but works for unsigned as well.
 (add-primitive-word! #f "+"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (+ arg1 arg2)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (+ arg1 arg2)))))
 
 ; Invert
-(add-primitive-word! #f "-"(lambda () (push-int! (bitwise-not (pop-int! #t)))))
+(add-primitive-word! #f "-"(lambda () (push-int! dstack (bitwise-not (pop-int! dstack #t)))))
 
 ; Multiply step. 
 ; Signed Multiplicand is in S, unsigned multiplier in A, T=0 at start of a step sequence.
@@ -58,68 +58,68 @@
       ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
       (set! rega (+ 131072 (quotient a 2)))
       (set! rega (quotient a 2)))
-  (push-int! (+ (bitwise-and t 131072) (quotient t 2))))
+  (push-int! dstack (+ (bitwise-and t 131072) (quotient t 2))))
 
 (define (multiply-step-proc)
   (let* [(a (rega))]
     (if (= (bitwise-and a 1) 1)
-        (push-int! (+ (pop-int! #f) (get-int #f)))
+        (push-int! dstack (+ (pop-int! dstack #f) (get-int dstack #f)))
         (void))
-    (let* [(t (pop-int! #f))]
+    (let* [(t (pop-int! dstack #f))]
       (if (= (bitwise-and t 1) 1)
           (set! rega (+ 131072 (quotient a 2)))
           (set! rega (quotient a 2)))
-      (push-int! (+ (bitwise-and t 131072) (quotient (bitwise-and t 262143) 2))))))
+      (push-int! dstack (+ (bitwise-and t 131072) (quotient (bitwise-and t 262143) 2))))))
 
 (add-primitive-word! #f "+*" multiply-step-proc)
 
-(add-primitive-word! #f "2*" (lambda () (push-int! (* (pop-int! #t) 2))))
-(add-primitive-word! #f "2/" (lambda () (push-int! (/ (pop-int! #t) 2))))
+(add-primitive-word! #f "2*" (lambda () (push-int! dstack (* (pop-int! dstack #t) 2))))
+(add-primitive-word! #f "2/" (lambda () (push-int! dstack (/ (pop-int! dstack #t) 2))))
 
 (add-primitive-word! #f "*"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (* arg1 arg2)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (* arg1 arg2)))))
 
 (add-primitive-word! #f "/"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (quotient arg2 arg1)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (quotient arg2 arg1)))))
 
 (add-primitive-word! #f "mod"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (remainder arg2 arg1)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (remainder arg2 arg1)))))
 
 (add-primitive-word! #f "/mod"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (remainder arg2 arg1))
-                         (push-int! (quotient arg2 arg1)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (remainder arg2 arg1))
+                         (push-int! dstack (quotient arg2 arg1)))))
 
 (add-primitive-word! #f "*/"
                      (lambda ()
-                       (let* [(n3 (pop-int! #t))
-                              (n2 (pop-int! #t))
-                              (n1 (pop-int! #t))
+                       (let* [(n3 (pop-int! dstack #t))
+                              (n2 (pop-int! dstack #t))
+                              (n1 (pop-int! dstack #t))
                               (intermediate (* n1 n2))]
-                         (push-int! (quotient intermediate n3)))))
+                         (push-int! dstack (quotient intermediate n3)))))
 
 (add-primitive-word! #f "min"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (min arg2 arg1)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (min arg2 arg1)))))
 
 (add-primitive-word! #f "max"
                      (lambda ()
-                       (let* [(arg1 (pop-int! #t))
-                              (arg2 (pop-int! #t))]
-                         (push-int! (max arg2 arg1)))))
+                       (let* [(arg1 (pop-int! dstack #t))
+                              (arg2 (pop-int! dstack #t))]
+                         (push-int! dstack (max arg2 arg1)))))
 
 ; NOP
 (add-primitive-word! #f "." (lambda () (void)))
