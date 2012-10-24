@@ -4,6 +4,8 @@
 ;;; For convenience, I'm going to pretend racket integers are 18 bits
 ;;; wide. 
 
+(require "assembler.rkt")
+
 ;;; stacks:
 (struct stack ([sp #:mutable] body))
 (define data   (stack 0 (make-vector 8)))
@@ -17,6 +19,31 @@
 (define r 0)
 (define s 0)
 (define t 0)
+
+;;; Print a circular stack:
+(define (display-stack stack)
+  (for [(i (in-range 0 8))]
+       (display (format " ~x" (vector-ref (stack-body stack)
+                                          (modulo (+ i (stack-sp stack)) 8))))))
+
+;;; Print the stack:
+(define (display-data)
+  (display (format "|d> ~x ~x" t s))
+  (display-stack data)
+  (newline))
+
+;;; Print the return stack:
+(define (display-return)
+  (display (format "|r> ~x" r))
+  (display-stack return)
+  (newline))
+
+;;; Loads the given program into memory at the given start
+;;; address. The program is run through the assembler before being
+;;; loaded.
+(define (load-program in [start 0])
+  (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
+         start (read-program in)))
 
 ;;; Extracts the bottom 18 bits of n:
 (define (18bit n)
@@ -64,7 +91,7 @@
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)
   (define (execute! opcode [jump-addr-pos 0])
-    (let ([jump-addr (bitwise-bit-field 0 jump-addr-pos)])
+    (let ([jump-addr (bitwise-bit-field opcode 0 jump-addr-pos)])
       ((vector-ref instructions opcode) jump-addr)))
   (and (execute! (bitwise-bit-field i 13 18) 10)
        (execute! (bitwise-bit-field i 8 13)  8)
@@ -82,12 +109,12 @@
         [(= curr #x0FF) #x080]
         [else curr]))
 
-;;; Executes a program starting with the given memory address. This
-;;; executes a word, increasing i and p as appropriate.
-(define (execute-program! start)
+;;; Executes one step of the program by fetching a word, incrementing
+;;; p and executing the word.
+(define (step-program!)
   (set! i (vector-ref memory p))
-  (execute-word!)
-  (set! p (incr p)))
+  (set! p (incr p))
+  (execute-word!))
 
 ;;; Defines a new instruction. This implicitly sets the instructions'
 ;;; opcodes based on the order they're defined in. An instruction can
