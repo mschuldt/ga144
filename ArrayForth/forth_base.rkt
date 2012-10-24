@@ -27,30 +27,30 @@
 	    (code-loop))))
 
 (define (execute-code addr)
-  (push-int! #:getter state-rstack #:setter set-state-rstack! pc) ; pc will be the address of the next instruction to execute
+  (push-int! rstack pc) ; pc will be the address of the next instruction to execute
   (set! pc addr))
 
 (define execute (compose execute-code entry-code))
 
-(add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! #f)))))
+(add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! dstack #f)))))
 
 (define (abort msg)
   (displaynl msg)
-  (set-state-stack! (vector-ref cores state-index) (make-bytes 0))
+  (set! dstack (make-dstack))
   (quit))
 
 (define (quit)
   (read-line) ; The rest of the line should not be used as input
-  (set-state-rstack! (vector-ref cores state-index) (make-bytes 0))
+  (set! rstack (make-rstack))
   (set! pc interpreter-addr))
 (add-primitive-word! #f "quit" quit)
 
 (define (tick)
-  (push-int! (find-address (forth_read_no_eof))))
+  (push-int! dstack (find-address (forth_read_no_eof))))
 (add-primitive-word! #f "'" tick)
 
 (define (interpret-proc)
-  (push-int! #:getter state-rstack #:setter set-state-rstack! (sub1 pc)) ; When interpret exits, go back to interpret itself.
+  (push-int! rstack (sub1 pc)) ; When interpret exits, go back to interpret itself.
   (let [(name (forth_read))]
     (if (eof-object? name)
         (set! pc -1)
@@ -61,15 +61,15 @@
                   (execute entry)
                   (let [(num (string->bytes name))]
                     (if num
-                        (push-cells! num)
+                        (push-cells! dstack num)
                         (raise (string-append name " ?"))))))))))
 (add-primitive-word! #f "interpret" interpret-proc)
 
 (define (reset-states!)
   (for [(i (in-range 0 num-cores))]
-       (set-state-stack! (vector-ref cores i) (make-bytes 0))
-       (set-state-rstack! (vector-ref cores i) (make-bytes 0))
-       (set-state-pc! (vector-ref cores i) interpreter-addr)))
+       (set-state-dstack! (vector-ref cores i) (make-dstack))
+       (set-state-rstack! (vector-ref cores i) (make-rstack))
+       (set-state-pc! (vector-ref cores i) 0)))
 
 (define (interpret)
   (set! used-cores '(0))
@@ -95,14 +95,14 @@
 
 ; Colon compiler
 (define (colon-compiler)
-  (push-int! #:getter state-rstack #:setter set-state-rstack! (sub1 pc)) ; When ] exits, go back to ] itself.
+  (push-int! rstack (sub1 pc)) ; When ] exits, go back to ] itself.
   (let [(to-compile (forth_read_no_eof))]
     (if (not (eq? to-compile #\newline))
         (let [(entry (find-entry to-compile))]
           (cond [(not entry)
                  (let [(num (string->bytes to-compile))]
                    (if num
-                       (add-primitive-code! (lambda () (push-cells! num)))
+                       (add-primitive-code! (lambda () (push-cells! dstack num)))
                        (raise (string-append to-compile " ?"))))]
                 [(entry-precedence entry)
                  (execute entry)]
@@ -126,8 +126,9 @@
 (define (stop-compilation)
   (define (loop pos)
     (cond [(<= pos 0) (void)]
-          [(= (get-int #:stack (state-rstack (vector-ref cores state-index)) #f pos) compiler-addr)
-           (pop-double! #:getter state-rstack #:setter set-state-rstack! #f pos)
+          [(= (get-int rstack #f pos) compiler-addr)
+           (pop-int! rstack #f pos)
+           (pop-int! rstack #f pos)
            (loop (- pos 2))] ; Pop off the place to go back to (the exit), as well as the link for colon-compiler
           [else (loop (sub1 pos))]))
   (loop (sub1 (/ (bytes-length (state-rstack (vector-ref cores state-index))) 4))))
@@ -167,8 +168,8 @@
 			     (let [(num (string->bytes to-compile))]
 			       (if num
 				   (if execute?
-				       (push-cells! num)
-				       (add-compiled-code! (lambda () (push-cells! num))))
+				       (push-cells! dstack num)
+				       (add-compiled-code! (lambda () (push-cells! dstack num))))
 					;				   (begin
 					;				     (add-compiled-code! (proc-ref codespace (entry-code (find-entry "@p"))))
 					;				     (add-compiled-code! num))
@@ -184,7 +185,7 @@
 ;; TODO:  Clear node's codespace
 (add-primitive-word! #t "node"
 		     (lambda ()
-		       (set! state-index (pop-int! #f))
+		       (set! state-index (pop-int! dstack #f))
 		       (unless (member state-index used-cores)
 			       (set! used-cores (cons state-index used-cores)))
 		       (set! location-counter 0)
@@ -192,7 +193,7 @@
 
 (add-primitive-word! #t "org"
 		     (lambda ()
-		       (set! location-counter (pop-int! #f))))
+		       (set! location-counter (pop-int! dstack #f))))
 
 (add-primitive-word! #t "yellow"
 		     (lambda () (set! execute? #t)))
@@ -253,13 +254,13 @@
 
 (add-primitive-word! #t "literal"
                      (lambda ()
-                       (let [(num (pop-int! #t))]
-                         (add-primitive-code! (lambda () (push-int! num))))))
+                       (let [(num (pop-int! dstack #t))]
+                         (add-primitive-code! (lambda () (push-int! dstack num))))))
 
 ; ,
 (add-primitive-word! #t ","
                      (lambda ()
-                       (let [(num (pop-int! #t))]
+                       (let [(num (pop-int! dstack #t))]
                          (add-primitive-code! num))))
 
 ; Dictionary manipulation words
@@ -345,6 +346,11 @@
 green 1 2 + 1 .ns send 2 recv .ns
 yellow 44 node
 green 1 recv .ns - .ns 2 send .ns")))
+    (compile test-port)
+    (code-loop))
+  (reset-states!)
+  (let ((test-port (open-input-string "yellow 2 node
+green 1 2 3 4 5 6 7 8 .ns 9 .ns 10 .ns 11 .ns drop .ns drop .ns")))
     (compile test-port)
     (code-loop)))
 
