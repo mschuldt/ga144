@@ -27,7 +27,7 @@
      (bitwise-ior (arithmetic-shift (to-opcode a) 13)
                   (arithmetic-shift (to-opcode b) 8)
                   (arithmetic-shift (to-opcode c) 3)
-                  (bitwise-bit-field 2 5 (to-opcode d))))))
+                  (bitwise-bit-field (to-opcode d) 2 5)))))
 
 ;;; Read a whole program in from the given port, stopping at
 ;;; eof. Returns a list of 18-bit words.
