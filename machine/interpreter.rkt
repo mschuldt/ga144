@@ -1,9 +1,6 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-;;; For convenience, I'm going to pretend racket integers are 18 bits
-;;; wide. 
-
 (require "assembler.rkt")
 
 ;;; stacks:
@@ -24,9 +21,9 @@
 (define (display-stack stack)
   (for [(i (in-range 0 8))]
        (display (format " ~x" (vector-ref (stack-body stack)
-                                          (modulo (+ i (stack-sp stack)) 8))))))
+                                          (modulo (- (stack-sp stack) i) 8))))))
 
-;;; Print the stack:
+;;; the stack:
 (define (display-data)
   (display (format "|d> ~x ~x" t s))
   (display-stack data)
@@ -37,6 +34,12 @@
   (display (format "|r> ~x" r))
   (display-stack return)
   (newline))
+
+;;; Displays some state, useful for debugging. Currently this just
+;;; shows the pc and data stack.
+(define (display-state)
+  (display (format "p:~a " p))
+  (display-data))
 
 ;;; Loads the given program into memory at the given start
 ;;; address. The program is run through the assembler before being
@@ -111,10 +114,22 @@
 
 ;;; Executes one step of the program by fetching a word, incrementing
 ;;; p and executing the word.
-(define (step-program!)
+(define (step-program! [debug? #f])
   (set! i (vector-ref memory p))
   (set! p (incr p))
-  (execute-word!))
+  (execute-word!)
+  (when debug? (display-state)))
+
+;;; Steps the program n times.
+(define (step-program-n! n [debug? #f])
+  (for ([i (in-range 0 n)]) (step-program! debug?)))
+
+;;; Steps the program until it hits an instructions made up only of
+;;; nops or only of 0s. This should be useful for debugging small
+;;; programs.
+(define (step-program!* [debug? #f])
+  (unless (or (= i #x39ce7) (= i 0))
+    (step-program! debug?) (step-program!* debug?)))
 
 ;;; Defines a new instruction. This implicitly sets the instructions'
 ;;; opcodes based on the order they're defined in. An instruction can
