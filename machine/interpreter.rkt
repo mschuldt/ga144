@@ -3,6 +3,8 @@
 
 (require "assembler.rkt")
 
+(provide (all-defined-out))
+
 ;;; stacks:
 (struct stack ([sp #:mutable] body))
 (define data   (stack 0 (make-vector 8)))
@@ -16,6 +18,21 @@
 (define r 0)
 (define s 0)
 (define t 0)
+
+;;; Resets the state of the interpreter:
+(define (reset!)
+  (set! data   (stack 0 (make-vector 8)))
+  (set! return (stack 0 (make-vector 8)))
+
+  (set! a 0)
+  (set! b 0)
+  (set! p 0)
+  (set! i 0)
+  (set! r 0)
+  (set! s 0)
+  (set! t 0)
+
+  (set! memory (make-vector 64)))
 
 ;;; Print a circular stack:
 (define (display-stack stack)
@@ -128,8 +145,9 @@
 ;;; nops or only of 0s. This should be useful for debugging small
 ;;; programs.
 (define (step-program!* [debug? #f])
-  (unless (or (= i #x39ce7) (= i 0))
-    (step-program! debug?) (step-program!* debug?)))
+  (let ([next (vector-ref memory p)])
+    (unless (or (= next #x39ce7) (= next 0))
+      (step-program! debug?) (step-program!* debug?))))
 
 ;;; Defines a new instruction. This implicitly sets the instructions'
 ;;; opcodes based on the order they're defined in. An instruction can
