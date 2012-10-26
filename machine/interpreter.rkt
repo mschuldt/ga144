@@ -34,6 +34,10 @@
 
   (set! memory (make-vector 64)))
 
+;;; Resets only p
+(define (reset-p!)
+  (set! p 0))
+
 ;;; Print a circular stack:
 (define (display-stack stack)
   (for [(i (in-range 0 8))]
