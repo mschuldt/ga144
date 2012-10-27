@@ -6,7 +6,7 @@
 (provide (all-defined-out))
 
 ;;; stacks:
-(struct stack ([sp #:mutable] body))
+(struct stack ([sp #:mutable] body) #:transparent)
 (define data   (stack 0 (make-vector 8)))
 (define return (stack 0 (make-vector 8)))
 
