@@ -49,6 +49,10 @@
 (define (reset!)
   (load-state! start-state))
 
+;;; Resets only p
+(define (reset-p!)
+  (set! p 0))
+
 ;;; Print the data stack:
 (define (display-data)
   (display (format "|d> ~x ~x" t s))
