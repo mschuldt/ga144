@@ -1,12 +1,18 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt")
+(require "assembler.rkt" "stack.rkt")
 
 (provide (all-defined-out))
 
+;;; A snapshot of the interpreter's state.
+(struct state (a b p i r s t data return memory) #:transparent)
+
+;;; Returns a snapshot of the current state.
+(define (current-state)
+  (state a b p i r s t data return memory))
+
 ;;; stacks:
-(struct stack ([sp #:mutable] body) #:transparent)
 (define data   (stack 0 (make-vector 8)))
 (define return (stack 0 (make-vector 8)))
 
@@ -19,28 +25,31 @@
 (define s 0)
 (define t 0)
 
+;;; Reset the interpreter to the given state.
+(define (load-state! state)
+  (set! data   (copy-stack (state-data state)))
+  (set! return (copy-stack (state-return state)))
+
+  (set! a (state-a state))
+  (set! b (state-b state))
+  (set! p (state-p state))
+  (set! i (state-i state))
+  (set! r (state-r state))
+  (set! s (state-s state))
+  (set! t (state-t state))
+
+  (set! memory (vector-copy (state-memory state))))
+
+(define start-state (state 0 0 0 0 0 0 0
+                      (stack 0 (make-vector 8))
+                      (stack 0 (make-vector 8))
+                      (make-vector 64)))
+
 ;;; Resets the state of the interpreter:
 (define (reset!)
-  (set! data   (stack 0 (make-vector 8)))
-  (set! return (stack 0 (make-vector 8)))
+  (load-state! start-state))
 
-  (set! a 0)
-  (set! b 0)
-  (set! p 0)
-  (set! i 0)
-  (set! r 0)
-  (set! s 0)
-  (set! t 0)
-
-  (set! memory (make-vector 64)))
-
-;;; Print a circular stack:
-(define (display-stack stack)
-  (for [(i (in-range 0 8))]
-       (display (format " ~x" (vector-ref (stack-body stack)
-                                          (modulo (- (stack-sp stack) i) 8))))))
-
-;;; the stack:
+;;; Print the data stack:
 (define (display-data)
   (display (format "|d> ~x ~x" t s))
   (display-stack data)
@@ -69,11 +78,6 @@
 (define (18bit n)
   (bitwise-bit-field n 0 18))
 
-;;; Pushes a value to the given stack's body.
-(define (push-stack! stack value)
-  (set-stack-sp! stack (modulo (add1 (stack-sp stack)) 8))
-  (vector-set! (stack-body stack) (stack-sp stack) s))
-
 ;;; Pushes to the data stack.
 (define (push! value)
   (push-stack! data s)
@@ -84,12 +88,6 @@
 (define (r-push! value)
   (push-stack! return r)
   (set! r value))
-
-;;; Pops from the given stack's body.
-(define (pop-stack! stack)
-  (let ([ret-val (vector-ref (stack-body stack) (stack-sp stack))])
-    (set-stack-sp! stack (modulo (sub1 (stack-sp stack)) 8))
-    ret-val))
 
 ;;; Pops from the data stack.
 (define (pop!)
@@ -192,10 +190,3 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
-
-(define (run-program!)
-  (load-program (open-input-string "- dup dup dup dup dup dup dup"))
-  (step-program!)
-  (display-data)
-  (step-program!)
-  (display-data))
