@@ -184,7 +184,7 @@
 (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
 (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; TODO: extended arithmetic mode
 (define-instruction! (lambda (_) (push! (bitwise-and (pop!) (pop!)))))               ; and
-(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or(load-program (open-input-string "@p @p @p @p 1 2 3 4"))
+(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or 
 (define-instruction! (lambda (_) (pop!)))                                            ; drop 
 (define-instruction! (lambda (_) (push! t)))                                         ; dup
 (define-instruction! (lambda (_) (push! (r-pop!))))                                  ; pop
