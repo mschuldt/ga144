@@ -13,24 +13,37 @@
       (or (vector-member name names) (raise (format "~s is not a valid name!" name)))))
 
 ;;; The list of instructions that can go into slot 3.
-(define slot-3 (map to-opcode '(ret +* unext + @p dup !p nop)))
+(define slot-3 '(ret +* unext + @p dup !p nop))
+
+;;; Instructions taking an address:
+(define jumps '(jump call next if -if))
 
 ;;; Reads a whole 18-bit word's worth of instructions. This can take
 ;;; up to four tokens from the list above. It can also take a single
-;;; numeric constant. This constant can use any syntax Racket recognizes.
+;;; numeric constant. Instructions expecting an address--like jump and
+;;; if--have to be followed by a numeric constant which finished off
+;;; the word.
 (define (read-18bit-word in)
-  (define a (read in))
-  (if (number? a) a
-      (let ([b (read in)]
-            [c (read in)]
-            [d (read in)])
-        (and
-         (not (eof-object? a))
-         (when (not (member (to-opcode d) slot-3)) (raise (format "~s cannot go in the last slot!" d)))
-         (bitwise-ior (arithmetic-shift (to-opcode a) 13)
-                      (arithmetic-shift (to-opcode b) 8)
-                      (arithmetic-shift (to-opcode c) 3)
-                      (bitwise-bit-field (to-opcode d) 2 5))))))
+  (define (pack size instr . rest)
+    (if (null? rest)
+        (begin
+          (when (not (number? instr)) (raise (format "~s is not a valid jump address!" instr)))
+          (bitwise-bit-field instr 0 (+ size 5)))
+        (bitwise-ior (arithmetic-shift (to-opcode instr) size)
+                     (apply pack (cons (- size 5) rest)))))
+  (let/cc end
+    (define a (read in))
+    (cond [(eof-object? a)  (end #f)]
+          [(number? a)      (end a)]
+          [(member a jumps) (end (pack 13 a (read in)))])
+    (define b (read in))
+    (when (member b jumps) (end (pack 13 a b (read in))))
+    (define c (read in))
+    (when (member c jumps) (end (pack 13 a b c (read in))))
+    (define d (read in))
+    (when (not (member d slot-3)) (raise (format "~s cannot go in the last slot!" d)))
+    (end (pack 13 a b c (bitwise-bit-field (to-opcode d) 2 5)))))
+
 ;;; Read a whole program in from the given port or string, stopping at
 ;;; eof. Returns a list of 18-bit words.
 (define (read-program in)
