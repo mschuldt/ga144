@@ -113,7 +113,7 @@
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)
   (define (execute! opcode [jump-addr-pos 0])
-    (let ([jump-addr (bitwise-bit-field opcode 0 jump-addr-pos)])
+    (let ([jump-addr (bitwise-bit-field i 0 jump-addr-pos)])
       ((vector-ref instructions opcode) jump-addr)))
   (and (execute! (bitwise-bit-field i 13 18) 10)
        (execute! (bitwise-bit-field i 8 13)  8)

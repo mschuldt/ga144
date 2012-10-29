@@ -74,5 +74,11 @@
   (check-equal? data (stack 7 (forth-stack 0 0 -1 -1 -1 -1 -1 -1)))
   (check-unchanged? a b r return))
 
+;;; Testing the basic instructions:
+(define-test "call 10"   ; call
+  (check-equal? r 1)
+  (check-equal? p 10)
+  (check-unchanged? a b s t data))
+
 ;;; Run all the currently defined tests.
 (define (run-tests) (for ([test tests]) (test)))
