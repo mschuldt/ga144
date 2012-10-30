@@ -1,7 +1,6 @@
 #lang racket
 
-(require "interpreter.rkt")
-(require "greensyn.rkt")
+(require "interpreter.rkt" "stack.rkt" "greensyn.rkt")
 
 (define (synthesize)
   (define mem (make-vector 1))
