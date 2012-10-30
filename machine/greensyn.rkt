@@ -1,11 +1,6 @@
 #lang racket
 
-(provide reset)
-(provide set-input)
-(provide set-output)
-(provide set-comm)
-(provide commit-inout)
-(provide check-sat)
+(provide (all-defined-out))
 
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)
@@ -58,6 +53,32 @@
 (define inout-list (make-vector 10))
 (define num-inout 0)
 
+(define spec (make-vector 100))
+(define spec-count 0)
+(define cand (make-vector 100))
+(define cand-count 0)
+
+(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! up down left right nop 1))
+
+(define (to-choice name)
+  (display (format "to-choice ~e ~e\n" name (vector-member name choice-id)))
+  (or (vector-member name choice-id) (raise (format "Cannot synthesize ~s!" name))))
+
+(define (compile code output)
+  (define count 0)
+  (define in (open-input-string code))
+  (define (go)
+    (define (append-vector inst)
+      (vector-set! output count inst)
+      (set! count (add1 count))
+      (go))
+    (let ([next (read in)])
+	  (if (eof-object? next)
+	      (void)
+	      (append-vector (to-choice next)))))
+  (go)
+  count)
+
 (define var 
   (case-lambda [(base i) (string->symbol (format "~a_v~a" base i))]
                [(base i j) (string->symbol (format "~a_~a_v~a" base i j))]))
@@ -78,6 +99,7 @@
   (pretty-display `(define-sort ,(makeBV STACK_SIZE) () (_ BitVec ,STACK_SIZE))) ; for stack
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
   (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm
+  (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
   )
 
 (define (declare-init v n i bit)
@@ -100,7 +122,12 @@
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_SIZE)))))
 
-(define (generate-choice choice step n i)
+(define (encode-program prog n name)
+  (for* ([step (in-range 1 n)])
+    (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_SIZE)))
+    (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_SIZE))))))
+
+(define (generate-choice choice step n i name)
   (define prev (sub1 step))
 
   (define (shrink)
@@ -140,7 +167,7 @@
       (format "(= ~a_~a_v~e (_ bv~e ~e))) " reg prev i LEFT SIZE))
       (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE)))
 
-  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= h_~e (_ bv~e ~e)) " step choice HOLE_SIZE))
+  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step choice HOLE_SIZE))
   (define check_sp (format "(= sp_~e_v~e sp_~e_v~e)" step i prev i))
   (define check_rp (format "(= rp_~e_v~e rp_~e_v~e)" step i prev i))
   (define check_t (format "(= t_~e_v~e t_~e_v~e)" step i prev i))
@@ -291,20 +318,20 @@
     check_recvp_l)
     check_recvp_r))
 
-(define (generate-formula step n version)
+(define (generate-formula step n version name)
  (define s "(assert ")
  (for* ([i (in-range 1 CHOICES)])
    (set! s (string-append s "(or ")))
  (pretty-display s)
- (pretty-display (generate-choice 0 step n version))
+ (pretty-display (generate-choice 0 step n version name))
  (for* ([i (in-range 1 CHOICES)])
-   (pretty-display (string-append (generate-choice i step n version) ")")))
+   (pretty-display (string-append (generate-choice i step n version name) ")")))
  (pretty-display ")"))
  
-(define (generate-formulas n)
-  (for* ([version (in-range 0 num-inout)]
+(define (generate-formulas n from to name)
+  (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
-    (generate-formula step n version)))
+    (generate-formula step n version name)))
 
 (define-syntax-rule (define-fun id form ...)
   (define id `(define-fun id form ...)))
@@ -349,8 +376,8 @@
   (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
   (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
 
-(define (declare-vars n)
-  (for* ([i (in-range 0 num-inout)])
+(define (declare-vars n from to)
+  (for* ([i (in-range from to)])
        (declare-init `dst n i STACK_SIZE)
        (declare-init `rst n i STACK_SIZE)
        (declare-init `sp n i 3)
@@ -364,9 +391,7 @@
 	    (declare-init-zero var n i COMM_BIT))
 
        (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
-	    (declare-vector-one var i COMM_ENTRIES)))
-
-  (declare-holes n))
+	    (declare-vector-one var i COMM_ENTRIES))))
 
 (define (default-progstate
           #:dst [dst (make-vector 8 #x15555)]
@@ -475,71 +500,125 @@
   (for* ([i (in-range 0 num-inout)])
     (define p (vector-ref inout-list i))
     (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i)))
+
+(define (assert-input-eq)
+  (for ([var `(dst rst mem t s r a b sp rp)])
+       (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var))))
+
+(define (assert-output-neq)
+  (define (assert-ir-comm v n)
+    (for* ([port `(send recv)]
+	   [p (in-range 0 4)]
+	   [i (in-range 0 COMM_ENTRIES)])
+	  (define index (format "(_ bv~a ~a)" i COMM_BIT))
+	  (pretty-display (format "(assert (or (bvult ~a ~ap~a_~a_v~a) (= (get-comm ~a~a_v~a ~a) (_ bv0 ~a))))" 
+				  index port p n v   port p v index SIZE))))
+  (assert-ir-comm 0 spec-count)
+  (assert-ir-comm 1 cand-count)
+  (define s "(assert ")
+  (for ([i (in-range 0 25)]) ; 10 stat var + 8 comm pointers + comm
+       (set! s (string-append s "(or ")))
+  (set! s (string-append s (format "(not (= dst_~e_v0 dst_~e_v1))" spec-count cand-count)))
+  (for ([var `(rst mem t s r a b sp rp sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
+       (set! s (string-append s (format " (not (= ~a_~e_v0 ~a_~e_v1)))" var spec-count var cand-count))))
+  (for* ([var `(send recv)]
+	 [channel (in-range 0 4)])
+       (set! s (string-append s (format " (not (= ~a~a_v0 ~a~a_v1)))" var channel var channel))))
+  (set! s (string-append s ")"))
+  (pretty-display s))
   
-(define (display-prog n)
+(define (synthesize-prog n)
   (declare-bitvector)
-  (declare-vars (add1 n))
+  (declare-vars (add1 n) 0 num-inout)
+  (declare-holes (add1 n))
+  (newline)
   (declare-functions)
   (newline)
-  (generate-formulas (add1 n))
+  (generate-formulas (add1 n) 0 num-inout `h)
   (newline)
   (assert-input-output n)
+  (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
 )
 
-(define (write-prog filename prog-size)
-  (parameterize ([current-output-port (open-output-file filename #:exists 'replace)])
-    (display-prog prog-size)))
+(define (verify-prog)
+  (declare-bitvector)
+  (declare-functions)
+  (newline)
 
-(define (test1)
-  (define input1 (default-progstate))
-  (define output1 (default-progstate))
-  (define comm1 (default-commstate))
-  (set-progstate-t! input1 #x15555)
-  (set-progstate-s! input1 0)
-  
-  (vector-set! (progstate-mem input1) 0 123)
-  (vector-set! (progstate-mem input1) 1 456)
-  (vector-set! (progstate-mem input1) 2 #x15555)
+  ; formular for spec
+  (encode-program spec (add1 spec-count) `spec)
+  (newline)
+  (declare-vars (add1 spec-count) 0 1)
+  (newline)
+  (generate-formulas (add1 spec-count) 0 1 `spec)
+  (newline)
 
-  (vector-set! (progstate-mem output1) 0 123)
-  (vector-set! (progstate-mem output1) 1 456)
-  (vector-set! (progstate-mem output1) 2 474)
-
-  (add-input-output input1 output1 comm1)
-
-  (set-progstate-t! input1 7)
-  (set-progstate-s! input1 0)
+  ; formular for candidate
+  (encode-program cand (add1 cand-count) `cand)
+  (newline)
+  (declare-vars (add1 cand-count) 1 2)
+  (newline)
+  (generate-formulas (add1 cand-count) 1 2 `cand)
+  (newline)
   
-  (vector-set! (progstate-mem input1) 0 1)
-  (vector-set! (progstate-mem input1) 1 15)
-  
-  (vector-set! (progstate-mem output1) 0 1)
-  (vector-set! (progstate-mem output1) 1 15)
-  (vector-set! (progstate-mem output1) 2 9)
-  
-  ;(add-input-output input1 output1 comm1)
-  (set-progstate-t! input1 0)
-  (set-progstate-s! input1 0)
-  
-  (vector-set! (progstate-mem input1) 0 5)
-  (vector-set! (progstate-mem input1) 1 10)
-  
-  (vector-set! (progstate-mem output1) 0 5)
-  (vector-set! (progstate-mem output1) 1 10)
-  (vector-set! (progstate-mem output1) 2 15)
-  ;(add-input-output input1 output1 comm1)
-  (write-prog "prog.smt2" 10)
+  (assert-input-eq)
+  (newline)
+  (assert-output-neq)
+  (newline)
+  (pretty-display `(check-sat))
+  (pretty-display `(get-model))
 )
 
-;(test1)
+;; (define (test1)
+;;   (define input1 (default-progstate))
+;;   (define output1 (default-progstate))
+;;   (define comm1 (default-commstate))
+;;   (set-progstate-t! input1 #x15555)
+;;   (set-progstate-s! input1 0)
+  
+;;   (vector-set! (progstate-mem input1) 0 123)
+;;   (vector-set! (progstate-mem input1) 1 456)
+;;   (vector-set! (progstate-mem input1) 2 #x15555)
+
+;;   (vector-set! (progstate-mem output1) 0 123)
+;;   (vector-set! (progstate-mem output1) 1 456)
+;;   (vector-set! (progstate-mem output1) 2 474)
+
+;;   (add-input-output input1 output1 comm1)
+
+;;   (set-progstate-t! input1 7)
+;;   (set-progstate-s! input1 0)
+  
+;;   (vector-set! (progstate-mem input1) 0 1)
+;;   (vector-set! (progstate-mem input1) 1 15)
+  
+;;   (vector-set! (progstate-mem output1) 0 1)
+;;   (vector-set! (progstate-mem output1) 1 15)
+;;   (vector-set! (progstate-mem output1) 2 9)
+  
+;;   ;(add-input-output input1 output1 comm1)
+;;   (set-progstate-t! input1 0)
+;;   (set-progstate-s! input1 0)
+  
+;;   (vector-set! (progstate-mem input1) 0 5)
+;;   (vector-set! (progstate-mem input1) 1 10)
+  
+;;   (vector-set! (progstate-mem output1) 0 5)
+;;   (vector-set! (progstate-mem output1) 1 10)
+;;   (vector-set! (progstate-mem output1) 2 15)
+;;   ;(add-input-output input1 output1 comm1)
+;;   (write-prog "prog.smt2" 10)
+;; )
+
+;; ;(test1)
 
 (define current-input (default-progstate))
 (define current-output (default-progstate))
 (define current-comm (default-commstate))
 
-(define (reset mem-entries comm-entries)
+(define (reset-greensyn mem-entries comm-entries comm_bit)
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
@@ -548,6 +627,7 @@
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
   ;(set! COMM_BIT (floor (+ (/ (log COMM_ENTRIES) (log COMM_ENTRIES)) 1)))
+  (set! COMM_BIT comm_bit)
 
   (set! num-inout 0)
   (set! current-input (default-progstate))
@@ -574,4 +654,14 @@
   (add-input-output current-input current-output current-comm))
 
 (define (check-sat #:file [file "prog.smt2"] prog-size)
-  (write-prog file prog-size))
+  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
+    (synthesize-prog prog-size)))
+
+(define (set-spec string)
+  (set! spec-count (compile string spec)))
+
+(define (verify file string)
+  (set! cand-count (compile string cand))
+  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
+    (verify-prog)))
+  

@@ -196,10 +196,3 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
-
-(define (run-program!)
-  (load-program (open-input-string "- dup dup dup dup dup dup dup"))
-  (step-program!)
-  (display-data)
-  (step-program!)
-  (display-data))
