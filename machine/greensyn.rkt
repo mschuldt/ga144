@@ -61,7 +61,7 @@
 (define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! up down left right nop 1))
 
 (define (to-choice name)
-  (display (format "to-choice ~e ~e\n" name (vector-member name choice-id)))
+  ;; (display (format "to-choice ~e ~e\n" name (vector-member name choice-id)))
   (or (vector-member name choice-id) (raise (format "Cannot synthesize ~s!" name))))
 
 (define (compile code output)

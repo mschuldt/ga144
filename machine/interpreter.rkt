@@ -40,18 +40,35 @@
 
   (set! memory (vector-copy (state-memory state))))
 
+(define (set-state! new-data new-return new-a new-b new-p new-i new-r new-s new-t new-memory)
+  (set! data   new-data)
+  (set! return new-return)
+
+  (set! a new-a)
+  (set! b new-b)
+  (set! p new-p)
+  (set! i new-i)
+  (set! r new-r)
+  (set! s new-s)
+  (set! t new-t)
+
+  (set! memory new-memory))
+
 (define start-state (state 0 0 0 0 0 0 0
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
                       (make-vector 64)))
+
+(define (clone-state!)
+  (state a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
 ;;; Resets the state of the interpreter:
 (define (reset!)
   (load-state! start-state))
 
 ;;; Resets only p
-(define (reset-p!)
-  (set! p 0))
+(define (reset-p! [start 0])
+  (set! p start))
 
 ;;; Print the data stack:
 (define (display-data)
@@ -63,6 +80,12 @@
 (define (display-return)
   (display (format "|r> ~x" r))
   (display-stack return)
+  (newline))
+
+;;; Print the memory:
+(define (display-memory n)
+  (for ([i (in-range 0 n)])
+    (display (format "~x " (vector-ref memory i))))
   (newline))
 
 ;;; Displays some state, useful for debugging. Currently this just

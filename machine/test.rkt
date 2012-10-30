@@ -263,5 +263,25 @@
   (check-equal? p 2)
   (check-unchanged? b r s t return data))
 
+(define-test "dup or a! @p 123 ! nop nop nop"     ; !
+  (check-equal? a 0)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-unchanged? b r s t))
+
+(define-test "dup or a! @p 123 !+ @p ! nop 456"   ; !+
+  (check-equal? a 1)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-equal? (vector-ref memory 1) 456)
+  (check-unchanged? b r s t))
+
+(define-test "dup or a! @p 123 !+ @p ! nop 456 dup or a! nop @+ 2* @+ nop 2/ + ! nop"
+  (check-equal? a 2)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-equal? (vector-ref memory 1) 456)
+  (check-equal? (vector-ref memory 2) 474)
+  (check-unchanged? b r s t))
+
 ;;; Run all the currently defined tests.
 (define (run-tests) (for ([test tests]) (test)))
+
+(run-tests)
