@@ -1,12 +1,18 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt")
+(require "assembler.rkt" "stack.rkt")
 
 (provide (all-defined-out))
 
+;;; A snapshot of the interpreter's state.
+(struct state (a b p i r s t data return memory) #:transparent)
+
+;;; Returns a snapshot of the current state.
+(define (current-state)
+  (state a b p i r s t data return memory))
+
 ;;; stacks:
-(struct stack ([sp #:mutable] body))
 (define data   (stack 0 (make-vector 8)))
 (define return (stack 0 (make-vector 8)))
 
@@ -19,32 +25,35 @@
 (define s 0)
 (define t 0)
 
+;;; Reset the interpreter to the given state.
+(define (load-state! state)
+  (set! data   (copy-stack (state-data state)))
+  (set! return (copy-stack (state-return state)))
+
+  (set! a (state-a state))
+  (set! b (state-b state))
+  (set! p (state-p state))
+  (set! i (state-i state))
+  (set! r (state-r state))
+  (set! s (state-s state))
+  (set! t (state-t state))
+
+  (set! memory (vector-copy (state-memory state))))
+
+(define start-state (state 0 0 0 0 0 0 0
+                      (stack 0 (make-vector 8))
+                      (stack 0 (make-vector 8))
+                      (make-vector 64)))
+
 ;;; Resets the state of the interpreter:
 (define (reset!)
-  (set! data   (stack 0 (make-vector 8)))
-  (set! return (stack 0 (make-vector 8)))
-
-  (set! a 0)
-  (set! b 0)
-  (set! p 0)
-  (set! i 0)
-  (set! r 0)
-  (set! s 0)
-  (set! t 0)
-
-  (set! memory (make-vector 64)))
+  (load-state! start-state))
 
 ;;; Resets only p
 (define (reset-p!)
   (set! p 0))
 
-;;; Print a circular stack:
-(define (display-stack stack)
-  (for [(i (in-range 0 8))]
-       (display (format " ~x" (vector-ref (stack-body stack)
-                                          (modulo (- (stack-sp stack) i) 8))))))
-
-;;; the stack:
+;;; Print the data stack:
 (define (display-data)
   (display (format "|d> ~x ~x" t s))
   (display-stack data)
@@ -73,11 +82,6 @@
 (define (18bit n)
   (bitwise-bit-field n 0 18))
 
-;;; Pushes a value to the given stack's body.
-(define (push-stack! stack value)
-  (set-stack-sp! stack (modulo (add1 (stack-sp stack)) 8))
-  (vector-set! (stack-body stack) (stack-sp stack) s))
-
 ;;; Pushes to the data stack.
 (define (push! value)
   (push-stack! data s)
@@ -88,12 +92,6 @@
 (define (r-push! value)
   (push-stack! return r)
   (set! r value))
-
-;;; Pops from the given stack's body.
-(define (pop-stack! stack)
-  (let ([ret-val (vector-ref (stack-body stack) (stack-sp stack))])
-    (set-stack-sp! stack (modulo (sub1 (stack-sp stack)) 8))
-    ret-val))
 
 ;;; Pops from the data stack.
 (define (pop!)
@@ -115,7 +113,7 @@
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)
   (define (execute! opcode [jump-addr-pos 0])
-    (let ([jump-addr (bitwise-bit-field opcode 0 jump-addr-pos)])
+    (let ([jump-addr (bitwise-bit-field i 0 jump-addr-pos)])
       ((vector-ref instructions opcode) jump-addr)))
   (and (execute! (bitwise-bit-field i 13 18) 10)
        (execute! (bitwise-bit-field i 8 13)  8)
@@ -186,7 +184,7 @@
 (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
 (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; TODO: extended arithmetic mode
 (define-instruction! (lambda (_) (push! (bitwise-and (pop!) (pop!)))))               ; and
-(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or(load-program (open-input-string "@p @p @p @p 1 2 3 4"))
+(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or 
 (define-instruction! (lambda (_) (pop!)))                                            ; drop 
 (define-instruction! (lambda (_) (push! t)))                                         ; dup
 (define-instruction! (lambda (_) (push! (r-pop!))))                                  ; pop
