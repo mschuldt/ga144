@@ -1,7 +1,5 @@
 #lang racket
 
-(provide (all-defined-out))
-
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)
 
@@ -102,6 +100,49 @@
   (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
   )
 
+(define-syntax-rule (define-fun id form ...)
+  (define id `(define-fun id form ...)))
+
+; for power-of-2-bit
+;(define-fun bitidx ((i BV3)) (,STACK_TYPE)
+;  (concat (_ bv0 ,(- (- STACK_SIZE 3) LOG_SIZE)) (concat i (_ bv0 ,LOG_SIZE))))
+
+(define (declare-bitidx func-name array-size index-size)
+  (define array-type (string->symbol (format "BV~e" array-size)))
+  (define index-type (string->symbol (format "BV~e" index-size)))
+  (newline)
+  (pretty-display
+   `(define-fun ,func-name ((i ,index-type)) (,array-type)
+      (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv SIZE) ,array-size)))))
+
+(define (declare-get func-name array-size index-size index-func)
+  (define array-type (string->symbol (format "BV~e" array-size)))
+  (define index-type (string->symbol (format "BV~e" index-size)))
+  (newline)
+  (pretty-display 
+   `(define-fun ,func-name ((array ,array-type) (index ,index-type)) (,TYPE)
+      ((_ extract ,(sub1 SIZE) 0) (bvlshr array (,index-func index))))))
+
+(define (declare-modify func-name array-size index-size index-func)
+  (define array-type (string->symbol (format "BV~e" array-size)))
+  (define index-type (string->symbol (format "BV~e" index-size)))
+  (newline)
+  (pretty-display
+   `(define-fun ,func-name ((array ,array-type) (index ,index-type) (ele ,TYPE)) (,array-type)
+      (bvor
+       (bvand array (bvnot (bvshl (_ ,EXP_MASK ,array-size) (,index-func index))))
+       (bvshl (concat (_ bv0 ,(- array-size SIZE)) ele) (,index-func index))))))
+      
+(define (declare-functions)
+  (declare-bitidx `bitidx-stack STACK_SIZE 3)
+  (declare-bitidx `bitidx-mem   MEM_SIZE   SIZE)
+  (declare-bitidx `bitidx-comm  COMM_SIZE  COMM_BIT)
+  (declare-get `get-stack       STACK_SIZE 3    `bitidx-stack)
+  (declare-get `get-mem         MEM_SIZE   SIZE `bitidx-mem)
+  (declare-get `get-comm        COMM_SIZE  COMM_BIT `bitidx-comm)
+  (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
+  (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
+
 (define (declare-init v n i bit)
   (for* ([step (in-range 0 n)])
     (pretty-display `(declare-const ,(var v step i) ,(makeBV bit)))))
@@ -126,6 +167,23 @@
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_SIZE)))
     (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_SIZE))))))
+
+(define (declare-vars n from to)
+  (for* ([i (in-range from to)])
+       (declare-init `dst n i STACK_SIZE)
+       (declare-init `rst n i STACK_SIZE)
+       (declare-init `sp n i 3)
+       (declare-init `rp n i 3)
+       (declare-init `mem n i MEM_SIZE)
+
+       (for* ([var `(t s r a b)])
+	    (declare-init var n i SIZE))
+
+       (for* ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
+	    (declare-init-zero var n i COMM_BIT))
+
+       (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
+	    (declare-vector-one var i COMM_ENTRIES))))
 
 (define (generate-choice choice step n i name)
   (define prev (sub1 step))
@@ -189,93 +247,107 @@
   
   (cond 
     ; 2*
-    [(= choice 0) (set! check_t (format "(= t_~e_v~e (bvshl t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
+    [(= choice (vector-member `2* choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvshl t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; 2/
-    [(= choice 1) (set! check_t (format "(= t_~e_v~e (bvlshr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
+    [(= choice (vector-member `2/ choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvlshr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; -
-    [(= choice 2) (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
+    [(= choice (vector-member `- choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
     ; +
-    [(= choice 3) (set! check_t (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i))
-                  (shrink)]
+    [(= choice (vector-member `+ choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i))
+               (shrink)]
     ; and
-    [(= choice 4) (set! check_t (format "(= t_~e_v~e (bvand t_~e_v~e s_~e_v~e))" step i prev i prev i))
-                  (shrink)]
+    [(= choice (vector-member `and choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvand t_~e_v~e s_~e_v~e))" step i prev i prev i))
+               (shrink)]
     ; or
-    [(= choice 5) (set! check_t (format "(= t_~e_v~e (bvxor t_~e_v~e s_~e_v~e))" step i prev i prev i))
-                  (shrink)]
+    [(= choice (vector-member `or choice-id)) 
+               (set! check_t (format "(= t_~e_v~e (bvxor t_~e_v~e s_~e_v~e))" step i prev i prev i))
+               (shrink)]
     ; drop
-    [(= choice 6) (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (shrink)]
+    [(= choice (vector-member `drop choice-id)) 
+               (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+               (shrink)]
     ; dup
-    [(= choice 7) (set! check_t (format "(= t_~e_v~e t_~a_v~e)" step i prev i))
-                  (grow)]
+    [(= choice (vector-member `dup choice-id)) 
+               (set! check_t (format "(= t_~e_v~e t_~a_v~e)" step i prev i))
+	       (grow)]
     ; @+ (can't read port)
-    [(= choice 8) (set! check_a (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" prev i MEM_ENTRIES SIZE step i prev i SIZE))
-                  (set! check_t (format "(= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e))" step i prev i prev i))
-                  (grow)]
+    [(= choice (vector-member `@+ choice-id)) 
+               (set! check_a (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
+				     prev i MEM_ENTRIES SIZE step i prev i SIZE))
+	       (set! check_t (format "(= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e))" step i prev i prev i))
+	       (grow)]
     ; @
-    [(= choice 9) (set! check_a (mem-range `a))
-                  (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
-                                        prev i MEM_ENTRIES SIZE     step i prev i prev i))
-                  (grow)
-                  (set! check_recvp_u (read-port `a U-ID UP))
-                  (set! check_recvp_d (read-port `a D-ID DOWN))
-                  (set! check_recvp_l (read-port `a L-ID LEFT))
-                  (set! check_recvp_r (read-port `a R-ID RIGHT))]
+    [(= choice (vector-member `@ choice-id)) 
+               (set! check_a (mem-range `a))
+	       (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
+				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
+	       (grow)
+	       (set! check_recvp_u (read-port `a U-ID UP))
+	       (set! check_recvp_d (read-port `a D-ID DOWN))
+	       (set! check_recvp_l (read-port `a L-ID LEFT))
+	       (set! check_recvp_r (read-port `a R-ID RIGHT))]
     ; @b
-    [(= choice 10) (set! check_b (mem-range `b))
-                  (set! check_t (format "(or (bvugt b_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e b_~e_v~e)))" 
-                                        prev i MEM_ENTRIES SIZE     step i prev i prev i))
-                  (set! check_recvp_u (read-port `b U-ID UP))
-                  (set! check_recvp_d (read-port `b D-ID DOWN))
-                  (set! check_recvp_l (read-port `b L-ID LEFT))
-                  (set! check_recvp_r (read-port `b R-ID RIGHT))
-		  (grow)]
+    [(= choice (vector-member `@b choice-id)) 
+               (set! check_b (mem-range `b))
+	       (set! check_t (format "(or (bvugt b_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e b_~e_v~e)))" 
+				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
+	       (set! check_recvp_u (read-port `b U-ID UP))
+	       (set! check_recvp_d (read-port `b D-ID DOWN))
+	       (set! check_recvp_l (read-port `b L-ID LEFT))
+	       (set! check_recvp_r (read-port `b R-ID RIGHT))
+	       (grow)]
     ; !+ (can't store to port)
-    [(= choice 11) 
-                  (set! check_a (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" prev i MEM_ENTRIES SIZE step i prev i SIZE))
-                  (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (set! check_mem (format "(= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e))" step i prev i prev i prev i))
-		  (shrink)]
+    [(= choice (vector-member `!+ choice-id)) 
+               (set! check_a (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
+				     prev i MEM_ENTRIES SIZE step i prev i SIZE))
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+	       (set! check_mem (format "(= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e))" 
+				       step i prev i prev i prev i))
+	       (shrink)]
     ; !
-    [(= choice 12) 
-                  (set! check_a (mem-range `a))
-                  (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
-                                          step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
-                  (set! check_sendp_u (write-port `a U-ID UP))
-                  (set! check_sendp_d (write-port `a D-ID DOWN))
-                  (set! check_sendp_l (write-port `a L-ID LEFT))
-                  (set! check_sendp_r (write-port `a R-ID RIGHT))
-		  (shrink)]
+    [(= choice (vector-member `! choice-id)) 
+               (set! check_a (mem-range `a))
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
+				       step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
+	       (set! check_sendp_u (write-port `a U-ID UP))
+	       (set! check_sendp_d (write-port `a D-ID DOWN))
+	       (set! check_sendp_l (write-port `a L-ID LEFT))
+	       (set! check_sendp_r (write-port `a R-ID RIGHT))
+	       (shrink)]
     ; !b
-    [(= choice 13) 
-                  (set! check_b (mem-range `b))
-                  (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
-                                          step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
-                  (set! check_sendp_u (write-port `b U-ID UP))
-                  (set! check_sendp_d (write-port `b D-ID DOWN))
-                  (set! check_sendp_l (write-port `b L-ID LEFT))
-                  (set! check_sendp_r (write-port `b R-ID RIGHT))
-		  (shrink)]
+    [(= choice (vector-member `!b choice-id)) 
+               (set! check_b (mem-range `b))
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
+				       step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
+	       (set! check_sendp_u (write-port `b U-ID UP))
+	       (set! check_sendp_d (write-port `b D-ID DOWN))
+	       (set! check_sendp_l (write-port `b L-ID LEFT))
+	       (set! check_sendp_r (write-port `b R-ID RIGHT))
+	       (shrink)]
     ; a!
-    [(= choice 14) 
-                  (set! check_a (format "(= a_~e_v~e t_~a_v~e)" step i prev i))
-                  (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (shrink)]
+    [(= choice (vector-member `a! choice-id)) 
+               (set! check_a (format "(= a_~e_v~e t_~a_v~e)" step i prev i))
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+	       (shrink)]
     ; b!
-    [(= choice 15) 
-                  (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
-                  (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-                  (shrink)]
-    [(= choice 16) (push-const UP)]
-    [(= choice 17) (push-const DOWN)]
-    [(= choice 18) (push-const LEFT)]
-    [(= choice 19) (push-const RIGHT)]
+    [(= choice (vector-member `b! choice-id)) 
+               (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+	       (shrink)]
+    [(= choice (vector-member `up choice-id)) (push-const UP)]
+    [(= choice (vector-member `down choice-id)) (push-const DOWN)]
+    [(= choice (vector-member `left choice-id)) (push-const LEFT)]
+    [(= choice (vector-member `right choice-id)) (push-const RIGHT)]
     ; nop
-    [(= choice 20) (void)]
-    [(= choice 21) (push-const 1)]
+    [(= choice (vector-member `nop choice-id)) (void)]
+    [(= choice (vector-member `1 choice-id)) (push-const 1)]
         )
   (set! check_sp (string-append check_sp ") "))
   (set! check_rp (string-append check_rp ") "))
@@ -332,120 +404,6 @@
   (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
     (generate-formula step n version name)))
-
-(define-syntax-rule (define-fun id form ...)
-  (define id `(define-fun id form ...)))
-
-; for power-of-2-bit
-;(define-fun bitidx ((i BV3)) (,STACK_TYPE)
-;  (concat (_ bv0 ,(- (- STACK_SIZE 3) LOG_SIZE)) (concat i (_ bv0 ,LOG_SIZE))))
-
-(define (declare-bitidx func-name array-size index-size)
-  (define array-type (string->symbol (format "BV~e" array-size)))
-  (define index-type (string->symbol (format "BV~e" index-size)))
-  (newline)
-  (pretty-display
-   `(define-fun ,func-name ((i ,index-type)) (,array-type)
-      (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv SIZE) ,array-size)))))
-
-(define (declare-get func-name array-size index-size index-func)
-  (define array-type (string->symbol (format "BV~e" array-size)))
-  (define index-type (string->symbol (format "BV~e" index-size)))
-  (newline)
-  (pretty-display 
-   `(define-fun ,func-name ((array ,array-type) (index ,index-type)) (,TYPE)
-      ((_ extract ,(sub1 SIZE) 0) (bvlshr array (,index-func index))))))
-
-(define (declare-modify func-name array-size index-size index-func)
-  (define array-type (string->symbol (format "BV~e" array-size)))
-  (define index-type (string->symbol (format "BV~e" index-size)))
-  (newline)
-  (pretty-display
-   `(define-fun ,func-name ((array ,array-type) (index ,index-type) (ele ,TYPE)) (,array-type)
-      (bvor
-       (bvand array (bvnot (bvshl (_ ,EXP_MASK ,array-size) (,index-func index))))
-       (bvshl (concat (_ bv0 ,(- array-size SIZE)) ele) (,index-func index))))))
-      
-(define (declare-functions)
-  (declare-bitidx `bitidx-stack STACK_SIZE 3)
-  (declare-bitidx `bitidx-mem   MEM_SIZE   SIZE)
-  (declare-bitidx `bitidx-comm  COMM_SIZE  COMM_BIT)
-  (declare-get `get-stack       STACK_SIZE 3    `bitidx-stack)
-  (declare-get `get-mem         MEM_SIZE   SIZE `bitidx-mem)
-  (declare-get `get-comm        COMM_SIZE  COMM_BIT `bitidx-comm)
-  (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
-  (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
-
-(define (declare-vars n from to)
-  (for* ([i (in-range from to)])
-       (declare-init `dst n i STACK_SIZE)
-       (declare-init `rst n i STACK_SIZE)
-       (declare-init `sp n i 3)
-       (declare-init `rp n i 3)
-       (declare-init `mem n i MEM_SIZE)
-
-       (for* ([var `(t s r a b)])
-	    (declare-init var n i SIZE))
-
-       (for* ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-	    (declare-init-zero var n i COMM_BIT))
-
-       (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
-	    (declare-vector-one var i COMM_ENTRIES))))
-
-(define (default-progstate
-          #:dst [dst (make-vector 8 #x15555)]
-          #:rst [rst (make-vector 8 #x15555)]
-          #:mem [mem (make-vector MEM_ENTRIES 0)]
-          #:t [t #x15555] #:s [s #x15555] #:r [r #x15555] #:a [a #x15555] #:b [b IO]
-	  #:sp [sp 0] #:rp [rp 0])
-  (progstate dst rst mem t s r a b sp rp))
-
-(define (default-commstate
-	 #:send-u [send-u (make-vector COMM_ENTRIES 0)]
-	 #:send-d [send-d (make-vector COMM_ENTRIES 0)]
-	 #:send-l [send-l (make-vector COMM_ENTRIES 0)]
-	 #:send-r [send-r (make-vector COMM_ENTRIES 0)]
-	 #:recv-u [recv-u (make-vector COMM_ENTRIES 0)]
-	 #:recv-d [recv-d (make-vector COMM_ENTRIES 0)]
-	 #:recv-l [recv-l (make-vector COMM_ENTRIES 0)]
-	 #:recv-r [recv-r (make-vector COMM_ENTRIES 0)])
-  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
-
-(define (vec-to-bits-inner vec vec-size)
-  (define bits 0)
-  (for* ([i (in-range 0 vec-size)])
-    (set! bits (+ (arithmetic-shift bits SIZE) (vector-ref vec (- (- vec-size i) 1)))))
-  bits)
-(define (vec-to-bits vec vec-size)
-  (if (vector? vec)
-      (vec-to-bits-inner vec vec-size)
-      vec))
-
-(define (convert-progstate state)
-  (progstate (vec-to-bits (progstate-dst state) 8) 
-             (vec-to-bits (progstate-rst state) 8) 
-             (vec-to-bits (progstate-mem state) MEM_ENTRIES) 
-             (progstate-t state) (progstate-s state) (progstate-r state) 
-             (progstate-a state) (progstate-b state) 
-             (progstate-sp state) (progstate-rp state)))
-  
-
-(define (convert-commstate state)
-  (commstate (vec-to-bits (commstate-send-u state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-d state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-l state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-r state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-u state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-d state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-l state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-r state) COMM_ENTRIES)
-             (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state)
-             (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)))
-
-(define (add-input-output input output comm)
-  (vector-set! inout-list num-inout (inout (convert-progstate input) (convert-progstate output) (convert-commstate comm)))
-  (set! num-inout (add1 num-inout)))
 
 (define (assert-state-all state n i)
   (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (progstate-dst state) STACK_SIZE))
@@ -571,54 +529,75 @@
   (pretty-display `(get-model))
 )
 
-;; (define (test1)
-;;   (define input1 (default-progstate))
-;;   (define output1 (default-progstate))
-;;   (define comm1 (default-commstate))
-;;   (set-progstate-t! input1 #x15555)
-;;   (set-progstate-s! input1 0)
-  
-;;   (vector-set! (progstate-mem input1) 0 123)
-;;   (vector-set! (progstate-mem input1) 1 456)
-;;   (vector-set! (progstate-mem input1) 2 #x15555)
+;;;;;;;;;;;;;;;;;;;;;;;; Input-Output-Rend-Recv storage, converter, and generator ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;   (vector-set! (progstate-mem output1) 0 123)
-;;   (vector-set! (progstate-mem output1) 1 456)
-;;   (vector-set! (progstate-mem output1) 2 474)
+(define (default-progstate
+          #:dst [dst (make-vector 8 #x15555)]
+          #:rst [rst (make-vector 8 #x15555)]
+          #:mem [mem (make-vector MEM_ENTRIES 0)]
+          #:t [t #x15555] #:s [s #x15555] #:r [r #x15555] #:a [a #x15555] #:b [b IO]
+	  #:sp [sp 0] #:rp [rp 0])
+  (progstate dst rst mem t s r a b sp rp))
 
-;;   (add-input-output input1 output1 comm1)
+(define (default-commstate
+	 #:send-u [send-u (make-vector COMM_ENTRIES 0)]
+	 #:send-d [send-d (make-vector COMM_ENTRIES 0)]
+	 #:send-l [send-l (make-vector COMM_ENTRIES 0)]
+	 #:send-r [send-r (make-vector COMM_ENTRIES 0)]
+	 #:recv-u [recv-u (make-vector COMM_ENTRIES 0)]
+	 #:recv-d [recv-d (make-vector COMM_ENTRIES 0)]
+	 #:recv-l [recv-l (make-vector COMM_ENTRIES 0)]
+	 #:recv-r [recv-r (make-vector COMM_ENTRIES 0)])
+  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
 
-;;   (set-progstate-t! input1 7)
-;;   (set-progstate-s! input1 0)
-  
-;;   (vector-set! (progstate-mem input1) 0 1)
-;;   (vector-set! (progstate-mem input1) 1 15)
-  
-;;   (vector-set! (progstate-mem output1) 0 1)
-;;   (vector-set! (progstate-mem output1) 1 15)
-;;   (vector-set! (progstate-mem output1) 2 9)
-  
-;;   ;(add-input-output input1 output1 comm1)
-;;   (set-progstate-t! input1 0)
-;;   (set-progstate-s! input1 0)
-  
-;;   (vector-set! (progstate-mem input1) 0 5)
-;;   (vector-set! (progstate-mem input1) 1 10)
-  
-;;   (vector-set! (progstate-mem output1) 0 5)
-;;   (vector-set! (progstate-mem output1) 1 10)
-;;   (vector-set! (progstate-mem output1) 2 15)
-;;   ;(add-input-output input1 output1 comm1)
-;;   (write-prog "prog.smt2" 10)
-;; )
+(define (vec-to-bits-inner vec vec-size)
+  (define bits 0)
+  (for* ([i (in-range 0 vec-size)])
+    (set! bits (+ (arithmetic-shift bits SIZE) (vector-ref vec (- (- vec-size i) 1)))))
+  bits)
+(define (vec-to-bits vec vec-size)
+  (if (vector? vec)
+      (vec-to-bits-inner vec vec-size)
+      vec))
 
-;; ;(test1)
+(define (convert-progstate state)
+  (progstate (vec-to-bits (progstate-dst state) 8) 
+             (vec-to-bits (progstate-rst state) 8) 
+             (vec-to-bits (progstate-mem state) MEM_ENTRIES) 
+             (progstate-t state) (progstate-s state) (progstate-r state) 
+             (progstate-a state) (progstate-b state) 
+             (progstate-sp state) (progstate-rp state)))
+  
+
+(define (convert-commstate state)
+  (commstate (vec-to-bits (commstate-send-u state) COMM_ENTRIES)
+             (vec-to-bits (commstate-send-d state) COMM_ENTRIES)
+             (vec-to-bits (commstate-send-l state) COMM_ENTRIES)
+             (vec-to-bits (commstate-send-r state) COMM_ENTRIES)
+             (vec-to-bits (commstate-recv-u state) COMM_ENTRIES)
+             (vec-to-bits (commstate-recv-d state) COMM_ENTRIES)
+             (vec-to-bits (commstate-recv-l state) COMM_ENTRIES)
+             (vec-to-bits (commstate-recv-r state) COMM_ENTRIES)
+             (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state)
+             (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)))
+
+(define (add-input-output input output comm)
+  (vector-set! inout-list num-inout (inout (convert-progstate input) (convert-progstate output) (convert-commstate comm)))
+  (set! num-inout (add1 num-inout)))
+
+;;;;;;;;;;;;;;;;;;;;;;;; GreenSyn API ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define current-input (default-progstate))
 (define current-output (default-progstate))
 (define current-comm (default-commstate))
 
-(define (reset-greensyn mem-entries comm-entries comm_bit)
+(provide (all-defined-out))
+
+;;; Set
+;;; 1) number of entries of memory
+;;; 2) number of entries of send/recv storage of each 4 neighbors
+;;; 3) number of bits for indexing to send/recv storage.
+(define (greensyn-reset mem-entries comm-entries comm_bit)
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
@@ -634,13 +613,16 @@
   (set! current-output (default-progstate))
   (set! current-comm (default-commstate)))
 
-(define (set-input dst rst mem t s r a b sp rp)
+;;; Set input for counterexmaple.
+(define (greensyn-input dst rst mem t s r a b sp rp)
   (set! current-input (convert-progstate (progstate dst rst mem t s r a b sp rp))))
 
-(define (set-output dst rst mem t s r a b sp rp)
+;;; Set output for counterexmaple.
+(define (greensyn-output dst rst mem t s r a b sp rp)
   (set! current-output (convert-progstate (progstate dst rst mem t s r a b sp rp))))
 
-(define (set-comm send-u sendp-u 
+;;; Set send/recv storage for counterexmaple.
+(define (greensyn-send-recv send-u sendp-u 
 		  send-d sendp-d
 		  send-l sendp-l
 		  send-r sendp-r
@@ -650,17 +632,24 @@
 		  recv-r recvp-r)
   (set! current-comm (convert-commstate (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))))
 
-(define (commit-inout)
+;;; Add previously set counterexample (input, output, and send/recv)
+;;; to the list that will be generated as formula.
+;;; If input, output, send/recv are set but not commit, 
+;;; the counterexample won't be included in the generated formula
+(define (greensyn-commit)
   (add-input-output current-input current-output current-comm))
 
-(define (check-sat #:file [file "prog.smt2"] prog-size)
+;;; Generate Z3 file for synthesis from the list of counterexamples
+(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (synthesize-prog prog-size)))
 
-(define (set-spec string)
+;;; Set spec for verification
+(define (greensyn-spec string)
   (set! spec-count (compile string spec)))
 
-(define (verify file string)
+;;; Generate Z3 file for verification from spec and a given candidate
+(define (greensyn-verify file string)
   (set! cand-count (compile string cand))
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (verify-prog)))

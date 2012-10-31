@@ -2,16 +2,16 @@
 
 (require "interpreter.rkt" "stack.rkt" "greensyn.rkt")
 
-;; synthesize
+;;; synthesize
 
 (define (syn-example)
   (define comm (make-vector 1))
   
   ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (reset-greensyn 1 1 1)
+  (greensyn-reset 1 1 1)
   
   ;; input
-  (set-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   
   ;; run the interpreter
   (reset!)
@@ -21,14 +21,14 @@
   (display-data)
   
   ;; output (no communication in this example)
-  (set-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (set-comm comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
   
   ;; commit to add input-output pair
-  (commit-inout)
+  (greensyn-commit)
   
   ;; generate file for Z3 (check-sat <filename> <#holes>
-  (check-sat #:file "example.smt2" 8)
+  (greensyn-check-sat #:file "example.smt2" 8)
  )
 
 (define (syn-mem)
@@ -39,75 +39,75 @@
   (reset-p! 16)
   (step-program!*)
 
-  (reset-greensyn 3 1 1)
+  (greensyn-reset 3 1 1)
 
   (load-program "dup or a! nop @+ 2* @+ nop 2/ + ! nop" 20)
   (reset-p! 20)
   
   ;; set 1st pair
   (define my-state (clone-state!))
-  (set-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   
   (step-program!*)
 
-  (set-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (set-comm comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
-  (commit-inout)
+  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-commit)
   
   ;; set 2nd pair
   (load-state! my-state)
   (set-state! data return 1 277 p i r 2048 t memory)
-  (set-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   
   (step-program!*)
   
-  (set-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (set-comm comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
-  (commit-inout)
+  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-commit)
   
   ;; set 3nd pair
   (load-state! my-state)
   (set-state! data return 0 0 p i r 0 7 memory)
-  (set-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   
   (step-program!*)
   
-  (set-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (set-comm comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
-  (commit-inout)
+  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-commit)
   
-  (check-sat #:file "mem.smt2" 9))
+  (greensyn-check-sat #:file "mem.smt2" 9))
 
-;; verify
-(define (ver-example)
-  (reset-greensyn 1 1 1)
-  (set-spec "- 2* 2/")
-  (verify "verify.smt2" "- 2* 2/"))
+;;; verify
+(define (ver-example) ; unsat
+  (greensyn-reset 1 1 1)
+  (greensyn-spec "- 2* 2/")
+  (greensyn-verify "verify.smt2" "- 2* 2/"))
 
-(define (ver-mem)
-  (reset-greensyn 3 1 1)
-  (set-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (verify "ver-mem.smt2" "@+ 2/ or @b nop 2* + !"))
+(define (ver-mem) ; sat
+  (greensyn-reset 3 1 1)
+  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "@+ 2/ or @b nop 2* + !"))
 
-(define (ver-mem-2)
-  (reset-greensyn 3 1 1)
-  (set-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
+(define (ver-mem-2) ; sat
+  (greensyn-reset 3 1 1)
+  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
 
-(define (ver-mem-3)
-  (reset-greensyn 4 1 1)
-  (set-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
+(define (ver-mem-3) ; sat
+  (greensyn-reset 4 1 1)
+  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
 
-(define (ver-mem-4)
-  (reset-greensyn 4 1 1)
-  (set-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (verify "ver-mem.smt2" "2/ a! @+ 2* @+ 2/ + !"))
+(define (ver-mem-4) ; sat
+  (greensyn-reset 4 1 1)
+  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "2/ a! @+ 2* @+ 2/ + !"))
 
-(define (ver-mem-5)
-  (reset-greensyn 4 1 1)
-  (set-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+(define (ver-mem-5) ; unsat
+  (greensyn-reset 4 1 1)
+  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
 ;; (syn-example)
 ;; (ver-example)
