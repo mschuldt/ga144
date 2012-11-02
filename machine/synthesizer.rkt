@@ -1,6 +1,6 @@
 #lang racket
 
-(require "interpreter.rkt" "stack.rkt" "greensyn.rkt")
+(require "interpreter.rkt" "stack.rkt" "greensyn_test.rkt")
 
 ;;; synthesize
 
@@ -89,7 +89,7 @@
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "@+ 2/ or @b nop 2* + !"))
 
-(define (ver-mem-2) ; sat
+(define (ver-mem-2) ; sat (check)
   (greensyn-reset 3 1 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
@@ -111,5 +111,5 @@
 
 ;; (syn-example)
 ;; (ver-example)
-(syn-mem)
-(ver-mem-5)
+;(syn-mem)
+(ver-mem-2)

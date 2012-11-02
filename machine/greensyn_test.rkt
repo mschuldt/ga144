@@ -205,7 +205,7 @@
   (define (write-port reg port val)
     (string-append (string-append
       (format  "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if (syn)
+      (if syn
 	  (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
 		   port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
 	  (format  "(= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))"
@@ -215,7 +215,7 @@
   (define (read-port reg port val)
     (string-append (string-append
       (format "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if (syn)
+      (if syn
 	  (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
 		  port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
 	  (format "(= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))"
@@ -223,7 +223,7 @@
       (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
   
   (define (mem-range reg)
-    (if (syn)
+    (if syn
 	(string-append (string-append (string-append (string-append (string-append
           (format "(and (= ~a_~e_v~e ~a_~a_v~e) " reg step i reg prev i)
 	  (format "(or (or (or (or (bvult ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE))
@@ -286,7 +286,7 @@
     ; @+ (can't read port)
     [(= choice (vector-member `@+ choice-id)) 
                (set! check_a 
-		     (if (syn)
+		     (if syn
 			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
 				 prev i MEM_ENTRIES SIZE step i prev i SIZE)
 			 (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
@@ -315,7 +315,7 @@
     ; !+ (can't store to port)
     [(= choice (vector-member `!+ choice-id)) 
                (set! check_a 
-		     (if (syn)
+		     (if syn
 			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
 				 prev i MEM_ENTRIES SIZE step i prev i SIZE)
 			 (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
@@ -409,29 +409,29 @@
     
   (define (write-port reg port val)
     (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (format "(not (= (get-comm send~a_v~e send~a_~a_v~e) t_~a_v~e)))" port i port prev i)))
+      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
+      (format "(not (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
     
   (define (read-port reg port val)
     (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (format "(not (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e)))" port i port prev i)))
+      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
+      (format "(not (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
   
   (define (mem-range reg)
-    (string-append (string-append (string-append (string-append
+    (string-append (string-append (string-append (string-append (string-append
       (format "(and (and (and (and (bvuge ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE))
       (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i UP SIZE))
       (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i DOWN SIZE))
       (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i LEFT SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE))
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE)))
 
   (define check_assump 
   (cond 
     ; @+ (can't read port)
-    [(= choice `@+)
-	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE step i prev i SIZE)]
+    [(= choice (vector-member `@+ choice-id))
+	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; @
-    [(= choice `@) 
+    [(= choice (vector-member `@ choice-id)) 
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `a) 
 		 (read-port `a U-ID UP) 
@@ -439,7 +439,7 @@
 		 (read-port `a L-ID LEFT)
 		 (read-port `a R-ID RIGHT))]
     ; @b
-    [(= choice `@b) 
+    [(= choice (vector-member `@b choice-id)) 
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `b) 
 		 (read-port `b U-ID UP) 
@@ -447,10 +447,10 @@
 		 (read-port `b L-ID LEFT)
 		 (read-port `b R-ID RIGHT))]
     ; !+ (can't store to port)
-    [(= choice `!) 
-	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE step i prev i SIZE)]
+    [(= choice (vector-member `!+ choice-id)) 
+	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; !
-    [(= choice `!) 
+    [(= choice (vector-member `! choice-id)) 
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `a) 
 		 (write-port `a U-ID UP) 
@@ -458,14 +458,14 @@
 		 (write-port `a L-ID LEFT)
 		 (write-port `a R-ID RIGHT))]
     ; !b
-    [(= choice `!b) 
+    [(= choice (vector-member `!b choice-id)) 
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `b) 
 		 (write-port `b U-ID UP) 
 		 (write-port `b D-ID DOWN) 
 		 (write-port `b L-ID LEFT)
 		 (write-port `b R-ID RIGHT))]))
-    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_SIZE check_assump))
+    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_SIZE check_assump))
 
 
 (define (conjunct clauses size conj)
@@ -486,19 +486,21 @@
   (define clauses (make-vector 6))
   (define index 0)
   (for* ([choice `(@+ @ @b !+ ! !b)])
-	(vector-set! clauses index (generate-choice-assumption choice step version name))
+	(vector-set! clauses index 
+		     (generate-choice-assumption 
+		      (vector-member choice choice-id) step version name))
 	(set! index (add1 index)))
   (conjunct clauses 6 `or))
 
  
-(define (generate-assumptions n from to name conj)
-  (define clauses (make-vector (* (- to from) n)))
+(define (generate-assumptions n from to name)
+  (define clauses (make-vector (* (- to from) (add1 n))))
   (define index 0)
   (for* ([version (in-range from to)]
-	 [step (in-range 0 n)])
+	 [step (in-range 1 n)])
 	(vector-set! clauses index (generate-assumption step version name))
 	(set! index (add1 index)))
-  (conjunct clauses  (* (- to from) n) `or))
+  (conjunct clauses  index `or))
 
 (define (generate-formula step n version name syn)
   (define s "(assert ")
@@ -590,15 +592,15 @@
   (define clauses (make-vector 26))
   (define index 0)
   (for ([var `(dst rst mem t s r a b sp rp sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-       (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1)))" var spec-count var cand-count))
+       (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
        (set! index (add1 index)))
   (for* ([var `(send recv)]
 	 [channel (in-range 0 4)])
-       (vector-set! clauses index (format " (not (= ~a~a_v0 ~a~a_v1)))" var channel var channel))
+       (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
        (set! index (add1 index)))
 
   ;;; Include assumption throughtout the program
-  (pretty-display (format "(assert (or ~a ~a)" (conjunct clauses 26 `or) (generate-assumption (add1 cand-count) 1 2 `cand))))
+  (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses 26 `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
   
 (define (synthesize-prog n)
   (declare-bitvector)
