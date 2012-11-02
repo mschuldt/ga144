@@ -39,7 +39,7 @@
   (reset-p! 16)
   (step-program!*)
 
-  (greensyn-reset 3 1 1)
+  (greensyn-reset 3 1)
 
   (load-program "dup or a! nop @+ 2* @+ nop 2/ + ! nop" 20)
   (reset-p! 20)
@@ -80,36 +80,51 @@
 
 ;;; verify
 (define (ver-example) ; unsat
-  (greensyn-reset 1 1 1)
+  (greensyn-reset 1 1)
   (greensyn-spec "- 2* 2/")
   (greensyn-verify "verify.smt2" "- 2* 2/"))
 
 (define (ver-mem) ; sat
-  (greensyn-reset 3 1 1)
+  (greensyn-reset 3 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "@+ 2/ or @b nop 2* + !"))
 
-(define (ver-mem-2) ; sat (check)
-  (greensyn-reset 3 1 1)
+(define (ver-mem-2) ; sat
+  (greensyn-reset 3 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
 
 (define (ver-mem-3) ; sat
-  (greensyn-reset 4 1 1)
+  (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
 
 (define (ver-mem-4) ; sat
-  (greensyn-reset 4 1 1)
+  (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
   (greensyn-verify "ver-mem.smt2" "2/ a! @+ 2* @+ 2/ + !"))
 
 (define (ver-mem-5) ; unsat
-  (greensyn-reset 4 1 1)
+  (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
+  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+
+(define (ver-mem-6) ; sat (but we should allow this by relaxing constraint)
+  (greensyn-reset 4 1)
+  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
+  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+
+(define (ver-mem-7) ; sat (but we should allow this by relaxing constraint)
+  (greensyn-reset 4 1)
+  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
+  (greensyn-verify "ver-mem.smt2" "dup dup or a! @+ 2* @+ 2/ + !"))
+
+(define (ver-mem-8) ; sat (but we should allow this by relaxing constraint)
+  (greensyn-reset 4 1)
+  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
 ;; (syn-example)
 ;; (ver-example)
-;(syn-mem)
-(ver-mem-2)
+(syn-mem)
+;(ver-mem-5)

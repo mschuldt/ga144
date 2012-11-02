@@ -77,6 +77,8 @@ def main():
             elif hole == 20:
               inst = "nop"
             elif hole == 21:
+              inst = "0"
+            elif hole == 22:
               inst = "1"
             print var + " = " + inst
           elif print_all:

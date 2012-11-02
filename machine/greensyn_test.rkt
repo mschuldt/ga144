@@ -41,8 +41,9 @@
 (define RIGHT #x1d5)
 (define IO #x15d)
 
-(define HOLE_SIZE 5)
-(define CHOICES 22)
+(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! up down left right nop 0 1))
+(define CHOICES (vector-length choice-id))
+(define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
 
 (struct progstate (dst rst mem t s r a b sp rp) #:mutable) ;rp
 (struct commstate (send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))
@@ -56,7 +57,6 @@
 (define cand (make-vector 100))
 (define cand-count 0)
 
-(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! up down left right nop 1))
 
 (define (to-choice name)
   ;; (display (format "to-choice ~e ~e\n" name (vector-member name choice-id)))
@@ -92,7 +92,7 @@
 
 (define (declare-bitvector )
   (pretty-display `(define-sort BV3 () (_ BitVec 3)))                            ; for index
-  (pretty-display `(define-sort ,(makeBV HOLE_SIZE) () (_ BitVec ,HOLE_SIZE)))   ; for hole
+  (pretty-display `(define-sort ,(makeBV HOLE_BIT) () (_ BitVec ,HOLE_BIT)))   ; for hole
   (pretty-display `(define-sort ,(makeBV SIZE) () (_ BitVec ,SIZE)))             ; for normal variables
   (pretty-display `(define-sort ,(makeBV STACK_SIZE) () (_ BitVec ,STACK_SIZE))) ; for stack
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
@@ -161,12 +161,12 @@
 
 (define (declare-holes n)
   (for* ([step (in-range 1 n)])
-    (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_SIZE)))))
+    (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_BIT)))))
 
 (define (encode-program prog n name)
   (for* ([step (in-range 1 n)])
-    (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_SIZE)))
-    (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_SIZE))))))
+    (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_BIT)))
+    (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_BIT))))))
 
 (define (declare-vars n from to)
   (for* ([i (in-range from to)])
@@ -233,7 +233,7 @@
           (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE))
 	(format "(= ~a_~e_v~e ~a_~a_v~e)" reg step i reg prev i)))
 
-  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step choice HOLE_SIZE))
+  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step choice HOLE_BIT))
   (define check_sp (format "(= sp_~e_v~e sp_~e_v~e)" step i prev i))
   (define check_rp (format "(= rp_~e_v~e rp_~e_v~e)" step i prev i))
   (define check_t (format "(= t_~e_v~e t_~e_v~e)" step i prev i))
@@ -361,6 +361,7 @@
     [(= choice (vector-member `right choice-id)) (push-const RIGHT)]
     ; nop
     [(= choice (vector-member `nop choice-id)) (void)]
+    [(= choice (vector-member `0 choice-id)) (push-const 0)]
     [(= choice (vector-member `1 choice-id)) (push-const 1)]
         )
   (set! check_sp (string-append check_sp ") "))
@@ -465,7 +466,7 @@
 		 (write-port `b D-ID DOWN) 
 		 (write-port `b L-ID LEFT)
 		 (write-port `b R-ID RIGHT))]))
-    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_SIZE check_assump))
+    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_BIT check_assump))
 
 
 (define (conjunct clauses size conj)
@@ -714,7 +715,7 @@
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
 ;;; 3) number of bits for indexing to send/recv storage.
-(define (greensyn-reset mem-entries comm-entries comm_bit)
+(define (greensyn-reset mem-entries comm-entries)
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
@@ -722,8 +723,7 @@
   (set! COMM_ENTRIES comm-entries)
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
-  ;(set! COMM_BIT (floor (+ (/ (log COMM_ENTRIES) (log COMM_ENTRIES)) 1)))
-  (set! COMM_BIT comm_bit)
+  (set! COMM_BIT (inexact->exact (floor (+ (/ (log COMM_ENTRIES) (log 2)) 1))))
 
   (set! num-inout 0)
   (set! current-input (default-progstate))
