@@ -1,16 +1,13 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt" "stack.rkt")
+(require "assembler.rkt" "stack.rkt" "state.rkt")
 
 (provide (all-defined-out))
 
-;;; A snapshot of the interpreter's state.
-(struct state (a b p i r s t data return memory) #:transparent)
-
 ;;; Returns a snapshot of the current state.
 (define (current-state)
-  (state a b p i r s t data return memory))
+  (progstate a b p i r s t data return memory))
 
 ;;; stacks:
 (define data   (stack 0 (make-vector 8)))
@@ -25,20 +22,24 @@
 (define s 0)
 (define t 0)
 
+(define memory (make-vector 64))
+
+(define instructions (make-vector 32))
+
 ;;; Reset the interpreter to the given state.
 (define (load-state! state)
-  (set! data   (copy-stack (state-data state)))
-  (set! return (copy-stack (state-return state)))
+  (set! data   (copy-stack (progstate-data state)))
+  (set! return (copy-stack (progstate-return state)))
 
-  (set! a (state-a state))
-  (set! b (state-b state))
-  (set! p (state-p state))
-  (set! i (state-i state))
-  (set! r (state-r state))
-  (set! s (state-s state))
-  (set! t (state-t state))
+  (set! a (progstate-a state))
+  (set! b (progstate-b state))
+  (set! p (progstate-p state))
+  (set! i (progstate-i state))
+  (set! r (progstate-r state))
+  (set! s (progstate-s state))
+  (set! t (progstate-t state))
 
-  (set! memory (vector-copy (state-memory state))))
+  (set! memory (vector-copy (progstate-memory state))))
 
 (define (set-state! new-data new-return new-a new-b new-p new-i new-r new-s new-t new-memory)
   (set! data   new-data)
@@ -54,13 +55,13 @@
 
   (set! memory new-memory))
 
-(define start-state (state 0 0 0 0 0 0 0
+(define start-state (progstate 0 0 0 0 0 0 0
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
                       (make-vector 64)))
 
-(define (clone-state!)
-  (state a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
+(define (clone-state)
+  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
 ;;; Resets the state of the interpreter:
 (define (reset!)
@@ -129,9 +130,6 @@
     (set! r (pop-stack! return))
     ret-val))
 
-(define memory (make-vector 64))
-
-(define instructions (make-vector 32))
 
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)

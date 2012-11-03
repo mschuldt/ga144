@@ -1,5 +1,7 @@
 #lang racket
 
+(require "state.rkt" "stack.rkt")
+
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)
 
@@ -45,9 +47,7 @@
 (define CHOICES (vector-length choice-id))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
 
-(struct progstate (dst rst mem t s r a b sp rp) #:mutable) ;rp
-(struct commstate (send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))
-(struct inout (input output comm) #:mutable)
+(struct inout (input output comm))
 
 (define inout-list (make-vector 10))
 (define num-inout 0)
@@ -519,28 +519,28 @@
     (generate-formula step n version name syn)))
 
 (define (assert-state-all state n i)
-  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (progstate-dst state) STACK_SIZE))
-  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (progstate-rst state) STACK_SIZE))
-  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n  i(progstate-mem state) MEM_SIZE))
-  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n  i(progstate-t state) SIZE))
+  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
+  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
+  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE))
+  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE))
   (pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE))
   (pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE))
   (pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE))
   (pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))
-  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (progstate-sp state) 3))
-  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (progstate-rp state) 3)))
+  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3))
+  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
 
 (define (assert-state state n i)
-  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (progstate-dst state) STACK_SIZE))
-  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (progstate-rst state) STACK_SIZE))
-  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n  i(progstate-mem state) MEM_SIZE))
-  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n  i(progstate-t state) SIZE))
+  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
+  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
+  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE))
+  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE))
   (pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE))
   (pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE))
   (pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE))
   (pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))
-  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (progstate-sp state) 3))
-  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (progstate-rp state) 3))
+  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3))
+  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3))
   )
 
 (define (assert-comm comm n i)
@@ -649,25 +649,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Input-Output-Rend-Recv storage, converter, and generator ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (default-progstate
-          #:dst [dst (make-vector 8 #x15555)]
-          #:rst [rst (make-vector 8 #x15555)]
-          #:mem [mem (make-vector MEM_ENTRIES 0)]
-          #:t [t #x15555] #:s [s #x15555] #:r [r #x15555] #:a [a #x15555] #:b [b IO]
-	  #:sp [sp 0] #:rp [rp 0])
-  (progstate dst rst mem t s r a b sp rp))
-
-(define (default-commstate
-	 #:send-u [send-u (make-vector COMM_ENTRIES 0)]
-	 #:send-d [send-d (make-vector COMM_ENTRIES 0)]
-	 #:send-l [send-l (make-vector COMM_ENTRIES 0)]
-	 #:send-r [send-r (make-vector COMM_ENTRIES 0)]
-	 #:recv-u [recv-u (make-vector COMM_ENTRIES 0)]
-	 #:recv-d [recv-d (make-vector COMM_ENTRIES 0)]
-	 #:recv-l [recv-l (make-vector COMM_ENTRIES 0)]
-	 #:recv-r [recv-r (make-vector COMM_ENTRIES 0)])
-  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
-
 (define (vec-to-bits-inner vec vec-size)
   (define bits 0)
   (for* ([i (in-range 0 vec-size)])
@@ -679,13 +660,12 @@
       vec))
 
 (define (convert-progstate state)
-  (progstate (vec-to-bits (progstate-dst state) 8) 
-             (vec-to-bits (progstate-rst state) 8) 
-             (vec-to-bits (progstate-mem state) MEM_ENTRIES) 
-             (progstate-t state) (progstate-s state) (progstate-r state) 
-             (progstate-a state) (progstate-b state) 
-             (progstate-sp state) (progstate-rp state)))
-  
+  (progstate (progstate-a state) (progstate-b state) 
+	     (progstate-p state) (progstate-i state) 
+	     (progstate-r state) (progstate-s state) (progstate-t state)
+	     (stack (stack-sp (progstate-data state)) (vec-to-bits (stack-body (progstate-data state)) 8))
+	     (stack (stack-sp (progstate-return state)) (vec-to-bits (stack-body (progstate-return state)) 8))
+             (vec-to-bits (progstate-memory state) MEM_ENTRIES)))
 
 (define (convert-commstate state)
   (commstate (vec-to-bits (commstate-send-u state) COMM_ENTRIES)
@@ -699,15 +679,12 @@
              (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state)
              (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)))
 
-(define (add-input-output input output comm)
-  (vector-set! inout-list num-inout (inout (convert-progstate input) (convert-progstate output) (convert-commstate comm)))
-  (set! num-inout (add1 num-inout)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; GreenSyn API ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define current-input (default-progstate))
-(define current-output (default-progstate))
-(define current-comm (default-commstate))
+(define current-input 0)
+(define current-output 0)
+(define current-comm 0)
 
 (provide (all-defined-out))
 
@@ -725,36 +702,27 @@
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
   (set! COMM_BIT (inexact->exact (floor (+ (/ (log COMM_ENTRIES) (log 2)) 1))))
 
-  (set! num-inout 0)
-  (set! current-input (default-progstate))
-  (set! current-output (default-progstate))
-  (set! current-comm (default-commstate)))
+  (set! num-inout 0))
 
 ;;; Set input for counterexmaple.
-(define (greensyn-input dst rst mem t s r a b sp rp)
-  (set! current-input (convert-progstate (progstate dst rst mem t s r a b sp rp))))
+(define (greensyn-input state)
+  (set! current-input state))
 
 ;;; Set output for counterexmaple.
-(define (greensyn-output dst rst mem t s r a b sp rp)
-  (set! current-output (convert-progstate (progstate dst rst mem t s r a b sp rp))))
+(define (greensyn-output state)
+  (set! current-output state))
 
 ;;; Set send/recv storage for counterexmaple.
-(define (greensyn-send-recv send-u sendp-u 
-		  send-d sendp-d
-		  send-l sendp-l
-		  send-r sendp-r
-		  recv-u recvp-u
-		  recv-d recvp-d
-		  recv-l recvp-l
-		  recv-r recvp-r)
-  (set! current-comm (convert-commstate (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))))
+(define (greensyn-send-recv state)
+  (set! current-comm state))
 
 ;;; Add previously set counterexample (input, output, and send/recv)
 ;;; to the list that will be generated as formula.
 ;;; If input, output, send/recv are set but not commit, 
 ;;; the counterexample won't be included in the generated formula
 (define (greensyn-commit)
-  (add-input-output current-input current-output current-comm))
+  (vector-set! inout-list num-inout (inout (convert-progstate current-input) (convert-progstate current-output) (convert-commstate current-comm)))
+  (set! num-inout (add1 num-inout)))
 
 ;;; Generate Z3 file for synthesis from the list of counterexamples
 (define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)

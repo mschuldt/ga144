@@ -1,6 +1,6 @@
 #lang racket
 
-(require "interpreter.rkt" "stack.rkt" "greensyn_test.rkt")
+(require "interpreter.rkt" "stack.rkt" "state.rkt" "greensyn.rkt")
 
 ;;; synthesize
 
@@ -11,7 +11,7 @@
   (greensyn-reset 1 1 1)
   
   ;; input
-  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (clone-state))
   
   ;; run the interpreter
   (reset!)
@@ -21,8 +21,8 @@
   (display-data)
   
   ;; output (no communication in this example)
-  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
   
   ;; commit to add input-output pair
   (greensyn-commit)
@@ -45,35 +45,37 @@
   (reset-p! 20)
   
   ;; set 1st pair
-  (define my-state (clone-state!))
-  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (define my-state (clone-state))
+  (greensyn-input my-state)
   
   (step-program!*)
 
-  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-output (clone-state))
+  ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv (default-commstate))
   (greensyn-commit)
   
   ;; set 2nd pair
   (load-state! my-state)
   (set-state! data return 1 277 p i r 2048 t memory)
-  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  
+  (greensyn-input (clone-state))
+  (display-return)
   (step-program!*)
+  (display-return)
   
-  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
   (greensyn-commit)
   
   ;; set 3nd pair
   (load-state! my-state)
   (set-state! data return 0 0 p i r 0 7 memory)
-  (greensyn-input (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-input (clone-state))
   
   (step-program!*)
   
-  (greensyn-output (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-  (greensyn-send-recv comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0 comm 0)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
   (greensyn-commit)
   
   (greensyn-check-sat #:file "mem.smt2" 9))
@@ -114,17 +116,41 @@
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
-(define (ver-mem-7) ; sat (but we should allow this by relaxing constraint)
+(define (ver-mem-7) ; should be sat in this encoding (check this)
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup dup or a! @+ 2* @+ 2/ + !"))
 
-(define (ver-mem-8) ; sat (but we should allow this by relaxing constraint)
-  (greensyn-reset 4 1)
-  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
-  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+
+(define (syn-debug)
+  (define comm (make-vector 1))
+  (define dst (make-vector 8))
+  (vector-set! dst 0 1)
+  (vector-set! dst 1 2)
+  (vector-set! dst 2 3)
+  (vector-set! dst 3 4)
+  (vector-set! dst 4 5)
+  (vector-set! dst 5 6)
+  (vector-set! dst 6 7)
+  (vector-set! dst 7 8)
+
+  ;; set up the program
+  (reset!)
+  (set-state! (stack 0 dst) return a b p i r s t memory)
+  (load-program "0 a! @ 2* nop 1 a! @+ 2/ + ! nop nop nop")
+  (greensyn-reset 3 1)
+  (greensyn-input (clone-state))
+
+  (step-program!*)
+
+  (greensyn-output (clone-state))
+  ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+  (greensyn-send-recv (default-commstate))
+  (greensyn-commit)
+  (greensyn-check-sat #:file "debug.smt2" 9))
 
 ;; (syn-example)
 ;; (ver-example)
-(syn-mem)
-;(ver-mem-5)
+;; (syn-mem)
+;; (ver-mem-7)
+(syn-debug)
