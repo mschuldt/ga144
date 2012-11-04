@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(struct progstate (a b p i r s t data return memory) #:mutable)
+(struct progstate (a b p i r s t data return memory) #:mutable #:transparent)
 (struct commstate (send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))
 
 (define ENTRIES 4)
