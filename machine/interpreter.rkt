@@ -230,6 +230,7 @@
 ;;; everything to the right by one bit.
 (define (multiply-step-odd!)
   (let* ([sum (+ t s)]
+	 [sum17 (bitwise-and sum #x20000)]
          [result (bitwise-ior (arithmetic-shift sum 17) (arithmetic-shift a -1))])
     (set! a (bitwise-bit-field result 0 18))
-    (set! t (bitwise-bit-field result 18 36))))
+    (set! t (bitwise-ior sum17 (bitwise-bit-field result 18 36)))))

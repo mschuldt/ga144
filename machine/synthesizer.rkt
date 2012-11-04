@@ -116,41 +116,83 @@
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
-(define (ver-mem-7) ; should be sat in this encoding (check this)
+(define (ver-mem-7) ; unsat
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup dup or a! @+ 2* @+ 2/ + !"))
 
+; pop a! push begin 
+; @+ @ push a push *.17 pop a! 
+; push !+ pop . + pop next @ a!
 
-(define (syn-debug)
+; *.17: a! 16 push dup dup or
+; begin +* unext - +* a -if
+; drop - 2* ; then drop 2* - ;
+(define (syn-taps)
   (define comm (make-vector 1))
-  (define dst (make-vector 8))
-  (vector-set! dst 0 1)
-  (vector-set! dst 1 2)
-  (vector-set! dst 2 3)
-  (vector-set! dst 3 4)
-  (vector-set! dst 4 5)
-  (vector-set! dst 5 6)
-  (vector-set! dst 6 7)
-  (vector-set! dst 7 8)
-
-  ;; set up the program
-  (reset!)
-  (set-state! (stack 0 dst) return a b p i r s t memory)
-  (load-program "0 a! @ 2* nop 1 a! @+ 2/ + ! nop nop nop")
-  (greensyn-reset 3 1)
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1 1)
+  
+  ;; input
   (greensyn-input (clone-state))
-
-  (step-program!*)
-
+  
+  ;; run the interpreter
+  (reset!)
+  (load-program "- 2/ dup dup dup + a! dup")
+  (step-program!)
+  (step-program!)
+  (display-data)
+  
+  ;; output (no communication in this example)
   (greensyn-output (clone-state))
-  ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
   (greensyn-commit)
-  (greensyn-check-sat #:file "debug.smt2" 9))
+  
+  ;; generate file for Z3 (check-sat <filename> <#holes>
+  (greensyn-check-sat #:file "example.smt2" 8)
+ )
+
+;; (define (syn-debug)
+;;   (define comm (make-vector 1))
+;;   (define dst (make-vector 8))
+;;   (vector-set! dst 0 1)
+;;   (vector-set! dst 1 2)
+;;   (vector-set! dst 2 3)
+;;   (vector-set! dst 3 4)
+;;   (vector-set! dst 4 5)
+;;   (vector-set! dst 5 6)
+;;   (vector-set! dst 6 7)
+;;   (vector-set! dst 7 8)
+
+;;   ;; set up the program
+;;   (reset!)
+;;   (set-state! (stack 0 dst) return a b p i r 100 200 memory)
+;;   (greensyn-reset 3 1)
+;;   (greensyn-input (clone-state))
+
+;;   (display-data)
+;;   ;(load-program "@p a! @ nop 0 2* @p a! nop 1 @+ 2/ + nop ! nop nop nop")
+;;   (load-program "dup dup or nop a! @+ 2* nop @+ 2/ + nop ! nop nop nop")
+;;   (step-program!)
+;;   (display-data)
+;;   (step-program!)
+;;   (display-data)
+;;   (step-program!)
+;;   (display-data)
+
+;;   (step-program!*)
+;;   (display-data)
+
+;;   (greensyn-output (clone-state))
+;;   ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
+;;   (greensyn-send-recv (default-commstate))
+;;   (greensyn-commit)
+;;   (greensyn-check-sat #:file "debug2.smt2" 9))
 
 ;; (syn-example)
 ;; (ver-example)
 ;; (syn-mem)
 ;; (ver-mem-7)
-(syn-debug)
