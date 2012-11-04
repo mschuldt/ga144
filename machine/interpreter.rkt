@@ -199,7 +199,9 @@
 (define-instruction! (lambda (_) (vector-set! memory a (pop!)) (set! a (incr a))))   ; store-plus (!+)
 (define-instruction! (lambda (_) (vector-set! memory b (pop!))))                     ; store-b (!b)
 (define-instruction! (lambda (_) (vector-set! memory a (pop!))))                     ; store (!)
-(define-instruction! (lambda (_) (void)))                                            ; TODO: multiply-step
+(define-instruction! (lambda (_) (if (even? a)                                       ; multiply-step (+*)
+                                     (multiply-step-even!)
+                                     (multiply-step-odd!)))) 
 (define-instruction! (lambda (_) (set! t (18bit (arithmetic-shift t 1)))))           ; 2*
 (define-instruction! (lambda (_) (set! t (arithmetic-shift t -1))))                  ; 2/
 (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
@@ -215,3 +217,19 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
+
+;;; Treats T:A as a single 36 bit register and shifts it right by one
+;;; bit. The most signficicant bit (T17) is kept the same.
+(define (multiply-step-even!)
+  (let ([t17 (bitwise-and t #x20000)]
+        [t0  (bitwise-and t #x1)])
+    (set! t (bitwise-and t17 (arithmetic-shift t -1)))
+    (set! a (bitwise-and t0 (arithmetic-shift a -1)))))
+
+;;; Sums T and S and concatenates the result with A, shifting
+;;; everything to the right by one bit.
+(define (multiply-step-odd!)
+  (let* ([sum (+ t s)]
+         [result (bitwise-and (arithmetic-shift sum 17) (arithmetic-shift a -1))])
+    (set! a (bitwise-bit-field result 0 18))
+    (set! t (bitwise-bit-field result 18 36))))
