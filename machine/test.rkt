@@ -174,7 +174,17 @@
   (check-equal? 42 (vector-ref memory 10))
   (check-unchanged? b r s return))
 
-;; TODO: +*
+(define-test "@p @p @p nop 10 0 10 a! +* nop nop" ; +* (even case)
+  (check-equal? a 5)
+  (check-equal? s 10)
+  (check-equal? t 0)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 10 0 11 a! +* nop nop" ; +* (odd case)
+  (check-equal? a 5)
+  (check-equal? s 10)
+  (check-equal? t 5)
+  (check-unchanged? b r return))
 
 (define-test "@p 2* nop nop 2"          ; 2*
   (check-equal? t 4)
