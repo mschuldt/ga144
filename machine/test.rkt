@@ -2,7 +2,7 @@
 
 ;;; Some very simple tests of the interpreter.
 
-(require "interpreter.rkt" "stack.rkt" rackunit)
+(require "state.rkt" "interpreter.rkt" "stack.rkt" rackunit)
 
 (define tests '())
 
@@ -37,7 +37,7 @@
      (with-syntax
          ([get (datum->syntax
                 stx (string->symbol
-                     (format "state-~a" (symbol->string (syntax->datum #'id)))))])
+                     (format "progstate-~a" (symbol->string (syntax->datum #'id)))))])
        (syntax (check-equal? id (get start-state))))]))
 
 ;;; Checks whether the given variables (registers/stacks/memory) were

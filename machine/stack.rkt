@@ -3,7 +3,7 @@
 
 (provide (all-defined-out))
 
-(struct stack (sp body) #:mutable)
+(struct stack (sp body) #:mutable #:transparent)
 
 ;;; Copies the given stack. This keeps mutable vectors from being
 ;;; shared between different stacks.
