@@ -212,7 +212,7 @@
     (grow))
 
   (define (multiply-step)
-    (define t-even (format "(concat ((_ extract 17 17) t_~e_v~e) ((_ extract 17 1) t_~e_v~e))" prev i prev i))
+    (define t-even (format "(concat ((_ extract 17 17) t_~e_v~e) ((_ extract 17 1) t_~e_v~e))" prev i prev i)) ; bvashr
     (define a-even (format "(concat ((_ extract 0 0) t_~e_v~e) ((_ extract 17 1) a_~e_v~e))" prev i prev i))
 
     (define sum (format "(bvadd (concat #b0 t_~e_v~e) (concat #b0 s_~e_v~e))" prev i prev i))
@@ -601,16 +601,20 @@
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-recvp-l comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT)))
 
-(define (assert-pair input output comm n i)
+(define (assert-pair input output comm n i has-out)
   (assert-state-all input 0 i)
-  (assert-state output n i)
-  (assert-comm comm n i)
+  (if has-out
+      (assert-state output n i)
+      (void))
+  (if has-out
+      (assert-comm comm n i)
+      (void))
   )
 
-(define (assert-input-output n)
+(define (assert-input-output n has-out)
   (for* ([i (in-range 0 num-inout)])
     (define p (vector-ref inout-list i))
-    (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i)))
+    (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i has-out)))
 
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
@@ -643,16 +647,18 @@
   ;;; Include assumption throughtout the program
   (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses 26 `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
   
-(define (synthesize-prog n)
+(define (synthesize-prog n has-prog has-out)
   (declare-bitvector)
-  (declare-vars (add1 n) 0 num-inout)
-  (declare-holes (add1 n))
-  (newline)
   (declare-functions)
   (newline)
+  (if has-prog
+      (encode-program spec (add1 n) `h)
+      (declare-holes (add1 n)))
+
+  (declare-vars (add1 n) 0 num-inout)
   (generate-formulas (add1 n) 0 num-inout `h #t)
   (newline)
-  (assert-input-output n)
+  (assert-input-output n has-out)
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
@@ -682,26 +688,6 @@
   (assert-input-eq)
   (newline)
   (assert-output-neq)
-  (newline)
-  (pretty-display `(check-sat))
-  (pretty-display `(get-model))
-)
-
-(define (gen-prog-formula)
-  (declare-bitvector)
-  (declare-functions)
-  (newline)
-
-  ; formular for spec
-  (encode-program spec (add1 spec-count) `spec)
-  (newline)
-  (declare-vars (add1 spec-count) 0 1)
-  (newline)
-  (generate-formulas (add1 spec-count) 0 1 `spec #t)
-  (newline)
-  
-  (assert-state-all current-input 0 0)
-  (assert-comm current-comm spec-count 0)
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
@@ -784,14 +770,14 @@
   (vector-set! inout-list num-inout (inout (convert-progstate current-input) (convert-progstate current-output) (convert-commstate current-comm)))
   (set! num-inout (add1 num-inout)))
 
-;;; Generate Z3 file for synthesis from the list of counterexamples
-(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)
-  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (synthesize-prog prog-size)))
-
 ;;; Set spec for verification
 (define (greensyn-spec string)
   (set! spec-count (compile string spec)))
+
+;;; Generate Z3 file for synthesis from the list of counterexamples
+(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)
+  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
+    (synthesize-prog prog-size #f #t)))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
 (define (greensyn-verify file string)
@@ -799,8 +785,8 @@
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (verify-prog)))
 
-(define (greensyn-gen-formula file)
+(define (greensyn-gen-formula file has-out)
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (gen-prog-formula)))
+    (synthesize-prog spec-count #t has-out)))
   
   

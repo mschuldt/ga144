@@ -65,7 +65,7 @@
   
   (greensyn-output (clone-state))
   (greensyn-send-recv (default-commstate))
-  (greensyn-commit)
+  ;(greensyn-commit)
   
   ;; set 3nd pair
   (load-state! my-state)
@@ -80,51 +80,7 @@
   
   (greensyn-check-sat #:file "mem.smt2" 9))
 
-;(syn-mem)
-
-(define (syn-mult)
-  (define comm (make-vector 1))
-  
-  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (greensyn-reset 1 1)
-  (reset!)
-  (set-state! data return 10 b p i r 10 0 memory)
-  (load-program "+* nop nop nop")
-  
-  ;; input
-  (greensyn-input (clone-state))
-  
-  ;; run the interpreter
-  (step-program!*)
-  
-  ;; output (no communication in this example)
-  (greensyn-output (clone-state))
-  (greensyn-send-recv (default-commstate))
-  
-  ;; commit to add input-output pair
-  (greensyn-commit)
-  
-  ;; generate file for Z3 (check-sat <filename> <#holes>
-  (greensyn-check-sat #:file "syn-mult.smt2" 1)
- )
-(syn-mult)
-
-(define (gen-mult)
-  (define comm (make-vector 1))
-  ;; set up the program
-  (greensyn-reset 1 1)
-  (greensyn-spec "+*")
-  (reset!)
-  (set-state! data return 10 b p i r 10 0 memory)
-
-  (greensyn-input (clone-state))
-  (load-program "+* nop nop nop")
-  (step-program!*)
-  (greensyn-send-recv (default-commstate))
-  
-  (greensyn-gen-formula "gen-mult.smt2"))
-
-(gen-mult)
+(syn-mem)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -207,40 +163,4 @@
   (greensyn-check-sat #:file "example.smt2" 8)
  )
 
-;; (define (syn-debug)
-;;   (define comm (make-vector 1))
-;;   (define dst (make-vector 8))
-;;   (vector-set! dst 0 1)
-;;   (vector-set! dst 1 2)
-;;   (vector-set! dst 2 3)
-;;   (vector-set! dst 3 4)
-;;   (vector-set! dst 4 5)
-;;   (vector-set! dst 5 6)
-;;   (vector-set! dst 6 7)
-;;   (vector-set! dst 7 8)
-
-;;   ;; set up the program
-;;   (reset!)
-;;   (set-state! (stack 0 dst) return a b p i r 100 200 memory)
-;;   (greensyn-reset 3 1)
-;;   (greensyn-input (clone-state))
-
-;;   (display-data)
-;;   ;(load-program "@p a! @ nop 0 2* @p a! nop 1 @+ 2/ + nop ! nop nop nop")
-;;   (load-program "dup dup or nop a! @+ 2* nop @+ 2/ + nop ! nop nop nop")
-;;   (step-program!)
-;;   (display-data)
-;;   (step-program!)
-;;   (display-data)
-;;   (step-program!)
-;;   (display-data)
-
-;;   (step-program!*)
-;;   (display-data)
-
-;;   (greensyn-output (clone-state))
-;;   ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
-;;   (greensyn-send-recv (default-commstate))
-;;   (greensyn-commit)
-;;   (greensyn-check-sat #:file "debug2.smt2" 9))
 
