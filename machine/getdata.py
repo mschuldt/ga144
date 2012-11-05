@@ -2,7 +2,7 @@
 
 import sys
 
-dic = {}
+choices = ['2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', '@+', '@', '@b', '!+', '!', '!b', 'a!', 'b!', 'a', '+*', 'pop', 'push', 'over', 'up', 'down', 'left', 'right', 'nop', '0', '1']
 
 def main():
   filename = sys.argv[1]
@@ -34,53 +34,7 @@ def main():
         if val[1] == "b":
           if var[0] == "h":
             hole = int(val[2:to],2)
-            if hole == 0:
-              inst = "2*"
-            elif hole == 1:
-              inst = "2/"
-            elif hole == 2:
-              inst = "-"
-            elif hole == 3:
-              inst = "+"
-            elif hole == 4:
-              inst = "and"
-            elif hole == 5:
-              inst = "or"
-            elif hole == 6:
-              inst = "drop"
-            elif hole == 7:
-              inst = "dup"
-            elif hole == 8:
-              inst = "@+"
-            elif hole == 9:
-              inst = "@"
-            elif hole == 10:
-              inst = "@b"
-            elif hole == 11:
-              inst = "!+"
-            elif hole == 12:
-              inst = "!"
-            elif hole == 13:
-              inst = "!b"
-            elif hole == 14:
-              inst = "a!"
-            elif hole == 15:
-              inst = "b!"
-            elif hole == 16:
-              inst = "up"
-            elif hole == 17:
-              inst = "down"
-            elif hole == 18:
-              inst = "left"
-            elif hole == 19:
-              inst = "right"
-            elif hole == 20:
-              inst = "nop"
-            elif hole == 21:
-              inst = "0"
-            elif hole == 22:
-              inst = "1"
-            print var + " = " + inst
+            print var + " = " + choices[hole]
           elif print_all:
             print var + " = " + str(int(val[2:to],2))
         elif print_all:

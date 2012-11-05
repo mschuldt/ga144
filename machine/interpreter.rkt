@@ -92,7 +92,7 @@
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
 (define (display-state)
-  (display (format "p:~a " p))
+  (display (format "p:~a a:~a" p a))
   (display-data))
 
 ;;; Loads the given program into memory at the given start

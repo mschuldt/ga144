@@ -8,7 +8,7 @@
   (define comm (make-vector 1))
   
   ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (greensyn-reset 1 1 1)
+  (greensyn-reset 1 1)
   
   ;; input
   (greensyn-input (clone-state))
@@ -76,9 +76,55 @@
   
   (greensyn-output (clone-state))
   (greensyn-send-recv (default-commstate))
-  (greensyn-commit)
+  ;(greensyn-commit)
   
   (greensyn-check-sat #:file "mem.smt2" 9))
+
+;(syn-mem)
+
+(define (syn-mult)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1)
+  (reset!)
+  (set-state! data return 10 b p i r 10 0 memory)
+  (load-program "+* nop nop nop")
+  
+  ;; input
+  (greensyn-input (clone-state))
+  
+  ;; run the interpreter
+  (step-program!*)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  ;; generate file for Z3 (check-sat <filename> <#holes>
+  (greensyn-check-sat #:file "syn-mult.smt2" 1)
+ )
+(syn-mult)
+
+(define (gen-mult)
+  (define comm (make-vector 1))
+  ;; set up the program
+  (greensyn-reset 1 1)
+  (greensyn-spec "+*")
+  (reset!)
+  (set-state! data return 10 b p i r 10 0 memory)
+
+  (greensyn-input (clone-state))
+  (load-program "+* nop nop nop")
+  (step-program!*)
+  (greensyn-send-recv (default-commstate))
+  
+  (greensyn-gen-formula "gen-mult.smt2"))
+
+(gen-mult)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -120,6 +166,12 @@
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "dup dup or a! @+ 2* @+ 2/ + !"))
+
+(define (ver-mem-8) ; sat
+  (greensyn-reset 4 1)
+  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
+  (greensyn-verify "ver-mem.smt2" "a! 0 a! @+ 2* @+ 2/ + !"))
+(ver-mem-7)
 
 ; pop a! push begin 
 ; @+ @ push a push *.17 pop a! 
@@ -192,7 +244,3 @@
 ;;   (greensyn-commit)
 ;;   (greensyn-check-sat #:file "debug2.smt2" 9))
 
-;; (syn-example)
-;; (ver-example)
-;; (syn-mem)
-;; (ver-mem-7)

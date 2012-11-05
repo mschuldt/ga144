@@ -43,7 +43,7 @@
 (define RIGHT #x1d5)
 (define IO #x15d)
 
-(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! up down left right nop 0 1))
+(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1))
 (define CHOICES (vector-length choice-id))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
 
@@ -192,15 +192,38 @@
     (set! check_s (format "(= s_~e_v~e (get-stack dst_~e_v~e sp_~e_v~e))" step i prev i prev i))
     (set! check_sp (format "(= sp_~e_v~e (bvsub sp_~e_v~e (_ bv1 3))) " step i prev i)))
 
+  (define (shrink-return)
+    (set! check_r (format "(= r_~e_v~e (get-stack rst_~e_v~e rp_~e_v~e))" step i prev i prev i))
+    (set! check_rp (format "(= rp_~e_v~e (bvsub rp_~e_v~e (_ bv1 3))) " step i prev i)))
+
   (define (grow)
     (set! check_s (format "(= s_~e_v~e t_~a_v~e)" step i prev i))
     (set! check_sp (format "(= sp_~e_v~e (bvadd sp_~a_v~e (_ bv1 ~a))) " step i prev i 3))
     (set! check_dst (format "(= dst_~e_v~e (modify-stack dst_~a_v~e sp_~e_v~e s_~a_v~e))" step i prev i step i prev i)))
+
+  (define (grow-return)
+    (set! check_r (format "(= r_~e_v~e t_~a_v~e)" step i prev i))
+    (set! check_rp (format "(= rp_~e_v~e (bvadd rp_~a_v~e (_ bv1 ~a))) " step i prev i 3))
+    (set! check_rst (format "(= rst_~e_v~e (modify-stack rst_~a_v~e rp_~e_v~e r_~a_v~e))" step i prev i step i prev i)))
   
   ; for pushing  c to stack
   (define (push-const c)
     (set! check_t (format "(= t_~e_v~e (_ bv~e ~e))" step i c SIZE))
     (grow))
+
+  (define (multiply-step)
+    (define t-even (format "(concat ((_ extract 17 17) t_~e_v~e) ((_ extract 17 1) t_~e_v~e))" prev i prev i))
+    (define a-even (format "(concat ((_ extract 0 0) t_~e_v~e) ((_ extract 17 1) a_~e_v~e))" prev i prev i))
+
+    (define sum (format "(bvadd (concat #b0 t_~e_v~e) (concat #b0 s_~e_v~e))" prev i prev i))
+    (define sum17 (format "(concat ((_ extract 17 17) ~a) (_ bv0 17))" sum))
+    (define t-odd (format "(bvor ((_ extract 18 1) ~a) ~a)" sum sum17))
+    (define a-odd (format "(concat ((_ extract 0 0) ~a) ((_ extract 17 1) a_~e_v~e))" sum prev i))
+    
+    (set! check_t (format "(= t_~e_v~e (ite (= ((_ extract 0 0) a_~e_v~e) #b0) ~a ~a))" 
+			  step i prev i t-even t-odd))
+    (set! check_a (format "(= a_~e_v~e (ite (= ((_ extract 0 0) a_~e_v~e) #b0) ~a ~a))" 
+			  step i prev i a-even a-odd)))
 
   (define (write-port reg port val)
     (string-append (string-append
@@ -351,14 +374,31 @@
 	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
 	       (shrink)]
     ; b!
-    [(= choice (vector-member `b! choice-id)) 
+    [(= choice (vector-member `b! choice-id))
                (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
 	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
 	       (shrink)]
-    [(= choice (vector-member `up choice-id)) (push-const UP)]
-    [(= choice (vector-member `down choice-id)) (push-const DOWN)]
-    [(= choice (vector-member `left choice-id)) (push-const LEFT)]
-    [(= choice (vector-member `right choice-id)) (push-const RIGHT)]
+    ; a
+    [(= choice (vector-member `a choice-id)) 
+               (set! check_t (format "(= t_~e_v~e a_~e_v~e)" step i prev i))
+	       (grow)]
+    ; +*
+    [(= choice (vector-member `+* choice-id)) 
+               (multiply-step)]
+    ; pop
+    [(= choice (vector-member `pop choice-id)) 
+	       (set! check_t (format "(= t_~e_v~e r_~e_v~e)" step i prev i))
+               (shrink-return)
+	       (grow)]
+    ; push
+    [(= choice (vector-member `push choice-id)) 
+	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+               (grow-return)
+	       (shrink)]
+    ; over
+    [(= choice (vector-member `over choice-id)) 
+               (set! check_t (format "(= t_~e_v~e s_~a_v~e)" step i prev i))
+	       (grow)]
     ; nop
     [(= choice (vector-member `nop choice-id)) (void)]
     [(= choice (vector-member `0 choice-id)) (push-const 0)]
@@ -647,6 +687,26 @@
   (pretty-display `(get-model))
 )
 
+(define (gen-prog-formula)
+  (declare-bitvector)
+  (declare-functions)
+  (newline)
+
+  ; formular for spec
+  (encode-program spec (add1 spec-count) `spec)
+  (newline)
+  (declare-vars (add1 spec-count) 0 1)
+  (newline)
+  (generate-formulas (add1 spec-count) 0 1 `spec #t)
+  (newline)
+  
+  (assert-state-all current-input 0 0)
+  (assert-comm current-comm spec-count 0)
+  (newline)
+  (pretty-display `(check-sat))
+  (pretty-display `(get-model))
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;; Input-Output-Rend-Recv storage, converter, and generator ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (vec-to-bits-inner vec vec-size)
@@ -706,15 +766,15 @@
 
 ;;; Set input for counterexmaple.
 (define (greensyn-input state)
-  (set! current-input state))
+  (set! current-input (convert-progstate state)))
 
 ;;; Set output for counterexmaple.
 (define (greensyn-output state)
-  (set! current-output state))
+  (set! current-output (convert-progstate state)))
 
 ;;; Set send/recv storage for counterexmaple.
 (define (greensyn-send-recv state)
-  (set! current-comm state))
+  (set! current-comm (convert-commstate state)))
 
 ;;; Add previously set counterexample (input, output, and send/recv)
 ;;; to the list that will be generated as formula.
@@ -738,4 +798,9 @@
   (set! cand-count (compile string cand))
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (verify-prog)))
+
+(define (greensyn-gen-formula file)
+  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
+    (gen-prog-formula)))
+  
   
