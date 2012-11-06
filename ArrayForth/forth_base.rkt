@@ -2,7 +2,7 @@
 
 (require "arithmetic.rkt" "rvector.rkt" "forth_read.rkt" "forth_num_convert.rkt")
 (require "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt" "forth_control_words.rkt")
-(provide compile-and-run compile-to-vector)
+(provide compile-and-run compile-to-vector compile-to-string)
 
 ; Interpreter and associated procedures
 
@@ -58,10 +58,8 @@
       (unless (eof-object? to-compile)
 	      (unless (eq? to-compile #\newline)
 		      (let [(entry (find-entry dict to-compile))]
-					;		      (when entry (display (entry-name entry)) (display " ") (display (entry-precedence entry)) (newline))
 			(cond [(not entry)
 			       (let [(directive (find-entry compiler-directives to-compile))]
-				 ;(display to-compile) (display ": ") (display directive) (newline)
 				 (if directive
 				     ((rvector-ref codespace (entry-code directive)))
 				     (let [(num (string->bytes to-compile))]
@@ -70,9 +68,6 @@
 					       (push-cells! dstack num)
 					       (begin (add-compiled-code! "@p")
 						      (add-compiled-code! num)))
-					;				   (begin
-					;				     (add-compiled-code! (rvector-ref codespace (entry-code (find-entry dict "@p"))))
-					;				     (add-compiled-code! num)))
 					   (raise (string-append to-compile " ?"))))))]
 			      [execute?
 			       ((rvector-ref codespace (entry-code entry)))]
@@ -94,10 +89,6 @@
 (define (compile-and-run code-port)
   (reset!)
   (compile code-port)
-#|  (for [(i used-cores)]
-       (set! state-index i)
-       (print (mcar memory)) (newline))
-  (display "Also, ") (display used-cores) (newline)|#
   (code-loop))
 
 (define (compile-to-vector code-port #:str? [str? #t] #:bytes? [use-bytes? #f])
@@ -115,6 +106,16 @@
 			 result))
     result))
 
+(define (compile-to-string code-port #:str? [str? #t])
+  (let ((code-vec (compile-to-vector code-port #:str? str? #:bytes? #f))
+	(result ""))
+    ; Annoyingly, there doesn't appear to be an accumulate for vectors.
+    (for [(s code-vec)]
+	 (set! result (string-append result " "
+				     (if (string? s)
+					 s
+					 (number->string s)))))
+    result))
 
 (add-compiler-directive! "node"
 		     (lambda ()

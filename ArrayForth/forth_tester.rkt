@@ -17,10 +17,12 @@
 	    (compile-and-run in)
 	    (current-output-port old)))))))
 
-(define (compile-file file)
+(define (compile-file file #:str? [str? #t])
   (call-with-input-file file
     (lambda (in)
-      (compile-to-vector in))))
+      (if str?
+	  (compile-to-string in)
+	  (compile-to-vector in)))))
 
 
 (define (remove-return str)
