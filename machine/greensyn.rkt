@@ -5,7 +5,7 @@
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)
 
-(define SIZE 18)
+(define SIZE 18) ; number of bits per word
 
 (define TYPE (string->symbol (format "BV~e" SIZE)))
 (define MAX (sub1 (arithmetic-shift 1 SIZE)))
@@ -36,7 +36,7 @@
 (define L-RECV `recvp2)
 (define R-RECV `recvp3)
 
-; this is consistent with arrayForth
+;;; this is consistent with arrayForth
 (define UP #x145)
 (define DOWN #x115)
 (define LEFT #x175)
@@ -48,21 +48,22 @@
 (define CHOICES (vector-length choice-id))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
 
+;;; counterexample
 (struct inout (input output comm))
 
 (define inout-list (make-vector 10))
 (define num-inout 0)
 
 (define spec (make-vector 100))
-(define spec-count 0)
+(define spec-count 0) ; number of instructions in spec
 (define cand (make-vector 100))
-(define cand-count 0)
-
+(define cand-count 0) ; number of instructions in candidate program
 
 (define (to-choice name)
-  ;; (display (format "to-choice ~e ~e\n" name (vector-member name choice-id)))
   (or (vector-member name choice-id) (raise (format "Cannot synthesize ~s!" name))))
 
+;;; Compile code (string of instructions) into output vector
+;;; and return number of instructions in the given code
 (define (compile code output)
   (define count 0)
   (define in (open-input-string code))
@@ -93,13 +94,15 @@
 
 (define (declare-bitvector )
   (pretty-display `(define-sort BV3 () (_ BitVec 3)))                            ; for index
-  (pretty-display `(define-sort ,(makeBV HOLE_BIT) () (_ BitVec ,HOLE_BIT)))   ; for hole
+  (pretty-display `(define-sort ,(makeBV HOLE_BIT) () (_ BitVec ,HOLE_BIT)))     ; for hole
   (pretty-display `(define-sort ,(makeBV SIZE) () (_ BitVec ,SIZE)))             ; for normal variables
   (pretty-display `(define-sort ,(makeBV STACK_SIZE) () (_ BitVec ,STACK_SIZE))) ; for stack
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
   (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm
   (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;; Generate necessary Z3 functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax-rule (define-fun id form ...)
   (define id `(define-fun id form ...)))
@@ -108,6 +111,7 @@
 ;(define-fun bitidx ((i BV3)) (,STACK_TYPE)
 ;  (concat (_ bv0 ,(- (- STACK_SIZE 3) LOG_SIZE)) (concat i (_ bv0 ,LOG_SIZE))))
 
+;;; Create index into "array" bitvector
 (define (declare-bitidx func-name array-size index-size)
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
@@ -116,6 +120,7 @@
    `(define-fun ,func-name ((i ,index-type)) (,array-type)
       (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv SIZE) ,array-size)))))
 
+;;; Get an entry in "array" bitvector at the given index
 (define (declare-get func-name array-size index-size index-func)
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
@@ -124,6 +129,7 @@
    `(define-fun ,func-name ((array ,array-type) (index ,index-type)) (,TYPE)
       ((_ extract ,(sub1 SIZE) 0) (bvlshr array (,index-func index))))))
 
+;;; Return the "array" bitvector that is replaced at the given index with the given value
 (define (declare-modify func-name array-size index-size index-func)
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
@@ -144,6 +150,8 @@
   (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
   (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
 
+;;;;;;;;;;;;;;;;;;;;;;;; Generate Z3 variables ;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (declare-init v n i bit)
   (for* ([step (in-range 0 n)])
     (pretty-display `(declare-const ,(var v step i) ,(makeBV bit)))))
@@ -153,11 +161,7 @@
     (pretty-display `(declare-const ,(var v step i) ,(makeBV bit))))
   (pretty-display `(assert (= ,(var v 0 i) (_ ,(makebv 0) ,bit)))))
 
-(define (declare-vector-one name i vec-size #:init [vec (make-vector vec-size 0)])
-  (define all 0)
-  (for* ([i (in-range 0 vec-size)])
-    (set! all (+ (arithmetic-shift all SIZE) 
-                 (vector-ref vec (- (- vec-size i) 1)))))
+(define (declare-vector-one name i vec-size)
   (pretty-display `(declare-const ,(var name i) ,(makeBV (* vec-size SIZE)))))
 
 (define (declare-holes n)
@@ -186,28 +190,36 @@
        (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
 	    (declare-vector-one var i COMM_ENTRIES))))
 
+;;;;;;;;;;;;;;;;;;;;;;;; Generate Z3 formulas ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; syn is true for synthesizer, false for verifier
+;;; when syn is true, memory out of bound check and communication check are included.
 (define (generate-choice choice step n i name syn)
   (define prev (sub1 step))
 
+  ;;; pop from data stack to s
   (define (shrink)
     (set! check_s (format "(= s_~e_v~e (get-stack dst_~e_v~e sp_~e_v~e))" step i prev i prev i))
     (set! check_sp (format "(= sp_~e_v~e (bvsub sp_~e_v~e (_ bv1 3))) " step i prev i)))
 
+  ;;; pop from return stack to r
   (define (shrink-return)
     (set! check_r (format "(= r_~e_v~e (get-stack rst_~e_v~e rp_~e_v~e))" step i prev i prev i))
     (set! check_rp (format "(= rp_~e_v~e (bvsub rp_~e_v~e (_ bv1 3))) " step i prev i)))
 
+  ;;; push from s to data stack
   (define (grow)
     (set! check_s (format "(= s_~e_v~e t_~a_v~e)" step i prev i))
     (set! check_sp (format "(= sp_~e_v~e (bvadd sp_~a_v~e (_ bv1 ~a))) " step i prev i 3))
     (set! check_dst (format "(= dst_~e_v~e (modify-stack dst_~a_v~e sp_~e_v~e s_~a_v~e))" step i prev i step i prev i)))
 
+  ;;; push from r to return stack
   (define (grow-return)
     (set! check_r (format "(= r_~e_v~e t_~a_v~e)" step i prev i))
     (set! check_rp (format "(= rp_~e_v~e (bvadd rp_~a_v~e (_ bv1 ~a))) " step i prev i 3))
     (set! check_rst (format "(= rst_~e_v~e (modify-stack rst_~a_v~e rp_~e_v~e r_~a_v~e))" step i prev i step i prev i)))
   
-  ; for pushing  c to stack
+  ;;; for pushing c to data stack
   (define (push-const c)
     (set! check_t (format "(= t_~e_v~e (_ bv~e ~e))" step i c SIZE))
     (grow))
@@ -246,6 +258,7 @@
 		  port step i port prev i COMM_BIT)))
       (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
   
+  ;;; check that value in register is valid for read or write from a port
   (define (mem-range reg)
     (if syn
 	(string-append (string-append (string-append (string-append (string-append
@@ -257,6 +270,7 @@
           (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE))
 	(format "(= ~a_~e_v~e ~a_~a_v~e)" reg step i reg prev i)))
 
+  ;;; default formula for an instruction: equal to the value in the previous step
   (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step choice HOLE_BIT))
   (define check_sp (format "(= sp_~e_v~e sp_~e_v~e)" step i prev i))
   (define check_rp (format "(= rp_~e_v~e rp_~e_v~e)" step i prev i))
@@ -452,6 +466,9 @@
     check_recvp_l)
     check_recvp_r))
 
+;;; Handle assumption differently from assertion on input-outpout pair.
+;;; Memory out of bound check and communication check happen here.
+;;; This function is only called by verifier.
 (define (generate-choice-assumption choice step i name)
   (define prev (sub1 step))
     
@@ -515,41 +532,6 @@
 		 (write-port `b R-ID RIGHT))]))
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_BIT check_assump))
 
-
-(define (conjunct clauses size conj)
-  (define s "")
-  (for ([i (in-range 1 size)])
-       (set! s (string-append s (format "(~a " conj))))
-  (set! s (string-append s (vector-ref clauses 0)))
-  (for ([i (in-range 1 size)])
-       (set! s (string-append s (format " ~a)" (vector-ref clauses i)))))
-  s)
-
-;; (define (combine-assumption clauses size syn)
-;;   (if (syn)
-;;       (conjunct clauses size `and #t)
-;;       (conjunct clauses size `and #f)))
-
-(define (generate-assumption step version name)
-  (define clauses (make-vector 6))
-  (define index 0)
-  (for* ([choice `(@+ @ @b !+ ! !b)])
-	(vector-set! clauses index 
-		     (generate-choice-assumption 
-		      (vector-member choice choice-id) step version name))
-	(set! index (add1 index)))
-  (conjunct clauses 6 `or))
-
- 
-(define (generate-assumptions n from to name)
-  (define clauses (make-vector (* (- to from) (add1 n))))
-  (define index 0)
-  (for* ([version (in-range from to)]
-	 [step (in-range 1 n)])
-	(vector-set! clauses index (generate-assumption step version name))
-	(set! index (add1 index)))
-  (conjunct clauses  index `or))
-
 (define (generate-formula step n version name syn)
   (define s "(assert ")
   (for* ([i (in-range 1 CHOICES)])
@@ -564,6 +546,8 @@
   (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
     (generate-formula step n version name syn)))
+
+;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (assert-state-all state n i)
   (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
@@ -623,6 +607,37 @@
     (define p (vector-ref inout-list i))
     (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i has-out)))
 
+;;;;;;;;;;;;;;;;;;;;;;;; Verifier helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Turn vector of cluases into a string of conjunction or disjunction of the cluases 
+(define (conjunct clauses size conj)
+  (define s "")
+  (for ([i (in-range 1 size)])
+       (set! s (string-append s (format "(~a " conj))))
+  (set! s (string-append s (vector-ref clauses 0)))
+  (for ([i (in-range 1 size)])
+       (set! s (string-append s (format " ~a)" (vector-ref clauses i)))))
+  s)
+
+(define (generate-assumption step version name)
+  (define clauses (make-vector 6))
+  (define index 0)
+  (for* ([choice `(@+ @ @b !+ ! !b)])
+	(vector-set! clauses index 
+		     (generate-choice-assumption 
+		      (vector-member choice choice-id) step version name))
+	(set! index (add1 index)))
+  (conjunct clauses 6 `or))
+
+(define (generate-assumptions n from to name)
+  (define clauses (make-vector (* (- to from) (add1 n))))
+  (define index 0)
+  (for* ([version (in-range from to)]
+	 [step (in-range 1 n)])
+	(vector-set! clauses index (generate-assumption step version name))
+	(set! index (add1 index)))
+  (conjunct clauses  index `or))
+
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var))))
@@ -654,26 +669,8 @@
   ;;; Include assumption throughtout the program
   (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses 26 `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
 
-;; (define (synthesize-prog-one i has-prog has-out)
-;;   (declare-vars
-  
-;; (define (synthesize-prog n has-prog has-out)
-;;   (declare-bitvector)
-;;   (declare-functions)
-;;   (newline)
-;;   (if has-prog
-;;       (encode-program spec (add1 n) `h)
-;;       (declare-holes (add1 n)))
+;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;   (declare-vars (add1 n) 0 num-inout)
-;;   (generate-formulas (add1 n) 0 num-inout `h #t)
-;;   (newline)
-;;   (assert-input-output n has-out)
-;;   (newline)
-;;   (pretty-display `(check-sat))
-;;   (pretty-display `(get-model))
-;; )
-  
 (define (synthesize-prog n has-prog has-out)
   (declare-bitvector)
   (declare-functions)
@@ -690,6 +687,8 @@
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;; Verifier  ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (verify-prog)
   (declare-bitvector)
@@ -764,7 +763,6 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-;;; 3) number of bits for indexing to send/recv storage.
 (define (greensyn-reset mem-entries comm-entries)
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
@@ -802,16 +800,31 @@
   (set! spec-count (compile string spec)))
 
 ;;; Generate Z3 file for synthesis from the list of counterexamples
+;;; Usage:
+;;; (greensyn-reset)
+;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
+;;; (greensyn-check-sat file number_of_slots)
 (define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (synthesize-prog prog-size #f #t)))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
+;;; Usage:
+;;; (greensyn-reset)
+;;; (greensyn-spec string_of_spec)
+;;; (greensyn-verify file string_of_candidate)
 (define (greensyn-verify file string)
   (set! cand-count (compile string cand))
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (verify-prog)))
 
+;;; Generate Z3 file according to the earlier set spec (greensyn-spec)
+;;; if has-out is true, then the formula will assert on earlier set output (greensyn-output)
+;;; otherwise, the formula won't include output
+;;; Usage:
+;;; (greensyn-reset)
+;;; { (greensyn-input input) (greensyn-output output)? (greensyn-send-recv send-recv)? (greensyn-commit) }+
+;;; (greensyn-gen-formula string_of_candidate assert_output)
 (define (greensyn-gen-formula file has-out)
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (synthesize-prog spec-count #t has-out)))

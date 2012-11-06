@@ -118,7 +118,7 @@
   ;; commit to add input-output pair
   (greensyn-commit)
   
-  (greensyn-gen-formula "interp-syn.smt2" #t)
+  (greensyn-gen-formula "test04.smt2" #t)
  )
 
 ;; (test01)
