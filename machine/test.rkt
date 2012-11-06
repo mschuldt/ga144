@@ -2,7 +2,7 @@
 
 ;;; Some very simple tests of the interpreter.
 
-(require "interpreter.rkt" "stack.rkt" rackunit)
+(require "state.rkt" "interpreter.rkt" "stack.rkt" rackunit)
 
 (define tests '())
 
@@ -37,7 +37,7 @@
      (with-syntax
          ([get (datum->syntax
                 stx (string->symbol
-                     (format "state-~a" (symbol->string (syntax->datum #'id)))))])
+                     (format "progstate-~a" (symbol->string (syntax->datum #'id)))))])
        (syntax (check-equal? id (get start-state))))]))
 
 ;;; Checks whether the given variables (registers/stacks/memory) were
@@ -174,7 +174,54 @@
   (check-equal? 42 (vector-ref memory 10))
   (check-unchanged? b r s return))
 
-;; TODO: +*
+(define-test "@p @p @p nop 10 0 10 a! +* nop nop" ; +* (even case)
+  (check-equal? a 5)
+  (check-equal? s 10)
+  (check-equal? t 0)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 10 0 11 a! +* nop nop" ; +* (odd case)
+  (check-equal? a 5)
+  (check-equal? s 10)
+  (check-equal? t 5)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 262143 0 1 a! +* nop nop" ; +* (T17 is kept the same)
+  (check-equal? a #x20000)
+  (check-equal? s 262143)
+  (check-equal? t 262143)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 10 0 11 a! +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* nop" ; multiply
+  (check-equal? a 110)
+  (check-equal? s 10)
+  (check-equal? t 0)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 262143 0 1 a! +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* nop" ; multiply
+  (check-equal? a 262143)
+  (check-equal? s 262143)
+  (check-equal? t 262143)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 262143 0 262143 a! +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* nop" ; multiply
+  (check-equal? a 1)
+  (check-equal? s 262143)
+  (check-equal? t 262143)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 1 0 262143 a! +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* nop" ; multiply
+  (check-equal? a 262143)
+  (check-equal? s 1)
+  (check-equal? t 0)
+  (check-unchanged? b r return))
+
+(define-test "@p @p @p nop 261612 0 7276 a! +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* nop" ; multiply
+  (check-equal? a 61328)
+  (check-equal? s 261612)
+  (check-equal? t 262129)
+  (check-unchanged? b r return))
+
 
 (define-test "@p 2* nop nop 2"          ; 2*
   (check-equal? t 4)
@@ -263,5 +310,25 @@
   (check-equal? p 2)
   (check-unchanged? b r s t return data))
 
+(define-test "dup or a! @p 123 ! nop nop nop"     ; !
+  (check-equal? a 0)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-unchanged? b r s t))
+
+(define-test "dup or a! @p 123 !+ @p ! nop 456"   ; !+
+  (check-equal? a 1)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-equal? (vector-ref memory 1) 456)
+  (check-unchanged? b r s t))
+
+(define-test "dup or a! @p 123 !+ @p ! nop 456 dup or a! nop @+ 2* @+ nop 2/ + ! nop"
+  (check-equal? a 2)
+  (check-equal? (vector-ref memory 0) 123)
+  (check-equal? (vector-ref memory 1) 456)
+  (check-equal? (vector-ref memory 2) 474)
+  (check-unchanged? b r s t))
+
 ;;; Run all the currently defined tests.
 (define (run-tests) (for ([test tests]) (test)))
+
+(run-tests)

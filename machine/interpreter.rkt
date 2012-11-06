@@ -1,16 +1,13 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt" "stack.rkt")
+(require "assembler.rkt" "stack.rkt" "state.rkt")
 
 (provide (all-defined-out))
 
-;;; A snapshot of the interpreter's state.
-(struct state (a b p i r s t data return memory) #:transparent)
-
 ;;; Returns a snapshot of the current state.
 (define (current-state)
-  (state a b p i r s t data return memory))
+  (progstate a b p i r s t data return memory))
 
 ;;; stacks:
 (define data   (stack 0 (make-vector 8)))
@@ -25,33 +22,54 @@
 (define s 0)
 (define t 0)
 
+(define memory (make-vector 64))
+
+(define instructions (make-vector 32))
+
 ;;; Reset the interpreter to the given state.
 (define (load-state! state)
-  (set! data   (copy-stack (state-data state)))
-  (set! return (copy-stack (state-return state)))
+  (set! data   (copy-stack (progstate-data state)))
+  (set! return (copy-stack (progstate-return state)))
 
-  (set! a (state-a state))
-  (set! b (state-b state))
-  (set! p (state-p state))
-  (set! i (state-i state))
-  (set! r (state-r state))
-  (set! s (state-s state))
-  (set! t (state-t state))
+  (set! a (progstate-a state))
+  (set! b (progstate-b state))
+  (set! p (progstate-p state))
+  (set! i (progstate-i state))
+  (set! r (progstate-r state))
+  (set! s (progstate-s state))
+  (set! t (progstate-t state))
 
-  (set! memory (vector-copy (state-memory state))))
+  (set! memory (vector-copy (progstate-memory state))))
 
-(define start-state (state 0 0 0 0 0 0 0
+(define (set-state! new-data new-return new-a new-b new-p new-i new-r new-s new-t new-memory)
+  (set! data   new-data)
+  (set! return new-return)
+
+  (set! a new-a)
+  (set! b new-b)
+  (set! p new-p)
+  (set! i new-i)
+  (set! r new-r)
+  (set! s new-s)
+  (set! t new-t)
+
+  (set! memory new-memory))
+
+(define start-state (progstate 0 0 0 0 0 0 0
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
                       (make-vector 64)))
+
+(define (clone-state)
+  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
 ;;; Resets the state of the interpreter:
 (define (reset!)
   (load-state! start-state))
 
 ;;; Resets only p
-(define (reset-p!)
-  (set! p 0))
+(define (reset-p! [start 0])
+  (set! p start))
 
 ;;; Print the data stack:
 (define (display-data)
@@ -65,10 +83,16 @@
   (display-stack return)
   (newline))
 
+;;; Print the memory:
+(define (display-memory n)
+  (for ([i (in-range 0 n)])
+    (display (format "~x " (vector-ref memory i))))
+  (newline))
+
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
 (define (display-state)
-  (display (format "p:~a " p))
+  (display (format "p:~a a:~a" p a))
   (display-data))
 
 ;;; Loads the given program into memory at the given start
@@ -106,9 +130,6 @@
     (set! r (pop-stack! return))
     ret-val))
 
-(define memory (make-vector 64))
-
-(define instructions (make-vector 32))
 
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)
@@ -178,7 +199,9 @@
 (define-instruction! (lambda (_) (vector-set! memory a (pop!)) (set! a (incr a))))   ; store-plus (!+)
 (define-instruction! (lambda (_) (vector-set! memory b (pop!))))                     ; store-b (!b)
 (define-instruction! (lambda (_) (vector-set! memory a (pop!))))                     ; store (!)
-(define-instruction! (lambda (_) (void)))                                            ; TODO: multiply-step
+(define-instruction! (lambda (_) (if (even? a)                                       ; multiply-step (+*)
+                                     (multiply-step-even!)
+                                     (multiply-step-odd!)))) 
 (define-instruction! (lambda (_) (set! t (18bit (arithmetic-shift t 1)))))           ; 2*
 (define-instruction! (lambda (_) (set! t (arithmetic-shift t -1))))                  ; 2/
 (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
@@ -194,3 +217,20 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
+
+;;; Treats T:A as a single 36 bit register and shifts it right by one
+;;; bit. The most signficicant bit (T17) is kept the same.
+(define (multiply-step-even!)
+  (let ([t17 (bitwise-and t #x20000)]
+        [t0  (bitwise-and t #x1)])
+    (set! t (bitwise-ior t17 (arithmetic-shift t -1)))
+    (set! a (bitwise-ior (arithmetic-shift t0 17) (arithmetic-shift a -1)))))
+
+;;; Sums T and S and concatenates the result with A, shifting
+;;; everything to the right by one bit.
+(define (multiply-step-odd!)
+  (let* ([sum (+ t s)]
+	 [sum17 (bitwise-and sum #x20000)]
+         [result (bitwise-ior (arithmetic-shift sum 17) (arithmetic-shift a -1))])
+    (set! a (bitwise-bit-field result 0 18))
+    (set! t (bitwise-ior sum17 (bitwise-bit-field result 18 36)))))
