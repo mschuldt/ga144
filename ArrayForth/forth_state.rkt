@@ -4,13 +4,6 @@
 
 (provide (all-defined-out))
 
-; TODO: Make an rvector with default always #f (right now, when expanded, will have default 0).
-
-; Hack for @p { .. }
-;(define literal-mode 0)
-;(define litspace (make-rvector 100 -1))
-;(define lit-entry 0)
-
 (define num-cores 144)
 
 ; State for a core
@@ -20,12 +13,11 @@
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
 (struct state (dstack rstack pc rega regb memory) #:mutable)
-; Codespace - somewhat like assembly instructions
-;; TODO: regb is initialized to io
 
 (define (make-dstack) (make-stack 2 8 (integer->integer-bytes -1 4 #t)))
 (define (make-rstack) (make-stack 1 8 (integer->integer-bytes -1 4 #t)))
 
+;; TODO: regb is initialized to io
 (define (make-new-core)
   (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1)))
 
@@ -110,17 +102,17 @@
   (let ((default-codespace (make-rvector 1))
 	(default-dict (make-rvector 1))
 	(default-directives (make-rvector 1)))
-    (rvector-copy! default-codespace 0 codespace 0 (next-index codespace))
-    (rvector-copy! default-dict 0 dict 0 (next-index dict))
-    (rvector-copy! default-directives 0 compiler-directives 0 (next-index compiler-directives))
+    (rvector-copy! default-codespace 0 codespace 0 (rvector-length codespace))
+    (rvector-copy! default-dict 0 dict 0 (rvector-length dict))
+    (rvector-copy! default-directives 0 compiler-directives 0 (rvector-length compiler-directives))
     (lambda ()
       (set! interpreter (make-interpreter))
       (set! compiler (compiler-struct (make-rvector 1 -1) (make-rvector 1 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
       (for [(i (in-range 0 num-cores))]
 	   (vector-set! cores i (make-new-core)))
-      (rvector-copy! codespace 0 default-codespace 0 (next-index default-codespace))
-      (rvector-copy! dict 0 default-dict 0 (next-index default-dict))
-      (rvector-copy! compiler-directives 0 default-directives 0 (next-index default-directives)))))
+      (rvector-copy! codespace 0 default-codespace 0 (rvector-length default-codespace))
+      (rvector-copy! dict 0 default-dict 0 (rvector-length default-dict))
+      (rvector-copy! compiler-directives 0 default-directives 0 (rvector-length default-directives)))))
 
 ; Stacks
 (define push-cells! push!)
@@ -153,17 +145,16 @@
 
 (define (add-entry! prim name code)
   (let [(new (entry prim name code))]
-    (rvector-set! dict (next-index dict) new)
+    (add-element! dict new)
     new))
 
 (define (add-to-codespace proc-or-addr)
   ;(printf "add-compile ~e\n" location-counter)
-  ;(unless (= location-counter (next-index codespace)) (display location-counter) (display " ") (display (next-index codespace)) (newline))
-  (rvector-set! codespace (next-index codespace) proc-or-addr))
+  ;(unless (= location-counter (rvector-length codespace)) (display location-counter) (display " ") (display (rvector-length codespace)) (newline))
+  (add-element! codespace proc-or-addr))
   
 (define (add-to-litspace proc-or-addr)
-  (rvector-set! litspace lit-entry proc-or-addr) 
-  (set! lit-entry (add1 lit-entry)))
+  (add-element! litspace proc-or-addr))
 
 (define (add-primitive-code! proc-or-addr)
   (if (= literal-mode 0)
@@ -179,7 +170,7 @@
     (set! pc (if (= val 0) -1 val))))
 
 (define (add-word! prim name)
-  (add-entry! prim name (next-index codespace)))
+  (add-entry! prim name (rvector-length codespace)))
 (void (add-word! #f "exit"))
 (add-primitive-code! exit)
 
@@ -189,7 +180,7 @@
   (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
 
 (define (add-compiler-directive! name code)
-  (rvector-set! compiler-directives (next-index compiler-directives) (entry #t name (next-index codespace)))
+  (add-element! compiler-directives (entry #t name (rvector-length codespace)))
   (add-primitive-code! code))
 
 (define (find-address d name)
@@ -198,7 +189,7 @@
       (cond [(string-ci=? name (entry-name word)) address]
             [(= address 0) #f]
             [else (loop (sub1 address))])))
-  (loop (sub1 (next-index d))))
+  (loop (sub1 (rvector-length d))))
 
 (define (find-entry d name)
   (let [(address (find-address d name))]

@@ -17,6 +17,12 @@
 	    (compile-and-run in)
 	    (current-output-port old)))))))
 
+(define (compile-file file)
+  (call-with-input-file file
+    (lambda (in)
+      (compile-to-vector in))))
+
+
 (define (remove-return str)
   (if (equal? (string-ref str (sub1 (string-length str))) #\return)
       (substring str 0 (sub1 (string-length str)))
@@ -49,3 +55,4 @@
 (run-test "basic1")
 (run-test "basic2")
 (run-test "basic3")
+(display (compile-file "examples/basic3.aforth"))

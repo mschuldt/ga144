@@ -2,7 +2,7 @@
 
 (require "arithmetic.rkt" "rvector.rkt" "forth_read.rkt" "forth_num_convert.rkt")
 (require "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt" "forth_control_words.rkt")
-(provide compile-and-run)
+(provide compile-and-run compile-to-vector)
 
 ; Interpreter and associated procedures
 
@@ -12,7 +12,7 @@
 	 (map
 	  (lambda (num)
 	    (set! state-index num)
-	    (if (or (< pc 0) (>= pc (next-index memory)))
+	    (if (or (< pc 0) (>= pc (rvector-length memory)))
 		#t
 		(let [(code (rvector-ref memory pc))]
 		  (begin
@@ -68,7 +68,8 @@
 				       (if num
 					   (if execute?
 					       (push-cells! dstack num)
-					       (add-compiled-code! num))
+					       (begin (add-compiled-code! "@p")
+						      (add-compiled-code! num)))
 					;				   (begin
 					;				     (add-compiled-code! (rvector-ref codespace (entry-code (find-entry dict "@p"))))
 					;				     (add-compiled-code! num)))
@@ -97,8 +98,23 @@
        (set! state-index i)
        (print (mcar memory)) (newline))
   (display "Also, ") (display used-cores) (newline)|#
-  (flush-output (current-output-port))
   (code-loop))
+
+(define (compile-to-vector code-port #:str? [str? #t] #:bytes? [use-bytes? #f])
+  (reset!)
+  (push-int! dstack 0)
+  ((rvector-ref codespace (entry-code (find-entry compiler-directives "node"))))
+  ((rvector-ref codespace (entry-code (find-entry compiler-directives "green"))))
+  (compile code-port)
+  (let ((result (plain-vector memory)))
+    (unless use-bytes?
+	    (vector-map! (lambda (code)
+			   (if (bytes? code)
+			       (integer-bytes->integer code #t #t)
+			       code))
+			 result))
+    result))
+
 
 (add-compiler-directive! "node"
 		     (lambda ()

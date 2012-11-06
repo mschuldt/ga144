@@ -57,7 +57,7 @@
   (add-primitive-code! (lambda () (void))))
 (add-primitive-word! #f "@p" 
                      (lambda ()
-                         (push-int! dstack (rvector-ref codespace pc))
+                         (push-cells! dstack (rvector-ref memory pc))
                          (set! pc (add1 pc))))
 
 ; store via register
