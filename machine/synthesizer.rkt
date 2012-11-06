@@ -65,7 +65,7 @@
   
   (greensyn-output (clone-state))
   (greensyn-send-recv (default-commstate))
-  ;(greensyn-commit)
+  (greensyn-commit)
   
   ;; set 3nd pair
   (load-state! my-state)
@@ -80,7 +80,7 @@
   
   (greensyn-check-sat #:file "mem.smt2" 9))
 
-(syn-mem)
+;(syn-mem)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -127,7 +127,58 @@
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
   (greensyn-verify "ver-mem.smt2" "a! 0 a! @+ 2* @+ 2/ + !"))
-(ver-mem-7)
+
+(define (syn-interp)
+  (define comm (make-vector 1))
+  (define mem (make-vector 64))
+  (vector-set! mem 0 0)
+  (vector-set! mem 1 450)
+  (vector-set! mem 2 900)
+  (vector-set! mem 3 1350)
+  (vector-set! mem 4 1800)
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 6 1)
+  (reset!)
+  (set-state! data return a b p i r s t mem)
+  (display-data)
+  (load-program "@p @p nop nop 128 63 over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop" 16)
+  (reset-p! 16)
+  
+  ;; 1
+  (greensyn-input (clone-state))
+  (step-program!*)
+  (display-data)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
+  (greensyn-commit)
+
+  ;; 2 ; dst 262143 ... 128
+  ;; (vector-set! mem 0 0)
+  ;; (vector-set! mem 1 0)
+  ;; (vector-set! mem 2 0)
+  ;; (vector-set! mem 3 0)
+  ;; (vector-set! mem 4 0)
+  (reset-p! 16)
+  (set-state! data return 203893 48523 p i 0 262015 262015 memory)
+  (greensyn-input (clone-state))
+  (step-program!*)
+  (display-data)
+  (greensyn-output (clone-state))
+  (greensyn-send-recv (default-commstate))
+  (greensyn-commit)
+  
+  (greensyn-check-sat #:file "interp-syn.smt2" 33)
+ )
+
+(syn-interp)
+
+(define (ver-interp) ; sat
+  (greensyn-reset 4 1)
+  (greensyn-spec "128 63 over 2/ 2/ 2/ 2/ 2/ 2/ a! and push @+ dup @+ - + - pop a! dup dup or +* +* +* +* +* +* push drop pop +")
+  (greensyn-verify "ver-interp.smt2" "@+ @ @b @b b! push right a! b! b! a! +* a! right drop a! push 128 63 +* a! b! + 2* over +* pop pop push a! b! drop"))
+
+;(ver-interp)
 
 ; pop a! push begin 
 ; @+ @ push a push *.17 pop a! 
@@ -136,31 +187,5 @@
 ; *.17: a! 16 push dup dup or
 ; begin +* unext - +* a -if
 ; drop - 2* ; then drop 2* - ;
-(define (syn-taps)
-  (define comm (make-vector 1))
-  
-  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (greensyn-reset 1 1 1)
-  
-  ;; input
-  (greensyn-input (clone-state))
-  
-  ;; run the interpreter
-  (reset!)
-  (load-program "- 2/ dup dup dup + a! dup")
-  (step-program!)
-  (step-program!)
-  (display-data)
-  
-  ;; output (no communication in this example)
-  (greensyn-output (clone-state))
-  (greensyn-send-recv (default-commstate))
-  
-  ;; commit to add input-output pair
-  (greensyn-commit)
-  
-  ;; generate file for Z3 (check-sat <filename> <#holes>
-  (greensyn-check-sat #:file "example.smt2" 8)
- )
-
+;(define (syn-taps)
 
