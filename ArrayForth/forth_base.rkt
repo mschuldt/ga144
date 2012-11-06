@@ -100,12 +100,12 @@
   (flush-output (current-output-port))
   (code-loop))
 
-;; TODO:  Clear node's codespace
 (add-compiler-directive! "node"
 		     (lambda ()
 		       (set! state-index (pop-int! dstack #f))
 		       (unless (member state-index used-cores)
 			       (set! used-cores (cons state-index used-cores)))
+		       (set! memory (make-rvector 100 -1))
 		       (set! location-counter 0)))
 
 (add-compiler-directive! "org"
