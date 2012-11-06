@@ -12,7 +12,7 @@
 	 (map
 	  (lambda (num)
 	    (set! state-index num)
-	    (let [(code (rvector-ref ram pc))]
+	    (let [(code (rvector-ref memory pc))]
 	      (if (equal? code -1)
 		  #t
 		  (begin
@@ -35,19 +35,14 @@
 
 (define (reset-states!)
   (for [(i (in-range 0 num-cores))]
-       (set-state-dstack! (vector-ref cores i) (make-dstack))
-       (set-state-rstack! (vector-ref cores i) (make-rstack))
-       (set-state-pc! (vector-ref cores i) 0)))
+       (vector-set! cores i (make-zeroed-core))))
 
 (define used-cores '())
 
 ;;;;;;;;;; NEW COMPILER FOR ARRAYFORTH ;;;;;;;;;;;;;;
 
-(define (add-compiled-code! flag code)
-  (if flag
-      (add-primitive-code! code)
-      (begin (rvector-set! ram location-counter code)
-	     (set! location-counter (add1 location-counter)))))
+(define (add-compiled-code! code)
+  (add-element! memory code))
 
 ;; Input:  Code in the form of an input port
 ;; If a word is an immediate word, it is executed instead.
@@ -69,23 +64,22 @@
 				       (if num
 					   (if execute?
 					       (push-cells! dstack num)
-					       (add-compiled-code! defining? (lambda () (push-cells! dstack num))))
+					       (add-compiled-code! (lambda () (push-cells! dstack num))))
 					;				   (begin
-					;				     (add-compiled-code! defining? (rvector-ref codespace (entry-code (find-entry "@p"))))
-					;				     (add-compiled-code! defining? num))
+					;				     (add-compiled-code! (rvector-ref codespace (entry-code (find-entry dict "@p"))))
+					;				     (add-compiled-code! num)))
 					   (raise (string-append to-compile " ?"))))))]
 			      [execute?
 			       ((rvector-ref codespace (entry-code entry)))]
 			      [(entry-primitive entry)
-			       (add-compiled-code! defining? (rvector-ref codespace (entry-code entry)))]
+			       (add-compiled-code! (rvector-ref codespace (entry-code entry)))]
 			      [else
 			       ;(unless defining? (print to-compile) (print (entry-code entry)) (newline))
-			       (add-compiled-code! defining? (entry-code entry))] )))
+			       (add-compiled-code! (entry-code entry))] )))
 	      (compile-loop))))
   (set! used-cores '())
   (for ([i (in-range num-cores)])
-       (set! state-index i)
-       (rvector-copy! rom 0 dict))
+       (set! state-index i))
   (let [(old (current-input-port))]
     (current-input-port code-port)
     (set! execute? #f)
@@ -95,9 +89,11 @@
 (define (compile-and-run code-port)
   (reset-states!)
   (compile code-port)
-  #|(for [(i used-cores)]
+#|  (for [(i used-cores)]
        (set! state-index i)
-       (print (mcar ram)) (newline))|#
+       (print (mcar memory)) (newline))
+  (display "Also, ") (display used-cores) (newline)|#
+  (flush-output (current-output-port))
   (code-loop))
 
 ;; TODO:  Clear node's codespace
@@ -106,8 +102,7 @@
 		       (set! state-index (pop-int! dstack #f))
 		       (unless (member state-index used-cores)
 			       (set! used-cores (cons state-index used-cores)))
-		       (set! location-counter 0)
-		       (rvector-copy! rom 0 dict)))
+		       (set! location-counter 0)))
 
 (add-compiler-directive! "org"
 		     (lambda ()
@@ -121,13 +116,11 @@
 
 (add-compiler-directive! ":"
 		     (lambda ()
-		       (add-entry! #f (forth_read_no_eof) location-counter)
-		       (set! defining? #t)))
+		       (add-entry! #f (forth_read_no_eof) location-counter)))
 
 (add-compiler-directive! ";"
 		     (lambda ()
-		       (add-compiled-code! #t exit-addr)
-		       (set! defining? #f)))
+		       (add-compiled-code! exit-addr)))
 ; Comments
 (define (comment)
   (unless (equal? (read-char) #\))

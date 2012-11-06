@@ -19,7 +19,7 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (dstack rstack pc rega regb rom ram) #:mutable)
+(struct state (dstack rstack pc rega regb memory) #:mutable)
 ; Codespace - somewhat like assembly instructions
 ;; TODO: regb is initialized to io
 
@@ -27,7 +27,7 @@
 (define (make-rstack) (make-stack 1 8 (make-bytes 4)))
 
 (define (make-zeroed-core)
-  (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1) (make-rvector 100 -1)))
+  (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1)))
 
 (struct interpreter-struct 
 	(codespace cores state-index send-recv-table)
@@ -43,8 +43,8 @@
     (interpreter-struct (make-rvector 500 -1) core-list 0 srtable)))
 (define interpreter (make-interpreter))
 
-(struct compiler-struct (compiler-directives dict location-counter execute? defining? cstack literal-mode litspace lit-entry) #:mutable)
-(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+(struct compiler-struct (compiler-directives dict location-counter execute? cstack literal-mode litspace lit-entry) #:mutable)
+(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
 (define-syntax-rule (generate-compiler-macro name getter setter)
   (define-syntax name
     (syntax-id-rules (set!)
@@ -55,7 +55,6 @@
 (generate-compiler-macro dict compiler-struct-dict set-compiler-struct-dict!)
 (generate-compiler-macro location-counter compiler-struct-location-counter set-compiler-struct-location-counter!)
 (generate-compiler-macro execute? compiler-struct-execute? set-compiler-struct-execute?!)
-(generate-compiler-macro defining? compiler-struct-defining? set-compiler-struct-defining?!)
 (generate-compiler-macro cstack compiler-struct-cstack set-compiler-struct-cstack!)
 (generate-compiler-macro literal-mode compiler-struct-literal-mode set-compiler-struct-literal-mode!)
 (generate-compiler-macro litspace compiler-struct-litspace set-compiler-struct-litspace!)
@@ -103,8 +102,7 @@
 (generate-core-macro input state-input set-state-input!)
 (generate-core-macro dstack state-dstack set-state-dstack!)
 (generate-core-macro rstack state-rstack set-state-rstack!)
-(generate-core-macro rom state-rom set-state-rom!)
-(generate-core-macro ram state-ram set-state-ram!)
+(generate-core-macro memory state-memory set-state-memory!)
 
 ; Stacks
 (define push-cells! push!)
@@ -142,8 +140,8 @@
 
 (define (add-to-codespace proc-or-addr)
   ;(printf "add-compile ~e\n" location-counter)
-  (rvector-set! codespace location-counter proc-or-addr)
-  (set! location-counter (add1 location-counter)))
+  ;(unless (= location-counter (next-index codespace)) (display location-counter) (display " ") (display (next-index codespace)) (newline))
+  (rvector-set! codespace (next-index codespace) proc-or-addr))
   
 (define (add-to-litspace proc-or-addr)
   (rvector-set! litspace lit-entry proc-or-addr) 
@@ -159,10 +157,11 @@
 
 (define (exit)
   (pop-int! rstack #f) ; Don't return to wherever exit came from
-  (set! pc (pop-int! rstack #f)))
+  (let ((val (pop-int! rstack #f)))
+    (set! pc (if (= val 0) -1 val))))
 
 (define (add-word! prim name)
-  (add-entry! prim name location-counter))
+  (add-entry! prim name (next-index codespace)))
 (void (add-word! #f "exit"))
 (add-primitive-code! exit)
 
@@ -172,7 +171,7 @@
   (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
 
 (define (add-compiler-directive! name code)
-  (rvector-set! compiler-directives (next-index compiler-directives) (entry #t name location-counter))
+  (rvector-set! compiler-directives (next-index compiler-directives) (entry #t name (next-index codespace)))
   (add-primitive-code! code))
 
 (define (find-address d name)

@@ -24,6 +24,9 @@
 
 (define next-index (compose mcdr mcdr))
 
+(define (add-element! vlist elmt)
+  (rvector-set! vlist (next-index vlist) elmt))
+
 ; This uses the same signature as vector-copy! (without the optional args), although really just taking in dest and src would have been fine.
 (define (rvector-copy! dest dest-start src)
   ;; First force the dest to be at least as long as necessary
