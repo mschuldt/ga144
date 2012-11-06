@@ -8,11 +8,10 @@
 
 ; Hack for @p { .. }
 ;(define literal-mode 0)
-;(define litspace (make-rvector 100))
+;(define litspace (make-rvector 100 -1))
 ;(define lit-entry 0)
 
 (define num-cores 144)
-;(define cores (make-vector num-cores))
 
 ; State for a core
 ; Currently, stacks and dict are infinite.
@@ -20,42 +19,47 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (dstack rstack pc rega regb input rom ram) #:mutable)
+(struct state (dstack rstack pc rega regb rom ram) #:mutable)
 ; Codespace - somewhat like assembly instructions
-;; TODO: make-core, which puts garbage in the stacks and dict
 ;; TODO: regb is initialized to io
 
 (define (make-dstack) (make-stack 2 8 (make-bytes 4)))
 (define (make-rstack) (make-stack 1 8 (make-bytes 4)))
 
 (define (make-zeroed-core)
-  (state (make-dstack) (make-rstack) 0 0 0 '() (make-rvector 100) (make-rvector 100)))
+  (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1) (make-rvector 100 -1)))
 
-(struct interpreter-struct (primitive-dict dict codespace next-address visible-address cores state-index literal-mode litspace lit-entry send-recv-table cstack) #:mutable)
+(struct interpreter-struct 
+	(codespace cores state-index send-recv-table)
+	#:mutable)
 
 (define (make-interpreter)
   (let ((core-list (make-vector num-cores))
-	(srtable (make-rvector 100)))
+	(srtable (make-rvector 100 -1)))
     (for [(i (in-range 0 num-cores))]
 	 (vector-set! core-list i (make-zeroed-core)))
     (for ([i (in-range 100)])
 	 (rvector-set! srtable i #f))
-    (interpreter-struct (make-rvector 100) (make-rvector 100) (make-rvector 500) 1 0 core-list 0 0 (make-rvector 100) 0 srtable (make-infinite-stack))))
-
+    (interpreter-struct (make-rvector 500 -1) core-list 0 srtable)))
 (define interpreter (make-interpreter))
 
-(struct compiler-struct (location-counter execute?) #:mutable)
-
-(define compiler (compiler-struct 0 #f))
-
+(struct compiler-struct (compiler-directives dict location-counter execute? defining? cstack literal-mode litspace lit-entry) #:mutable)
+(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
 (define-syntax-rule (generate-compiler-macro name getter setter)
   (define-syntax name
     (syntax-id-rules (set!)
       [(set! name x) (setter compiler x)]
       [name (getter compiler)])))
 
+(generate-compiler-macro compiler-directives compiler-struct-compiler-directives set-compiler-struct-compiler-directives!)
+(generate-compiler-macro dict compiler-struct-dict set-compiler-struct-dict!)
 (generate-compiler-macro location-counter compiler-struct-location-counter set-compiler-struct-location-counter!)
 (generate-compiler-macro execute? compiler-struct-execute? set-compiler-struct-execute?!)
+(generate-compiler-macro defining? compiler-struct-defining? set-compiler-struct-defining?!)
+(generate-compiler-macro cstack compiler-struct-cstack set-compiler-struct-cstack!)
+(generate-compiler-macro literal-mode compiler-struct-literal-mode set-compiler-struct-literal-mode!)
+(generate-compiler-macro litspace compiler-struct-litspace set-compiler-struct-litspace!)
+(generate-compiler-macro lit-entry compiler-struct-lit-entry set-compiler-struct-lit-entry!)
 
 (define-syntax-rule (generate-interpreter-macro name getter setter)
   (define-syntax name
@@ -82,16 +86,9 @@
 (gen-i-macro codespace)
 |#
 
-(generate-interpreter-macro primitive-dict interpreter-struct-primitive-dict set-interpreter-struct-primitive-dict!)
-(generate-interpreter-macro dict interpreter-struct-dict set-interpreter-struct-dict!)
 (generate-interpreter-macro codespace interpreter-struct-codespace set-interpreter-struct-codespace!)
-(generate-interpreter-macro next-address interpreter-struct-next-address set-interpreter-struct-next-address!)
-(generate-interpreter-macro visible-address interpreter-struct-visible-address set-interpreter-struct-visible-address!)
 (generate-interpreter-macro cores interpreter-struct-cores set-interpreter-struct-cores!)
 (generate-interpreter-macro state-index interpreter-struct-state-index set-interpreter-struct-state-index!)
-(generate-interpreter-macro literal-mode interpreter-struct-literal-mode set-interpreter-struct-literal-mode!)
-(generate-interpreter-macro litspace interpreter-struct-litspace set-interpreter-struct-litspace!)
-(generate-interpreter-macro lit-entry interpreter-struct-lit-entry set-interpreter-struct-lit-entry!)
 (generate-interpreter-macro send-recv-table interpreter-struct-send-recv-table set-interpreter-struct-send-recv-table!)
 
 (define-syntax-rule (generate-core-macro name getter setter)
@@ -134,30 +131,19 @@
   (display ">"))
 
 ; Entry for the dictionary.  Code must be mutable to allow procs which refer to the entry itself.
-(struct entry (primitive [precedence #:mutable] name [code #:mutable] [data #:mutable]))
+(struct entry (primitive name [code #:mutable]))
 
 ; Dictionary
-(define (add-entry! prim prec name code [data '()])
-  (let [(new (entry prim prec name code data))]
-    (rvector-set! primitive-dict next-address new)
-    (rvector-set! dict next-address new)
-    (set! next-address (add1 next-address))
+
+(define (add-entry! prim name code)
+  (let [(new (entry prim name code))]
+    (rvector-set! dict (next-index dict) new)
     new))
 
-; Create the HERE variable first, so that it can be used by other
-; procedures that manipulate the dictionary and the codespace.
-;(define here-entry
-;  (let [(addr next-address)]
-;    (rvector-set! codespace 1 (lambda () (push-int! addr))) ;; TODO(codespace)
-;    (add-entry! #t #f "here" 1 2))) ; a primitive variable named "here" whose code starts at address 1 and whose value is 2.
-
-(define here-entry (add-entry! #t #f "here" 1 1)) ; a primitive variable named "here" whose code starts at address 1, value is 1.
-; Code to deal with "here" will be inserted later.
-
 (define (add-to-codespace proc-or-addr)
-  ;(printf "add-compile ~e\n" (entry-data here-entry))
-  (proc-add! codespace (entry-data here-entry) proc-or-addr)
-  (set-entry-data! here-entry (add1 (entry-data here-entry))))
+  ;(printf "add-compile ~e\n" location-counter)
+  (rvector-set! codespace location-counter proc-or-addr)
+  (set! location-counter (add1 location-counter)))
   
 (define (add-to-litspace proc-or-addr)
   (rvector-set! litspace lit-entry proc-or-addr) 
@@ -168,51 +154,37 @@
       (add-to-codespace proc-or-addr)
       (add-to-litspace proc-or-addr)))
 
-(define exit-addr 3) ; Kind of hacky, but not too bad.
-; It's obvious that it will be at address 3.
+(define exit-addr 0) ; Kind of hacky, but not too bad.
+; It's obvious that it will be at address 0.
 
 (define (exit)
   (pop-int! rstack #f) ; Don't return to wherever exit came from
   (set! pc (pop-int! rstack #f)))
 
-(define (reveal-entry!)
-  (set! visible-address (sub1 next-address)))
-
-; Now we can add the code for HERE.
-(add-primitive-code! (lambda () (push-int! dstack next-address))) ; Adds this code to codespace at address 1 (value of HERE)
-(add-primitive-code! exit-addr) ; Adding the EXIT for HERE.
-(reveal-entry!)
-
-(define (add-and-reveal-entry! prim prec name code data)
-  (let [(entry (add-entry! prim prec name code data))]
-    (reveal-entry!)
-    entry))
-
-(define (add-word! prim prec name [data '()])
-  (add-and-reveal-entry! prim prec name (entry-data here-entry) data))
-(void (add-word! #f #f "exit"))
+(define (add-word! prim name)
+  (add-entry! prim name location-counter))
+(void (add-word! #f "exit"))
 (add-primitive-code! exit)
 
-(define (add-primitive-word! prec name code [data '()])
-  (add-word! #t prec name data)
+(define (add-primitive-word! prec name code)
+  (add-word! #t name)
   (add-primitive-code! code)
   (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
 
-(define (add-compiled-word! prec name)
-  (let [(new (entry #f prec name (entry-data here-entry)))]
-    (rvector-set! dict next-address new)
-    (set! next-address (add1 next-address))))
+(define (add-compiler-directive! name code)
+  (rvector-set! compiler-directives (next-index compiler-directives) (entry #t name location-counter))
+  (add-primitive-code! code))
 
-(define (find-address name)
+(define (find-address d name)
   (define (loop address)
-    (let [(word (rvector-ref dict address))]
+    (let [(word (rvector-ref d address))]
       (cond [(string-ci=? name (entry-name word)) address]
-            [(= address 1) #f]
+            [(= address 0) #f]
             [else (loop (sub1 address))])))
-  (loop visible-address))
+  (loop (sub1 (next-index d))))
 
-(define (find-entry name)
-  (let [(address (find-address name))]
+(define (find-entry d name)
+  (let [(address (find-address d name))]
     (if address
-        (rvector-ref dict address)
+        (rvector-ref d address)
         #f)))

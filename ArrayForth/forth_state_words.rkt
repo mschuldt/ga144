@@ -36,46 +36,10 @@
     (push-cells! dstack arg3)))
 (add-primitive-word! #f "rot" rot)
 
-
-;;;;;;;;;;;;;;;;;;;;; END - not sure if in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-#|
-(define (2swap)
-  (let* [(arg1 (pop-2cells! dstack))
-         (arg2 (pop-2cells! dstack))]
-    (push-cells! dstack arg1)
-    (push-cells! dstack arg2)))
-(add-primitive-word! #f "2swap" 2swap)
-
-(define (2dup)
-  (push-cells! dstack (get-cells dstack 0 2))) ; Get the first cell and push it back on
-(add-primitive-word! #f "2dup" 2dup)
-
-(define (2over)
-  (push-cells! dstack (get-cells dstack 2 4)))
-(add-primitive-word! #f "2over" 2over)
-
-(define (2rot)
-  (push-cells! dstack (pop-cells! dstack 4 6)))
-(add-primitive-word! #f "2rot" 2rot)
-
-(define (2drop)
-  (pop-2cells! dstack))
-(add-primitive-word! #f "2drop" 2drop)
-|#
-;;;;;;;;;;;;;;;;;;;;; END - not sure in arrayForth ;;;;;;;;;;;;;;;;;;;;;
-
 ; rstack manipulation words
 
-(define (push-proc) 
-  (lambda () (push-cells! rstack (pop-cells! dstack))))
-(define (pop-proc)
-  (lambda () (push-cells! dstack (pop-cells! rstack))))
-
-(add-primitive-word! #f "push" (push-proc))
-(add-primitive-word! #f "pop" (pop-proc))
-
-;; TODO: check if it means the same thing in arrayforth
-(add-primitive-word! #f "i" (lambda () (push-cells! dstack (get-cells rstack))))
+(add-primitive-word! #f "push" (lambda () (push-cells! rstack (pop-cells! dstack))))
+(add-primitive-word! #f "pop" (lambda () (push-cells! dstack (pop-cells! rstack))))
 
 ; register manipulation
 
@@ -89,7 +53,7 @@
 
 ; @p only works when it is immediately followed by { .. }
 (define (fetch-p-proc)
-  (push-int! dstack (entry-data here-entry))
+  (push-int! dstack location-counter)
   (add-primitive-code! (lambda () (void))))
 (add-primitive-word! #f "@p" 
                      (lambda ()

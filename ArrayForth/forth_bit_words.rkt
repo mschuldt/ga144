@@ -8,6 +8,7 @@
 (define true -1)
 (define false 0)
 
+#|
 ;; TODO: there is no ior but i couldn't find where they define ior. i think it should be somewhere
 (add-primitive-word! #f "ior"
                      (lambda ()
@@ -17,6 +18,7 @@
 
 ;; TODO: this is how they define invert : invert begin - ; ???
 (add-primitive-word! #f "invert" (lambda () (push-int! dstack (bitwise-not (pop-int! dstack #t)))))
+|#
 
 (add-primitive-word! #f "and"
                      (lambda ()
@@ -76,60 +78,8 @@
 (add-primitive-word! #f "2*" (lambda () (push-int! dstack (* (pop-int! dstack #t) 2))))
 (add-primitive-word! #f "2/" (lambda () (push-int! dstack (/ (pop-int! dstack #t) 2))))
 
-(add-primitive-word! #f "*"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (* arg1 arg2)))))
-
-(add-primitive-word! #f "/"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (quotient arg2 arg1)))))
-
-(add-primitive-word! #f "mod"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (remainder arg2 arg1)))))
-
-(add-primitive-word! #f "/mod"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (remainder arg2 arg1))
-                         (push-int! dstack (quotient arg2 arg1)))))
-
-(add-primitive-word! #f "*/"
-                     (lambda ()
-                       (let* [(n3 (pop-int! dstack #t))
-                              (n2 (pop-int! dstack #t))
-                              (n1 (pop-int! dstack #t))
-                              (intermediate (* n1 n2))]
-                         (push-int! dstack (quotient intermediate n3)))))
-
-(add-primitive-word! #f "min"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (min arg2 arg1)))))
-
-(add-primitive-word! #f "max"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (max arg2 arg1)))))
-
 ; NOP
 (add-primitive-word! #f "." (lambda () (void)))
 
 ; Word alignment
 (add-primitive-word! #f ".." (lambda () (void)))
-
-; Comments
-(define (comment)
-  (if (equal? (read-char) #\))
-      (void)
-      (comment)))
-(add-primitive-word! #t "(" comment)

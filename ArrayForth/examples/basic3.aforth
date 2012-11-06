@@ -1,0 +1,4 @@
+yellow 0 node
+green : sum 1 2 + 1 .ns send .ns 2 recv .ns ; sum
+yellow 1 node
+green : print .ns 1 recv .ns - 2 send ; print

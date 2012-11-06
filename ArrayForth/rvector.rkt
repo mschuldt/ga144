@@ -1,49 +1,32 @@
 #lang racket
 
-; The resizable vector data type.  Must be put into a list to support mutation.
+; The resizable vector data type.  Must be put into a mutable pair to support mutation.
+; The cdr holds the highest index set so far + 1.  (This is a free space where we can store something.)
 
-(provide make-rvector rvector-ref rvector-length rvector-set! rvector-copy! proc-ref proc-add! proc-replace!)
+(provide (all-defined-out))
 
-(define (make-rvector size)
-  (mcons (make-vector size) size))
+(define (make-rvector size [default 0])
+  (mcons (make-vector size default) (mcons default 0)))
 
 (define (rvector-ref vlist index)
   (vector-ref (mcar vlist) index))
 
-(define rvector-length mcdr)
+(define rvector-length (compose vector-length mcar))
 
 (define (rvector-set! vlist index value)
+  (set-mcdr! (mcdr vlist) (max (+ index 1) (mcdr (mcdr vlist))))
   (when (>= index (rvector-length vlist))
 	(let [(old-vec (mcar vlist))]
-	  (set-mcdr! vlist (max (+ index 1) (* 2 (rvector-length vlist))))
 	  (set-mcar! vlist
-		     (make-vector (mcdr vlist)))
+		     (make-vector (mcdr (mcdr vlist)) (mcar (mcdr vlist))))
 	  (vector-copy! (mcar vlist) 0 old-vec)))
   (vector-set! (mcar vlist) index value))
 
+(define next-index (compose mcdr mcdr))
+
 ; This uses the same signature as vector-copy! (without the optional args), although really just taking in dest and src would have been fine.
 (define (rvector-copy! dest dest-start src)
-  ;; First force the dest to be at least as long as the src
-  (rvector-set! dest (sub1 (rvector-length src)) 0)
+  ;; First force the dest to be at least as long as necessary
+  (rvector-set! dest (+ dest-start (sub1 (rvector-length src))) 0)
   (vector-copy! (mcar dest) dest-start (mcar src)))
 
-(define procedures (make-rvector 1000))
-(define proc-index 1) ; start from 1 because codespace is init to 0
-
-(define (proc-ref vlist index)
-  (rvector-ref procedures (rvector-ref vlist index)))
-
-(define (proc-add! vlist index value)
-  ;(printf "add-proc ~e\n" proc-index)
-  (rvector-set! vlist index proc-index)
-  (rvector-set! procedures proc-index value)
-  (set! proc-index (add1 proc-index)))
-
-(define (proc-replace! vlist index value)
-  (let [(old-index (rvector-ref vlist index))]
-    (rvector-set! procedures old-index value)))
-      
-;(define (codespace-set! vlist index value)
-;  (if (|| (>= index (rvector-length vlist)) (= (rvector-ref vlist index) 0))
-;      (codespace-add! vlist index value)
-;      (codespace-replace! vlist index value)))

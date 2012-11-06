@@ -15,7 +15,7 @@
    (lambda () (if (= (get-int dstack #f) 0)
                   (void)
                   (set! pc (add1 pc)))))
-  (push-int! dstack (entry-data here-entry))
+  (push-int! dstack location-counter)
   (add-primitive-code! dummy-proc))
 (add-primitive-word! #t "if" if-proc)
 
@@ -28,27 +28,16 @@
    (lambda () (if (>= (get-int dstack #t) 0)
                   (void)
                   (set! pc (add1 pc)))))
-  (push-int! dstack (entry-data here-entry))
+  (push-int! dstack location-counter)
   (add-primitive-code! dummy-proc))
 (add-primitive-word! #t "-if" nif-proc)
-
-; ELSE
-; 1. Put HERE as the second item on the stack.  Fill it with a dummy procedure.
-; This will be replaced with an unconditional branch by THEN.
-; 2. Replace the dummy procedure put by IF with a conditional branch to HERE.
-(define (else-proc)
-  (push-int! dstack (entry-data here-entry) 1)
-  (add-primitive-code! dummy-proc)
-  (let [(here-addr (entry-data here-entry))]
-    (proc-replace! codespace (pop-int! dstack #f) (lambda () (set! pc here-addr)))))
-(add-primitive-word! #t "else" else-proc)
 
 ; THEN
 ; Put an unconditional branch to HERE.
 ; This will patch up the dummy procedure left by IF or ELSE.
 (define (then-proc)
-  (let [(here-addr (entry-data here-entry))]
-    (proc-replace! codespace (pop-int! dstack #f) (lambda () (set! pc here-addr)))))
+  (let [(here-addr location-counter)]
+    (rvector-set! codespace (pop-int! dstack #f) (lambda () (set! pc here-addr)))))
 (add-primitive-word! #t "then" then-proc)
 
 
@@ -74,7 +63,7 @@
 #|
 (define (for-proc)
   (add-primitive-code!(push-proc))
-  (push-int! dstack (entry-data here-entry)))
+  (push-int! dstack location-counter))
 (add-primitive-word! #t "for" for-proc)
 |#
   
@@ -102,7 +91,7 @@
 
 ; BEGIN
 ; Put HERE on the stack, to be used by UNTIL or REPEAT.
-(add-primitive-word! #t "begin" (lambda () (push-int! dstack (entry-data here-entry))))
+(add-primitive-word! #t "begin" (lambda () (push-int! dstack location-counter)))
 
 ; UNTIL
 ; Jumps back to the address left by BEGIN if it sees a false flag.
