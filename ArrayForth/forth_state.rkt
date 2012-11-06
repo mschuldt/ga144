@@ -23,10 +23,10 @@
 ; Codespace - somewhat like assembly instructions
 ;; TODO: regb is initialized to io
 
-(define (make-dstack) (make-stack 2 8 (make-bytes 4)))
-(define (make-rstack) (make-stack 1 8 (make-bytes 4)))
+(define (make-dstack) (make-stack 2 8 (integer->integer-bytes -1 4 #t)))
+(define (make-rstack) (make-stack 1 8 (integer->integer-bytes -1 4 #t)))
 
-(define (make-zeroed-core)
+(define (make-new-core)
   (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1)))
 
 (struct interpreter-struct 
@@ -37,14 +37,13 @@
   (let ((core-list (make-vector num-cores))
 	(srtable (make-rvector 100 -1)))
     (for [(i (in-range 0 num-cores))]
-	 (vector-set! core-list i (make-zeroed-core)))
+	 (vector-set! core-list i (make-new-core)))
     (for ([i (in-range 100)])
 	 (rvector-set! srtable i #f))
     (interpreter-struct (make-rvector 500 -1) core-list 0 srtable)))
-(define interpreter (make-interpreter))
 
 (struct compiler-struct (compiler-directives dict location-counter execute? cstack literal-mode litspace lit-entry) #:mutable)
-(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+
 (define-syntax-rule (generate-compiler-macro name getter setter)
   (define-syntax name
     (syntax-id-rules (set!)
@@ -103,6 +102,25 @@
 (generate-core-macro dstack state-dstack set-state-dstack!)
 (generate-core-macro rstack state-rstack set-state-rstack!)
 (generate-core-macro memory state-memory set-state-memory!)
+
+(define interpreter (make-interpreter))
+(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+
+(define (set-as-defaults!)
+  (let ((default-codespace (make-rvector 1))
+	(default-dict (make-rvector 1))
+	(default-directives (make-rvector 1)))
+    (rvector-copy! default-codespace 0 codespace 0 (next-index codespace))
+    (rvector-copy! default-dict 0 dict 0 (next-index dict))
+    (rvector-copy! default-directives 0 compiler-directives 0 (next-index compiler-directives))
+    (lambda ()
+      (set! interpreter (make-interpreter))
+      (set! compiler (compiler-struct (make-rvector 1 -1) (make-rvector 1 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+      (for [(i (in-range 0 num-cores))]
+	   (vector-set! cores i (make-new-core)))
+      (rvector-copy! codespace 0 default-codespace 0 (next-index default-codespace))
+      (rvector-copy! dict 0 default-dict 0 (next-index default-dict))
+      (rvector-copy! compiler-directives 0 default-directives 0 (next-index default-directives)))))
 
 ; Stacks
 (define push-cells! push!)

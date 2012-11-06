@@ -12,9 +12,9 @@
 	 (map
 	  (lambda (num)
 	    (set! state-index num)
-	    (let [(code (rvector-ref memory pc))]
-	      (if (equal? code -1)
-		  #t
+	    (if (or (< pc 0) (>= pc (next-index memory)))
+		#t
+		(let [(code (rvector-ref memory pc))]
 		  (begin
 		    (set! pc (add1 pc))
 		    (cond ((number? code) (push-int! dstack code))
@@ -40,10 +40,6 @@
 		     (lambda ()
 		       (push-int! rstack pc)
 		       (set! pc (entry-code (find-entry dict (rvector-ref memory pc))))))
-
-(define (reset-states!)
-  (for [(i (in-range 0 num-cores))]
-       (vector-set! cores i (make-zeroed-core))))
 
 (define used-cores '())
 
@@ -95,12 +91,12 @@
     (current-input-port old)))
 
 (define (compile-and-run code-port)
-  (reset-states!)
+  (reset!)
   (compile code-port)
-  (for [(i used-cores)]
+#|  (for [(i used-cores)]
        (set! state-index i)
        (print (mcar memory)) (newline))
-  (display "Also, ") (display used-cores) (newline)
+  (display "Also, ") (display used-cores) (newline)|#
   (flush-output (current-output-port))
   (code-loop))
 
@@ -161,3 +157,4 @@
                        (let [(num (pop-int! dstack #t))]
                          (add-primitive-code! num))))
 
+(define reset! (set-as-defaults!))

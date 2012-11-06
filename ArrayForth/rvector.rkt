@@ -27,9 +27,9 @@
 (define (add-element! vlist elmt)
   (rvector-set! vlist (next-index vlist) elmt))
 
-; This uses the same signature as vector-copy! (without the optional args), although really just taking in dest and src would have been fine.
-(define (rvector-copy! dest dest-start src)
+; This uses the same signature as vector-copy!
+(define (rvector-copy! dest dest-start src [src-start 0] [src-end (rvector-length src)])
   ;; First force the dest to be at least as long as necessary
-  (rvector-set! dest (+ dest-start (sub1 (rvector-length src))) 0)
-  (vector-copy! (mcar dest) dest-start (mcar src)))
+  (rvector-set! dest (+ dest-start (sub1 (- src-end src-start))) 0)
+  (vector-copy! (mcar dest) dest-start (mcar src) src-start src-end))
 
