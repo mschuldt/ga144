@@ -17,9 +17,10 @@
 		  #t
 		  (begin
 		    (set! pc (add1 pc))
-		    (if (number? code)
-			(execute-code code)
-			(code))
+		    (cond ((number? code) (push-int! dstack code))
+			  ((bytes? code) (push-cells! dstack code))
+			  ((string? code) ((rvector-ref codespace (entry-code (find-entry dict code)))))
+			  (else (code)))
 		    #f))))
 	  used-cores))]
     (unless (for/and ([bool ended-list]) bool)
@@ -31,7 +32,14 @@
 
 (define execute (compose execute-code entry-code))
 
+(add-primitive-word! #f ";" (lambda () (set! pc (pop-int! rstack pc))))
+
 (add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! dstack #f)))))
+
+(add-primitive-word! #f "call"
+		     (lambda ()
+		       (push-int! rstack pc)
+		       (set! pc (entry-code (find-entry dict (rvector-ref memory pc))))))
 
 (define (reset-states!)
   (for [(i (in-range 0 num-cores))]
@@ -64,7 +72,7 @@
 				       (if num
 					   (if execute?
 					       (push-cells! dstack num)
-					       (add-compiled-code! (lambda () (push-cells! dstack num))))
+					       (add-compiled-code! num))
 					;				   (begin
 					;				     (add-compiled-code! (rvector-ref codespace (entry-code (find-entry dict "@p"))))
 					;				     (add-compiled-code! num)))
@@ -72,10 +80,10 @@
 			      [execute?
 			       ((rvector-ref codespace (entry-code entry)))]
 			      [(entry-primitive entry)
-			       (add-compiled-code! (rvector-ref codespace (entry-code entry)))]
+			       (add-compiled-code! to-compile)]
 			      [else
-			       ;(unless defining? (print to-compile) (print (entry-code entry)) (newline))
-			       (add-compiled-code! (entry-code entry))] )))
+			       (add-compiled-code! "call")
+			       (add-compiled-code! to-compile)] )))
 	      (compile-loop))))
   (set! used-cores '())
   (for ([i (in-range num-cores)])
@@ -89,10 +97,10 @@
 (define (compile-and-run code-port)
   (reset-states!)
   (compile code-port)
-#|  (for [(i used-cores)]
+  (for [(i used-cores)]
        (set! state-index i)
        (print (mcar memory)) (newline))
-  (display "Also, ") (display used-cores) (newline)|#
+  (display "Also, ") (display used-cores) (newline)
   (flush-output (current-output-port))
   (code-loop))
 
@@ -118,9 +126,6 @@
 		     (lambda ()
 		       (add-entry! #f (forth_read_no_eof) location-counter)))
 
-(add-compiler-directive! ";"
-		     (lambda ()
-		       (add-compiled-code! exit-addr)))
 ; Comments
 (define (comment)
   (unless (equal? (read-char) #\))
