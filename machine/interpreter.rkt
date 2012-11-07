@@ -5,10 +5,6 @@
 
 (provide (all-defined-out))
 
-;;; Returns a snapshot of the current state.
-(define (current-state)
-  (progstate a b p i r s t data return memory))
-
 ;;; stacks:
 (define data   (stack 0 (make-vector 8)))
 (define return (stack 0 (make-vector 8)))
@@ -28,9 +24,6 @@
 
 ;;; Reset the interpreter to the given state.
 (define (load-state! state)
-  (set! data   (copy-stack (progstate-data state)))
-  (set! return (copy-stack (progstate-return state)))
-
   (set! a (progstate-a state))
   (set! b (progstate-b state))
   (set! p (progstate-p state))
@@ -39,28 +32,17 @@
   (set! s (progstate-s state))
   (set! t (progstate-t state))
 
+  (set! data   (copy-stack (progstate-data state)))
+  (set! return (copy-stack (progstate-return state)))
+
   (set! memory (vector-copy (progstate-memory state))))
 
-(define (set-state! new-data new-return new-a new-b new-p new-i new-r new-s new-t new-memory)
-  (set! data   new-data)
-  (set! return new-return)
+;;; Sets the current state to the given values for the registers,
+;;; stacks and memory.
+(define set-state! (lambda args (load-state! (apply progstate args))))
 
-  (set! a new-a)
-  (set! b new-b)
-  (set! p new-p)
-  (set! i new-i)
-  (set! r new-r)
-  (set! s new-s)
-  (set! t new-t)
-
-  (set! memory new-memory))
-
-(define start-state (progstate 0 0 0 0 0 0 0
-                      (stack 0 (make-vector 8))
-                      (stack 0 (make-vector 8))
-                      (make-vector 64)))
-
-(define (clone-state)
+;;; Returns a snapshot of the current state.
+(define (current-state)
   (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
 ;;; Resets the state of the interpreter:
@@ -129,7 +111,6 @@
   (let ([ret-val r])
     (set! r (pop-stack! return))
     ret-val))
-
 
 ;;; Executes a single integer, treating it as an 18-bit word.
 (define (execute-word!)

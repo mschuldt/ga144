@@ -11,7 +11,7 @@
   (greensyn-reset 1 1)
   
   ;; input
-  (greensyn-input (clone-state))
+  (greensyn-input (current-state))
   
   ;; run the interpreter
   (reset!)
@@ -21,7 +21,7 @@
   (display-data)
   
   ;; output (no communication in this example)
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
   
   ;; commit to add input-output pair
@@ -45,42 +45,42 @@
   (reset-p! 20)
   
   ;; set 1st pair
-  (define my-state (clone-state))
+  (define my-state (current-state))
   (greensyn-input my-state)
   
   (step-program!*)
 
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   (greensyn-send-recv (default-commstate))
   (greensyn-commit)
   
   ;; set 2nd pair
   (load-state! my-state)
-  (set-state! data return 1 277 p i r 2048 t memory)
-  (greensyn-input (clone-state))
+  (set-state! 1 277 p i r 2048 t data return memory)
+  (greensyn-input (current-state))
   (display-return)
   (step-program!*)
   (display-return)
   
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
-  (greensyn-commit)
+  ;(greensyn-commit)
   
   ;; set 3nd pair
   (load-state! my-state)
-  (set-state! data return 0 0 p i r 0 7 memory)
-  (greensyn-input (clone-state))
+  (set-state! 0 0 p i r 0 7 data return memory)
+  (greensyn-input (current-state))
   
   (step-program!*)
   
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
   ;(greensyn-commit)
   
   (greensyn-check-sat #:file "mem.smt2" 9))
 
-;(syn-mem)
+(syn-mem)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -140,16 +140,16 @@
   ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
   (greensyn-reset 6 1)
   (reset!)
-  (set-state! data return a b p i r s t mem)
+  (set-state! a b p i r s t data return mem)
   (display-data)
   (load-program "@p @p nop nop 128 63 over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop" 16)
   (reset-p! 16)
   
   ;; 1
-  (greensyn-input (clone-state))
+  (greensyn-input (current-state))
   (step-program!*)
   (display-data)
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
   (greensyn-commit)
 
@@ -160,11 +160,11 @@
   ;; (vector-set! mem 3 0)
   ;; (vector-set! mem 4 0)
   (reset-p! 16)
-  (set-state! data return 203893 48523 p i 0 262015 262015 memory)
-  (greensyn-input (clone-state))
+  (set-state! 203893 48523 p i 0 262015 262015 data return memory)
+  (greensyn-input (current-state))
   (step-program!*)
   (display-data)
-  (greensyn-output (clone-state))
+  (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
   (greensyn-commit)
   
