@@ -9,13 +9,13 @@
   
   ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
   (greensyn-reset 1 1)
+  (reset!)
+  (load-program "- 2/ dup dup dup + a! dup")
   
   ;; input
   (greensyn-input (current-state))
   
   ;; run the interpreter
-  (reset!)
-  (load-program "- 2/ dup dup dup + a! dup")
   (step-program!)
   (step-program!)
   (display-data)
@@ -30,6 +30,8 @@
   ;; generate file for Z3 (check-sat <filename> <#holes>
   (greensyn-check-sat #:file "example.smt2" 8)
  )
+
+(syn-example)
 
 (define (syn-mem)
   (define comm (make-vector 1))
