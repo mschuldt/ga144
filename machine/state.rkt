@@ -13,10 +13,12 @@
                       (stack 0 (make-vector 8))
                       (make-vector 64)))
 
-;; ;;; Generates a state with a randomized data stack and everything else
-;; ;;; empty.
-;; (define (random-state)
-;;   ())
+;;; Generates a state with a randomized data stack and everything else
+;;; empty.
+(define (random-state)
+  (struct-copy progstate start-state
+               [data   (random-stack)]
+               [return (make-vector 8)]))
 
 (define ENTRIES 4)
 (define (default-commstate

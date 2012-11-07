@@ -26,3 +26,7 @@
   (let ([ret-val (vector-ref (stack-body stack) (stack-sp stack))])
     (set-stack-sp! stack (modulo (sub1 (stack-sp stack)) 8))
     ret-val))
+
+;;; Returns a stack with randomized entries.
+(define (random-stack)
+  (stack 0 (vector-map! (lambda (_) (random #x3ffff)) (make-vector 8))))
