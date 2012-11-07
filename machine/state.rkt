@@ -18,7 +18,7 @@
 (define (random-state)
   (struct-copy progstate start-state
                [data   (random-stack)]
-               [return (make-vector 8)]))
+               [return (stack 0 (make-vector 8))]))
 
 (define ENTRIES 4)
 (define (default-commstate

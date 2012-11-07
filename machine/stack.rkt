@@ -27,6 +27,6 @@
     (set-stack-sp! stack (modulo (sub1 (stack-sp stack)) 8))
     ret-val))
 
-;;; Returns a stack with randomized entries.
-(define (random-stack)
-  (stack 0 (vector-map! (lambda (_) (random #x3ffff)) (make-vector 8))))
+;;; Returns a stack with randomized entries, each less than max-size.
+(define (random-stack [max-size #x3ffff])
+  (stack 0 (vector-map! (lambda (_) (random max-size)) (make-vector 8))))
