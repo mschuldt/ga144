@@ -46,9 +46,12 @@
 ;;; If the z3 output is sat, reads in the model. If it isn't, returns
 ;;; #f.
 (define (read-model in)
-  (define res
-    (filter (lambda (x) (or (equal? x 'sat) (equal? (car x) 'model))) (read-sexps in)))
-  (and (member 'sat res) (extract-model (cadr res))))
+  (define input (read-sexps in))
+  (and (not (member 'unsat input))
+       (let ([res (filter
+                   (lambda (x)
+                     (or (equal? x 'sat) (equal? (car x) 'model))) input)])
+         (and (member 'sat res) (extract-model (cadr res))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program)
@@ -70,9 +73,9 @@
 ;;; and their numerical values.
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
+  (when (null? previous-pairs) (set! previous-pairs `(,(random-pair program))))
   (define temp-file (temp-file-name))
   (greensyn-reset mem comm)
-  (when (null? previous-pairs) (set! previous-pairs `(,(random-pair program))))
   (map greensyn-add-pair previous-pairs)
   (greensyn-commit)
   (greensyn-check-sat #:file temp-file slots)
@@ -82,9 +85,9 @@
       (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate #:mem [mem 6] #:slots [slots 30])
+(define (validate spec candidate #:mem [mem 6] #:comm [comm 1])
   (define temp-file (temp-file-name))
-  (greensyn-reset mem slots)
+  (greensyn-reset mem comm)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
@@ -97,7 +100,7 @@
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
                                           #:mem mem #:comm comm #:slots slots)]
-           [new-pair (validate program candidate #:mem mem #:slots slots)])
+           [new-pair (validate program candidate #:mem mem #:comm comm)])
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
