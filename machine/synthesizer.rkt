@@ -80,7 +80,7 @@
   (greensyn-send-recv (default-commstate))
   ;(greensyn-commit)
   
-  (greensyn-check-sat #:file "mem.smt2" 9))
+  (greensyn-check-sat #:file "mem.smt2" 9 #:time-limit47))
 
 (syn-mem)
 

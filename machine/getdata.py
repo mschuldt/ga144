@@ -2,7 +2,9 @@
 
 import sys
 
-choices = ['2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', '@+', '@', '@b', '!+', '!', '!b', 'a!', 'b!', 'a', '+*', 'pop', 'push', 'over', 'up', 'down', 'left', 'right', 'nop', '0', '1', '63', '128']
+#choices = ['2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', '@+', '@', '@b', '!+', '!', '!b', 'a!', 'b!', 'a', '+*', 'pop', 'push', 'over', 'up', 'down', 'left', 'right', 'nop', '0', '1', '63', '128']
+
+choices = ['0', '1', '63', '128', 'up', 'down', 'left', 'right', '@+', '@b', '@', '!+', '!b', '!', '+*', '2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', 'pop', 'over', 'a', 'nop', 'push', 'b!', 'a!']
 
 def main():
   filename = sys.argv[1]

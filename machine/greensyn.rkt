@@ -23,6 +23,8 @@
 (define COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
 (define COMM_BIT 3)
 
+(define TIME_SIZE 18)
+
 (define U-ID 0)
 (define D-ID 1)
 (define L-ID 2)
@@ -43,9 +45,15 @@
 (define RIGHT #x1d5)
 (define IO #x15d)
 
-(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
+;full
+;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
+;small
 ;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b a! b! a +* pop push over nop 1 63 128))
+(define choice-id '#(0 1 63 128 up down left right @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define memory-op '#(0 1 63 128 up down left right @+ @b @ !+ !b !))
+
 (define CHOICES (vector-length choice-id))
+(define N_OF_SLOW (vector-length memory-op))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
 
 ;;; counterexample
@@ -291,7 +299,7 @@
   (define check_recvp_d (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" D-ID step i D-ID prev i))
   (define check_recvp_l (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" L-ID step i L-ID prev i))
   (define check_recvp_r (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" R-ID step i R-ID prev i))
-  
+
   (cond 
     ; 2*
     [(= choice (vector-member `2* choice-id)) 
@@ -533,6 +541,18 @@
 		 (write-port `b R-ID RIGHT))]))
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_BIT check_assump))
 
+(define (generate-time-constraint step)
+  (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) (_ bv10 ~a) (_ bv3 ~a)))))" step (sub1 step) step N_OF_SLOW HOLE_BIT TIME_SIZE TIME_SIZE)))
+
+(define (generate-time-constraints n time-limit)
+  (for* ([step (in-range 0 (add1 n))])
+    (pretty-display `(declare-const ,(var-no-v `time step) ,(makeBV TIME_SIZE))))
+  (pretty-display `(assert (= ,(var-no-v `time 0) (_ bv0 ,TIME_SIZE))))
+  (for* ([step (in-range 1 (add1 n))])
+	(generate-time-constraint step))
+  (pretty-display (format "(assert (bvule time_~a (_ bv~a ~a)))" n time-limit TIME_SIZE)))
+  
+
 (define (generate-formula step n version name syn)
   (define s "(assert ")
   (for* ([i (in-range 1 CHOICES)])
@@ -672,7 +692,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (synthesize-prog n has-prog has-out)
+(define (synthesize-prog n has-prog has-out [time-limit 0])
   (declare-bitvector)
   (declare-functions)
   (newline)
@@ -681,9 +701,14 @@
       (declare-holes (add1 n)))
 
   (declare-vars (add1 n) 0 num-inout)
+  (newline)
   (generate-formulas (add1 n) 0 num-inout `h #t)
   (newline)
   (assert-input-output n has-out)
+  (newline)
+  (if (> time-limit 0)
+      (generate-time-constraints n time-limit)
+      (void))
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
@@ -805,9 +830,9 @@
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size)
+(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size #:time-limit [time-limit 0])
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (synthesize-prog prog-size #f #t)))
+    (synthesize-prog prog-size #f #t time-limit)))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
 ;;; Usage:
