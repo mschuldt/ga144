@@ -225,13 +225,14 @@
     (grow))
 
   (define (multiply-step)
-    (define t-even (format "(concat ((_ extract 17 17) t_~e_v~e) ((_ extract 17 1) t_~e_v~e))" prev i prev i)) ; bvashr
-    (define a-even (format "(concat ((_ extract 0 0) t_~e_v~e) ((_ extract 17 1) a_~e_v~e))" prev i prev i))
+    (define ssize (sub1 SIZE))
+    (define t-even (format "(concat ((_ extract ~a ~a) t_~e_v~e) ((_ extract ~a 1) t_~e_v~e))" ssize ssize prev i ssize prev i)) ; bvashr
+    (define a-even (format "(concat ((_ extract 0 0) t_~e_v~e) ((_ extract ~a 1) a_~e_v~e))" prev i ssize prev i))
 
     (define sum (format "(bvadd (concat #b0 t_~e_v~e) (concat #b0 s_~e_v~e))" prev i prev i))
-    (define sum17 (format "(concat ((_ extract 17 17) ~a) (_ bv0 17))" sum))
-    (define t-odd (format "(bvor ((_ extract 18 1) ~a) ~a)" sum sum17))
-    (define a-odd (format "(concat ((_ extract 0 0) ~a) ((_ extract 17 1) a_~e_v~e))" sum prev i))
+    (define sum17 (format "(concat ((_ extract ~a ~a) ~a) (_ bv0 ~a))" ssize ssize sum ssize))
+    (define t-odd (format "(bvor ((_ extract ~a 1) ~a) ~a)" SIZE sum sum17))
+    (define a-odd (format "(concat ((_ extract 0 0) ~a) ((_ extract ~a 1) a_~e_v~e))" sum ssize prev i))
     
     (set! check_t (format "(= t_~e_v~e (ite (= ((_ extract 0 0) a_~e_v~e) #b0) ~a ~a))" 
 			  step i prev i t-even t-odd))
