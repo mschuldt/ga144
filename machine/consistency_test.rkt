@@ -2,6 +2,32 @@
 
 (require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt")
 
+;;; literal
+(define (test00)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1)
+  (reset!)
+  (load-program "@p @p + nop 1 2")
+  (greensyn-spec "1 2 +")
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!*)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  (greensyn-gen-formula"test00.smt2" #t)
+ )
+
 ;;; +* (even case)
 (define (test01)
   (define comm (make-vector 1))
@@ -121,7 +147,8 @@
   (greensyn-gen-formula "test04.smt2" #t)
  )
 
+(test00)
 ;; (test01)
 ;; (test02)
 ;; (test03)
-(test04)
+;; (test04)

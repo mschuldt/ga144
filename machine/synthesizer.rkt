@@ -31,7 +31,37 @@
   (greensyn-check-sat #:file "example.smt2" 8)
  )
 
-(syn-example)
+;(syn-example)
+
+
+(define (syn-literal)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1)
+  (reset!)
+  (load-program "@p @p + nop 1 2")
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!)
+  (step-program!)
+  (display-data)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  ;; generate file for Z3 (check-sat <filename> <#holes>
+  (greensyn-check-sat #:file "literal.smt2" 3)
+ )
+
+(syn-literal)
 
 (define (syn-mem)
   (define comm (make-vector 1))
@@ -55,7 +85,7 @@
   (greensyn-output (current-state))
   ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   (greensyn-send-recv (default-commstate))
-  (greensyn-commit)
+  ;(greensyn-commit)
   
   ;; set 2nd pair
   (load-state! my-state)
@@ -80,9 +110,9 @@
   (greensyn-send-recv (default-commstate))
   ;(greensyn-commit)
   
-  (greensyn-check-sat #:file "mem.smt2" 9 #:time-limit47))
+  (greensyn-check-sat #:file "mem.smt2" 9 #:time-limit 47))
 
-(syn-mem)
+;(syn-mem)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -173,7 +203,7 @@
   (greensyn-check-sat #:file "interp-syn.smt2" 33)
  )
 
-(syn-interp)
+;(syn-interp)
 
 (define (ver-interp) ; sat
   (greensyn-reset 4 1)
