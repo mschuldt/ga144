@@ -59,8 +59,7 @@
 ;;; counterexample
 (struct inout (input output comm))
 
-(define inout-list (make-vector 10))
-(define num-inout 0)
+(define inout-list '())
 
 (define spec (make-vector 100))
 (define spec-count 0) ; number of instructions in spec
@@ -615,18 +614,16 @@
 
 (define (assert-pair input output comm n i has-out)
   (assert-state-all input 0 i)
-  (if has-out
+  (when has-out
       (assert-state output n i)
-      (void))
-  (if has-out
-      (assert-comm comm n i)
-      (void))
-  )
+      (assert-comm comm n i)))
 
 (define (assert-input-output n has-out)
-  (for* ([i (in-range 0 num-inout)])
-    (define p (vector-ref inout-list i))
-    (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i has-out)))
+  (foldl (lambda (p i)
+           (assert-pair (inout-input p) (inout-output p) (inout-comm p) n i has-out)
+           (add1 i))
+         0
+         inout-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Verifier helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -700,9 +697,9 @@
       (encode-program spec (add1 n) `h)
       (declare-holes (add1 n)))
 
-  (declare-vars (add1 n) 0 num-inout)
+  (declare-vars (add1 n) 0 (length inout-list))
   (newline)
-  (generate-formulas (add1 n) 0 num-inout `h #t)
+  (generate-formulas (add1 n) 0 (length inout-list) `h #t)
   (newline)
   (assert-input-output n has-out)
   (newline)
@@ -799,7 +796,7 @@
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
   (set! COMM_BIT (inexact->exact (floor (+ (/ (log COMM_ENTRIES) (log 2)) 1))))
 
-  (set! num-inout 0))
+  (set! inout-list '()))
 
 ;;; Set input for counterexmaple.
 (define (greensyn-input state)
@@ -818,8 +815,10 @@
 ;;; If input, output, send/recv are set but not commit, 
 ;;; the counterexample won't be included in the generated formula
 (define (greensyn-commit)
-  (vector-set! inout-list num-inout (inout (convert-progstate current-input) (convert-progstate current-output) (convert-commstate current-comm)))
-  (set! num-inout (add1 num-inout)))
+  (set! inout-list (cons (inout (convert-progstate current-input)
+                                (convert-progstate current-output)
+                                (convert-commstate current-comm))
+                         inout-list)))
 
 ;;; Set spec for verification
 (define (greensyn-spec string)
