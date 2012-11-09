@@ -1,8 +1,11 @@
 #lang racket
 
-(require racket/system "state.rkt" "interpreter.rkt" "greensyn.rkt")
+(require racket/system "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
 (provide cegis)
+
+(define debug #t)
+(define debug-n 0)
 
 ;;; Generates a random temporary file name with an .smt2 extension.
 (define (temp-file-name)
@@ -16,24 +19,35 @@
 (define (extract-model model)
   (define (fun->pair fun) ; given a (define-fun ....), gives you a pair.
     `(,(list-ref fun 1) ,(list-ref fun 4)))
-  (sort (map fun->pair (cdr model)) string<? #:key (compose symbol->string car)))
+  (sort (map fun->pair (cdr model)) string<? #:key (compose (curry format "~a") car)))
 
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
-  (define instrs '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop))
-  (define (is-hole var) (equal? (string-ref (symbol->string var) 0) #\h))
-  (string-join (map (lambda (x) (symbol->string (vector-ref instrs (cadr x))))
+  (define instrs '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
+  (define (is-hole var) (equal? (string-ref (format "~a" var) 0) #\h))
+  (string-join (map (lambda (x) (format "~a" (vector-ref instrs (cadr x))))
                     (filter (compose is-hole car) model)) " "))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
-(define (model->pair model)
+(define (model->pair model #:mem [mem 6])
   (define max (car (regexp-match "[0-9]+" (symbol->string (car (last model))))))
   (define (extract-state n)
-    (define (var v) (string->symbol (format "~a_~a_v1" v n)))
-    (progstate (var 'a) (var 'b) (var 'p) (var 'i) (var 'r) (var 's) (var 't)
-                (var 'data) (var 'return) (var 'memory)))
+    (define (var v) (cadr (assoc (string->symbol (format "~a_~a_v1" v n)) model)))
+    (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
+               (stack (var 'sp) (bytes->vector (var 'dst) 8))
+               (stack (var 'rp) (bytes->vector (var 'rst) 8))
+               (bytes->vector (var 'mem) mem)))
   `(,(extract-state 0) ,(extract-state max)))
+
+;;; Parses the given bitvector into a vector of 18bit numbers.
+(define (bytes->vector input size)
+  (define (go bytes curr-size)
+    (if (= curr-size 0)
+        '()
+        (cons (bitwise-bit-field bytes 0 18)
+              (go (arithmetic-shift bytes -18) (sub1 curr-size)))))
+  (list->vector (go input size)))
 
 ;;; read all the sexps from the given string or port.
 (define (read-sexps in)
@@ -58,6 +72,7 @@
   (define in (random-state))
   (load-state! in)
   (load-program program)
+  (set! in (current-state))
   (step-program!*)
   `(,in ,(current-state)))
 
@@ -65,7 +80,8 @@
 (define (greensyn-add-pair pair [comm #f])
   (greensyn-input (car pair))
   (greensyn-output (cadr pair))
-  (greensyn-send-recv (or comm (default-commstate))))
+  (greensyn-send-recv (or comm (default-commstate)))
+  (greensyn-commit))
 
 ;;; Generate a candidate using the specified input/output pairs. If no
 ;;; pairs are specified, seed the process with a randomly generated
@@ -73,14 +89,26 @@
 ;;; and their numerical values.
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
-  (when (null? previous-pairs) (set! previous-pairs `(,(random-pair program))))
+  (when (null? previous-pairs) (display "Generating random seed pair.") (newline)
+                               (set! previous-pairs (list (random-pair program))))
   (define temp-file (temp-file-name))
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
-  (greensyn-commit)
+
   (greensyn-check-sat #:file temp-file slots)
-  (define result (read-model (z3 temp-file)))
+
+  (when debug
+    (copy-file temp-file (format "debug-generate-model~a" debug-n)))
+
+  (define z3-res (z3 temp-file))
+  (define result (read-model z3-res))
   (delete-file temp-file)
+
+  (when debug
+    (define out (open-output-file (format "debug-generate-~a" debug-n)))
+    (display z3-res out)
+    (close-output-port out))
+
   (or (and result (model->program result))
       (error "Program cannot be written: synthesis not sat!")))
 
@@ -91,8 +119,15 @@
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
+  
+  (when debug
+    (set! debug-n (add1 debug-n))
+    (define out (open-output-file (format "debug-verifier-~a" debug-n)))
+    (map (lambda (p) (display p out) (newline out)) result)
+    (close-output-port out))
+  
   (delete-file temp-file)
-  (and result (model->pair result)))
+  (and result (model->pair result #:mem mem)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.

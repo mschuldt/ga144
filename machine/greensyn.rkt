@@ -844,8 +844,10 @@
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
 (define (greensyn-check-sat #:file [file "prog.smt2"] prog-size #:time-limit [time-limit 0])
-  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (synthesize-prog prog-size #f #t time-limit)))
+  (define out (open-output-file file #:exists 'replace))
+  (parameterize ([current-output-port out])
+    (synthesize-prog prog-size #f #t time-limit))
+  (close-output-port out))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
 ;;; Usage:
@@ -854,8 +856,10 @@
 ;;; (greensyn-verify file string_of_candidate)
 (define (greensyn-verify file string)
   (set! cand-count (compile string cand cand-lit))
-  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (verify-prog)))
+  (define out (open-output-file file #:exists 'replace))
+  (parameterize ([current-output-port out])
+    (verify-prog))
+  (close-output-port out))
 
 ;;; Generate Z3 file according to the earlier set spec (greensyn-spec)
 ;;; if has-out is true, then the formula will assert on earlier set output (greensyn-output)
@@ -865,7 +869,9 @@
 ;;; { (greensyn-input input) (greensyn-output output)? (greensyn-send-recv send-recv)? (greensyn-commit) }+
 ;;; (greensyn-gen-formula string_of_candidate assert_output)
 (define (greensyn-gen-formula file has-out)
-  (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
-    (synthesize-prog spec-count #t has-out)))
+  (define out (open-output-file file #:exists 'replace))
+  (parameterize ([current-output-port out])
+    (synthesize-prog spec-count #t has-out))
+  (close-output-port out))
   
   
