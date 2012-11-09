@@ -4,7 +4,7 @@ import sys
 
 #choices = ['2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', '@+', '@', '@b', '!+', '!', '!b', 'a!', 'b!', 'a', '+*', 'pop', 'push', 'over', 'up', 'down', 'left', 'right', 'nop', '0', '1', '63', '128']
 
-choices = ['0', '1', '63', '128', 'up', 'down', 'left', 'right', '@+', '@b', '@', '!+', '!b', '!', '+*', '2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', 'pop', 'over', 'a', 'nop', 'push', 'b!', 'a!']
+choices = ['@p', '@+', '@b', '@', '!+', '!b', '!', '+*', '2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', 'pop', 'over', 'a', 'nop', 'push', 'b!', 'a!']
 
 def main():
   filename = sys.argv[1]
@@ -34,9 +34,11 @@ def main():
           var = var[:begin] + "0" + var[begin:]
 
         if val[1] == "b":
-          if var[0] == "h":
+          if (var[0] == "h" or var[0] == "spec") and var.find("lit") == -1 :
             hole = int(val[2:to],2)
             print var + " = " + choices[hole]
+          elif (var[0] == "h" or var[0] == "spec"):
+            print var + " = " + str(int(val[2:to],2))
           elif print_all:
             print var + " = " + str(int(val[2:to],2))
         elif print_all:

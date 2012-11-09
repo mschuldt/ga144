@@ -49,8 +49,8 @@
 ;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
 ;small
 ;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b a! b! a +* pop push over nop 1 63 128))
-(define choice-id '#(0 1 63 128 up down left right @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define memory-op '#(0 1 63 128 up down left right @+ @b @ !+ !b !))
+(define choice-id '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define memory-op '#(@p @+ @b @ !+ !b !))
 
 (define CHOICES (vector-length choice-id))
 (define N_OF_SLOW (vector-length memory-op))
@@ -63,21 +63,34 @@
 (define num-inout 0)
 
 (define spec (make-vector 100))
+(define spec-lit (make-vector 100))
 (define spec-count 0) ; number of instructions in spec
 (define cand (make-vector 100))
+(define cand-lit (make-vector 100))
 (define cand-count 0) ; number of instructions in candidate program
 
+(define (to-number word)
+  (cond
+   [(equal? word `up) UP]
+   [(equal? word `down) DOWN]
+   [(equal? word `left) LEFT]
+   [(equal? word `right) RIGHT]
+   [else word]))
+
 (define (to-choice name)
-  (or (vector-member name choice-id) (raise (format "Cannot synthesize ~s!" name))))
+  (if (vector-member name choice-id)
+      (cons (vector-member name choice-id) 0)
+      (cons (vector-member `@p choice-id) (to-number name))))
 
 ;;; Compile code (string of instructions) into output vector
 ;;; and return number of instructions in the given code
-(define (compile code output)
+(define (compile code output output-lit)
   (define count 0)
   (define in (open-input-string code))
   (define (go)
     (define (append-vector inst)
-      (vector-set! output count inst)
+      (vector-set! output count (car inst))
+      (vector-set! output-lit count (cdr inst))
       (set! count (add1 count))
       (go))
     (let ([next (read in)])
@@ -174,12 +187,16 @@
 
 (define (declare-holes n)
   (for* ([step (in-range 1 n)])
-    (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_BIT)))))
+    (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_BIT)))
+    (pretty-display `(declare-const ,(var-no-v `h_lit step) ,TYPE))))
 
-(define (encode-program prog n name)
+(define (encode-program prog literal n name)
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_BIT)))
-    (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_BIT))))))
+    (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_BIT))))
+    (pretty-display `(declare-const ,(var-no-v (format "~a_lit" name) step) ,TYPE))
+    (pretty-display `(assert (= ,(var-no-v (format "~a_lit" name) step) (_ ,(makebv (vector-ref literal (sub1 step))) ,SIZE))))
+))
 
 (define (declare-vars n from to)
   (for* ([i (in-range from to)])
@@ -359,6 +376,10 @@
 	       (set! check_recvp_l (read-port `b L-ID LEFT))
 	       (set! check_recvp_r (read-port `b R-ID RIGHT))
 	       (grow)]
+    ; @p
+    [(= choice (vector-member `@p choice-id)) 
+               (set! check_t (format "(= t_~e_v~e ~a_lit_~e)" step i name step))
+	       (grow)]
     ; !+ (can't store to port)
     [(= choice (vector-member `!+ choice-id)) 
                (set! check_a 
@@ -425,14 +446,6 @@
 	       (grow)]
     ; nop
     [(= choice (vector-member `nop choice-id)) (void)]
-    [(= choice (vector-member `up choice-id)) (push-const UP)]
-    [(= choice (vector-member `down choice-id)) (push-const DOWN)]
-    [(= choice (vector-member `left choice-id)) (push-const LEFT)]
-    [(= choice (vector-member `right choice-id)) (push-const RIGHT)]
-    [(= choice (vector-member `0 choice-id)) (push-const 0)]
-    [(= choice (vector-member `1 choice-id)) (push-const 1)]
-    [(= choice (vector-member `63 choice-id)) (push-const 63)]
-    [(= choice (vector-member `128 choice-id)) (push-const 128)]
         )
   (set! check_sp (string-append check_sp ") "))
   (set! check_rp (string-append check_rp ") "))
@@ -697,7 +710,7 @@
   (declare-functions)
   (newline)
   (if has-prog
-      (encode-program spec (add1 n) `h)
+      (encode-program spec spec-lit (add1 n) `h)
       (declare-holes (add1 n)))
 
   (declare-vars (add1 n) 0 num-inout)
@@ -722,7 +735,7 @@
   (newline)
 
   ; formular for spec
-  (encode-program spec (add1 spec-count) `spec)
+  (encode-program spec spec-lit (add1 spec-count) `spec)
   (newline)
   (declare-vars (add1 spec-count) 0 1)
   (newline)
@@ -730,7 +743,7 @@
   (newline)
 
   ; formular for candidate
-  (encode-program cand (add1 cand-count) `cand)
+  (encode-program cand cand-lit (add1 cand-count) `cand)
   (newline)
   (declare-vars (add1 cand-count) 1 2)
   (newline)
@@ -823,7 +836,7 @@
 
 ;;; Set spec for verification
 (define (greensyn-spec string)
-  (set! spec-count (compile string spec)))
+  (set! spec-count (compile string spec spec-lit)))
 
 ;;; Generate Z3 file for synthesis from the list of counterexamples
 ;;; Usage:
@@ -840,7 +853,7 @@
 ;;; (greensyn-spec string_of_spec)
 ;;; (greensyn-verify file string_of_candidate)
 (define (greensyn-verify file string)
-  (set! cand-count (compile string cand))
+  (set! cand-count (compile string cand cand-lit))
   (parameterize ([current-output-port (open-output-file file #:exists 'replace)])
     (verify-prog)))
 
