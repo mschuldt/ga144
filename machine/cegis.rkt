@@ -115,7 +115,7 @@
     (close-output-port out)
     (call-with-output-file #:exists 'truncate (format "debug-pair-~a" debug-n)
       (lambda (file)
-        (display (last previous-pairs) file)
+        (display (first previous-pairs) file)
         (newline file)))
     (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
       (lambda (file)
