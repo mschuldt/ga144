@@ -13,7 +13,7 @@
 
 ;;; Run z3 on the given file, returning all output as a string.
 (define (z3 file)
-  (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
+  (with-output-to-string (lambda () (system (format "./z3 ~a" file)))))
 
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
@@ -107,11 +107,11 @@
     (define out (open-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)))
     (display z3-res out)
     (close-output-port out)
-    (call-with-output-file (format "debug-pair-~a" debug-n)
+    (call-with-output-file #:exists 'truncate (format "debug-pair-~a" debug-n)
       (lambda (file)
         (display (last previous-pairs) file)
         (newline file)))
-    (call-with-output-file (format "debug-program-~a" debug-n)
+    (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
       (lambda (file)
         (display (model->program result) file))))
 
@@ -132,8 +132,8 @@
   
   (when debug
     (set! debug-n (add1 debug-n))
-    (define out (open-output-file (format "debug-verifier-~a" debug-n)))
-    (map (lambda (p) (display p out) (newline out)) result)
+    (define out (open-output-file #:exists 'truncate (format "debug-verifier-~a" debug-n)))
+    (and result (map (lambda (p) (display p out) (newline out)) result))
     (close-output-port out))
   
   (delete-file temp-file)
