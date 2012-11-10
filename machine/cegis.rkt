@@ -73,11 +73,12 @@
          (and (member 'sat res) (extract-model (cadr res))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
-(define (random-pair program)
+(define (random-pair program [memory-start 0])
   (define in (random-state))
   (load-state! in)
-  (load-program program)
+  (load-program program memory-start)
   (set! in (current-state))
+  (reset-p! memory-start)
   (step-program!*)
   `(,in ,(current-state)))
 
@@ -94,8 +95,7 @@
 ;;; and their numerical values.
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
-  (when (null? previous-pairs) (display "Generating random seed pair.") (newline)
-        (set! previous-pairs (list (random-pair program))))
+  (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (format "debug-syn-~a.smt2" debug-n))
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
@@ -119,7 +119,7 @@
         (newline file)))
     (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
       (lambda (file)
-        (display (model->program result) file))))
+        (and result (display (model->program result) file)))))
 
   (or (and result (model->program result))
       (error "Program cannot be written: synthesis not sat!")))
@@ -147,7 +147,7 @@
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
-(define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
+(define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0])
   (define prog-length (length (regexp-split " +" program)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
@@ -156,7 +156,7 @@
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
-  (go (list (random-pair program))))
+  (go (list (random-pair program start))))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
 (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
