@@ -142,7 +142,7 @@
     (and result (map (lambda (p) (display p out) (newline out)) result))
     (close-output-port out))
   
-  (delete-file temp-file)
+  (unless debug (delete-file temp-file))
   (and result (model->pair result #:mem mem prog-length)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
@@ -159,4 +159,4 @@
   (go '()))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
-
+(cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)

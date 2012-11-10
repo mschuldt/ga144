@@ -18,7 +18,6 @@
   ;; run the interpreter
   (step-program!)
   (step-program!)
-  (display-data)
   
   ;; output (no communication in this example)
   (greensyn-output (current-state))
@@ -46,9 +45,7 @@
   (greensyn-input (current-state))
   
   ;; run the interpreter
-  (step-program!)
-  (step-program!)
-  (display-data)
+  (step-program!*)
   
   ;; output (no communication in this example)
   (greensyn-output (current-state))
@@ -173,14 +170,12 @@
   (greensyn-reset 6 1)
   (reset!)
   (set-state! a b p i r s t data return mem)
-  (display-data)
   (load-program "@p @p nop nop 128 63 over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop" 16)
   (reset-p! 16)
   
   ;; 1
   (greensyn-input (current-state))
   (step-program!*)
-  (display-data)
   (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
   (greensyn-commit)
@@ -226,4 +221,19 @@
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
-(ver-add)
+;(ver-add)
+
+
+(reset!)
+(display-data)
+(load-program "- 2/ dup dup dup + a! dup")
+(step-program!*)
+(display-data)
+
+(newline)
+(reset!)
+(display-data)
+(load-program "- 2/ 2/ dup over nop 2* nop dup a! nop nop")
+(step-program!*)
+(display-data)
+
