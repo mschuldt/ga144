@@ -58,7 +58,7 @@
   (greensyn-check-sat #:file "literal.smt2" 3)
  )
 
-(syn-literal)
+;(syn-literal)
 
 (define (syn-mem)
   (define comm (make-vector 1))
@@ -82,7 +82,7 @@
   (greensyn-output (current-state))
   ;(greensyn-scope (stack-body data) (stack-body return) memory t s r a b (stack-sp data) (stack-sp return))
   (greensyn-send-recv (default-commstate))
-  ;(greensyn-commit)
+  (greensyn-commit)
   
   ;; set 2nd pair
   (load-state! my-state)
@@ -97,17 +97,23 @@
   ;(greensyn-commit)
   
   ;; set 3nd pair
+  (define mem (make-vector 64))
+  (vector-set! mem 0 0)
+  (vector-set! mem 1 450)
+  (vector-set! mem 2 0)
   (load-state! my-state)
-  (set-state! 0 0 p i r 0 7 data return memory)
+  (set-state! 0 0 p i r 0 7 data return mem)
+  (load-program "dup or a! nop @+ 2* @+ nop 2/ + ! nop" 20)
+  (reset-p! 20)
   (greensyn-input (current-state))
   
   (step-program!*)
   
   (greensyn-output (current-state))
   (greensyn-send-recv (default-commstate))
-  ;(greensyn-commit)
+  (greensyn-commit)
   
-  (greensyn-check-sat #:file "mem.smt2" 9 #:time-limit 47))
+  (greensyn-check-sat #:file "mem.smt2" 12)); #:time-limit 100))
 
 ;(syn-mem)
 
@@ -120,22 +126,7 @@
 (define (ver-mem) ; sat
   (greensyn-reset 3 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (greensyn-verify "ver-mem.smt2" "@+ 2/ or @b nop 2* + !"))
-
-(define (ver-mem-2) ; sat
-  (greensyn-reset 3 1)
-  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
-
-(define (ver-mem-3) ; sat
-  (greensyn-reset 4 1)
-  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (greensyn-verify "ver-mem.smt2" "a! @+ 2* @+ nop 2/ + !"))
-
-(define (ver-mem-4) ; sat
-  (greensyn-reset 4 1)
-  (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ + ! nop")
-  (greensyn-verify "ver-mem.smt2" "2/ a! @+ 2* @+ 2/ + !"))
+  (greensyn-verify "ver-mem.smt2" "@+ 2/ or nop @b nop 2* + !"))
 
 (define (ver-mem-5) ; unsat
   (greensyn-reset 4 1)
@@ -144,18 +135,18 @@
 
 (define (ver-mem-6) ; sat (but we should allow this by relaxing constraint)
   (greensyn-reset 4 1)
-  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
-  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+  (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ + nop !")
+  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ + !"))
 
 (define (ver-mem-7) ; unsat
   (greensyn-reset 4 1)
-  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
-  (greensyn-verify "ver-mem.smt2" "dup dup or a! @+ 2* @+ 2/ + !"))
+  (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ + nop !")
+  (greensyn-verify "ver-mem.smt2" "dup dup or nop a! @+ 2* nop @+ 2/ + nop !"))
 
 (define (ver-mem-8) ; sat
   (greensyn-reset 4 1)
-  (greensyn-spec "0 a! @ 2* 1 a! @+ 2/ + !")
-  (greensyn-verify "ver-mem.smt2" "a! 0 a! @+ 2* @+ 2/ + !"))
+  (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ + nop !")
+  (greensyn-verify "ver-mem.smt2" "a! 0 a! nop @+ 2* @+ nop 2/ + !"))
 
 (define (syn-interp)
   (define comm (make-vector 1))
@@ -198,42 +189,21 @@
   (greensyn-check-sat #:file "interp-syn.smt2" 33)
  )
 
-;(syn-interp)
-
-(define (ver-interp) ; sat
-  (greensyn-reset 4 1)
-  (greensyn-spec "128 63 over 2/ 2/ 2/ 2/ 2/ 2/ a! and push @+ dup @+ - + - pop a! dup dup or +* +* +* +* +* +* push drop pop +")
-  (greensyn-verify "ver-interp.smt2" "@+ @ @b @b b! push right a! b! b! a! +* a! right drop a! push 128 63 +* a! b! + 2* over +* pop pop push a! b! drop"))
-
-;(ver-interp)
-
-; pop a! push begin 
-; @+ @ push a push *.17 pop a! 
-; push !+ pop . + pop next @ a!
-
-; *.17: a! 16 push dup dup or
-; begin +* unext - +* a -if
-; drop - 2* ; then drop 2* - ;
-;(define (syn-taps)
-
 (define (ver-add)
   (greensyn-reset 1 1)
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
-;(ver-add)
+;; (reset!)
+;; (display-data)
+;; (load-program "- 2/ dup dup dup + a! dup")
+;; (step-program!*)
+;; (display-data)
 
-
-(reset!)
-(display-data)
-(load-program "- 2/ dup dup dup + a! dup")
-(step-program!*)
-(display-data)
-
-(newline)
-(reset!)
-(display-data)
-(load-program "- 2/ 2/ dup over nop 2* nop dup a! nop nop")
-(step-program!*)
-(display-data)
+;; (newline)
+;; (reset!)
+;; (display-data)
+;; (load-program "- nop 2/ dup dup nop over nop 2* nop a! nop")
+;; (step-program!*)
+;; (display-data)
 

@@ -125,10 +125,10 @@
   (reset!)
   (set-state! a b p i r s t data return mem)
   (display-data)
+  
   (load-program "@p @p nop nop 128 63 over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop" 16)
   (reset-p! 16)
-  (greensyn-spec "128 63 over 2/ 2/ 2/ 2/ 2/ 2/ a! and push @+ dup @+ - + - pop a! dup dup or +* +* +* +* +* +* push drop pop +")
-  
+  (greensyn-spec "128 63 nop nop over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop")
   ;; input
   (greensyn-input (current-state))
   
@@ -148,7 +148,7 @@
  )
 
 (test00)
-;; (test01)
-;; (test02)
-;; (test03)
-;; (test04)
+(test01)
+(test02)
+(test03)
+(test04)

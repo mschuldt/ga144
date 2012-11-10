@@ -45,11 +45,6 @@
 (define RIGHT #x1d5)
 (define IO #x15d)
 
-;full
-;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
-;small
-;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b a! b! a +* pop push over nop 1 63 128))
-
 (define CHOICES (vector-length choice-id))
 (define N_OF_SLOW (vector-length memory-op))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
@@ -294,7 +289,7 @@
 	(format "(= ~a_~e_v~e ~a_~a_v~e)" reg step i reg prev i)))
 
   ;;; default formula for an instruction: equal to the value in the previous step
-  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step choice HOLE_BIT))
+  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step (vector-member choice choice-id) HOLE_BIT))
   (define check_sp (format "(= sp_~e_v~e sp_~e_v~e)" step i prev i))
   (define check_rp (format "(= rp_~e_v~e rp_~e_v~e)" step i prev i))
   (define check_t (format "(= t_~e_v~e t_~e_v~e)" step i prev i))
@@ -316,36 +311,36 @@
 
   (cond 
     ; 2*
-    [(= choice (vector-member `2* choice-id)) 
+    [(equal? choice `2*) 
                (set! check_t (format "(= t_~e_v~e (bvshl t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; 2/
-    [(= choice (vector-member `2/ choice-id)) 
+    [(equal? choice `2/)
                (set! check_t (format "(= t_~e_v~e (bvlshr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; -
-    [(= choice (vector-member `- choice-id)) 
+    [(equal? choice `-)
                (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
     ; +
-    [(= choice (vector-member `+ choice-id)) 
+    [(equal? choice `+)
                (set! check_t (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i))
                (shrink)]
     ; and
-    [(= choice (vector-member `and choice-id)) 
+    [(equal? choice `and)
                (set! check_t (format "(= t_~e_v~e (bvand t_~e_v~e s_~e_v~e))" step i prev i prev i))
                (shrink)]
     ; or
-    [(= choice (vector-member `or choice-id)) 
+    [(equal? choice `or)
                (set! check_t (format "(= t_~e_v~e (bvxor t_~e_v~e s_~e_v~e))" step i prev i prev i))
                (shrink)]
     ; drop
-    [(= choice (vector-member `drop choice-id)) 
+    [(equal? choice `drop) 
                (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
                (shrink)]
     ; dup
-    [(= choice (vector-member `dup choice-id)) 
+    [(equal? choice `dup)
                (set! check_t (format "(= t_~e_v~e t_~a_v~e)" step i prev i))
 	       (grow)]
     ; @+ (can't read port)
-    [(= choice (vector-member `@+ choice-id)) 
+    [(equal? choice `@+)
                (set! check_a 
 		     (if syn
 			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
@@ -354,7 +349,7 @@
 	       (set! check_t (format "(= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e))" step i prev i prev i))
 	       (grow)]
     ; @
-    [(= choice (vector-member `@ choice-id)) 
+    [(equal? choice `@)
                (set! check_a (mem-range `a))
 	       (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
 				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
@@ -364,7 +359,7 @@
 	       (set! check_recvp_l (read-port `a L-ID LEFT))
 	       (set! check_recvp_r (read-port `a R-ID RIGHT))]
     ; @b
-    [(= choice (vector-member `@b choice-id)) 
+    [(equal? choice `@b)
                (set! check_b (mem-range `b))
 	       (set! check_t (format "(or (bvugt b_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e b_~e_v~e)))" 
 				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
@@ -374,11 +369,11 @@
 	       (set! check_recvp_r (read-port `b R-ID RIGHT))
 	       (grow)]
     ; @p
-    [(= choice (vector-member `@p choice-id)) 
+    [(equal? choice `@p)
                (set! check_t (format "(= t_~e_v~e ~alit_~e)" step i name step))
 	       (grow)]
     ; !+ (can't store to port)
-    [(= choice (vector-member `!+ choice-id)) 
+    [(equal? choice `!+)
                (set! check_a 
     		     (if syn
     			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
@@ -389,7 +384,7 @@
     				       step i prev i prev i prev i))
     	       (shrink)]
     ; !
-    [(= choice (vector-member `! choice-id)) 
+    [(equal? choice `!)
                (set! check_a (mem-range `a))
     	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
     	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
@@ -400,7 +395,7 @@
     	       (set! check_sendp_r (write-port `a R-ID RIGHT))
     	       (shrink)]
     ; !b
-    [(= choice (vector-member `!b choice-id)) 
+    [(equal? choice `!b)
                (set! check_b (mem-range `b))
     	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
     	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
@@ -411,38 +406,38 @@
     	       (set! check_sendp_r (write-port `b R-ID RIGHT))
     	       (shrink)]
     ; a!
-    [(= choice (vector-member `a! choice-id)) 
+    [(equal? choice `a!)
                (set! check_a (format "(= a_~e_v~e t_~a_v~e)" step i prev i))
 	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
 	       (shrink)]
     ; b!
-    [(= choice (vector-member `b! choice-id))
+    [(equal? choice `b!)
                (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
 	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
 	       (shrink)]
     ; a
-    [(= choice (vector-member `a choice-id)) 
+    [(equal? choice `a)
                (set! check_t (format "(= t_~e_v~e a_~e_v~e)" step i prev i))
 	       (grow)]
     ; +*
-    [(= choice (vector-member `+* choice-id)) 
+    [(equal? choice `+*)
                (multiply-step)]
     ; pop
-    [(= choice (vector-member `pop choice-id)) 
+    [(equal? choice `pop)
 	       (set! check_t (format "(= t_~e_v~e r_~e_v~e)" step i prev i))
                (shrink-return)
 	       (grow)]
     ; push
-    [(= choice (vector-member `push choice-id)) 
+    [(equal? choice `push)
 	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
                (grow-return)
 	       (shrink)]
     ; over
-    [(= choice (vector-member `over choice-id)) 
+    [(equal? choice `over)
                (set! check_t (format "(= t_~e_v~e s_~a_v~e)" step i prev i))
 	       (grow)]
     ; nop
-    [(= choice (vector-member `nop choice-id)) (void)]
+    [(equal? choice `nop) (void)]
         )
   (set! check_sp (string-append check_sp ") "))
   (set! check_rp (string-append check_rp ") "))
@@ -512,10 +507,10 @@
   (define check_assump 
   (cond 
     ; @+ (can't read port)
-    [(= choice (vector-member `@+ choice-id))
+    [(equal? choice `@+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; @
-    [(= choice (vector-member `@ choice-id)) 
+    [(equal? choice `@) 
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `a) 
 		 (read-port `a U-ID UP) 
@@ -523,7 +518,7 @@
 		 (read-port `a L-ID LEFT)
 		 (read-port `a R-ID RIGHT))]
     ; @b
-    [(= choice (vector-member `@b choice-id)) 
+    [(equal? choice `@b)
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `b) 
 		 (read-port `b U-ID UP) 
@@ -531,10 +526,10 @@
 		 (read-port `b L-ID LEFT)
 		 (read-port `b R-ID RIGHT))]
     ; !+ (can't store to port)
-    [(= choice (vector-member `!+ choice-id)) 
+    [(equal? choice `!+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; !
-    [(= choice (vector-member `! choice-id)) 
+    [(equal? choice `!)
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `a) 
 		 (write-port `a U-ID UP) 
@@ -542,14 +537,14 @@
 		 (write-port `a L-ID LEFT)
 		 (write-port `a R-ID RIGHT))]
     ; !b
-    [(= choice (vector-member `!b choice-id)) 
+    [(equal? choice `!b)
 	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
 		 (mem-range `b) 
 		 (write-port `b U-ID UP) 
 		 (write-port `b D-ID DOWN) 
 		 (write-port `b L-ID LEFT)
 		 (write-port `b R-ID RIGHT))]))
-    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step choice HOLE_BIT check_assump))
+    (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_BIT check_assump))
 
 (define (generate-time-constraint step)
   (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) (_ bv10 ~a) (_ bv3 ~a)))))" step (sub1 step) step N_OF_SLOW HOLE_BIT TIME_SIZE TIME_SIZE)))
@@ -561,18 +556,18 @@
   (for* ([step (in-range 1 (add1 n))])
 	(generate-time-constraint step))
   (pretty-display (format "(assert (bvule time_~a (_ bv~a ~a)))" n time-limit TIME_SIZE)))
-  
 
-(define (generate-formula step n version name syn)
-  (define s "(assert ")
-  (for* ([i (in-range 1 CHOICES)])
-	(set! s (string-append s "(or ")))
-  (pretty-display s)
-  (pretty-display (generate-choice 0 step n version name syn))
-  (for* ([i (in-range 1 CHOICES)])
-	(pretty-display (string-append (generate-choice i step n version name syn) ")")))
-  (pretty-display ")"))
+(define support '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-len (vector-length support))
  
+(define (generate-formula step n version name syn)
+  (define clauses (make-vector support-len))
+  (when (= (modulo step 4) 0)
+	(pretty-display (format "(assert (= (_ bv0 2) ((_ extract 1 0) ~a_~a)))" name step)))
+  (for* ([i (in-range 0 (vector-length support))])
+	(vector-set! clauses i (generate-choice (vector-ref support i) step n version name syn)))
+  (pretty-display `(assert ,(conjunct clauses support-len `or))))
+
 (define (generate-formulas n from to name syn)
   (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
@@ -653,8 +648,7 @@
   (define index 0)
   (for* ([choice `(@+ @ @b !+ ! !b)])
 	(vector-set! clauses index 
-		     (generate-choice-assumption 
-		      (vector-member choice choice-id) step version name))
+		     (generate-choice-assumption choice step version name))
 	(set! index (add1 index)))
   (conjunct clauses 6 `or))
 
@@ -851,6 +845,8 @@
 ;;; (greensyn-reset)
 ;;; (greensyn-spec string_of_spec)
 ;;; (greensyn-verify file string_of_candidate)
+;;; CAUTION: note that if intruction in the last slot is invalid
+;;; it will return unsat!!!!!
 (define (greensyn-verify file string)
   (set! cand-count (compile string cand cand-lit))
   (define out (open-output-file file #:exists 'replace))
