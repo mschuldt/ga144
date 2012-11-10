@@ -221,3 +221,9 @@
 ; drop - 2* ; then drop 2* - ;
 ;(define (syn-taps)
 
+(define (ver-add)
+  (greensyn-reset 1 1)
+  (greensyn-spec "+ nop nop nop")
+  (greensyn-verify "ver-add.smt2" "- -"))
+
+(ver-add)

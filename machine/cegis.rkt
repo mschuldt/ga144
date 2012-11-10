@@ -24,7 +24,7 @@
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
   (define instrs '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-  (define (is-hole var) (equal? (string-ref (format "~a" var) 0) #\h))
+  (define (is-hole var) (equal? (substring (format "~a" var) 0 2) "h_"))
   (string-join (map (lambda (x) (format "~a" (vector-ref instrs (cadr x))))
                     (filter (compose is-hole car) model)) " "))
 
@@ -97,14 +97,14 @@
   (greensyn-check-sat #:file temp-file slots)
 
   (when debug
-    (copy-file temp-file (format "debug-generate-model~a" debug-n)))
+    (copy-file temp-file (format "debug-generate-model~a" debug-n) #t))
 
   (define z3-res (z3 temp-file))
   (define result (read-model z3-res))
   ;; (delete-file temp-file)
 
   (when debug
-    (define out (open-output-file (format "debug-generate-~a" debug-n)))
+    (define out (open-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)))
     (display z3-res out)
     (close-output-port out)
     (call-with-output-file (format "debug-pair-~a" debug-n)
@@ -123,6 +123,10 @@
   (define temp-file (format "debug-verify-~a.smt2" debug-n))
   (greensyn-reset mem comm)
   (greensyn-spec spec)
+  ;(pretty-display "spec")
+  ;(pretty-display spec)
+  ;(pretty-display "candidate")
+  ;(pretty-display candidate)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
   
@@ -147,3 +151,6 @@
           (go (cons new-pair pairs))
           candidate)))
   (go '()))
+
+(cegis "+ nop nop nop" #:mem 1 #:slots 2)
+
