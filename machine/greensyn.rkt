@@ -49,8 +49,6 @@
 ;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
 ;small
 ;(define choice-id '#(2* 2/ - + and or drop dup @+ @ @b a! b! a +* pop push over nop 1 63 128))
-(define choice-id '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define memory-op '#(@p @+ @b @ !+ !b !))
 
 (define CHOICES (vector-length choice-id))
 (define N_OF_SLOW (vector-length memory-op))

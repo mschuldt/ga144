@@ -95,12 +95,12 @@
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
   (when (null? previous-pairs) (display "Generating random seed pair.") (newline)
-                               (set! previous-pairs (list (random-pair program))))
+        (set! previous-pairs (list (random-pair program))))
   (define temp-file (format "debug-syn-~a.smt2" debug-n))
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
 
-  (greensyn-check-sat #:file temp-file slots)
+  (greensyn-check-sat #:file temp-file slots #:time-limit (estimate-speed program))
 
   (when debug
     (copy-file temp-file (format "debug-generate-model~a" debug-n) #t))
@@ -115,7 +115,7 @@
     (close-output-port out)
     (call-with-output-file #:exists 'truncate (format "debug-pair-~a" debug-n)
       (lambda (file)
-        (display (last previous-pairs) file)
+        (display (first previous-pairs) file)
         (newline file)))
     (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
       (lambda (file)
@@ -156,7 +156,7 @@
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
-  (go '()))
+  (go (list (random-pair program))))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
 (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)

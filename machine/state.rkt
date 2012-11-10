@@ -1,6 +1,6 @@
 #lang racket
 
-(require "stack.rkt")
+(require racket/list "stack.rkt")
 
 (provide (all-defined-out))
 
@@ -31,3 +31,14 @@
 	 #:recv-l [recv-l (make-vector ENTRIES 0)]
 	 #:recv-r [recv-r (make-vector ENTRIES 0)])
   (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
+
+(define choice-id '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define memory-op '#(@p @+ @b @ !+ !b !))
+
+;;; Given a string containing a forth program, gives you an estimate
+;;; of how long it would take to run.
+(define (estimate-speed program)
+  (define (guess-speed instr)
+    (if (member instr (vector->list memory-op)) 10 3))
+  (apply + (map guess-speed (filter (lambda (x) (member x (vector->list choice-id)))
+                            (map string->symbol (regexp-split " +" program))))))
