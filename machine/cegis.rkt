@@ -95,7 +95,7 @@
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
   (when (null? previous-pairs) (display "Generating random seed pair.") (newline)
-                               (set! previous-pairs (list (random-pair program))))
+        (set! previous-pairs (list (random-pair program))))
   (define temp-file (format "debug-syn-~a.smt2" debug-n))
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
@@ -156,7 +156,7 @@
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
-  (go '()))
+  (go (list (random-pair program))))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
 
