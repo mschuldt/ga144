@@ -13,7 +13,7 @@
 
 ;;; Run z3 on the given file, returning all output as a string.
 (define (z3 file)
-  (with-output-to-string (lambda () (system (format "./z3 ~a" file)))))
+  (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
 
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
@@ -25,8 +25,14 @@
 (define (model->program model)
   (define instrs '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
   (define (is-hole var) (equal? (substring (format "~a" var) 0 2) "h_"))
-  (string-join (map (lambda (x) (format "~a" (vector-ref instrs (cadr x))))
-                    (filter (compose is-hole car) model)) " "))
+  (define (process-instr res)
+    (if (= 0 (cadr res))
+        (format "~a" (cadr
+                      (assoc
+                       (string->symbol
+                        (regexp-replace "h" (format "~a" (car res)) "hlit")) model)))
+        (format "~a" (vector-ref instrs (cadr res)))))
+  (string-join (map process-instr (filter (compose is-hole car) model)) " "))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -152,5 +158,5 @@
           candidate)))
   (go '()))
 
-(cegis "+ nop nop nop" #:mem 1 #:slots 2)
+;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
 
