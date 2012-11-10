@@ -100,7 +100,7 @@
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
 
-  (greensyn-check-sat #:file temp-file slots)
+  (greensyn-check-sat #:file temp-file slots #:time-limit (estimate-speed program))
 
   (when debug
     (copy-file temp-file (format "debug-generate-model~a" debug-n) #t))
