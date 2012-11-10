@@ -34,10 +34,10 @@ def main():
           var = var[:begin] + "0" + var[begin:]
 
         if val[1] == "b":
-          if (var[0] == "h" or var[0] == "spec") and var.find("lit") == -1 :
+          if (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1) and var.find("lit") == -1 :
             hole = int(val[2:to],2)
             print var + " = " + choices[hole]
-          elif (var[0] == "h" or var[0] == "spec"):
+          elif (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1):
             print var + " = " + str(int(val[2:to],2))
           elif print_all:
             print var + " = " + str(int(val[2:to],2))

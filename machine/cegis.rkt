@@ -23,17 +23,16 @@
 
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
-  (define instrs '#(2* 2/ - + and or drop dup @+ @ @b !+ ! !b a! b! a +* pop push over up down left right nop 0 1 63 128))
-  (define (is-hole var) (equal? (string-ref (format "~a" var) 0) #\h))
+  (define instrs '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+  (define (is-hole var) (equal? (substring (format "~a" var) 0 2) "h_"))
   (string-join (map (lambda (x) (format "~a" (vector-ref instrs (cadr x))))
                     (filter (compose is-hole car) model)) " "))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
-(define (model->pair model #:mem [mem 6])
-  (define max (car (regexp-match "[0-9]+" (symbol->string (car (last model))))))
+(define (model->pair model #:mem [mem 6] max)
   (define (extract-state n)
-    (define (var v) (cadr (assoc (string->symbol (format "~a_~a_v1" v n)) model)))
+    (define (var v) (cadr (assoc (string->symbol (format "~a_~a_v0" v n)) model)))
     (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
                (stack (var 'sp) (bytes->vector (var 'dst) 8))
                (stack (var 'rp) (bytes->vector (var 'rst) 8))
@@ -98,14 +97,14 @@
   (greensyn-check-sat #:file temp-file slots)
 
   (when debug
-    (copy-file temp-file (format "debug-generate-model~a" debug-n)))
+    (copy-file temp-file (format "debug-generate-model~a" debug-n) #t))
 
   (define z3-res (z3 temp-file))
   (define result (read-model z3-res))
   (delete-file temp-file)
 
   (when debug
-    (define out (open-output-file (format "debug-generate-~a" debug-n)))
+    (define out (open-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)))
     (display z3-res out)
     (close-output-port out))
 
@@ -113,10 +112,14 @@
       (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate #:mem [mem 6] #:comm [comm 1])
+(define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length)
   (define temp-file (temp-file-name))
   (greensyn-reset mem comm)
   (greensyn-spec spec)
+  ;(pretty-display "spec")
+  ;(pretty-display spec)
+  ;(pretty-display "candidate")
+  ;(pretty-display candidate)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
   
@@ -127,16 +130,20 @@
     (close-output-port out))
   
   (delete-file temp-file)
-  (and result (model->pair result #:mem mem)))
+  (and result (model->pair result #:mem mem prog-length)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
 (define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
+  (define prog-length (length (regexp-split " +" program)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
                                           #:mem mem #:comm comm #:slots slots)]
-           [new-pair (validate program candidate #:mem mem #:comm comm)])
+           [new-pair (validate program candidate #:mem mem #:comm comm prog-length)])
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
   (go '()))
+
+(cegis "+ nop nop nop" #:mem 1 #:slots 2)
+

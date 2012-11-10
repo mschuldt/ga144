@@ -187,14 +187,14 @@
 (define (declare-holes n)
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_BIT)))
-    (pretty-display `(declare-const ,(var-no-v `h_lit step) ,TYPE))))
+    (pretty-display `(declare-const ,(var-no-v `hlit step) ,TYPE))))
 
 (define (encode-program prog literal n name)
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_BIT)))
     (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_BIT))))
-    (pretty-display `(declare-const ,(var-no-v (format "~a_lit" name) step) ,TYPE))
-    (pretty-display `(assert (= ,(var-no-v (format "~a_lit" name) step) (_ ,(makebv (vector-ref literal (sub1 step))) ,SIZE))))
+    (pretty-display `(declare-const ,(var-no-v (format "~alit" name) step) ,TYPE))
+    (pretty-display `(assert (= ,(var-no-v (format "~alit" name) step) (_ ,(makebv (vector-ref literal (sub1 step))) ,SIZE))))
 ))
 
 (define (declare-vars n from to)
@@ -377,7 +377,7 @@
 	       (grow)]
     ; @p
     [(= choice (vector-member `@p choice-id)) 
-               (set! check_t (format "(= t_~e_v~e ~a_lit_~e)" step i name step))
+               (set! check_t (format "(= t_~e_v~e ~alit_~e)" step i name step))
 	       (grow)]
     ; !+ (can't store to port)
     [(= choice (vector-member `!+ choice-id)) 
