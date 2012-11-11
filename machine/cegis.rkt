@@ -26,7 +26,6 @@
 
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
-  (define instrs '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
   (define (is-hole var) (equal? (substring (format "~a" var) 0 2) "h_"))
   (define (process-instr res)
     (if (= 0 (cadr res))
@@ -34,7 +33,7 @@
                       (assoc
                        (string->symbol
                         (regexp-replace "h" (format "~a" (car res)) "hlit")) model)))
-        (format "~a" (vector-ref instrs (cadr res)))))
+        (format "~a" (vector-ref choice-id (cadr res)))))
   (string-join (map process-instr (filter (compose is-hole car) model)) " "))
 
 ;;; Given a model, extract the input/output pair it corresponds

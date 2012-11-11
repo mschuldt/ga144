@@ -562,7 +562,7 @@
 ;;; the total number of slots. This can then be subtracted from the
 ;;; total time.
 (define (nop-offset slots)
-  (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop support) HOLE_BIT))
+  (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop choice-id) HOLE_BIT))
   (define (go hole-number expr)
     (format "(ite (= h_~a ~a) (bvadd ~a ~a) ~a)"
             hole-number bv-nop (bv-time 3) expr (bv-time 0)))
