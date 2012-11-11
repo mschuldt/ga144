@@ -37,7 +37,7 @@
 
 ;;; Given a string containing a forth program, gives you an estimate
 ;;; of how long it would take to run.
-(define (estimate-speed program)
+(define (estimate-time program)
   (define (guess-speed instr)
     (if (member instr (vector->list memory-op)) 10 3))
   (apply + (map guess-speed (filter (lambda (x) (member x (vector->list choice-id)))

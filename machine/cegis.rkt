@@ -5,11 +5,14 @@
 (provide cegis)
 
 (define debug #t)
-(define debug-n 0)
+(define current-step 0) ; the number of the current cegis step
+(define current-run 0)  ; the number of the current call to cegis.
 
-;;; Generates a random temporary file name with an .smt2 extension.
-(define (temp-file-name)
-  (format "~x.smt2" (random 100000000)))
+;;; Returns a file name with the given prefix, containing the current
+;;; step and run. You can also optionally specify a suffix like
+;;; `.smt2'. Note that the `.' in `.smt2' is not added automatically.
+(define (temp-file-name prefix [suffix ""])
+  (format "debug-~a-~a-~a~a" prefix current-run current-step suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
 (define (z3 file)
@@ -96,25 +99,28 @@
 (define (generate-candidate program [previous-pairs '()]
                             #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
   (when (null? previous-pairs) (error "No input/output pairs given!"))
-  (define temp-file (format "debug-syn-~a.smt2" debug-n))
+  (define temp-file (temp-file-name "syn" ".smt2"))
   (greensyn-reset mem comm)
   (map greensyn-add-pair previous-pairs)
 
-  (greensyn-check-sat #:file temp-file slots);#:time-limit (estimate-speed program))
-
-  (when debug
-    (copy-file temp-file (format "debug-generate-model~a" debug-n) #t))
-
+  (greensyn-check-sat #:file temp-file slots #:time-limit (estimate-time program))
+  
   (define z3-res (z3 temp-file))
   (define result (read-model z3-res))
-  ;; (delete-file temp-file)
+
+  (unless debug (delete-file temp-file))
 
   (when debug
-    (call-with-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)
+    (call-with-output-file #:exists 'truncate (temp-file-name "syn-model")
                            (curry display z3-res))
-    (call-with-output-file #:exists 'truncate (format "debug-pair-~a" debug-n)
+    (call-with-output-file #:exists 'truncate (temp-file-name "syn-result")
+                           (lambda (out)
+                             (and result
+                                  (map (lambda (p)
+                                         (display p out) (newline out)) result))))
+    (call-with-output-file #:exists 'truncate (temp-file-name "pair")
                            (curry display (first previous-pairs)))
-    (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
+    (call-with-output-file #:exists 'truncate (temp-file-name "program")
                            (lambda (file)
                              (and result (display (model->program result) file)))))
   (or (and result (model->program result))
@@ -122,7 +128,9 @@
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length)
-  (define temp-file (format "debug-verify-~a.smt2" debug-n))
+  (set! current-step (add1 current-step))
+
+  (define temp-file (temp-file-name "verify" ".smt2"))
   (greensyn-reset mem comm)
   (greensyn-spec spec)
   ;(pretty-display "spec")
@@ -133,17 +141,20 @@
   (define result (read-model (z3 temp-file)))
   
   (when debug
-    (set! debug-n (add1 debug-n))
     (call-with-output-file
-        #:exists 'truncate (format "debug-verifier-~a" debug-n)
+        #:exists 'truncate (temp-file-name "verifier")
         (lambda (out) (and result (map (lambda (p) (display p out) (newline out)) result)))))
   
   (unless debug (delete-file temp-file))
+
   (and result (model->pair result #:mem mem prog-length)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
 (define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0])
+  (set! current-run (add1 current-run))
+  (set! current-step 0)
+
   (define prog-length (length (regexp-split " +" program)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
@@ -152,6 +163,7 @@
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
+
   (go (list (random-pair program start))))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
