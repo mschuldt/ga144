@@ -321,7 +321,11 @@
                (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
     ; +
     [(equal? choice `+)
-               (set! check_t (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i))
+               (set! check_t 
+		     (if (= step 1)
+			 (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i)
+			 (format "(and (= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e)) (and (= t_~e_v~e t_~e_v~e) (= s_~e_v~e s_~e_v~e)))" 
+					 step i prev i prev i     (- step 1) i (- step 2) i     (- step 1) i (- step 2) i)))
                (shrink)]
     ; and
     [(equal? choice `and)
@@ -592,30 +596,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (assert-state-all state n i)
-  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
-  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
-  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE))
-  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE))
-  (pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE))
-  (pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE))
-  (pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE))
-  (pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))
-  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3))
-  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
-
 (define (assert-state state n i)
-  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
-  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
-  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE))
-  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE))
-  (pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE))
-  (pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE))
-  (pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE))
-  (pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))
-  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3))
-  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3))
-  )
+  (when (progstate-data state)
+	(pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
+	(pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3)))
+  (when (progstate-return state)
+	(pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
+	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
+  (when (progstate-memory state)
+	(pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE)))
+  (when (progstate-t state)
+	(pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE)))
+  (when (progstate-s state)
+	(pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE)))
+  (when (progstate-r state)
+	(pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE)))
+  (when (progstate-a state)
+	(pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE)))
+  (when (progstate-b state)
+	(pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))))
 
 (define (assert-comm comm n i)
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" U-ID i (commstate-send-u comm) COMM_SIZE))
@@ -636,7 +635,7 @@
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT)))
 
 (define (assert-pair input output comm n i has-out)
-  (assert-state-all input 0 i)
+  (assert-state input 0 i)
   (when has-out
       (assert-state output n i)
       (assert-comm comm n i)))
@@ -698,6 +697,7 @@
   ;;; Assert outputs are not equal
   (define clauses (make-vector 26))
   (define index 0)
+  ;;; TODO: relax constraint here too
   (for ([var `(dst rst mem t s r a b sp rp sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
        (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
        (set! index (add1 index)))
@@ -777,13 +777,20 @@
       vec))
 
 (define (convert-progstate state)
+  (define data (if (progstate-data state)
+		   (stack (stack-sp (progstate-data state)) (vec-to-bits (stack-body (progstate-data state)) 8))
+		   #f))
+  (define return (if (progstate-return state)
+		     (stack (stack-sp (progstate-return state)) (vec-to-bits (stack-body (progstate-return state)) 8))
+		     #f))
+  (define mem (if (progstate-memory state)
+		  (vec-to-bits (progstate-memory state) MEM_ENTRIES)
+		  #f))
   (progstate (progstate-a state) (progstate-b state) 
 	     (progstate-p state) (progstate-i state) 
 	     (progstate-r state) (progstate-s state) (progstate-t state)
-	     (stack (stack-sp (progstate-data state)) (vec-to-bits (stack-body (progstate-data state)) 8))
-	     (stack (stack-sp (progstate-return state)) (vec-to-bits (stack-body (progstate-return state)) 8))
-             (vec-to-bits (progstate-memory state) MEM_ENTRIES)))
-
+	     data return mem))
+             
 (define (convert-commstate state)
   (commstate (vec-to-bits (commstate-send-u state) COMM_ENTRIES)
              (vec-to-bits (commstate-send-d state) COMM_ENTRIES)
