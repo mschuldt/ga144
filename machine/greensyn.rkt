@@ -546,16 +546,33 @@
 		 (write-port `b R-ID RIGHT))]))
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_BIT check_assump))
 
+;;; Returns the bv constant representing the given time (n).
+(define (bv-time n)
+  (format "(_ bv~a ~a)" n TIME_SIZE))
+
 (define (generate-time-constraint step)
-  (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) (_ bv10 ~a) (_ bv3 ~a)))))" step (sub1 step) step N_OF_SLOW HOLE_BIT TIME_SIZE TIME_SIZE)))
+  (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) ~a ~a))))"
+                          step (sub1 step) step N_OF_SLOW HOLE_BIT (bv-time 10) (bv-time 3))))
+
+;;; Returns an expression counting the number of trailing nops given
+;;; the total number of slots. This can then be subtracted from the
+;;; total time.
+(define (nop-offset slots)
+  (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop support) HOLE_BIT))
+  (define (go hole-number expr)
+    (format "(ite (= h_~a ~a) (bvadd ~a ~a) ~a)"
+            hole-number bv-nop (bv-time 3) expr (bv-time 0)))
+  (define start (format "(ite (= h_1 ~a) ~a ~a)" bv-nop (bv-time 3) (bv-time 0)))
+  (foldr go start (reverse (stream->list (in-range 2 (add1 slots))))))
 
 (define (generate-time-constraints n time-limit)
   (for* ([step (in-range 0 (add1 n))])
-    (pretty-display `(declare-const ,(var-no-v `time step) ,(makeBV TIME_SIZE))))
+        (pretty-display `(declare-const ,(var-no-v `time step) ,(makeBV TIME_SIZE))))
   (pretty-display `(assert (= ,(var-no-v `time 0) (_ bv0 ,TIME_SIZE))))
   (for* ([step (in-range 1 (add1 n))])
 	(generate-time-constraint step))
-  (pretty-display (format "(assert (bvule time_~a (_ bv~a ~a)))" n time-limit TIME_SIZE)))
+  (pretty-display (format "(assert (bvule (bvsub time_~a ~a) (_ bv~a ~a)))"
+                          n (nop-offset n) time-limit TIME_SIZE)))
 
 (define support '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define support-len (vector-length support))
