@@ -110,17 +110,13 @@
   ;; (delete-file temp-file)
 
   (when debug
-    (define out (open-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)))
-    (display z3-res out)
-    (close-output-port out)
+    (call-with-output-file #:exists 'truncate (format "debug-generate-~a" debug-n)
+                           (curry display z3-res))
     (call-with-output-file #:exists 'truncate (format "debug-pair-~a" debug-n)
-      (lambda (file)
-        (display (first previous-pairs) file)
-        (newline file)))
+                           (curry display (first previous-pairs)))
     (call-with-output-file #:exists 'truncate (format "debug-program-~a" debug-n)
-      (lambda (file)
-        (and result (display (model->program result) file)))))
-
+                           (lambda (file)
+                             (and result (display (model->program result) file)))))
   (or (and result (model->program result))
       (error "Program cannot be written: synthesis not sat!")))
 
@@ -138,9 +134,9 @@
   
   (when debug
     (set! debug-n (add1 debug-n))
-    (define out (open-output-file #:exists 'truncate (format "debug-verifier-~a" debug-n)))
-    (and result (map (lambda (p) (display p out) (newline out)) result))
-    (close-output-port out))
+    (call-with-output-file
+        #:exists 'truncate (format "debug-verifier-~a" debug-n)
+        (lambda (out) (and result (map (lambda (p) (display p out) (newline out)) result)))))
   
   (unless debug (delete-file temp-file))
   (and result (model->pair result #:mem mem prog-length)))
@@ -159,4 +155,4 @@
   (go (list (random-pair program start))))
 
 ;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
-(cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
+;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
