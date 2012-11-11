@@ -61,8 +61,6 @@
 
 (syn-literal)
 
-;(syn-literal)
-
 (define (syn-mem)
   (define comm (make-vector 1))
   ;; set up the program
