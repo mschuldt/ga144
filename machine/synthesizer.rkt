@@ -27,10 +27,10 @@
   (greensyn-commit)
   
   ;; generate file for Z3 (check-sat <filename> <#holes>
-  (greensyn-check-sat #:file "example.smt2" 8)
+  (greensyn-check-sat #:file "example.smt2" 8 #:time-limit 50)
  )
 
-;(syn-example)
+(syn-example)
 
 
 (define (syn-literal)
@@ -59,7 +59,7 @@
   (greensyn-check-sat #:file "literal.smt2" 4)
  )
 
-(syn-literal)
+;(syn-literal)
 
 (define (syn-mem)
   (define comm (make-vector 1))
@@ -116,8 +116,6 @@
   
   (greensyn-check-sat #:file "mem.smt2" 14)); #:time-limit 100))
 
-(syn-mem)
-
 ;;; verify
 (define (ver-example) ; unsat
   (greensyn-reset 1 1)
@@ -143,8 +141,6 @@
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
-
-(ver-mem-5)
 
 (define (ver-mem-7) ; unsat
   (greensyn-reset 4 1)
@@ -209,10 +205,10 @@
 ;; (step-program!*)
 ;; (display-data)
 
-;; (newline)
-;; (reset!)
-;; (display-data)
-;; (load-program "- nop 2/ dup dup nop over nop 2* nop a! nop")
-;; (step-program!*)
-;; (display-data)
+(newline)
+(reset!)
+(display-data)
+(load-program "@p @p nop nop 20 6 over and - @p 1 nop + nop +")
+(step-program!*)
+(display-data)
 

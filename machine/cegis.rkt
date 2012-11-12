@@ -34,7 +34,15 @@
                        (string->symbol
                         (regexp-replace "h" (format "~a" (car res)) "hlit")) model)))
         (format "~a" (vector-ref choice-id (cadr res)))))
-  (string-join (map process-instr (filter (compose is-hole car) model)) " "))
+  (define (time)
+      (let* ([name `total_time]
+             [result (assoc name model)])
+        (if result
+            (cadr result)
+            (error (format "~a not found in model!" name model)))))
+  (pretty-display (time))
+  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time))
+  )
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -101,14 +109,14 @@
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
 (define (generate-candidate program [previous-pairs '()]
-                            #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:constraint [constraint constraint-all])
+                            #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] 
+                            #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name "syn" ".smt2"))
   (greensyn-reset mem comm constraint)
   (map greensyn-add-pair previous-pairs)
-
-  (pretty-display (estimate-time program))
-  (greensyn-check-sat #:file temp-file slots #:time-limit (estimate-time program))
+  
+  (greensyn-check-sat #:file temp-file slots #:time-limit time-limit)
   
   (define z3-res (z3 temp-file))
   (define result (read-model z3-res))
@@ -127,9 +135,12 @@
                            (curry display (first previous-pairs)))
     (call-with-output-file #:exists 'truncate (temp-file-name "program")
                            (lambda (file)
-                             (and result (display (model->program result) file)))))
-  (or (and result (model->program result))
-      (error "Program cannot be written: synthesis not sat!")))
+                             (and result (display (car (model->program result)) file)))))
+  (if result
+      (model->program result)
+      null))
+;;  (or (and result (model->program result))
+;;      (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length  #:constraint [constraint constraint-all])
@@ -138,17 +149,13 @@
   (define temp-file (temp-file-name "verify" ".smt2"))
   (greensyn-reset mem comm constraint)
   (greensyn-spec spec)
-  ;(pretty-display "spec")
-  ;(pretty-display spec)
-  ;(pretty-display "candidate")
-  ;(pretty-display candidate)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
   
   (when debug
     (call-with-output-file
         #:exists 'truncate (temp-file-name "verifier")
-        (lambda (out) (and result (map (lambda (p) (display p out) (newline out)) result)))))
+      (lambda (out) (and result (map (lambda (p) (display p out) (newline out)) result)))))
   
   (unless debug (delete-file temp-file))
 
@@ -156,21 +163,36 @@
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
-(define (cegis program program-for-ver #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0] #:constraint [constraint constraint-all])
+(define (cegis program program-for-ver #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+               #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+  (pretty-display (format "time-limit = ~a" time-limit))
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
   (define prog-length (length (regexp-split " +" program-for-ver)))
   (define (go pairs)
-    (let* ([candidate (generate-candidate program pairs
-                                          #:mem mem #:comm comm #:slots slots #:constraint constraint)]
-           [new-pair (validate program-for-ver candidate #:mem mem #:comm comm prog-length #:constraint constraint)])
-      (if new-pair
-          (go (cons new-pair pairs))
-          candidate)))
+    (let ([candidate (generate-candidate program pairs
+                                         #:mem mem #:comm comm #:slots slots #:constraint constraint #:time-limit time-limit)])
+      (if (null? candidate)
+          null
+          (let ([new-pair (validate program-for-ver (car candidate) #:mem mem #:comm comm prog-length #:constraint constraint)])
+            (if new-pair
+                (go (cons new-pair pairs))
+                candidate)))))
 
   (go (list (random-pair program start))))
 
-;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
+(define (fastest-program program program-for-ver best-so-far #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+               #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+  (define candidate (cegis program program-for-ver #:mem mem #:comm comm #:slots slots #:start start 
+                           #:constraint constraint #:time-limit time-limit))
+  (if (null? candidate)
+      best-so-far
+      (fastest-program program program-for-ver candidate #:mem mem #:comm comm #:slots slots #:start start 
+               #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
+
+;; (cegis "nop @p nop nop 1" "nop 1 nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
+
+(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint constraint-only-t)

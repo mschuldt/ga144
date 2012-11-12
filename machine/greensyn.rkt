@@ -576,8 +576,9 @@
   (pretty-display `(assert (= ,(var-no-v `time 0) (_ bv0 ,TIME_SIZE))))
   (for* ([step (in-range 1 (add1 n))])
 	(generate-time-constraint step))
-  (pretty-display (format "(assert (bvult (bvsub time_~a ~a) (_ bv~a ~a)))"
-                          n (nop-offset n) time-limit TIME_SIZE)))
+  (pretty-display `(declare-const total_time ,(makeBV TIME_SIZE)))
+  (pretty-display (format "(assert (= total_time (bvsub time_~a ~a)))" n (nop-offset n)))
+  (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
 (define support '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define support-len (vector-length support))
