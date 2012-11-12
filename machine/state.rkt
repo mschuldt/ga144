@@ -45,5 +45,16 @@
 (define (estimate-time program)
   (define (guess-speed instr)
     (if (member instr (vector->list memory-op)) 10 3))
-  (apply + (map guess-speed (filter (lambda (x) (member x (vector->list choice-id)))
-                            (map string->symbol (regexp-split " +" program))))))
+  (apply + (map guess-speed (drop-trailing-nops
+                             (filter (lambda (x) (vector-member x choice-id))
+                                     (map string->symbol (regexp-split " +" program)))))))
+
+;;; Drop elements from the list while some predicate holds.
+(define (drop-while pred? list)
+  (cond
+   [(null? list) '()]
+   [(pred? (car list)) (drop-while pred? (cdr list))]
+   [else list]))
+
+(define drop-trailing-nops
+  (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
