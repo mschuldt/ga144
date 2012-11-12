@@ -18,11 +18,34 @@
 (define (z3 file)
   (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
 
+;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
+;;; numbers as numbers; otherwise compares as strings.
+(define (compare x1 x2)
+  (let ([x1-num (string->number x1)]
+        [x2-num (string->number x2)])
+    (if (and x1-num x2-num)
+        (cond [(< x1-num x2-num) 'lt]
+              [(= x1-num x2-num) 'eq]
+              [(> x1-num x2-num) 'gt])
+        (cond [(string<? x1 x2) 'lt]
+              [(string=? x1 x2) 'eq]
+              [(string>? x1 x2) 'gt]))))
+
+;;; Orders variables by name and then number.
+(define (var-name<? v1 v2)
+  (let ([v1-parts (regexp-split "_" v1)]
+        [v2-parts (regexp-split "_" v2)])
+    (equal? 'lt
+     (foldl (lambda (part res)
+              (if (equal? res 'eq)
+                  (compare (car part) (cdr part))
+                  res)) 'eq (map cons v1-parts v2-parts)))))
+
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
   (define (fun->pair fun) ; given a (define-fun ....), gives you a pair.
     `(,(list-ref fun 1) ,(list-ref fun 4)))
-  (sort (map fun->pair (cdr model)) string<? #:key (compose (curry format "~a") car)))
+  (sort (map fun->pair (cdr model)) var-name<? #:key (compose (curry format "~a") car)))
 
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
@@ -41,8 +64,7 @@
             (cadr result)
             (error (format "~a not found in model!" name)))))
   (pretty-display (time))
-  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time))
-  )
+  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time)))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -194,4 +216,4 @@
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
-(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
+;; (fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))

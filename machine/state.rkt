@@ -32,9 +32,6 @@
 	 #:recv-r [recv-r (make-vector ENTRIES 0)])
   (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
 
-;; (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-;; (define memory-op '#(@p @+ @b @ !p !+ !b !))
-
 ;;; The empty constraint. Pretty useless.
 (define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
 
