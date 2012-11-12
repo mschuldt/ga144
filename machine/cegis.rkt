@@ -18,11 +18,34 @@
 (define (z3 file)
   (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
 
+;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
+;;; numbers as numbers; otherwise compares as strings.
+(define (compare x1 x2)
+  (let ([x1-num (string->number x1)]
+        [x2-num (string->number x2)])
+    (if (and x1-num x2-num)
+        (cond [(< x1-num x2-num) 'lt]
+              [(= x1-num x2-num) 'eq]
+              [(> x1-num x2-num) 'gt])
+        (cond [(string<? x1 x2) 'lt]
+              [(string=? x1 x2) 'eq]
+              [(string>? x1 x2) 'gt]))))
+
+;;; Orders variables by name and then number.
+(define (var-name<? v1 v2)
+  (let ([v1-parts (regexp-split "_" v1)]
+        [v2-parts (regexp-split "_" v2)])
+    (equal? 'lt
+     (foldl (lambda (part res)
+              (if (equal? res 'eq)
+                  (compare (car part) (cdr part))
+                  res)) 'eq (map cons v1-parts v2-parts)))))
+
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
   (define (fun->pair fun) ; given a (define-fun ....), gives you a pair.
     `(,(list-ref fun 1) ,(list-ref fun 4)))
-  (sort (map fun->pair (cdr model)) string<? #:key (compose (curry format "~a") car)))
+  (sort (map fun->pair (cdr model)) var-name<? #:key (compose (curry format "~a") car)))
 
 ;;; Given a model, interprets the holes as instructions.
 (define (model->program model)
@@ -41,8 +64,7 @@
             (cadr result)
             (error (format "~a not found in model!" name)))))
   (pretty-display (time))
-  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time))
-  )
+  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time)))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -195,7 +217,7 @@
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
 ;;; x - (x & y)
-;(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
+(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
 
 ;;; ~ (x - y)
 ;(fastest-program "- @p nop + 1 nop + - nop" "- 1 nop + nop + -" null #:slots 8 #:constraint (constraint t))
@@ -207,13 +229,14 @@
 ;(fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" "over over and nop - 1 nop + push over over nop or a! and nop a or pop nop + nop nop nop" null #:slots 8 #:constraint (constraint t))
 
 ;;; f' in MD5
-(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" "push over - nop push and pop nop pop and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
+;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" "push over - nop push and pop nop pop and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
 
 ;;; f' in MD5 (with mask)
 ;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or @p 65535 and nop nop nop" "push over - nop push and pop nop pop and over 65535 or and or 65535 and nop nop nop" null #:slots 16 #:constraint (constraint t))
 
 ;;; g' in MD5
-(fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" "a! push a nop and pop a nop - and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
+;(fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" "a! push a nop and pop a nop - and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
 
 ;;; i' in MD5
-(fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" "a! push a nop - over 65535 nop or and or nop pop or"  null #:slots 16 #:constraint (constraint t))
+;(fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" "a! push a nop - over 65535 nop or and or nop pop or"  null #:slots 16 #:constraint (constraint t))
+
