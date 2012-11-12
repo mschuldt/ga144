@@ -1,6 +1,6 @@
 #lang racket
 
-(require racket/system "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
+(require racket/system "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
 (provide cegis)
 
@@ -156,21 +156,21 @@
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
-(define (cegis program program-for-ver #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0] #:constraint [constraint constraint-all])
+(define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0] #:constraint [constraint constraint-all])
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
-  (define prog-length (length (regexp-split " +" program-for-ver)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
                                           #:mem mem #:comm comm #:slots slots #:constraint constraint)]
-           [new-pair (validate program-for-ver candidate #:mem mem #:comm comm prog-length #:constraint constraint)])
+           [new-pair (validate (fix-@p program) candidate
+                               #:mem mem #:comm comm (program-length program) #:constraint constraint)])
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
 
   (go (list (random-pair program start))))
 
-;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
-;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
+;; (cegis "@p nop nop nop 1" #:mem 1 #:slots 4 #:constraint constraint-only-t)
+;; (cegis "@p nop nop nop 1" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
