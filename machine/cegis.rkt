@@ -194,4 +194,26 @@
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
-(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
+;;; x - (x & y)
+;(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
+
+;;; ~ (x - y)
+;(fastest-program "- @p nop + 1 nop + - nop" "- 1 nop + nop + -" null #:slots 8 #:constraint (constraint t))
+
+;;; x | y
+;(fastest-program "over over or nop a! and a nop or nop nop nop" "over over or nop a! and a nop or" null #:slots 8 #:constraint (constraint t))
+
+;;; (x | y) - (x & y)
+;(fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" "over over and nop - 1 nop + push over over nop or a! and nop a or pop nop + nop nop nop" null #:slots 8 #:constraint (constraint t))
+
+;;; f' in MD5
+(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" "push over - nop push and pop nop pop and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
+
+;;; f' in MD5 (with mask)
+;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or @p 65535 and nop nop nop" "push over - nop push and pop nop pop and over 65535 or and or 65535 and nop nop nop" null #:slots 16 #:constraint (constraint t))
+
+;;; g' in MD5
+(fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" "a! push a nop and pop a nop - and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
+
+;;; i' in MD5
+(fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" "a! push a nop - over 65535 nop or and or nop pop or"  null #:slots 16 #:constraint (constraint t))

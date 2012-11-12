@@ -133,7 +133,7 @@
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
 (define (ver-mem-5) ; unsat
-  (greensyn-reset 4 1 constraint-only-mem)
+  (greensyn-reset 4 1 (constraint memory))
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
 
@@ -205,10 +205,14 @@
 ;; (step-program!*)
 ;; (display-data)
 
-(newline)
+;; (newline)
 (reset!)
 (display-data)
-(load-program "@p @p nop nop 20 6 over and - @p 1 nop + nop +")
+(load-program "@p @p @p nop 3873 1615 3948 push over - nop push and pop nop pop and over @p 65535 or and or nop")
 (step-program!*)
 (display-data)
+
+(greensyn-reset 1 1 (constraint t))
+(greensyn-spec "push over - nop push and pop nop pop and over 65535 or and or nop")
+(greensyn-verify "ver.smt2" "a nop nop nop nop nop nop nop or nop nop drop")
 
