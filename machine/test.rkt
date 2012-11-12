@@ -19,14 +19,12 @@
 ;;; Defines a new test running the given arrayForth program followed
 ;;; by the body code. The interpreter state is reset automatically
 ;;; before the test is run.
-(define-syntax define-test
-  (syntax-rules ()
-    ((_ program statement ...)
-     (set! tests (cons (lambda ()
-                         (reset!)
-                         (load-program program)
-                         (step-program!*)
-                         statement ...) tests)))))
+(define-syntax-rule (define-test program statement ...)
+  (set! tests (cons (lambda ()
+                      (reset!)
+                      (load-program program)
+                      (step-program!*)
+                      statement ...) tests)))
 
 ;;; Helper macro for `check-unchanged?'  Checks if the given id was not
 ;;; changed after running the program. This currently assumes you
@@ -42,10 +40,8 @@
 
 ;;; Checks whether the given variables (registers/stacks/memory) were
 ;;; not changed from the start state.
-(define-syntax check-unchanged?
-  (syntax-rules ()
-    ((_ id ...)
-     (begin (check-unchanged-1 id) ...))))
+(define-syntax-rule (check-unchanged? id ...)
+     (begin (check-unchanged-1 id) ...))
 
 (define-test "@p @p + nop 2 3"
   (check-equal? p 3)

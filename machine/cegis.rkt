@@ -1,6 +1,6 @@
 #lang racket
 
-(require racket/system "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
+(require racket/system "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
 (provide cegis)
 
@@ -39,7 +39,7 @@
              [result (assoc name model)])
         (if result
             (cadr result)
-            (error (format "~a not found in model!" name model)))))
+            (error (format "~a not found in model!" name)))))
   (pretty-display (time))
   (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time))
   )
@@ -169,13 +169,12 @@
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
-  (define prog-length (length (regexp-split " +" program-for-ver)))
   (define (go pairs)
     (let ([candidate (generate-candidate program pairs
                                          #:mem mem #:comm comm #:slots slots #:constraint constraint #:time-limit time-limit)])
       (if (null? candidate)
           null
-          (let ([new-pair (validate program-for-ver (car candidate) #:mem mem #:comm comm prog-length #:constraint constraint)])
+          (let ([new-pair (validate program-for-ver (car candidate) #:mem mem #:comm comm (program-length program-for-ver) #:constraint constraint)])
             (if new-pair
                 (go (cons new-pair pairs))
                 candidate)))))
@@ -195,4 +194,4 @@
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
-(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint constraint-only-t)
+(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))

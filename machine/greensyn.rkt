@@ -1,6 +1,6 @@
 #lang racket
 
-(require "state.rkt" "stack.rkt")
+(require "programs.rkt" "state.rkt" "stack.rkt")
 
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)

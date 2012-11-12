@@ -20,11 +20,6 @@
                [data   (random-stack)]
                [return (stack 0 (make-vector 8))]))
 
-
-(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
-(define constraint-only-t (progstate #f #f #f #f #f #f #t #f #f #f))
-(define constraint-only-mem (progstate #f #f #f #f #f #f #f #f #f #t))
-
 (define ENTRIES 4)
 (define (default-commstate
 	 #:send-u [send-u (make-vector ENTRIES 0)]
@@ -37,24 +32,21 @@
 	 #:recv-r [recv-r (make-vector ENTRIES 0)])
   (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
 
-(define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define memory-op '#(@p @+ @b @ !p !+ !b !))
+;; (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+;; (define memory-op '#(@p @+ @b @ !p !+ !b !))
 
-;;; Given a string containing a forth program, gives you an estimate
-;;; of how long it would take to run.
-(define (estimate-time program)
-  (define (guess-speed instr)
-    (if (member instr (vector->list memory-op)) 10 3))
-  (apply + (map guess-speed (drop-trailing-nops
-                             (filter (lambda (x) (vector-member x choice-id))
-                                     (map string->symbol (regexp-split " +" program)))))))
+;;; The empty constraint. Pretty useless.
+(define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
 
-;;; Drop elements from the list while some predicate holds.
-(define (drop-while pred? list)
-  (cond
-   [(null? list) '()]
-   [(pred? (car list)) (drop-while pred? (cdr list))]
-   [else list]))
+;;; Constrain everything. We must have perfection!
+(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
 
-(define drop-trailing-nops
-  (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
+;;; Defines a constraint for some fields. For example, `(constraint
+;;; t)' is the same as constraint-only-t and evaluates to `(progstate
+;;; #f #f #f #f #f #f #t #f #f #f)'. If you want to constrain
+;;; everything *except* the given fields, start with the except
+;;; keyword: `(constrain except t)' constrains everything but t. 
+(define-syntax constraint
+  (syntax-rules (except)
+    ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
+    ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))))
