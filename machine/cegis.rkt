@@ -40,7 +40,12 @@
 ;;; to. This lets you get new pairs after running the validator.
 (define (model->pair model #:mem [mem 6] prog-length)
   (define (extract-state n)
-    (define (var v) (cadr (assoc (string->symbol (format "~a_~a_v0" v n)) model)))
+    (define (var v)
+      (let* ([name (string->symbol (format "~a_~a_v0" v n))]
+             [result (assoc name model)])
+        (if result
+            (cadr result)
+            (error (format "~a not found in model!" name model)))))
     (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
                (stack (var 'sp) (bytes->vector (var 'dst) 8))
                (stack (var 'rp) (bytes->vector (var 'rst) 8))
@@ -155,7 +160,7 @@
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
-  (define prog-length (length (regexp-split " +" program)))
+  (define prog-length (length (regexp-split " +" program-for-ver)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
                                           #:mem mem #:comm comm #:slots slots #:constraint constraint)]
@@ -166,6 +171,6 @@
 
   (go (list (random-pair program start))))
 
-(cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
-(cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
+;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
+;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
