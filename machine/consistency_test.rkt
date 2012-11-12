@@ -25,7 +25,7 @@
   ;; commit to add input-output pair
   (greensyn-commit)
   
-  (greensyn-gen-formula"test00.smt2" #t)
+  (greensyn-gen-formula "test00.smt2" #t)
  )
 
 ;;; add can't be right after insturctions that change s or t
@@ -52,7 +52,7 @@
   ;; commit to add input-output pair
   (greensyn-commit)
   
-  (greensyn-gen-formula"test01.smt2" #t)
+  (greensyn-gen-formula "test01.smt2" #t)
  )
 
 ;;; +* (even case)

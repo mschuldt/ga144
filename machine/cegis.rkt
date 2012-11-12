@@ -96,12 +96,13 @@
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
 (define (generate-candidate program [previous-pairs '()]
-                            #:mem [mem 6] #:comm [comm 1] #:slots [slots 30])
+                            #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:constraint [constraint constraint-all])
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name "syn" ".smt2"))
-  (greensyn-reset mem comm)
+  (greensyn-reset mem comm constraint)
   (map greensyn-add-pair previous-pairs)
 
+  (pretty-display (estimate-time program))
   (greensyn-check-sat #:file temp-file slots #:time-limit (estimate-time program))
   
   (define z3-res (z3 temp-file))
@@ -126,11 +127,11 @@
       (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length)
+(define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length  #:constraint [constraint constraint-all])
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name "verify" ".smt2"))
-  (greensyn-reset mem comm)
+  (greensyn-reset mem comm constraint)
   (greensyn-spec spec)
   ;(pretty-display "spec")
   ;(pretty-display spec)
@@ -150,20 +151,21 @@
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program.
-(define (cegis program #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0])
+(define (cegis program program-for-ver #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] #:start [start 0] #:constraint [constraint constraint-all])
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
   (define prog-length (length (regexp-split " +" program)))
   (define (go pairs)
     (let* ([candidate (generate-candidate program pairs
-                                          #:mem mem #:comm comm #:slots slots)]
-           [new-pair (validate program candidate #:mem mem #:comm comm prog-length)])
+                                          #:mem mem #:comm comm #:slots slots #:constraint constraint)]
+           [new-pair (validate program-for-ver candidate #:mem mem #:comm comm prog-length #:constraint constraint)])
       (if new-pair
           (go (cons new-pair pairs))
           candidate)))
 
   (go (list (random-pair program start))))
 
-;; (cegis "+ nop nop nop" #:mem 1 #:slots 2)
+(cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
+(cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)

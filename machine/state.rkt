@@ -20,6 +20,11 @@
                [data   (random-stack)]
                [return (stack 0 (make-vector 8))]))
 
+
+(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
+(define constraint-only-t (progstate #f #f #f #f #f #f #t #f #f #f))
+(define constraint-only-mem (progstate #f #f #f #f #f #f #f #f #f #t))
+
 (define ENTRIES 4)
 (define (default-commstate
 	 #:send-u [send-u (make-vector ENTRIES 0)]

@@ -30,7 +30,7 @@
   (greensyn-check-sat #:file "example.smt2" 8)
  )
 
-(syn-example)
+;(syn-example)
 
 
 (define (syn-literal)
@@ -56,7 +56,7 @@
   (greensyn-commit)
   
   ;; generate file for Z3 (check-sat <filename> <#holes>
-  (greensyn-check-sat #:file "literal.smt2" 3)
+  (greensyn-check-sat #:file "literal.smt2" 4)
  )
 
 (syn-literal)
@@ -129,15 +129,22 @@
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "@+ 2/ or nop @b nop 2* + !"))
 
-(define (ver-mem-5) ; unsat
+(define (ver-mem-4) ; unsat
   (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+
+(define (ver-mem-5) ; unsat
+  (greensyn-reset 4 1 constraint-only-mem)
+  (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
+  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
 
 (define (ver-mem-6) ; sat (but we should allow this by relaxing constraint)
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+
+(ver-mem-5)
 
 (define (ver-mem-7) ; unsat
   (greensyn-reset 4 1)
@@ -148,6 +155,7 @@
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "a! 0 a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+
 
 (define (syn-interp)
   (define comm (make-vector 1))

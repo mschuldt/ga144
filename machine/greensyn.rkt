@@ -60,6 +60,7 @@
 (define cand (make-vector 100))
 (define cand-lit (make-vector 100))
 (define cand-count 0) ; number of instructions in candidate program
+(define output-constraint constraint-all)
 
 (define (to-number word)
   (cond
@@ -575,7 +576,7 @@
   (pretty-display `(assert (= ,(var-no-v `time 0) (_ bv0 ,TIME_SIZE))))
   (for* ([step (in-range 1 (add1 n))])
 	(generate-time-constraint step))
-  (pretty-display (format "(assert (bvule (bvsub time_~a ~a) (_ bv~a ~a)))"
+  (pretty-display (format "(assert (bvult (bvsub time_~a ~a) (_ bv~a ~a)))"
                           n (nop-offset n) time-limit TIME_SIZE)))
 
 (define support '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
@@ -596,24 +597,36 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (assert-state state n i)
-  (when (progstate-data state)
+(define (assert-state-input state n i)
+  (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
+  (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3))
+  (pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
+  (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3))
+  (pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE))
+  (pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE))
+  (pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE))
+  (pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE))
+  (pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE))
+  (pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE)))
+
+(define (assert-state-output state n i)
+  (when (progstate-data output-constraint)
 	(pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
 	(pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3)))
-  (when (progstate-return state)
+  (when (progstate-return output-constraint)
 	(pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
 	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
-  (when (progstate-memory state)
+  (when (progstate-memory output-constraint)
 	(pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE)))
   (when (progstate-t state)
 	(pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE)))
-  (when (progstate-s state)
+  (when (progstate-s output-constraint)
 	(pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE)))
-  (when (progstate-r state)
+  (when (progstate-r output-constraint)
 	(pretty-display (format "(assert (= r_~e_v~e (_ bv~e ~e)))" n i (progstate-r state) SIZE)))
-  (when (progstate-a state)
+  (when (progstate-a output-constraint)
 	(pretty-display (format "(assert (= a_~e_v~e (_ bv~e ~e)))" n i (progstate-a state) SIZE)))
-  (when (progstate-b state)
+  (when (progstate-b output-constraint)
 	(pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))))
 
 (define (assert-comm comm n i)
@@ -635,9 +648,9 @@
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT)))
 
 (define (assert-pair input output comm n i has-out)
-  (assert-state input 0 i)
+  (assert-state-input input 0 i)
   (when has-out
-      (assert-state output n i)
+      (assert-state-output output n i)
       (assert-comm comm n i)))
 
 (define (assert-input-output n has-out)
@@ -697,17 +710,39 @@
   ;;; Assert outputs are not equal
   (define clauses (make-vector 26))
   (define index 0)
+
+  (define (vector-add var)
+    (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
+    (set! index (add1 index)))
+
   ;;; TODO: relax constraint here too
-  (for ([var `(dst rst mem t s r a b sp rp sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-       (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
-       (set! index (add1 index)))
+  (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
+       (vector-add var))
   (for* ([var `(send recv)]
 	 [channel (in-range 0 4)])
        (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
        (set! index (add1 index)))
+  (when (progstate-data output-constraint)
+	(vector-add `dst)
+	(vector-add `sp))
+  (when (progstate-return output-constraint)
+	(vector-add `rst)
+	(vector-add `rp))
+  (when (progstate-memory output-constraint)
+	(vector-add `mem))
+  (when (progstate-t output-constraint)
+	(vector-add `t))
+  (when (progstate-s output-constraint)
+	(vector-add `s))
+  (when (progstate-r output-constraint)
+	(vector-add `r))
+  (when (progstate-a output-constraint)
+	(vector-add `a))
+  (when (progstate-b output-constraint)
+	(vector-add `b))
 
   ;;; Include assumption throughtout the program
-  (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses 26 `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
+  (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses index `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -815,7 +850,9 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries)
+(define (greensyn-reset mem-entries comm-entries [constraint constraint-all])
+  (set! output-constraint constraint)
+
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
