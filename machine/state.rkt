@@ -20,10 +20,6 @@
                [data   (random-stack)]
                [return (stack 0 (make-vector 8))]))
 
-(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
-(define constraint-only-t (progstate #f #f #f #f #f #f #t #f #f #f))
-(define constraint-only-mem (progstate #f #f #f #f #f #f #f #f #f #t))
-
 (define ENTRIES 4)
 (define (default-commstate
 	 #:send-u [send-u (make-vector ENTRIES 0)]
@@ -38,3 +34,19 @@
 
 (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define memory-op '#(@p @+ @b @ !p !+ !b !))
+
+;;; The empty constraint. Pretty useless.
+(define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
+
+;;; Constrain everything. We must have perfection!
+(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
+
+;;; Defines a constraint for some fields. For example, `(constraint
+;;; t)' is the same as constraint-only-t and evaluates to `(progstate
+;;; #f #f #f #f #f #f #t #f #f #f)'. If you want to constrain
+;;; everything *except* the given fields, start with the except
+;;; keyword: `(constrain except t)' constrains everything but t. 
+(define-syntax constraint
+  (syntax-rules (except)
+    ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
+    ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))))

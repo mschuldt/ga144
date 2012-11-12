@@ -171,6 +171,6 @@
 
   (go (list (random-pair program start))))
 
-;; (cegis "@p nop nop nop 1" #:mem 1 #:slots 4 #:constraint constraint-only-t)
+;; (cegis "@p nop nop nop 1" #:mem 1 #:slots 4 #:constraint (constrain t))
 ;; (cegis "@p nop nop nop 1" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
