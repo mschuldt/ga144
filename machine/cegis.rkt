@@ -43,7 +43,7 @@
                        res)) 'eq (map cons (take v1-parts len) (take v2-parts len)))])
     (if (equal? res 'eq)
         (< (length v1-parts) (length v2-parts))
-        res)))
+        (equal? res 'lt))))
 
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
@@ -188,9 +188,10 @@
   (and result (model->pair result #:mem mem prog-length)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
-;;; returns #f and returns the valid synthesized program.
-(define (cegis program program-for-ver #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+;;; returns #f and returns the valid synthesized program. 
+(define (cegis program #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
                #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+  (define program-for-ver (fix-@p program))
   (pretty-display (format "time-limit = ~a" time-limit))
   (set! current-run (add1 current-run))
   (set! current-step 0)
@@ -207,17 +208,21 @@
 
   (go (list (random-pair program start))))
 
-(define (fastest-program program program-for-ver best-so-far #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
-               #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
-  (define candidate (cegis program program-for-ver #:mem mem #:comm comm #:slots slots #:start start 
-                           #:constraint constraint #:time-limit time-limit))
+(define (fastest-program program [best-so-far null] #:mem [mem 1]
+                         #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+                         #:constraint [constraint constraint-all]
+                         #:time-limit [time-limit (estimate-time program)])
+  (define program-for-ver (fix-@p program))
+  (define candidate (cegis program #:mem mem #:comm comm #:slots slots
+                           #:start start #:constraint constraint
+                           #:time-limit time-limit))
   (if (null? candidate)
       best-so-far
-      (fastest-program program program-for-ver candidate #:mem mem #:comm comm #:slots slots #:start start 
-               #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
+      (fastest-program program candidate #:mem mem #:comm comm #:slots slots #:start start 
+                       #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
 
 ;; (cegis "nop @p nop nop 1" "nop 1 nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
 ;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
-;; (fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
+;; (fastest-program "over and - @p 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
