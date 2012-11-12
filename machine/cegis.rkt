@@ -33,13 +33,17 @@
 
 ;;; Orders variables by name and then number.
 (define (var-name<? v1 v2)
-  (let ([v1-parts (regexp-split "_" v1)]
-        [v2-parts (regexp-split "_" v2)])
-    (equal? 'lt
-     (foldl (lambda (part res)
-              (if (equal? res 'eq)
-                  (compare (car part) (cdr part))
-                  res)) 'eq (map cons v1-parts v2-parts)))))
+  (let* ([v1-parts (regexp-split "_" v1)]
+         [v2-parts (regexp-split "_" v2)]
+         [len (min (length v1-parts) (length v2-parts))]
+         [res
+          (foldl (lambda (part res)
+                   (if (equal? res 'eq)
+                       (compare (car part) (cdr part))
+                       res)) 'eq (map cons (take v1-parts len) (take v2-parts len)))])
+    (if (equal? res 'eq)
+        (< (length v1-parts) (length v2-parts))
+        (equal? res 'lt))))
 
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
