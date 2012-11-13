@@ -41,3 +41,9 @@
 ;; (fastest-program "2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ nop nop"
 ;;                    #:slots 19 #:mem 4 #:start 5 #:constraint (constraint t))
 ;;; This one still hasn't finished yet...
+
+;;; Averaging four numbers:
+;;; (fastest-program "nop + nop + nop + 2/ nop 2/ nop nop nop"  #:slots 8 #:constraint (constraint t))
+;;; This one finished in a rather uninteresting '("+ nop + nop + 2/ 2/ nop" . 21)
+;;; It took 4970 seconds (about 80 minutes). Might be a useful data
+;;; point, but certainly not a useful example!
