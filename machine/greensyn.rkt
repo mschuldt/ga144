@@ -5,7 +5,7 @@
 ;(define TYPE `BV4)
 ;(define LOG_SIZE 2)
 
-(define SIZE 18) ; number of bits per word
+(define SIZE 4) ; number of bits per word
 
 (define TYPE (string->symbol (format "BV~e" SIZE)))
 (define MAX (sub1 (arithmetic-shift 1 SIZE)))
@@ -24,7 +24,7 @@
 (define COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
 (define COMM_BIT 3)
 
-(define TIME_SIZE 18)
+(define TIME_SIZE 16)
 
 (define U-ID 0)
 (define D-ID 1)
@@ -115,6 +115,7 @@
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
   (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm
   (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
+  (pretty-display `(define-sort ,(makeBV TIME_SIZE) () (_ BitVec ,TIME_SIZE)))     ; for time
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Generate necessary Z3 functions ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -855,8 +856,17 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] [with-mem #t])
+(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:with-mem [with-mem #t] #:num-bits [num-bits 18])
+
   (set! output-constraint constraint)
+
+  (set! SIZE num-bits) ; number of bits per word
+  (set! TYPE (string->symbol (format "BV~e" SIZE)))
+  (set! MAX (sub1 (arithmetic-shift 1 SIZE)))
+  (set! EXP_MASK (string->symbol (format "bv~e" MAX)))
+
+  (set! STACK_SIZE (* 8 SIZE))
+  (set! STACK_TYPE (string->symbol (format "BV~e" STACK_SIZE)))
 
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
