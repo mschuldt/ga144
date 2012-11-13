@@ -1,0 +1,34 @@
+#lang racket
+
+(require "cegis.rkt" "state.rkt")
+
+;;; x - (x & y)
+;(fastest-program "over and - @p 1 nop + nop +" #:slots 8 #:constraint (constraint t))
+;("- and" . 6)
+
+;;; ~ (x - y)
+;(fastest-program "- @p nop + 1 nop + - nop"  #:slots 8 #:constraint (constraint t))
+;("over - nop +" . 12)
+
+;;; x | y
+;(fastest-program "over over or nop a! and a nop or nop nop nop" #:slots 8 #:constraint (constraint t))
+;("over - and nop +" . 15)
+
+;;; (x | y) - (x & y)
+;(fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" #:slots 8 #:constraint (constraint t))
+;("or" . 3)
+
+;;; f' in MD5
+;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
+
+;;; f' in MD5 (with mask)
+;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or @p 65535 and nop nop nop" #:slots 16 #:constraint (constraint t))
+
+;;; g' in MD5
+;(fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
+
+;;; i' in MD5
+;(fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" #:slots 16 #:constraint (constraint t))
+
+;;; swap only at m is 1 xym -> - x' y'
+;(fastest-program "a! over over nop a - and nop push a and nop pop over over nop or nop a! nop and a nop nop or push a nop and push a nop - and pop nop over over or nop a! and a nop or pop nop nop" #:slots 16 #:constraint (constraint s t))
