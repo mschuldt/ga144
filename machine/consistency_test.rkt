@@ -174,8 +174,6 @@
   (greensyn-gen-formula "test05.smt2" #t)
  )
 
-;;; add can't be right after insturctions that change s or t
-;;; unsat
 (define (test06)
   (define comm (make-vector 1))
   
@@ -201,10 +199,36 @@
   (greensyn-gen-formula "test06.smt2" #t)
  )
 
-(test00)
-(test01)
-(test02)
-(test03)
-(test04)
-(test05)
-(test06)
+
+(define (test07)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1 #:num-bits 4)
+  (reset!)
+  (load-program "@p nop + @p 7 8 - @p nop + 1 and nop nop nop")
+  (greensyn-spec "7 nop + 8 - 1 nop + and")
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!*)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  (greensyn-gen-formula "test07.smt2" #t)
+ )
+
+;; (test00)
+;; (test01)
+;; (test02)
+;; (test03)
+;; (test04)
+;; (test05)
+(test07)

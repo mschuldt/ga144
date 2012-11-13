@@ -17,7 +17,6 @@
 (define MEM_ENTRIES 3)
 (define MEM_SIZE (* MEM_ENTRIES SIZE))
 (define MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
-(define WITH_MEM #t)
 
 (define COMM_ENTRIES 4)
 (define COMM_SIZE (* COMM_ENTRIES SIZE))
@@ -62,6 +61,7 @@
 (define cand-lit (make-vector 100))
 (define cand-count 0) ; number of instructions in candidate program
 (define output-constraint constraint-all)
+(define SUPPORT `all)
 
 (define (to-number word)
   (cond
@@ -582,12 +582,15 @@
   (pretty-display (format "(assert (= total_time (bvsub time_~a ~a)))" n (nop-offset n)))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
-(define support-with-mem '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
+(define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define (support)
-  (if WITH_MEM
-      support-with-mem
-      support-no-mem))
+  (cond
+   [(equal? SUPPORT `all) support-all]
+   [(equal? SUPPORT `no-mem) support-no-mem]
+   [(equal? SUPPORT `no-mem-no-p) support-no-mem-no-p]))
+
 (define (support-len) (vector-length (support)))
  
 (define (generate-formula step n version name syn)
@@ -810,7 +813,7 @@
 (define (vec-to-bits-inner vec vec-size)
   (define bits 0)
   (for* ([i (in-range 0 vec-size)])
-    (set! bits (+ (arithmetic-shift bits SIZE) (vector-ref vec (- (- vec-size i) 1)))))
+    (set! bits (+ (arithmetic-shift bits SIZE) (modulo (vector-ref vec (- (- vec-size i) 1)) (arithmetic-shift 1 SIZE)))))
   bits)
 (define (vec-to-bits vec vec-size)
   (if (vector? vec)
@@ -856,9 +859,9 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:with-mem [with-mem #t] #:num-bits [num-bits 18])
-
+(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:num-bits [num-bits 18] #:inst-pool [support `all] )
   (set! output-constraint constraint)
+  (set! SUPPORT support)
 
   (set! SIZE num-bits) ; number of bits per word
   (set! TYPE (string->symbol (format "BV~e" SIZE)))
@@ -871,7 +874,6 @@
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
-  (set! WITH_MEM with-mem)
 
   (set! COMM_ENTRIES comm-entries)
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
