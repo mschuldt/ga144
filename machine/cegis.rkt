@@ -83,9 +83,9 @@
             (cadr result)
             (error (format "~a not found in model!" name model)))))
     (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
-               (stack (var 'sp) (bytes->vector (var 'dst) 8))
-               (stack (var 'rp) (bytes->vector (var 'rst) 8))
-               (bytes->vector (var 'mem) mem)))
+               (stack (var 'sp) (var 'dst))
+               (stack (var 'rp) (var 'rst))
+               (var 'mem)))
   `(,(extract-state 0) ,(extract-state prog-length)))
 
 ;;; Parses the given bitvector into a vector of 18bit numbers.
