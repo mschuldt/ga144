@@ -747,7 +747,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (synthesize-prog n has-prog has-out [time-limit 0])
+(define (synthesize-prog n has-prog has-out [time-limit #f])
   (declare-bitvector)
   (declare-functions)
   (newline)
@@ -761,9 +761,7 @@
   (newline)
   (assert-input-output n has-out)
   (newline)
-  (if (> time-limit 0)
-      (generate-time-constraints n time-limit)
-      (void))
+  (when time-limit (generate-time-constraints n time-limit))
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))

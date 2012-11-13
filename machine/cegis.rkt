@@ -208,18 +208,25 @@
 
   (go (list (random-pair program start))))
 
-(define (fastest-program program [best-so-far null] #:mem [mem 1]
-                         #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+(define (fastest-program program [best-so-far null]
+                         #:mem        [mem 1]
+                         #:comm       [comm 1]
+                         #:slots      [slots (program-length program)]
+                         #:start      [start mem] 
                          #:constraint [constraint constraint-all]
                          #:time-limit [time-limit (estimate-time program)])
+  (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
   (define candidate (cegis program #:mem mem #:comm comm #:slots slots
                            #:start start #:constraint constraint
                            #:time-limit time-limit))
-  (if (null? candidate)
-      best-so-far
-      (fastest-program program candidate #:mem mem #:comm comm #:slots slots #:start start 
-                       #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
+  (define result (if (null? candidate)
+                     best-so-far
+                     (fastest-program program candidate #:mem mem #:comm comm #:slots slots #:start start 
+                                      #:constraint constraint #:time-limit (cdr candidate))))
+  (when debug (display (format "Time: ~a seconds." (- (current-seconds) start-time)))
+        (newline))
+  result)
 
 ;; (cegis "nop @p nop nop 1" "nop 1 nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
 ;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
