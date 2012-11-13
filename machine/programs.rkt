@@ -47,3 +47,12 @@
 
 ;;; Returns the length of the program.
 (define program-length (compose length program->instructions))
+
+;;; Returns #t if every + except the first is precedeed by a nop.
+(define (nop-before-plus? program)
+  (define (go instrs)
+    (cond
+     [(or (null? instrs) (null? (rest instrs))) #t]
+     [(and (equal? (second instrs) "+") (not (equal? (first instrs) "nop"))) #f]
+     [else (go (rest instrs))]))
+  (go (program->instructions (fix-@p program))))

@@ -191,6 +191,7 @@
 ;;; returns #f and returns the valid synthesized program. 
 (define (cegis program #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
                #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+  (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
   (pretty-display (format "time-limit = ~a" time-limit))
   (set! current-run (add1 current-run))
