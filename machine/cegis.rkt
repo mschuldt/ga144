@@ -2,7 +2,7 @@
 
 (require racket/system "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
-(provide cegis)
+(provide cegis fastest-program)
 
 (define debug #t)
 (define current-step 0) ; the number of the current cegis step
@@ -139,7 +139,7 @@
                             #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name "syn" ".smt2"))
-  (greensyn-reset mem comm constraint)
+  (greensyn-reset mem comm constraint #f)
   (map greensyn-add-pair previous-pairs)
   
   (greensyn-check-sat #:file temp-file slots #:time-limit time-limit)
@@ -173,7 +173,7 @@
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name "verify" ".smt2"))
-  (greensyn-reset mem comm constraint)
+  (greensyn-reset mem comm constraint #f)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
@@ -228,8 +228,4 @@
         (newline))
   result)
 
-;; (cegis "nop @p nop nop 1" "nop 1 nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
-;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
-;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
 
-;; (fastest-program "over and - @p 1 nop + nop +" null #:slots 8 #:constraint (constraint t))

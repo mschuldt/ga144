@@ -8,7 +8,7 @@
   (define comm (make-vector 1))
   
   ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (greensyn-reset 1 1)
+  (greensyn-reset 1 1 constraint-all #f)
   (reset!)
   (load-program "- 2/ dup dup dup + a! dup")
   
@@ -133,7 +133,7 @@
   (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
 
 (define (ver-mem-5) ; unsat
-  (greensyn-reset 4 1 constraint-only-mem)
+  (greensyn-reset 4 1 (constraint memory))
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
 
@@ -205,10 +205,21 @@
 ;; (step-program!*)
 ;; (display-data)
 
-(newline)
+;; (newline)
 (reset!)
 (display-data)
-(load-program "@p @p nop nop 20 6 over and - @p 1 nop + nop +")
+;(load-program "@p @p @p nop 22 12 21 a! over over nop a - and nop push a and nop pop over over nop or nop a! nop and a nop nop or push a nop and push a nop - and pop nop over over or nop a! and a nop or pop nop nop")
+(load-program "
+@p @p @p nop 22 12 21 a! over over nop a - and nop push a and nop pop 
+over over nop or nop push nop and pop nop nop or 
+push 
+a nop and push a nop - and pop nop 
+over over or nop push and pop nop or 
+pop nop nop")
 (step-program!*)
 (display-data)
+
+;; (greensyn-reset 1 1 (constraint t))
+;; (greensyn-spec "push over - nop push and pop nop pop and over 65535 or and or nop")
+;; (greensyn-verify "ver.smt2" "a nop nop nop nop nop nop nop or nop nop drop")
 

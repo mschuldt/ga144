@@ -17,6 +17,7 @@
 (define MEM_ENTRIES 3)
 (define MEM_SIZE (* MEM_ENTRIES SIZE))
 (define MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
+(define WITH_MEM #t)
 
 (define COMM_ENTRIES 4)
 (define COMM_SIZE (* COMM_ENTRIES SIZE))
@@ -580,16 +581,21 @@
   (pretty-display (format "(assert (= total_time (bvsub time_~a ~a)))" n (nop-offset n)))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
-(define support '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define support-len (vector-length support))
+(define support-with-mem '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
+(define (support)
+  (if WITH_MEM
+      support-with-mem
+      support-no-mem))
+(define (support-len) (vector-length (support)))
  
 (define (generate-formula step n version name syn)
-  (define clauses (make-vector support-len))
+  (define clauses (make-vector (support-len)))
   (when (= (modulo step 4) 0)
 	(pretty-display (format "(assert (= (_ bv0 2) ((_ extract 1 0) ~a_~a)))" name step)))
-  (for* ([i (in-range 0 (vector-length support))])
-	(vector-set! clauses i (generate-choice (vector-ref support i) step n version name syn)))
-  (pretty-display `(assert ,(conjunct clauses support-len `or))))
+  (for* ([i (in-range 0 (support-len))])
+	(vector-set! clauses i (generate-choice (vector-ref (support) i) step n version name syn)))
+  (pretty-display `(assert ,(conjunct clauses (support-len) `or))))
 
 (define (generate-formulas n from to name syn)
   (for* ([version (in-range from to)]
@@ -849,12 +855,13 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries [constraint constraint-all])
+(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] [with-mem #t])
   (set! output-constraint constraint)
 
   (set! MEM_ENTRIES mem-entries)
   (set! MEM_SIZE (* MEM_ENTRIES SIZE))
   (set! MEM_TYPE (string->symbol (format "BV~e" MEM_SIZE)))
+  (set! WITH_MEM with-mem)
 
   (set! COMM_ENTRIES comm-entries)
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
