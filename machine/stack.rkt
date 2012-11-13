@@ -13,7 +13,7 @@
 ;;; Print a circular stack:
 (define (display-stack stack)
   (for [(i (in-range 0 8))]
-       (display (format " ~x" (vector-ref (stack-body stack)
+       (display (format " ~b" (vector-ref (stack-body stack)
                                           (modulo (- (stack-sp stack) i) 8))))))
 
 ;;; Pushes a value to the given stack's body.

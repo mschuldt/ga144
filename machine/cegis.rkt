@@ -2,7 +2,7 @@
 
 (require racket/system "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
-(provide cegis)
+(provide cegis fastest-program)
 
 (define debug #t)
 (define current-step 0) ; the number of the current cegis step
@@ -43,7 +43,7 @@
                        res)) 'eq (map cons (take v1-parts len) (take v2-parts len)))])
     (if (equal? res 'eq)
         (< (length v1-parts) (length v2-parts))
-        res)))
+        (equal? res 'lt))))
 
 ;;; Creates an alist of variable names and values from a z3 model.
 (define (extract-model model)
@@ -139,7 +139,7 @@
                             #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name "syn" ".smt2"))
-  (greensyn-reset mem comm constraint)
+  (greensyn-reset mem comm constraint #f)
   (map greensyn-add-pair previous-pairs)
   
   (greensyn-check-sat #:file temp-file slots #:time-limit time-limit)
@@ -173,7 +173,7 @@
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name "verify" ".smt2"))
-  (greensyn-reset mem comm constraint)
+  (greensyn-reset mem comm constraint #f)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
@@ -188,9 +188,10 @@
   (and result (model->pair result #:mem mem prog-length)))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
-;;; returns #f and returns the valid synthesized program.
-(define (cegis program program-for-ver #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+;;; returns #f and returns the valid synthesized program. 
+(define (cegis program #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
                #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+  (define program-for-ver (fix-@p program))
   (pretty-display (format "time-limit = ~a" time-limit))
   (set! current-run (add1 current-run))
   (set! current-step 0)
@@ -207,40 +208,17 @@
 
   (go (list (random-pair program start))))
 
-(define (fastest-program program program-for-ver best-so-far #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
-               #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
-  (define candidate (cegis program program-for-ver #:mem mem #:comm comm #:slots slots #:start start 
-                           #:constraint constraint #:time-limit time-limit))
+(define (fastest-program program [best-so-far null] #:mem [mem 1]
+                         #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
+                         #:constraint [constraint constraint-all]
+                         #:time-limit [time-limit (estimate-time program)])
+  (define program-for-ver (fix-@p program))
+  (define candidate (cegis program #:mem mem #:comm comm #:slots slots
+                           #:start start #:constraint constraint
+                           #:time-limit time-limit))
   (if (null? candidate)
       best-so-far
-      (fastest-program program program-for-ver candidate #:mem mem #:comm comm #:slots slots #:start start 
-               #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
+      (fastest-program program candidate #:mem mem #:comm comm #:slots slots #:start start 
+                       #:constraint constraint #:time-limit (sub1 (cdr candidate)))))
 
-;; (cegis "nop @p nop nop 1" "nop 1 nop nop" #:mem 1 #:slots 4 #:constraint constraint-only-t)
-;; (cegis "@p nop nop nop 1" "1 nop nop nop" #:mem 1 #:slots 4)
-;; (cegis "- 2/ dup dup dup + a! dup" #:mem 4 #:slots 10)
-
-;;; x - (x & y)
-(fastest-program "over and - @p 1 nop + nop +" "over and - 1 nop + nop +" null #:slots 8 #:constraint (constraint t))
-
-;;; ~ (x - y)
-;(fastest-program "- @p nop + 1 nop + - nop" "- 1 nop + nop + -" null #:slots 8 #:constraint (constraint t))
-
-;;; x | y
-;(fastest-program "over over or nop a! and a nop or nop nop nop" "over over or nop a! and a nop or" null #:slots 8 #:constraint (constraint t))
-
-;;; (x | y) - (x & y)
-;(fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" "over over and nop - 1 nop + push over over nop or a! and nop a or pop nop + nop nop nop" null #:slots 8 #:constraint (constraint t))
-
-;;; f' in MD5
-;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" "push over - nop push and pop nop pop and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
-
-;;; f' in MD5 (with mask)
-;(fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or @p 65535 and nop nop nop" "push over - nop push and pop nop pop and over 65535 or and or 65535 and nop nop nop" null #:slots 16 #:constraint (constraint t))
-
-;;; g' in MD5
-;(fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" "a! push a nop and pop a nop - and over 65535 or and or" null #:slots 16 #:constraint (constraint t))
-
-;;; i' in MD5
-;(fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" "a! push a nop - over 65535 nop or and or nop pop or"  null #:slots 16 #:constraint (constraint t))
 

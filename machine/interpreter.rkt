@@ -55,7 +55,7 @@
 
 ;;; Print the data stack:
 (define (display-data)
-  (display (format "|d> ~x ~x" t s))
+  (display (format "|d> ~b ~b" t s))
   (display-stack data)
   (newline))
 
