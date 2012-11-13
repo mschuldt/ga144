@@ -32,3 +32,12 @@
 
 ;;; swap only at m is 1 xym -> - x' y'
 ;(fastest-program "a! over over nop a - and nop push a and nop pop over over nop or nop a! nop and a nop nop or push a nop and push a nop - and pop nop over over or nop a! and a nop or pop nop nop" #:slots 16 #:constraint (constraint s t))
+
+;;; round x up to the nearest multiple of 8:
+;; (fastest-program "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:slots 14 #:constraint constraint-all)
+;; '("7 nop + 262136 a a! and nop nop nop nop nop nop nop" . 35)
+
+;;; Get the most significant bit of a number by shifting it right 17 times.
+;; (fastest-program "2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ nop nop"
+;;                    #:slots 19 #:mem 4 #:start 5 #:constraint (constraint t))
+;;; This one still hasn't finished yet...
