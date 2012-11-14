@@ -327,8 +327,8 @@
                (set! check_t 
 		     (if (= step 1)
 			 (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i)
-			 (format "(and (= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e)) (and (= t_~e_v~e t_~e_v~e) (= s_~e_v~e s_~e_v~e)))" 
-					 step i prev i prev i     (- step 1) i (- step 2) i     (- step 1) i (- step 2) i)))
+			 (format "(and (= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e)) (= ~a_~a (_ bv~a ~a)))" 
+				 step i prev i prev i     name prev (vector-member 'nop choice-id) HOLE_BIT)))
                (shrink)]
     ; and
     [(equal? choice `and)
