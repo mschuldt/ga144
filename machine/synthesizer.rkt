@@ -199,41 +199,32 @@
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
-;; (reset!)
-;; (display-data)
-;; (load-program "- 2/ dup dup dup + a! dup")
+(greensyn-reset 1 1 #:num-bits 18)
+(greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
+(greensyn-verify "ver.smt2" "a! over over nop or dup push nop a and or dup pop or over")
+
+;; (reset! 18)
+;; (define my-state (random-state #x4000))
+;; (load-state! my-state)
+;; ;(display-data)
+;; (load-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop nop")
+;; (display-state)
 ;; (step-program!*)
-;; (display-data)
+;; (display-state)
 
 ;; (newline)
-;; (reset!)
-;; (display-data)
-;; (load-program "
-;; @p @p @p nop 22 12 21 a! over over nop a - and nop push a and nop pop 
-;; over over nop or push and nop pop or 
-;; push nop 
-;; a and push nop a - and nop pop 
-;; over over nop or push and nop pop or 
-;; pop nop")
+;; (reset! 18)
+;; (load-state! my-state)
+;; ;(display-data)
+;; (load-program "a! over over nop or a and nop over or push nop over or a nop and or dup nop pop nop nop nop")
 ;; (step-program!*)
-;; (display-data)
+;; (display-state)
 
-;; (greensyn-reset 1 1 constraint-all #:num-bits 18)
-;; (greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or")
-;; (greensyn-verify "ver.smt2" "a! over a dup push and over dup pop or and dup dup or or nop +")
 
-(reset!)
-(define my-state (random-state #xf))
-(load-state! my-state)
-(display-data)
-(load-program "a! push a nop and pop a nop - and over @p 15 or and or nop")
-(step-program!*)
-(display-data)
-
-(newline)
-(reset!)
-(load-state! my-state)
-(display-data)
-(load-program "a! a - nop and push a nop and pop dup @p 15 and and or nop")
-(step-program!*)
-(display-data)
+;; (newline)
+;; (reset! 18)
+;; (load-state! my-state)
+;; ;(display-data)
+;; (load-program "a! over over nop or dup push nop a and or dup pop or over nop")
+;; (step-program!*)
+;; (display-state)

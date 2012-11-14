@@ -77,7 +77,7 @@
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
 (define (display-state)
-  (display (format "p:~a a:~a" p a))
+  (pretty-display (format "p:~a a:~a r:~a" p a r))
   (display-data))
 
 ;;; Loads the given program into memory at the given start

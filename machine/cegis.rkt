@@ -2,7 +2,8 @@
 
 (require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
-(provide cegis fastest-program)
+(provide cegis fastest-program fastest-program2 fastest-program3)
+(provide estimate-time program-length)
 
 (define debug #t)
 (define current-step 0) ; the number of the current cegis step
@@ -69,7 +70,7 @@
         (if result
             (cadr result)
             (error (format "~a not found in model!" name)))))
-  (pretty-display (time))
+  ;(pretty-display (time))
   (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time)))
 
 ;;; Given a model, extract the input/output pair it corresponds
@@ -202,7 +203,7 @@
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
-  (pretty-display (format "time-limit = ~a" time-limit))
+  (pretty-display (format "time-limit = ~a, slots = ~a" time-limit slots))
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
@@ -243,4 +244,65 @@
         (newline))
   result)
 
+(define (fastest-program2 program [best-so-far null]
+			 #:name       [name "prog"]
+                         #:mem        [mem 1]
+                         #:comm       [comm 1]
+                         #:slots      [slots (+ (program-length-abs program) 2)]
+                         #:start      [start mem] 
+                         #:constraint [constraint constraint-all]
+                         #:time-limit [time-limit (estimate-time program)]
+			 #:num-bits  [num-bits 18]
+			 #:inst-pool [inst-pool `all])
+  (define candidate (cegis program #:name name
+			   #:mem mem #:comm comm #:slots slots 
+			   #:start start 
+			   #:constraint constraint #:time-limit time-limit
+			   #:num-bits num-bits #:inst-pool inst-pool))
+  (define result (if (null? candidate)
+                     best-so-far
+                     (fastest-program2 program candidate 
+				       #:name name #:mem mem #:comm comm 
+				       #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
+				       #:start start 
+				       #:constraint constraint #:time-limit (cdr candidate)
+				       #:num-bits num-bits #:inst-pool inst-pool)))
+  result)
+
+(define (binary-search slot-min slot-max program name mem comm start constraint time-limit num-bits inst-pool [best-so-far null])
+  (pretty-display (format "slot-min = ~a, slot-max = ~a" slot-min slot-max))
+  (if (> slot-min slot-max)
+      best-so-far
+      (let* ([slot-mid (quotient (+ slot-min slot-max) 2)]
+	     [candidate (cegis program 
+			       #:name name
+			       #:mem mem #:comm comm #:slots slot-mid #:start start 
+			       #:constraint constraint #:time-limit time-limit
+			       #:num-bits num-bits #:inst-pool inst-pool)])
+	(if (equal? candidate null)
+	    (if (equal? best-so-far null)
+		(binary-search (add1 slot-mid) slot-max program name mem comm start constraint time-limit num-bits inst-pool best-so-far)
+		best-so-far)
+	    (binary-search slot-min slot-mid program name mem comm start constraint time-limit num-bits inst-pool candidate)))))
+
+(define (fastest-program3 program [best-so-far null]
+			  #:name       [name "prog"]
+			  #:mem        [mem 1]
+			  #:comm       [comm 1]
+			  #:slots      [slots (+ (program-length-abs program) 2)]
+			  #:start      [start mem] 
+			  #:constraint [constraint constraint-all]
+			  #:time-limit [time-limit (estimate-time program)]
+			  #:num-bits  [num-bits 18]
+			  #:inst-pool [inst-pool `all])
+  (define candidate (binary-search 1 slots program name 
+				   mem comm start constraint time-limit num-bits inst-pool))
+  (if (equal? candidate null)
+      null
+      (fastest-program2 program candidate 
+			#:name name #:mem mem #:comm comm 
+			#:slots (min (+ (program-length-abs (car candidate)) 2) slots)
+			#:start start 
+			#:constraint constraint #:time-limit (cdr candidate)
+			#:num-bits num-bits #:inst-pool inst-pool)))
 

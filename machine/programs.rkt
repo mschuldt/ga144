@@ -48,6 +48,9 @@
 ;;; Returns the length of the program.
 (define program-length (compose length program->instructions))
 
+(define (program-length-abs prog) 
+  (program-length (string-trim (fix-@p prog) " nop" #:repeat? #t)))
+
 ;;; Returns #t if every + except the first is precedeed by a nop.
 (define (nop-before-plus? program)
   (define (go instrs)

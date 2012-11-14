@@ -17,6 +17,9 @@
 ;;; empty.
 (define (random-state [max-size #x40000])
   (struct-copy progstate start-state
+               [a      (random max-size)]
+               [b      (random max-size)]
+               [r      (random max-size)]
                [s      (random max-size)]
                [t      (random max-size)]
                [data   (random-stack max-size)]

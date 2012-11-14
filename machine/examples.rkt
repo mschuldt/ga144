@@ -1,66 +1,6 @@
 #lang racket
 
-(require "cegis.rkt" "state.rkt")
-
-;;; x - (x & y)
-;(fastest-program "over and - @p 1 nop + nop +" #:slots 8 #:constraint (constraint t))
-;("- and" . 6)
-
-;;; ~ (x - y)
-;; (pretty-display "~ (x - y)")
-;; (fastest-program "- @p nop + 1 nop + - nop"  #:slots 8 #:constraint (constraint t))
-;; ("over - nop +" . 12)
-
-;; ;;; x | y
-;; (pretty-display "x | y")
-;; (fastest-program "over over or nop a! and a nop or nop nop nop" #:slots 8 #:constraint (constraint t))
-;; ("over - and nop +" . 15)
-
-;;; (x | y) - (x & y)
-;; (pretty-display "(x | y) - (x & y)")
-;; (fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" #:slots 8 #:constraint (constraint t) #:num-bits 4)
-;; ("or" . 3)
-
-;;; swap only at m is 1 xym -> - y'
-;; (pretty-display "swap only at m (y') 4-bit no-mem-no-p constraint-all")
-;; (fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:slots 22 #:num-bits 4 #:inst-pool `no-mem-no-p)
-;("dup over over + push pop 2/ + a! +* pop + 2* a dup + push nop nop nop nop nop" . 51)
-
-
-;;; swap only at m is 1 xym -> - x' y'
-;; (pretty-display "swap only at m (x' y')")
-;; (fastest-program "a! over over nop a - and nop push a and nop pop 
-;; over over nop or push and nop pop nop nop nop or 
-;; push 
-;; a nop and push a nop - and pop nop 
-;; over over or nop push and pop nop or 
-;; pop nop nop" #:slots 16 #:constraint (constraint s t) #:num-bits 4)
-
-;; ;;; round x up to the nearest multiple of 8:
-;; (pretty-display "nearest multiple of 8 (4 bit)")
-;; (fastest-program "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:slots 14 #:constraint (constraint t) #:num-bits 4)
-;; ;; (fastest-program "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:slots 14 #:constraint constraint-all)
-;; ;; '("7 nop + 262136 a a! and nop nop nop nop nop nop nop" . 35)
-
-;;; f' in MD5
-(pretty-display "f'")
-(fastest-program "push over - nop push and pop nop pop and over @p 15 or and or nop" #:slots 16 #:num-bits 6 #:inst-pool `no-mem)
-;; (fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
-
-;;; f' in MD5 (with mask)
-;; (pretty-display "f' (with mask)")
-;; (fastest-program "push over - nop push and pop nop pop and over @p 15 or and or @p 15 and nop nop nop" #:slots 16 #:constraint constraint-all #:num-bits 6 #:inst-pool `no-mem)
-;; (fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or @p 65535 and nop nop nop" #:slots 16 #:constraint (constraint t))
-
-;; ;;; g' in MD5
-(pretty-display "g'")
-(fastest-program "a! push a nop and pop a nop - and over @p 15 or and or nop" #:slots 16 #:constraint constraint-all #:num-bits 6 #:inst-pool `no-mem)
-;; ;; (fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
-
-;; ;;; i' in MD5
-(pretty-display "i'")
-(fastest-program "a! push a nop - over @p nop 15 or and or nop pop or nop nop" #:slots 16 #:constraint constraint-all #:num-bits 6 #:inst-pool `no-mem)
-;; ;; (fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" #:slots 16 #:constraint (constraint t))
+(require racket/system "cegis.rkt" "state.rkt")
 
 ;; ;;; Get the most significant bit of a number by shifting it right 17 times.
 ;; (pretty-display "shift right")
@@ -73,3 +13,28 @@
 ;;; This one finished in a rather uninteresting '("+ nop + nop + 2/ 2/ nop" . 21)
 ;;; It took 4970 seconds (about 80 minutes). Might be a useful data
 ;;; point, but certainly not a useful example!
+
+;; (set! start-time (current-seconds))
+;; (pretty-display "swap only at m (x' y') (second part)")
+;; (fastest-program3 "push nop a nop and push a nop - and nop nop pop over over nop or push and nop pop or pop nop" #:name "swap2" #:constraint (constraint s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
+;; (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))
+
+;; (set! start-time (current-seconds))
+;; (pretty-display "swap only at m (x' y') (first part)")
+;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop" #:name "swap1" #:constraint (constraint a r s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
+;; (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))
+
+;; (set! start-time (current-seconds))
+;; (pretty-display "nearest multiple of 8 (4-bit)")
+;; (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 4 #:inst-pool `no-mem)
+;; (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))
+
+;; (set! start-time (current-seconds))
+;; (pretty-display "nearest multiple of 8 (8-bit)")
+;; (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
+;; (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))
+
+(set! start-time (current-seconds))
+(pretty-display "swap only at m (x' y') (complete version)")
+(fastest-program3 "a! over over nop or a and nop over or push nop over or a nop and or dup nop pop nop nop nop" #:name "roundup" #:constraint (constraint s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
+(pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))
