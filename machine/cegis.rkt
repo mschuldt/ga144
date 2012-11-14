@@ -11,9 +11,9 @@
 ;;; Returns a file name with the given prefix, containing the current
 ;;; step and run. You can also optionally specify a suffix like
 ;;; `.smt2'. Note that the `.' in `.smt2' is not added automatically.
-(define (temp-file-name prefix [suffix ""])
-  (format "debug-~a-~a-~a-~a~a" prefix current-run current-step 
-	  (substring (sha1 (open-input-string (format "~a" (current-inexact-milliseconds)))) 0 10)
+(define (temp-file-name name prefix [suffix ""])
+  (format "debug-~a-~a-~a-~a~a" name prefix current-run current-step 
+	  ;(substring (sha1 (open-input-string (format "~a" (current-inexact-milliseconds)))) 0 10)
 	  suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
@@ -136,9 +136,9 @@
 ;;; pairs are specified, seed the process with a randomly generated
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
-(define (generate-candidate program  previous-pairs mem comm slots constraint time-limit num-bits inst-pool)
+(define (generate-candidate program previous-pairs name mem comm slots constraint time-limit num-bits inst-pool)
   (when (null? previous-pairs) (error "No input/output pairs given!"))
-  (define temp-file (temp-file-name "syn" ".smt2"))
+  (define temp-file (temp-file-name name "syn" ".smt2"))
   (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
   (map greensyn-add-pair previous-pairs)
   
@@ -150,16 +150,16 @@
   (unless debug (delete-file temp-file))
 
   (when debug
-    (call-with-output-file #:exists 'truncate (temp-file-name "syn-model")
+    (call-with-output-file #:exists 'truncate (temp-file-name name "syn-model")
                            (curry display z3-res))
-    (call-with-output-file #:exists 'truncate (temp-file-name "syn-result")
+    (call-with-output-file #:exists 'truncate (temp-file-name name "syn-result")
                            (lambda (out)
                              (and result
                                   (map (lambda (p)
                                          (display p out) (newline out)) result))))
-    (call-with-output-file #:exists 'truncate (temp-file-name "pair")
+    (call-with-output-file #:exists 'truncate (temp-file-name name "pair")
                            (curry display (first previous-pairs)))
-    (call-with-output-file #:exists 'truncate (temp-file-name "program")
+    (call-with-output-file #:exists 'truncate (temp-file-name name "program")
                            (lambda (file)
                              (and result (display (car (model->program result)) file)))))
   (if result
@@ -169,10 +169,10 @@
 ;;      (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate mem comm prog-length constraint num-bits inst-pool)
+(define (validate spec candidate name mem comm prog-length constraint num-bits inst-pool)
   (set! current-step (add1 current-step))
 
-  (define temp-file (temp-file-name "verify" ".smt2"))
+  (define temp-file (temp-file-name name "verify" ".smt2"))
   (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
@@ -180,7 +180,7 @@
   
   (when debug
     (call-with-output-file
-        #:exists 'truncate (temp-file-name "verifier")
+        #:exists 'truncate (temp-file-name name "verifier")
       (lambda (out) (and result (map (lambda (p) (display p out) (newline out)) result)))))
   
   (unless debug (delete-file temp-file))
@@ -190,6 +190,7 @@
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program. 
 (define (cegis program 
+	       #:name [name "prog"]
 	       #:mem [mem 1] 
 	       #:comm [comm 1] 
 	       #:slots [slots 30] 
@@ -205,10 +206,10 @@
   (set! current-step 0)
 
   (define (go pairs)
-    (let ([candidate (generate-candidate program pairs mem comm slots constraint time-limit num-bits inst-pool)])
+    (let ([candidate (generate-candidate program pairs name mem comm slots constraint time-limit num-bits inst-pool)])
       (if (null? candidate)
           null
-          (let ([new-pair (validate program-for-ver (car candidate) mem comm (program-length program-for-ver) constraint num-bits inst-pool)])
+          (let ([new-pair (validate program-for-ver (car candidate) name mem comm (program-length program-for-ver) constraint num-bits inst-pool)])
             (if new-pair
                 (go (cons new-pair pairs))
                 candidate)))))
@@ -216,23 +217,24 @@
   (go (list (random-pair program start))))
 
 (define (fastest-program program [best-so-far null]
+			 #:name       [name "prog"]
                          #:mem        [mem 1]
                          #:comm       [comm 1]
                          #:slots      [slots (program-length program)]
                          #:start      [start mem] 
                          #:constraint [constraint constraint-all]
-                         #:time-limit [time-limit (estimate-time program)]
+                         #:time-limit [time-limit (add1 (estimate-time program))]
 			 #:num-bits  [num-bits 18]
 			 #:inst-pool [inst-pool `all])
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
-  (define candidate (cegis program 
+  (define candidate (cegis program #:name name
 			   #:mem mem #:comm comm #:slots slots #:start start 
 			   #:constraint constraint #:time-limit time-limit
 			   #:num-bits num-bits #:inst-pool inst-pool))
   (define result (if (null? candidate)
                      best-so-far
-                     (fastest-program program candidate 
+                     (fastest-program program candidate #:name name
 				      #:mem mem #:comm comm #:slots slots #:start start 
                                       #:constraint constraint #:time-limit (cdr candidate)
 				      #:num-bits num-bits #:inst-pool inst-pool)))

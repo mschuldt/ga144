@@ -210,15 +210,30 @@
 ;; (display-data)
 ;; (load-program "
 ;; @p @p @p nop 22 12 21 a! over over nop a - and nop push a and nop pop 
-;; over over nop or nop push nop and pop nop nop or 
-;; push 
-;; a nop and push a nop - and pop nop 
-;; over over or nop push and pop nop or 
-;; pop nop nop")
+;; over over nop or push and nop pop or 
+;; push nop 
+;; a and push nop a - and nop pop 
+;; over over nop or push and nop pop or 
+;; pop nop")
 ;; (step-program!*)
 ;; (display-data)
 
 (greensyn-reset 1 1 constraint-all #:num-bits 8)
-(greensyn-spec "7 nop + 8 - 1 nop + and")
-(greensyn-verify "ver.smt2" "7 nop + 248 a a! and")
+(greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or")
+(greensyn-verify "ver.smt2" "dup over over + push pop 2/ + a! +* pop + 2* a dup + push")
 
+;; (reset! 8)
+;; (define my-state (random-state))
+;; (load-state! my-state)
+;; (display-data)
+;; (load-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop")
+;; (step-program!*)
+;; (display-data)
+
+;; (newline)
+;; (reset! 8)
+;; (load-state! my-state)
+;; (display-data)
+;; (load-program "dup over over + push pop 2/ + a! +* pop + 2* a dup + push nop nop nop")
+;; (step-program!*)
+;; (display-data)

@@ -22,6 +22,8 @@
 
 (define instructions (make-vector 32))
 
+(define BIT 18)
+
 ;;; Reset the interpreter to the given state.
 (define (load-state! state)
   (set! a (progstate-a state))
@@ -46,7 +48,8 @@
   (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
 ;;; Resets the state of the interpreter:
-(define (reset!)
+(define (reset! [bit 18])
+  (set! BIT bit)
   (load-state! start-state))
 
 ;;; Resets only p
@@ -55,7 +58,7 @@
 
 ;;; Print the data stack:
 (define (display-data)
-  (display (format "|d> ~b ~b" t s))
+  (display (format "|d> ~x ~x" t s))
   (display-stack data)
   (newline))
 
@@ -86,7 +89,7 @@
 
 ;;; Extracts the bottom 18 bits of n:
 (define (18bit n)
-  (bitwise-bit-field n 0 18))
+  (bitwise-bit-field n 0 BIT))
 
 ;;; Pushes to the data stack.
 (define (push! value)
@@ -171,7 +174,7 @@
 (define-instruction! (lambda (a) (if (= r 0) (begin (r-pop!) #f)                     ; next (next)
                            (begin (set! r (sub1 r)) (set! p a) #f))))
 (define-instruction! (lambda (a) (and (not (= t 0)) (set! p a) #f)))                 ; if (if)
-(define-instruction! (lambda (a) (and (not (bitwise-bit-set? t 17)) (set! p a) #f))) ; minus if (-if)
+(define-instruction! (lambda (a) (and (not (bitwise-bit-set? t (sub1 BIT))) (set! p a) #f))) ; minus if (-if)
 (define-instruction! (lambda (_) (push! (vector-ref memory p)) (set! p (incr p))))   ; fetch-p (@p)
 (define-instruction! (lambda (_) (push! (vector-ref memory a)) (set! a (incr a))))   ; fetch-plus (@+)
 (define-instruction! (lambda (_) (push! (vector-ref memory b))))                     ; fetch-b (@b)
@@ -205,13 +208,13 @@
   (let ([t17 (bitwise-and t #x20000)]
         [t0  (bitwise-and t #x1)])
     (set! t (bitwise-ior t17 (arithmetic-shift t -1)))
-    (set! a (bitwise-ior (arithmetic-shift t0 17) (arithmetic-shift a -1)))))
+    (set! a (bitwise-ior (arithmetic-shift t0 (sub1 BIT)) (arithmetic-shift a -1)))))
 
 ;;; Sums T and S and concatenates the result with A, shifting
 ;;; everything to the right by one bit.
 (define (multiply-step-odd!)
   (let* ([sum (+ t s)]
 	 [sum17 (bitwise-and sum #x20000)]
-         [result (bitwise-ior (arithmetic-shift sum 17) (arithmetic-shift a -1))])
-    (set! a (bitwise-bit-field result 0 18))
-    (set! t (bitwise-ior sum17 (bitwise-bit-field result 18 36)))))
+         [result (bitwise-ior (arithmetic-shift sum (sub1 BIT)) (arithmetic-shift a -1))])
+    (set! a (bitwise-bit-field result 0 BIT))
+    (set! t (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
