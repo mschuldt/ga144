@@ -13,7 +13,7 @@
     (if (member instr (vector->list memory-op)) 10 3))
   (apply + (map guess-speed (drop-trailing-nops
                              (filter (lambda (x) (vector-member x choice-id))
-                                     (map string->symbol (regexp-split " +" program)))))))
+                                     (map string->symbol (program->instructions program)))))))
 
 ;;; Drop elements from the list while some predicate holds.
 (define (drop-while pred? list)
@@ -28,7 +28,7 @@
   (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
 
 ;;; Splits a program string into a list of instruction strings.
-(define program->instructions (curry regexp-split " +"))
+(define program->instructions (curry regexp-split #px"\\s+"))
 
 ;;; Fixes calls to @p for use in the synthesizer/verifier by replacing
 ;;; each @p instruction with the literal it puts on the stack. That
