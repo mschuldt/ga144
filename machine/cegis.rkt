@@ -199,6 +199,7 @@
 	       #:time-limit [time-limit (estimate-time program)]
 	       #:num-bits [num-bits 18]
 	       #:inst-pool [inst-pool `all])
+  (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
   (pretty-display (format "time-limit = ~a" time-limit))

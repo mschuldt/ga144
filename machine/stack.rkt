@@ -28,5 +28,5 @@
     ret-val))
 
 ;;; Returns a stack with randomized entries, each less than max-size.
-(define (random-stack [max-size #x3ffff])
+(define (random-stack [max-size #x40000])
   (stack 0 (vector-map! (lambda (_) (random max-size)) (make-vector 8))))

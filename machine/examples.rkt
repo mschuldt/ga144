@@ -22,8 +22,8 @@
 ;; ("or" . 3)
 
 ;;; swap only at m is 1 xym -> - y'
-(pretty-display "swap only at m (y') 18-bit no-mem-no-p")
-(fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:slots 22 #:num-bits 4 #:inst-pool `no-mem-no-p)
+;; (pretty-display "swap only at m (y') 4-bit no-mem-no-p constraint-all")
+;; (fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:slots 22 #:num-bits 4 #:inst-pool `no-mem-no-p)
 ;("dup over over + push pop 2/ + a! +* pop + 2* a dup + push nop nop nop nop nop" . 51)
 
 
@@ -43,8 +43,8 @@
 ;; ;; '("7 nop + 262136 a a! and nop nop nop nop nop nop nop" . 35)
 
 ;;; f' in MD5
-(pretty-display "f' 18-bit no-mem")
-(fastest-program "push over - nop push and pop nop pop and over @p 15 or and or nop" #:slots 16 #:num-bits 18 #:inst-pool `no-mem)
+(pretty-display "f'")
+(fastest-program "push over - nop push and pop nop pop and over @p 15 or and or nop" #:slots 16 #:num-bits 6 #:inst-pool `no-mem)
 ;; (fastest-program "push over - nop push and pop nop pop and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
 
 ;;; f' in MD5 (with mask)
@@ -54,12 +54,12 @@
 
 ;; ;;; g' in MD5
 (pretty-display "g'")
-(fastest-program "a! push a nop and pop a nop - and over @p 15 or and or nop" #:slots 16 #:constraint constraint-all #:num-bits 18 #:inst-pool `no-mem)
+(fastest-program "a! push a nop and pop a nop - and over @p 15 or and or nop" #:slots 16 #:constraint constraint-all #:num-bits 6 #:inst-pool `no-mem)
 ;; ;; (fastest-program "a! push a nop and pop a nop - and over @p 65535 or and or nop" #:slots 16 #:constraint (constraint t))
 
 ;; ;;; i' in MD5
 (pretty-display "i'")
-(fastest-program "a! push a nop - over @p nop 15 or and or nop pop or nop nop" #:slots 16 #:constraint constraint-all #:num-bits 18 #:inst-pool `no-mem)
+(fastest-program "a! push a nop - over @p nop 15 or and or nop pop or nop nop" #:slots 16 #:constraint constraint-all #:num-bits 6 #:inst-pool `no-mem)
 ;; ;; (fastest-program "a! push a nop - over @p nop 65535 or and or nop pop or nop nop" #:slots 16 #:constraint (constraint t))
 
 ;; ;;; Get the most significant bit of a number by shifting it right 17 times.
