@@ -1,6 +1,6 @@
 #lang racket
 
-(require racket/system "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
+(require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
 (provide cegis fastest-program)
 
@@ -12,7 +12,9 @@
 ;;; step and run. You can also optionally specify a suffix like
 ;;; `.smt2'. Note that the `.' in `.smt2' is not added automatically.
 (define (temp-file-name prefix [suffix ""])
-  (format "debug-~a-~a-~a~a" prefix current-run current-step suffix))
+  (format "debug-~a-~a-~a-~a~a" prefix current-run current-step 
+	  (substring (sha1 (open-input-string (format "~a" (current-inexact-milliseconds)))) 0 10)
+	  suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
 (define (z3 file)
@@ -81,9 +83,9 @@
             (cadr result)
             (error (format "~a not found in model!" name model)))))
     (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
-               (stack (var 'sp) (bytes->vector (var 'dst) 8))
-               (stack (var 'rp) (bytes->vector (var 'rst) 8))
-               (bytes->vector (var 'mem) mem)))
+               (stack (var 'sp) (var 'dst))
+               (stack (var 'rp) (var 'rst))
+               (var 'mem)))
   `(,(extract-state 0) ,(extract-state prog-length)))
 
 ;;; Parses the given bitvector into a vector of 18bit numbers.
@@ -134,12 +136,10 @@
 ;;; pairs are specified, seed the process with a randomly generated
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
-(define (generate-candidate program [previous-pairs '()]
-                            #:mem [mem 6] #:comm [comm 1] #:slots [slots 30] 
-                            #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+(define (generate-candidate program  previous-pairs mem comm slots constraint time-limit num-bits inst-pool)
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name "syn" ".smt2"))
-  (greensyn-reset mem comm constraint #f)
+  (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
   (map greensyn-add-pair previous-pairs)
   
   (greensyn-check-sat #:file temp-file slots #:time-limit time-limit)
@@ -169,11 +169,11 @@
 ;;      (error "Program cannot be written: synthesis not sat!")))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate #:mem [mem 6] #:comm [comm 1] prog-length  #:constraint [constraint constraint-all])
+(define (validate spec candidate mem comm prog-length constraint num-bits inst-pool)
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name "verify" ".smt2"))
-  (greensyn-reset mem comm constraint #f)
+  (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
@@ -189,8 +189,15 @@
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program. 
-(define (cegis program #:mem [mem 1] #:comm [comm 1] #:slots [slots 30] #:start [start 0] 
-               #:constraint [constraint constraint-all] #:time-limit [time-limit (estimate-time program)])
+(define (cegis program 
+	       #:mem [mem 1] 
+	       #:comm [comm 1] 
+	       #:slots [slots 30] 
+	       #:start [start 0] 
+               #:constraint [constraint constraint-all] 
+	       #:time-limit [time-limit (estimate-time program)]
+	       #:num-bits [num-bits 18]
+	       #:inst-pool [inst-pool `all])
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
   (pretty-display (format "time-limit = ~a" time-limit))
@@ -198,11 +205,10 @@
   (set! current-step 0)
 
   (define (go pairs)
-    (let ([candidate (generate-candidate program pairs
-                                         #:mem mem #:comm comm #:slots slots #:constraint constraint #:time-limit time-limit)])
+    (let ([candidate (generate-candidate program pairs mem comm slots constraint time-limit num-bits inst-pool)])
       (if (null? candidate)
           null
-          (let ([new-pair (validate program-for-ver (car candidate) #:mem mem #:comm comm (program-length program-for-ver) #:constraint constraint)])
+          (let ([new-pair (validate program-for-ver (car candidate) mem comm (program-length program-for-ver) constraint num-bits inst-pool)])
             (if new-pair
                 (go (cons new-pair pairs))
                 candidate)))))
@@ -215,16 +221,21 @@
                          #:slots      [slots (program-length program)]
                          #:start      [start mem] 
                          #:constraint [constraint constraint-all]
-                         #:time-limit [time-limit (estimate-time program)])
+                         #:time-limit [time-limit (estimate-time program)]
+			 #:num-bits  [num-bits 18]
+			 #:inst-pool [inst-pool `all])
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
-  (define candidate (cegis program #:mem mem #:comm comm #:slots slots
-                           #:start start #:constraint constraint
-                           #:time-limit time-limit))
+  (define candidate (cegis program 
+			   #:mem mem #:comm comm #:slots slots #:start start 
+			   #:constraint constraint #:time-limit time-limit
+			   #:num-bits num-bits #:inst-pool inst-pool))
   (define result (if (null? candidate)
                      best-so-far
-                     (fastest-program program candidate #:mem mem #:comm comm #:slots slots #:start start 
-                                      #:constraint constraint #:time-limit (cdr candidate))))
+                     (fastest-program program candidate 
+				      #:mem mem #:comm comm #:slots slots #:start start 
+                                      #:constraint constraint #:time-limit (cdr candidate)
+				      #:num-bits num-bits #:inst-pool inst-pool)))
   (when debug (display (format "Time: ~a seconds." (- (current-seconds) start-time)))
         (newline))
   result)
