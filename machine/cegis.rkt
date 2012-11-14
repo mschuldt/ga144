@@ -117,7 +117,7 @@
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program [memory-start 0])
-  (define in (random-state))
+  (define in (random-state (expt 2 BIT)))
   (load-state! in)
   (load-program program memory-start)
   (set! in (current-state))

@@ -15,9 +15,11 @@
 
 ;;; Generates a state with a randomized data stack and everything else
 ;;; empty.
-(define (random-state)
+(define (random-state [max-size #x3ffff])
   (struct-copy progstate start-state
-               [data   (random-stack)]
+               [s      (random max-size)]
+               [t      (random max-size)]
+               [data   (random-stack max-size)]
                [return (stack 0 (make-vector 8))]))
 
 (define ENTRIES 4)
