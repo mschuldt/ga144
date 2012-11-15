@@ -82,7 +82,7 @@
              [result (assoc name model)])
         (if result
             (cadr result)
-            (error (format "~a not found in model!" name model)))))
+            (error (format "~a not found in model!" name)))))
     (progstate (var 'a) (var 'b) 0 0 (var 'r) (var 's) (var 't)
                (stack (var 'sp) (var 'dst))
                (stack (var 'rp) (var 'rst))
