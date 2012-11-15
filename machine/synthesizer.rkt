@@ -199,9 +199,9 @@
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
-(greensyn-reset 1 1 #:num-bits 18)
-(greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
-(greensyn-verify "ver.smt2" "a! over over nop or dup push nop a and or dup pop or over")
+;; (greensyn-reset 1 1 #:num-bits 18)
+;; (greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
+;; (greensyn-verify "ver.smt2" "a! over over nop or dup push nop a and or dup pop or over")
 
 ;; (reset! 18)
 ;; (define my-state (random-state #x4000))
@@ -228,3 +228,20 @@
 ;; (load-program "a! over over nop or dup push nop a and or dup pop or over nop")
 ;; (step-program!*)
 ;; (display-state)
+
+;; (reset! 18)
+;; (define my-state (random-state #x30))
+;; (load-state! my-state)
+;; (display-data)
+;; (load-program "@p a! @p nop 52 127 and @p +* +* 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop")
+;; (step-program!*)
+;; (display-state)
+
+(reset! 18)
+(define my-state (random-state #x30))
+(load-state! my-state)
+(display-data)
+;; (load-program "@p nop nop nop 16 dup dup or nop a! @p !+ @p 0 1 !+ @p !+ @p 6 2 !+ @p !+ @p 7 5 !+ @p !+ @p 4 3 !+ @p a! @p 29 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a @p 127 and 2/ 2/ nop 2/ 2/ 2/ nop a! @ nop nop")
+(load-program "@p nop nop nop 128 dup dup or nop a! @p !+ @p 0 1 !+ @p !+ @p 6 2 !+ @p !+ @p 7 5 !+ @p !+ @p 4 3 !+ @p a! @p 29 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a nop 2/ 2/ 2/ nop 2/ 2/ @p nop 7 and a! @ nop")
+(step-program!*)
+(display-state)
