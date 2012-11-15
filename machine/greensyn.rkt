@@ -71,6 +71,8 @@
    [(equal? word `right) RIGHT]
    [else word]))
 
+;;; Converts a name of an instruction (as a symbol) to its numeric
+;;; representation. Turns numbers into the code for @p.
 (define (to-choice name)
   (if (vector-member name choice-id)
       (cons (vector-member name choice-id) 0)
@@ -561,6 +563,21 @@
   (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) ~a ~a))))"
                           step (sub1 step) step N_OF_SLOW HOLE_BIT (bv-time 10) (bv-time 3))))
 
+;;; Generates assertions for holes which are already know, given a
+;;; spec. The spec should have normal instructions as well as
+;;; underscores for holes.
+(define (generate-known-holes spec)
+  (let* ([instrs (list->vector (program->instructions spec))]
+         [len    (vector-length instrs)])
+    (for ([i (in-range 0 len)])
+         (let* ([instr (vector-ref instrs i)]
+                [num   (string->number instr)])
+           (unless (equal? instr "_")
+             (pretty-display (format "(assert (= h_~a (_ bv~a ~a)))"
+                                     (add1 i) (car (to-choice (string->symbol instr))) HOLE_BIT))
+             (when num
+               (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"
+                                       (add1 i) num SIZE))))))))
 ;;; Returns an expression counting the number of trailing nops given
 ;;; the total number of slots. This can then be subtracted from the
 ;;; total time.
@@ -757,7 +774,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (synthesize-prog n has-prog has-out [time-limit #f])
+(define (synthesize-prog spec has-prog has-out [time-limit #f])
+  (define n (if (number? spec) spec (program-length spec)))
   (declare-bitvector)
   (declare-functions)
   (newline)
@@ -766,6 +784,7 @@
       (declare-holes (add1 n)))
 
   (declare-vars (add1 n) 0 (length inout-list))
+  (unless (number? spec) (generate-known-holes spec))
   (newline)
   (generate-formulas (add1 n) 0 (length inout-list) `h #t)
   (newline)
@@ -913,10 +932,10 @@
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] prog-size #:time-limit [time-limit 0])
+(define (greensyn-check-sat #:file [file "prog.smt2"] spec #:time-limit [time-limit 0])
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (synthesize-prog prog-size #f #t time-limit))
+    (synthesize-prog spec #f #t time-limit))
   (close-output-port out))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
