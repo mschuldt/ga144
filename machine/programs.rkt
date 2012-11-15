@@ -3,7 +3,7 @@
 
 (provide (all-defined-out))
 
-(define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift))
 (define memory-op '#(@p @+ @b @ !p !+ !b !))
 
 ;;; Given a string containing a forth program, gives you an estimate

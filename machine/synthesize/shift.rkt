@@ -19,14 +19,14 @@
   (greensyn-send-recv (default-commstate))
   (greensyn-commit)
 
-  (greensyn-check-sat #:file "syn.smt2" 8 #:time-limit 25))
+  (greensyn-check-sat #:file "syn.smt2" 4 #:time-limit 25))
 
 (syn-shift)
 
 (define (verify)
   (greensyn-reset 4 1 (constraint t))
   (greensyn-spec "2* 2* 2* nop 2* 2* 2* nop")
-  (greensyn-verify "verify.smt2" "@p lshift nop nop 6"))
+  (greensyn-verify "verify.smt2" "6 lshift nop nop"))
   ;(greensyn-verify "verify.smt2" "dup - 180065 nop + and"))
 
 (verify)
