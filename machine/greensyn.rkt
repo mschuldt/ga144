@@ -328,7 +328,11 @@
                (set! check_t (format "(= t_~e_v~e (bvlshr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; shiftr
     [(equal? choice `rshift)
-     (set! check_t (format "(= t_~e_v~e (bvlshr s_~e_v~e t_~e_v~e))" step i prev i prev i))
+     (set! check_t (format "(= t_~e_v~e (bvashr s_~e_v~e t_~e_v~e))" step i prev i prev i))
+     (shrink)]
+    ; /
+    [(equal? choice `/)
+     (set! check_t (format "(= t_~e_v~e (bvsdiv s_~e_v~e t_~e_v~e))" step i prev i prev i))
      (shrink)]
     ; -
     [(equal? choice `-)
@@ -608,7 +612,7 @@
   (pretty-display (format "(assert (= total_time (bvsub time_~a ~a)))" n (nop-offset n)))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
-(define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift))
+(define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
 (define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define (support)

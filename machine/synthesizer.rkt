@@ -16,7 +16,7 @@
   (greensyn-input (current-state))
   
   ;; run the interpreter
-  (step-program!)
+  (step-program!*)
   (step-program!)
   
   ;; output (no communication in this example)
@@ -125,12 +125,14 @@
 (define (ver-mem) ; sat
   (greensyn-reset 3 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "@+ 2/ or nop @b nop 2* + !"))
+  (greensyn-verify "ver-mem.smt2" "@+ 2/ or nop @b nop 2* nop + ! nop nop"))
+
+(ver-mem)
 
 (define (ver-mem-4) ; unsat
   (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "dup or a! @+ 2* @+ 2/ + !"))
+  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
 
 (define (ver-mem-5) ; unsat
   (greensyn-reset 4 1 (constraint memory))
@@ -229,19 +231,32 @@
 ;; (step-program!*)
 ;; (display-state)
 
-;; (reset! 18)
-;; (define my-state (random-state #x30))
-;; (load-state! my-state)
-;; (display-data)
-;; (load-program "@p a! @p nop 52 127 and @p +* +* 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop")
-;; (step-program!*)
-;; (display-state)
-
 (reset! 18)
-(define my-state (random-state #x30))
+(define my-state (random-state #x10))
 (load-state! my-state)
 (display-data)
-;; (load-program "@p nop nop nop 16 dup dup or nop a! @p !+ @p 0 1 !+ @p !+ @p 6 2 !+ @p !+ @p 7 5 !+ @p !+ @p 4 3 !+ @p a! @p 29 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a @p 127 and 2/ 2/ nop 2/ 2/ 2/ nop a! @ nop nop")
-(load-program "@p nop nop nop 128 dup dup or nop a! @p !+ @p 0 1 !+ @p !+ @p 6 2 !+ @p !+ @p 7 5 !+ @p !+ @p 4 3 !+ @p a! @p 29 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* a nop 2/ 2/ 2/ nop 2/ 2/ @p nop 7 and a! @ nop")
+(load-program "
+dup dup or nop
+a! @+ @+ nop 
++ dup @p nop 4
+b! !b nop nop
+2/ 2/ 2/ nop 
+2/ 2/ 2/ nop 
+2/ 2/ 2/ nop 
+2/ 2/ 2/ nop 
+2/ 2/ 2/ nop 
+2/ @+ @+ nop 
++ nop + @p 5 
+b! !b nop nop" 20)
+(display-memory 6)
+(reset-p! 20)
 (step-program!*)
 (display-state)
+(display-memory 6)
+
+;; (greensyn-reset 8 1 (constraint t))
+;; (greensyn-input (progstate a b p i r s 1 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
+;; (greensyn-output (progstate a b p i r s 0 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
+;; (greensyn-send-recv (default-commstate))
+;; (greensyn-commit)
+;; (greensyn-check-sat #:file "syn.smt2" "@p" #:time-limit 100000)

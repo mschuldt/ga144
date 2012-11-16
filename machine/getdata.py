@@ -2,9 +2,13 @@
 
 import sys
 
-#choices = ['2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', '@+', '@', '@b', '!+', '!', '!b', 'a!', 'b!', 'a', '+*', 'pop', 'push', 'over', 'up', 'down', 'left', 'right', 'nop', '0', '1', '63', '128']
+choices = ['@p', '@+', '@b', '@', '!p', '!+', '!b', '!', '+*', '2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', 'pop', 'over', 'a', 'nop', 'push', 'b!', 'a!', 'lshift', 'rshift', '/']
 
-choices = ['@p', '@+', '@b', '@', '!p', '!+', '!b', '!', '+*', '2*', '2/', '-', '+', 'and', 'or', 'drop', 'dup', 'pop', 'over', 'a', 'nop', 'push', 'b!', 'a!', 'lshift', 'rshift']
+def get_value(val,to):
+  if val[1] == "b":
+    return int(val[2:to],2)
+  else:
+    return int(val[2:to],16)
 
 def main():
   filename = sys.argv[1]
@@ -32,17 +36,14 @@ def main():
           end = len(var)
         if end-begin < 2:
           var = var[:begin] + "0" + var[begin:]
-
-        if val[1] == "b":
-          if (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1) and var.find("lit") == -1 :
-            hole = int(val[2:to],2)
-            print var + " = " + choices[hole]
-          elif (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1):
-            print var + " = " + str(int(val[2:to],2))
-          elif print_all:
-            print var + " = " + str(int(val[2:to],2))
+        
+        if (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1) and var.find("lit") == -1 :
+          hole = get_value(val,to) #int(val[2:to],2)
+          print var + " = " + choices[hole]
+        elif (var[0] == "h" or var.find("spec") != -1 or var.find("cand") != -1):
+          print var + " = " + str(get_value(val,to)) #int(val[2:to],2))
         elif print_all:
-          print var + " = 0" + val[1:to]
+          print var + " = " + str(get_value(val,to)) #int(val[2:to],2))
     line = f.readline()
 
 if __name__ == "__main__":
