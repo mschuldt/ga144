@@ -13,7 +13,7 @@
 ;;; step and run. You can also optionally specify a suffix like
 ;;; `.smt2'. Note that the `.' in `.smt2' is not added automatically.
 (define (temp-file-name name prefix [suffix ""])
-  (format "debug-~a-~a-~a-~a~a" name prefix current-run current-step 
+  (format "debug/~a-~a-~a-~a~a" name prefix current-run current-step 
 	  ;(substring (sha1 (open-input-string (format "~a" (current-inexact-milliseconds)))) 0 10)
 	  suffix))
 

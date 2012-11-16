@@ -27,8 +27,12 @@
 (define drop-trailing-nops
   (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
 
+;;; Trim leading and trailing whitespace.
+(define (trim str)
+  (regexp-replace "^ +" (regexp-replace " +$" str "") ""))
+
 ;;; Splits a program string into a list of instruction strings.
-(define program->instructions (curry regexp-split #px"\\s+"))
+(define program->instructions (compose (curry regexp-split #px"\\s+") trim))
 
 ;;; Fixes calls to @p for use in the synthesizer/verifier by replacing
 ;;; each @p instruction with the literal it puts on the stack. That
