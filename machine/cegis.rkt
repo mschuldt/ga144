@@ -303,22 +303,23 @@
   (define start-time (current-seconds))
 
   (newline)
-  (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
+  ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
   (define candidate (binary-search 1 slots program name 
 				   mem comm start constraint 
 				   time-limit num-bits inst-pool))
 
   (newline)
-  (pretty-display "PHASE 2: optimizing for runtime.")
-  (define result 
-    (if candidate
-	(fastest-program2 program candidate 
-			  #:name name #:mem mem #:comm comm 
-			  #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
-			  #:start start 
-			  #:constraint constraint #:time-limit (cdr candidate)
-			  #:num-bits num-bits #:inst-pool inst-pool)
-	#f))
+  (define result candidate)
+  ;; (pretty-display "PHASE 2: optimizing for runtime.")
+  ;; (define result 
+  ;;   (if candidate
+  ;; 	(fastest-program2 program candidate 
+  ;; 			  #:name name #:mem mem #:comm comm 
+  ;; 			  #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
+  ;; 			  #:start start 
+  ;; 			  #:constraint constraint #:time-limit (cdr candidate)
+  ;; 			  #:num-bits num-bits #:inst-pool inst-pool)
+  ;; 	#f))
   (newline)
   (when result
 	(pretty-display (format "output program\t\t: ~e" (car result)))
