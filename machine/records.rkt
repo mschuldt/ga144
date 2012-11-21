@@ -21,7 +21,6 @@
 ;;; swap only at m is 1 xym -> - y' (first part)
 (fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:slots 22 #:num-bits 4 #:inst-pool `no-mem-no-p)
 ;("a! over a dup push and over dup pop or and dup dup or or nop + nop nop nop nop nop" . 51) 516
-
 (fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop" #:name "swap1" #:constraint (constraint a r s t) #:slots 20 #:num-bits 4 #:inst-pool `no-mem-no-p)
 ;("a! over over nop or a and nop over or push nop nop nop nop nop nop nop nop nop" . 33) 32639
 (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop" #:name "swap1" #:constraint (constraint a r s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
@@ -55,3 +54,9 @@
 ;("7 nop + dup 2* 2/ or" . 28) 312
 (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 ;("7 nop + 248 and nop nop nop" . 29) 219
+
+(fastest-program
+"@p a! ! @p 0 2 a! ! nop + push @p a! nop 1 ! @p a! nop 3 ! nop + nop pop dup 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop push a! pop nop + a over nop"
+#:name "32bitadd"
+#:slots "0 a! ! 2 a! ! _ _ _ 1 a! _ ! 3 a! _ ! _ _ _ _ _ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop _ _ _ _ _ _ _ _" 
+#:mem 4)
