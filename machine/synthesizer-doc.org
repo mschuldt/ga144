@@ -1,0 +1,18 @@
+* Synthesis Interface
+  This is the interface we want greensyn to have.
+** Pass pairs in as a list
+   This is already what cegis is using.
+*** create greensyn struct/object to represent synthesis process
+    operations on the struct
+**** add-pair
+**** check-sat
+**** verify
+**** ...
+*** wrapper functions that abstract the struct/object away
+**** synthesize-program: pairs list → model
+**** verify: spec → program → pair/unsat
+*** actually run z3
+** Accept ports rather than file names.
+*** call-with-output-file, call-with-input-file, ...
+    Consider looking at piping directly to a process instead of using
+    files.
