@@ -10,6 +10,7 @@
 ; 1. Puts a procedure which jumps over one slot if TRUE is on the stack.
 ; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
 ; This will later be replaced by an unconditional branch by ELSE or THEN.
+; TODO:  Just use location-counter, or also use i-register?
 (define (if-proc)
   (add-primitive-code!
    (lambda () (if (= (get-int dstack #f) 0)
@@ -23,6 +24,7 @@
 ; 1. Puts a procedure which jumps over one slot if the top of stack is negative.
 ; 2. Puts HERE on the stack, and then fills the slot with a dummy procedure.
 ; This will later be replaced by an unconditional branch by ELSE or THEN.
+; TODO:  Just use location-counter, or also use i-register?
 (define (nif-proc)
   (add-primitive-code!
    (lambda () (if (>= (get-int dstack #t) 0)
@@ -35,6 +37,7 @@
 ; THEN
 ; Put an unconditional branch to HERE.
 ; This will patch up the dummy procedure left by IF or ELSE.
+; TODO:  Just use location-counter, or also use i-register?
 (define (then-proc)
   (let [(here-addr location-counter)]
     (rvector-set! codespace (pop-int! dstack #f) (lambda () (set! pc here-addr)))))
@@ -60,6 +63,7 @@
 ; 1. Add to compiled code the PUSH command.
 ; 2. Put HERE on the stack, to be used by NEXT.
 ; TODO: Is push-proc supposed to be called?  If yes, then rewrite push-proc in terms of the lambda (push-proc is not available in this file).
+; TODO:  Just use location-counter, or also use i-register?
 #|
 (define (for-proc)
   (add-primitive-code!(push-proc))
@@ -91,6 +95,7 @@
 
 ; BEGIN
 ; Put HERE on the stack, to be used by UNTIL or REPEAT.
+; TODO:  Just use location-counter, or also use i-register?
 (add-primitive-word! #t "begin" (lambda () (push-int! dstack location-counter)))
 
 ; UNTIL

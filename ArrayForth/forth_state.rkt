@@ -12,14 +12,14 @@
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
 
-(struct state (dstack rstack pc rega regb memory) #:mutable)
+(struct state (dstack rstack pc next-word rega regb memory) #:mutable)
 
 (define (make-dstack) (make-stack 2 8 (integer->integer-bytes -1 4 #t)))
 (define (make-rstack) (make-stack 1 8 (integer->integer-bytes -1 4 #t)))
 
 ;; TODO: regb is initialized to io
 (define (make-new-core)
-  (state (make-dstack) (make-rstack) 0 0 0 (make-rvector 100 -1)))
+  (state (make-dstack) (make-rstack) 0 1 0 0 (make-rvector 100 -1)))
 
 (struct interpreter-struct 
 	(codespace cores state-index send-recv-table)
@@ -34,7 +34,7 @@
 	 (rvector-set! srtable i #f))
     (interpreter-struct (make-rvector 500 -1) core-list 0 srtable)))
 
-(struct compiler-struct (compiler-directives dict location-counter execute? cstack literal-mode litspace lit-entry) #:mutable)
+(struct compiler-struct (compiler-directives dict location-counter i-register execute? cstack literal-mode litspace lit-entry) #:mutable)
 
 (define-syntax-rule (generate-compiler-macro name getter setter)
   (define-syntax name
@@ -45,6 +45,7 @@
 (generate-compiler-macro compiler-directives compiler-struct-compiler-directives set-compiler-struct-compiler-directives!)
 (generate-compiler-macro dict compiler-struct-dict set-compiler-struct-dict!)
 (generate-compiler-macro location-counter compiler-struct-location-counter set-compiler-struct-location-counter!)
+(generate-compiler-macro i-register compiler-struct-i-register set-compiler-struct-i-register!)
 (generate-compiler-macro execute? compiler-struct-execute? set-compiler-struct-execute?!)
 (generate-compiler-macro cstack compiler-struct-cstack set-compiler-struct-cstack!)
 (generate-compiler-macro literal-mode compiler-struct-literal-mode set-compiler-struct-literal-mode!)
@@ -87,6 +88,7 @@
       [(set! name x) (setter (vector-ref cores state-index) x)]
       [name (getter (vector-ref cores state-index))])))
 
+(generate-core-macro next-word state-next-word set-state-next-word!)
 (generate-core-macro pc state-pc set-state-pc!)
 (generate-core-macro rega state-rega set-state-rega!)
 (generate-core-macro regb state-regb set-state-regb!)
@@ -95,8 +97,19 @@
 (generate-core-macro rstack state-rstack set-state-rstack!)
 (generate-core-macro memory state-memory set-state-memory!)
 
+(define (increment-pc!)
+  (if (= (remainder pc 4) 3)
+      (begin (set! pc (* 4 next-word))
+	     (set! next-word (add1 next-word)))
+      (set! pc (add1 pc))))
+
+; TODO: Need to make sure that setting next-word to (add1 num) is fine.
+(define (set-pc! num)
+  (set! pc (* 4 num))
+  (set! next-word (add1 num)))
+
 (define interpreter (make-interpreter))
-(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
 
 (define (set-as-defaults!)
   (let ((default-codespace (make-rvector 1))
@@ -107,7 +120,7 @@
     (rvector-copy! default-directives 0 compiler-directives 0 (rvector-length compiler-directives))
     (lambda ()
       (set! interpreter (make-interpreter))
-      (set! compiler (compiler-struct (make-rvector 1 -1) (make-rvector 1 -1) 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+      (set! compiler (compiler-struct (make-rvector 1 -1) (make-rvector 1 -1) 0 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
       (for [(i (in-range 0 num-cores))]
 	   (vector-set! cores i (make-new-core)))
       (rvector-copy! codespace 0 default-codespace 0 (rvector-length default-codespace))
@@ -148,10 +161,8 @@
     (add-element! dict new)
     new))
 
-(define (add-to-codespace proc-or-addr)
-  ;(printf "add-compile ~e\n" location-counter)
-  ;(unless (= location-counter (rvector-length codespace)) (display location-counter) (display " ") (display (rvector-length codespace)) (newline))
-  (add-element! codespace proc-or-addr))
+(define (add-to-codespace elmt)
+  (add-element! codespace elmt))
   
 (define (add-to-litspace proc-or-addr)
   (add-element! litspace proc-or-addr))

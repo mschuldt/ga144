@@ -52,13 +52,17 @@
 (add-primitive-word! #f "@b" (lambda () (push-int! dstack (rvector-ref codespace regb))))
 
 ; @p only works when it is immediately followed by { .. }
+; Annoyingly, needs to take into account the pc increment done by code-loop
 (define (fetch-p-proc)
   (push-int! dstack location-counter)
   (add-primitive-code! (lambda () (void))))
 (add-primitive-word! #f "@p" 
                      (lambda ()
-                         (push-cells! dstack (rvector-ref memory pc))
-                         (set! pc (add1 pc))))
+		       (if (= (remainder pc 4) 0)
+			   (begin (push-cells! dstack (rvector-ref memory (* 4 (sub1 next-word))))
+				  (set! pc (* 4 next-word)))
+			   (push-cells! dstack (rvector-ref memory (* 4 next-word))))
+		       (set! next-word (add1 next-word))))
 
 ; store via register
 
@@ -66,7 +70,7 @@
 (add-primitive-word! #f "!p" 
                      (lambda () 
                        (rvector-set! codespace pc (pop-cells! dstack))
-                       (set! pc (add1 pc))))
+                       (increment-pc!)))
 (add-primitive-word! #f "!+" 
                      (lambda () 
                        (rvector-set! codespace rega (pop-int! dstack #t))

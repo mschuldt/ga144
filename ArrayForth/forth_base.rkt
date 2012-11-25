@@ -16,37 +16,56 @@
 		#t
 		(let [(code (rvector-ref memory pc))]
 		  (begin
-		    (set! pc (add1 pc))
-		    (cond ((number? code) (push-int! dstack code))
-			  ((bytes? code) (push-cells! dstack code))
-			  ((string? code) ((rvector-ref codespace (entry-code (find-entry dict code)))))
-			  (else (code)))
+		    (increment-pc!)
+		    (cond ((string? code) ((rvector-ref codespace (entry-code (find-entry dict code)))))
+			  ((procedure? code) (code))
+			  (else (raise "Unknown type in memory -- code-loop")))
 		    #f))))
 	  used-cores))]
     (unless (for/and ([bool ended-list]) bool)
 	    (code-loop))))
 
 (define (execute-code addr)
-  (push-int! rstack pc) ; pc will be the address of the next instruction to execute
-  (set! pc addr))
+  (push-int! rstack (inexact->exact (ceiling (/ pc 4)))) ; pc will be the address of the next instruction to execute
+  (set-pc! addr))
 
 (define execute (compose execute-code entry-code))
 
-(add-primitive-word! #f ";" (lambda () (set! pc (pop-int! rstack pc))))
+(add-primitive-word! #f ";" (lambda () (set-pc! (pop-int! rstack #f))))
 
 (add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! dstack #f)))))
 
 (add-primitive-word! #f "call"
 		     (lambda ()
-		       (push-int! rstack pc)
-		       (set! pc (entry-code (find-entry dict (rvector-ref memory pc))))))
+		       (push-int! rstack (inexact->exact (ceiling (/ pc 4))))
+		       (set-pc! (entry-code (find-entry dict (rvector-ref memory pc))))))
 
 (define used-cores '())
 
 ;;;;;;;;;; NEW COMPILER FOR ARRAYFORTH ;;;;;;;;;;;;;;
 
-(define (add-compiled-code! code)
-  (add-element! memory code))
+(define last-slot-instructions '(";" "unext" "@p" "!p" "+*" "+" "dup" "."))
+(define instructions-preceded-by-nops '("+" "+*"))
+
+(define (add-compiled-code! elmt)
+  (cond [(bytes? elmt)
+	 (rvector-set! memory (* 4 location-counter) elmt)
+	 (for [(i (in-range 1 4))]
+	      (rvector-set! memory (+ (* 4 location-counter) i) #f))
+	 (set! location-counter (add1 location-counter))
+	 (add-compiled-code! "@p")]
+	[(string? elmt)
+	 (when (or (and (memq elmt instructions-preceded-by-nops)
+			(not (equal? (rvector-ref memory (sub1 i-register)) ".")))
+		   (and (= (remainder i-register 4) 3)
+			(not (memq elmt last-slot-instructions))))
+	       (add-compiled-code! "."))
+	 (rvector-set! memory i-register elmt)
+	 (if (= (remainder i-register 4) 3)
+	     (begin (set! i-register (* 4 location-counter))
+		    (set! location-counter (add1 location-counter)))
+	     (set! i-register (add1 i-register)))]
+	[else (raise "Unknown thing to compile --- add-compiled-code!")]))
 
 ;; Input:  Code in the form of an input port
 ;; If a word is an immediate word, it is executed instead.
@@ -66,8 +85,7 @@
 				       (if num
 					   (if execute?
 					       (push-cells! dstack num)
-					       (begin (add-compiled-code! "@p")
-						      (add-compiled-code! num)))
+					       (add-compiled-code! num))
 					   (raise (string-append to-compile " ?"))))))]
 			      [execute?
 			       ((rvector-ref codespace (entry-code entry)))]
@@ -107,15 +125,13 @@
     result))
 
 (define (compile-to-string code-port #:str? [str? #t])
-  (let ((code-vec (compile-to-vector code-port #:str? str? #:bytes? #f))
-	(result ""))
-    ; Annoyingly, there doesn't appear to be an accumulate for vectors.
-    (for [(s code-vec)]
-	 (set! result (string-append result " "
-				     (if (string? s)
-					 s
-					 (number->string s)))))
-    result))
+  (define (convert s)
+    (cond [(string? s) s]
+	  [(number? s) (number->string s)]
+	  [(not s) ""]
+	  [else (raise "Unknown memory element")]))
+  (foldr (lambda (x y) (string-append (convert x) " " y)) ""
+	 (vector->list (compile-to-vector code-port #:str? str? #:bytes? #f))))
 
 (add-compiler-directive! "node"
 		     (lambda ()
@@ -123,11 +139,13 @@
 		       (unless (member state-index used-cores)
 			       (set! used-cores (cons state-index used-cores)))
 		       (set! memory (make-rvector 100 -1))
-		       (set! location-counter 0)))
+		       (set! location-counter 1)
+		       (set! i-register 0)))
 
 (add-compiler-directive! "org"
 		     (lambda ()
-		       (set! location-counter (pop-int! dstack #f))))
+		       (set! location-counter (add1 (pop-int! dstack #f)))
+		       (set! i-register (* 4 (sub1 location-counter)))))
 
 (add-compiler-directive! "yellow"
 		     (lambda () (set! execute? #t)))
@@ -135,8 +153,21 @@
 (add-compiler-directive! "green"
 		     (lambda () (set! execute? #f)))
 
+(define (fill-rest-with-nops)
+  (define (loop)
+    (if (= (remainder i-register 4) 0)
+	(begin (set! i-register (* 4 location-counter))
+	       (set! location-counter (add1 location-counter)))
+	(begin (rvector-set! memory i-register ".")
+	       (set! i-register (add1 i-register))
+	       (loop))))
+  (unless (= (remainder i-register 4) 0)
+	  (loop)))
+
+; TODO: Does this have to be on a word boundary?  If not, then use i-register.
 (add-compiler-directive! ":"
 		     (lambda ()
+		       (fill-rest-with-nops)
 		       (add-entry! #f (forth_read_no_eof) location-counter)))
 
 ; Comments
