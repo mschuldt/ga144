@@ -47,3 +47,20 @@ b! !b nop nop
 2/ @+ @+ nop 
 + nop + 5 
 b! !b nop nop" #:mem 6 #:constraint (constraint memory) #:time-limit 1000)
+
+;; ;;; Get the most significant bit of a number by shifting it right 17 times.
+;; (pretty-display "shift right")
+;; (fastest-program "2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ nop nop"
+;;                    #:slots 19 #:mem 4 #:start 5 #:constraint (constraint t))
+;; This one still hasn't finished yet...
+
+;;; Averaging four numbers:
+;;; (fastest-program "nop + nop + nop + 2/ nop 2/ nop nop nop"  #:slots 8 #:constraint (constraint t))
+;;; This one finished in a rather uninteresting '("+ nop + nop + 2/ 2/ nop" . 21)
+;;; It took 4970 seconds (about 80 minutes). Might be a useful data
+;;; point, but certainly not a useful example!
+
+;;; This is how to use sketch with init and repeat
+(fastest-program "or and 2* nop and 2* nop nop" #:init "or" #:slots "_ 2* _" #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
+(fastest-program "or and 2* nop and 2* nop nop" #:init 1 #:slots 3 #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
+

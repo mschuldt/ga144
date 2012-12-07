@@ -18,7 +18,7 @@
 (struct commstate (send-u send-d send-l send-r
                    recv-u recv-d recv-l recv-r
                    sendp-u sendp-d sendp-l sendp-r
-                   recvp-u recvp-d recvp-l recvp-r) #:transparent)
+                   recvp-u recvp-d recvp-l recvp-r) #:transparent #:mutable)
 
 ;;; The blank state that the interpreter usually starts in.
 (define start-state (progstate 0 0 0 0 0 0 0

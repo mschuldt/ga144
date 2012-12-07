@@ -258,21 +258,15 @@
   (define (write-port reg port val)
     (string-append (string-append
       (format  "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if syn
-	  (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-		   port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format  "(= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))"
-		   port step i port prev i COMM_BIT)))
+      (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
+	       port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
       (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
     
   (define (read-port reg port val)
     (string-append (string-append
       (format "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if syn
-	  (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-		  port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format "(= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))"
-		  port step i port prev i COMM_BIT)))
+      (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
+	      port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
       (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
   
   ;;; check that value in register is valid for read or write from a port
@@ -500,16 +494,6 @@
 ;;; This function is only called by verifier.
 (define (generate-choice-assumption choice step i name)
   (define prev (sub1 step))
-    
-  (define (write-port reg port val)
-    (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (format "(not (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
-    
-  (define (read-port reg port val)
-    (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (format "(not (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
   
   (define (mem-range reg)
     (string-append (string-append (string-append (string-append (string-append
@@ -525,40 +509,17 @@
     [(equal? choice `@+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; @
-    [(equal? choice `@) 
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `a) 
-		 (read-port `a U-ID UP) 
-		 (read-port `a D-ID DOWN) 
-		 (read-port `a L-ID LEFT)
-		 (read-port `a R-ID RIGHT))]
+    [(equal? choice `@) (mem-range `a)]
     ; @b
-    [(equal? choice `@b)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `b) 
-		 (read-port `b U-ID UP) 
-		 (read-port `b D-ID DOWN) 
-		 (read-port `b L-ID LEFT)
-		 (read-port `b R-ID RIGHT))]
+    [(equal? choice `@b) (mem-range `b)]
     ; !+ (can't store to port)
     [(equal? choice `!+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; !
-    [(equal? choice `!)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `a) 
-		 (write-port `a U-ID UP) 
-		 (write-port `a D-ID DOWN) 
-		 (write-port `a L-ID LEFT)
-		 (write-port `a R-ID RIGHT))]
+    [(equal? choice `!) (mem-range `a)]
     ; !b
-    [(equal? choice `!b)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `b) 
-		 (write-port `b U-ID UP) 
-		 (write-port `b D-ID DOWN) 
-		 (write-port `b L-ID LEFT)
-		 (write-port `b R-ID RIGHT))]))
+    [(equal? choice `!b) (mem-range `b)]))
+
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_BIT check_assump))
 
 ;;; Returns the bv constant representing the given time (n).
@@ -572,45 +533,56 @@
 ;;; Generates assertions for holes which are already know, given a
 ;;; spec. The spec should have normal instructions as well as
 ;;; underscores for holes.
-(define (generate-known-holes spec)
-  (let* ([instrs (list->vector (program->instructions spec))]
-         [len    (vector-length instrs)])
-    (for ([i (in-range 0 len)])
+(define (generate-known-holes sketch begin n)
+  (let* ([instrs (list->vector (program->instructions sketch))]
+         [len    (vector-length instrs)]) ;; TODO: get rid of len?
+    (for ([i (in-range 0 n)])
          (let* ([instr (vector-ref instrs i)]
                 [num   (string->number instr)])
            (unless (equal? instr "_")
              (pretty-display (format "(assert (= h_~a (_ bv~a ~a)))"
-                                     (add1 i) (car (to-choice (string->symbol instr))) HOLE_BIT))
+                                     (add1 (+ i begin)) (car (to-choice (string->symbol instr))) HOLE_BIT))
              (when num
                (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"
-                                       (add1 i) num SIZE))))))))
+                                       (add1 (+ i begin)) num SIZE))))))))
+
 ;;; Returns an expression counting the number of trailing nops given
 ;;; the total number of slots. This can then be subtracted from the
 ;;; total time.
-(define (nop-offset slots)
+(define (nop-offset begin end)
   (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop choice-id) HOLE_BIT))
   (define (go hole-number expr)
     (format "(ite (= h_~a ~a) (bvadd ~a ~a) ~a)"
             hole-number bv-nop (bv-time 3) expr (bv-time 0)))
-  (define start (format "(ite (= h_1 ~a) ~a ~a)" bv-nop (bv-time 3) (bv-time 0)))
-  (foldr go start (reverse (stream->list (in-range 2 (add1 slots))))))
+  (define start (format "(ite (= h_~a ~a) ~a ~a)" begin bv-nop (bv-time 3) (bv-time 0)))
+  (foldr go start (reverse (stream->list (in-range (add1 begin) (add1 end))))))
 
-(define (generate-time-constraints n time-limit)
-  (for* ([step (in-range 0 (add1 n))])
+(define (generate-time-constraints begin end repeat time-limit)
+  (for* ([step (in-range begin (add1 end))])
         (pretty-display `(declare-const ,(var-no-v `time step) ,(makeBV TIME_SIZE))))
-  (pretty-display `(assert (= ,(var-no-v `time 0) (_ bv0 ,TIME_SIZE))))
-  (for* ([step (in-range 1 (add1 n))])
+  (pretty-display `(assert (= ,(var-no-v `time begin) (_ bv0 ,TIME_SIZE))))
+  (for* ([step (in-range (add1 begin) (add1 end))])
 	(generate-time-constraint step))
   (pretty-display `(declare-const total_time ,(makeBV TIME_SIZE)))
-  (pretty-display (format "(assert (= total_time (bvsub time_~a ~a)))" n (nop-offset n)))
+  (pretty-display (format "(assert (= total_time (bvmul (bvsub time_~a ~a) (_ bv~a ~a))))" 
+			  end (nop-offset (add1 begin) end) repeat TIME_SIZE))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
+;;; Generates assertions for repeated body such that 
+;;; the i-th hole in the body is the same for all copies.
+(define (generate-repeat-constraints init body repeat)
+  (for* ([i (in-range 0 body)]
+	 [t (in-range 1 repeat)])
+       (pretty-display (format "(assert (= h_~a h_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))))
+
 (define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
+(define support-no-fake '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define (support)
   (cond
    [(equal? SUPPORT `all) support-all]
+   [(equal? SUPPORT `no-fake) support-no-fake]
    [(equal? SUPPORT `no-mem) support-no-mem]
    [(equal? SUPPORT `no-mem-no-p) support-no-mem-no-p]))
 
@@ -726,7 +698,9 @@
 
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
-       (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var))))
+       (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
+  (for ([i (in-range 0 4)])
+       (pretty-display (format "(assert (= recv~a_v0 recv~a_v1))" i i))))
 
 (define (assert-output-neq)
   ;;; Add this assertion to set the irrelevant communcation entries to 0
@@ -780,23 +754,33 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (synthesize-prog spec has-prog has-out [time-limit #f])
-  (define n (if (number? spec) spec (program-length spec)))
+(define (synthesize-prog sketch init repeat has-prog has-out [time-limit #f])
+  (define n (if (number? sketch) sketch (program-length sketch)))
+  (define init-n (if (number? init) init (program-length init)))
+  (define slots (+ init-n (* n repeat)))
+  (define slots+1 (add1 slots))
+
   (declare-bitvector)
   (declare-functions)
   (newline)
   (if has-prog
-      (encode-program spec spec-lit (add1 n) `h)
-      (declare-holes (add1 n)))
+      (encode-program spec spec-lit slots+1 `h)
+      (declare-holes slots+1))
 
-  (declare-vars (add1 n) 0 (length inout-list))
-  (unless (number? spec) (generate-known-holes spec))
+  (declare-vars slots+1 0 (length inout-list))
+
+  (unless (number? init) (generate-known-holes init 0 init-n))
+  (unless (number? sketch)
+	  (for ([i (in-range 0 repeat)])
+	       (generate-known-holes sketch (+ init-n (* i n)) n)))
+  (generate-repeat-constraints init-n n repeat)
+
   (newline)
-  (generate-formulas (add1 n) 0 (length inout-list) `h #t)
+  (generate-formulas slots+1 0 (length inout-list) `h #t)
   (newline)
-  (assert-input-output n has-out)
+  (assert-input-output slots has-out)
   (newline)
-  (when time-limit (generate-time-constraints n time-limit))
+  (when time-limit (generate-time-constraints init-n (+ init-n n) repeat time-limit))
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
@@ -938,10 +922,10 @@
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] spec #:time-limit [time-limit 0])
+(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] #:time-limit [time-limit #f])
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (synthesize-prog spec #f #t time-limit))
+    (synthesize-prog sketch init repeat #f #t time-limit))
   (close-output-port out))
 
 ;;; Generate Z3 file for verification from spec and a given candidate
@@ -963,12 +947,16 @@
 ;;; otherwise, the formula won't include output
 ;;; Usage:
 ;;; (greensyn-reset)
-;;; { (greensyn-input input) (greensyn-output output)? (greensyn-send-recv send-recv)? (greensyn-commit) }+
+;;; (greensyn-spec)
+;;; (greensyn-input input) 
+;;; (greensyn-output output) 
+;;; (greensyn-send-recv send-recv)? 
+;;; (greensyn-commit) }
 ;;; (greensyn-gen-formula string_of_candidate assert_output)
 (define (greensyn-gen-formula file has-out)
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (synthesize-prog spec-count #t has-out))
+    (synthesize-prog spec-count 0 1 #t has-out))
   (close-output-port out))
   
   
