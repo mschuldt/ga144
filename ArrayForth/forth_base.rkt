@@ -47,8 +47,6 @@
 (define last-slot-instructions '(";" "unext" "@p" "!p" "+*" "+" "dup" "."))
 (define instructions-preceded-by-nops '("+" "+*"))
 
-(define reset! (set-as-defaults!))
-
 (define (add-compiled-code! elmt)
   (cond [(bytes? elmt)
 	 (rvector-set! memory (* 4 location-counter) elmt)
@@ -57,10 +55,10 @@
 	 (set! location-counter (add1 location-counter))
 	 (add-compiled-code! "@p")]
 	[(string? elmt)
-	 (when (or (and (memq elmt instructions-preceded-by-nops)
+	 (when (or (and (member elmt instructions-preceded-by-nops)
 			(not (equal? (rvector-ref memory (sub1 i-register)) ".")))
 		   (and (= (remainder i-register 4) 3)
-			(not (memq elmt last-slot-instructions))))
+			(not (member elmt last-slot-instructions))))
 	       (add-compiled-code! "."))
 	 (rvector-set! memory i-register elmt)
 	 (if (= (remainder i-register 4) 3)
@@ -206,4 +204,6 @@
                      (lambda ()
                        (let [(num (pop-int! dstack #t))]
                          (add-primitive-code! num))))
+
+(define reset! (set-as-defaults!))
 
