@@ -194,13 +194,23 @@
   (greensyn-check-sat #:file "comm-syn.smt2" 8)
  )
 
-(define (ver-comm)
+(define (ver-comm-1) ; unsat
   (greensyn-reset 1 1 (constraint t))
   (greensyn-spec "277 b! @b 325 b! !")
   (greensyn-verify "comm-ver.smt2" "277 b! @b 325 b! !"))
 
-;; (syn-comm)
-;; (ver-comm)
+(define (ver-comm-2) ; unsat
+  (greensyn-reset 1 1 (constraint t))
+  (greensyn-spec "277 b! @b 325 b! !b")
+  (greensyn-verify "comm-ver.smt2" "277 b! @b 325 b! !b"))
+
+(define (ver-comm-3) ; unsat
+  (greensyn-reset 1 1 (constraint t))
+  (greensyn-spec "!")
+  (greensyn-verify "comm-ver.smt2" "!"))
+
+(syn-comm)
+;; (ver-comm-3)
 
 (define (syn-repeat)
   (define comm (make-vector 1))

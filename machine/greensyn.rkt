@@ -1,4 +1,4 @@
-#lang racket
+ #lang racket
 
 (require "programs.rkt" "state.rkt" "stack.rkt")
 
@@ -257,16 +257,22 @@
 
   (define (write-port reg port val)
     (string-append (string-append
-      (format  "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-	       port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
+      (format  "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
+      (if syn
+	  (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
+		   port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
+	  (format  "(and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) "
+		   port i port prev i prev i     port step i port prev i COMM_BIT)))
       (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
     
   (define (read-port reg port val)
     (string-append (string-append
-      (format "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-	      port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
+      (format "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
+      (if syn
+	  (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
+		  port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
+	  (format "(and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) "
+		  port i port prev i step i     port step i port prev i COMM_BIT)))
       (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
   
   ;;; check that value in register is valid for read or write from a port
