@@ -5,8 +5,8 @@
 (provide (all-defined-out))
 
 ;;; this is consistent with arrayForth
-(define UP #x145)
-(define DOWN #x115)
+(define UP #x145) ;325
+(define DOWN #x115) ;277
 (define LEFT #x175)
 (define RIGHT #x1d5)
 (define IO #x15d)

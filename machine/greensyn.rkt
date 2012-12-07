@@ -579,7 +579,8 @@
 (define (generate-repeat-constraints init body repeat)
   (for* ([i (in-range 0 body)]
 	 [t (in-range 1 repeat)])
-       (pretty-display (format "(assert (= h_~a h_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))))
+       (pretty-display (format "(assert (= h_~a h_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))
+       (pretty-display (format "(assert (= hlit_~a hlit_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))))
 
 (define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
 (define support-no-fake '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
@@ -828,7 +829,10 @@
 (define (vec-to-bits-inner vec vec-size)
   (define bits 0)
   (for* ([i (in-range 0 vec-size)])
-    (set! bits (+ (arithmetic-shift bits SIZE) (modulo (vector-ref vec (- (- vec-size i) 1)) (arithmetic-shift 1 SIZE)))))
+    (define ele (if (< (- (- vec-size i) 1) (vector-length vec))
+                    (vector-ref vec (- (- vec-size i) 1))
+                    0))
+    (set! bits (+ (arithmetic-shift bits SIZE) (modulo ele (arithmetic-shift 1 SIZE)))))
   bits)
 (define (vec-to-bits vec vec-size)
   (if (vector? vec)

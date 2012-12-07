@@ -129,6 +129,7 @@
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program [memory-start 0])
+  (pretty-display (format "BIT = ~a" BIT))
   (define in (random-state (expt 2 BIT)))
   (load-state! in)
   (load-program program memory-start)
@@ -139,6 +140,8 @@
 
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair [comm #f])
+  (pretty-display "random-pair")
+  (pretty-display comm)
   (greensyn-input (car pair))
   (greensyn-output (cadr pair))
   (greensyn-send-recv (or comm (default-commstate)))
@@ -232,7 +235,7 @@
                 (begin 
 		  (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5)))
 		  candidate))))))
-
+  (pretty-display "before call random-pair")
   (go (list (random-pair program start))))
 
 (define (fastest-program program [best-so-far #f]

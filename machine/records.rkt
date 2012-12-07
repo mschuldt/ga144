@@ -60,3 +60,7 @@
 #:name "32bitadd"
 #:slots "0 a! ! 2 a! ! _ _ _ 1 a! _ ! 3 a! _ ! _ _ _ _ _ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop _ _ _ _ _ _ _ _" 
 #:mem 4)
+
+;; communication
+(fastest-program3 "@p b! @b dup 277 @p b! !b nop 277 @p b! !b nop 325" #:constraint (constraint t) #:num-bits 9 #:name "comm")
+; ("277 b! @b dup !b 325 b! nop !b", 31) 35 sec

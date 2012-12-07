@@ -108,6 +108,24 @@
   (pretty-display (format "p:~a a:~a r:~a" p a r))
   (display-data))
 
+(define (display-vector vec n name)
+  (when (> n 0)
+	(display name)
+	(for ([i (in-range 0 n)])
+	     (display (format "~x " (vector-ref vec i))))
+	(newline)))
+
+(define (display-comm)
+  (define comm (current-commstate))
+  (display-vector (commstate-send-u comm) (commstate-sendp-u comm) "send-u: ")
+  (display-vector (commstate-send-d comm) (commstate-sendp-d comm) "send-d: ")
+  (display-vector (commstate-send-l comm) (commstate-sendp-l comm) "send-l: ")
+  (display-vector (commstate-send-r comm) (commstate-sendp-r comm) "send-r: ")
+  (display-vector (commstate-recv-u comm) (commstate-recvp-u comm) "recv-u: ")
+  (display-vector (commstate-recv-d comm) (commstate-recvp-d comm) "recv-d: ")
+  (display-vector (commstate-recv-l comm) (commstate-recvp-l comm) "recv-l: ")
+  (display-vector (commstate-recv-r comm) (commstate-recvp-r comm) "recv-r: "))
+
 ;;; Loads the given program into memory at the given start
 ;;; address. The program is run through the assembler before being
 ;;; loaded.

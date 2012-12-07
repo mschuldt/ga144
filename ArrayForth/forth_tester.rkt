@@ -57,5 +57,34 @@
 (run-test "basic1")
 (run-test "basic2")
 (run-test "basic3")
-(display (compile-file "examples/basic3.aforth")) (newline)
-(display (compile-to-string (open-input-string "yellow 3 node green 1 2 3 4 + +")))
+(pretty-display (compile-file "examples/basic3.aforth")) (newline)
+(pretty-display (compile-to-string (open-input-string "yellow 3 node green 1 2 3 4 + +"))) (newline)
+(pretty-display (compile-to-string (open-input-string "
+0 a! 
+277 b! @b !+
+a push 0 a!
+0 @+ + @+ + @+ + @+ +
+2/ 2/ 325 b! !b pop a!
+277 b! @b !+
+a push 0 a!
+0 @+ + @+ + @+ + @+ +
+2/ 2/ 325 b! !b pop a!"))) (newline)
+(pretty-display (compile-to-string (open-input-string "
+dup or dup a! @+ +  @+ + @+ + @+ +"))) (newline)
+(pretty-display (compile-to-string (open-input-string "
+277 b! @b !+ a 1 and a! 
+a push 0 a!
+0 @+ + @+ +
+2/ 325 b! !b pop a!
+277 b! @b !+ a 1 and a! 
+a push 0 a!
+0 @+ + @+ +
+2/ 325 b! !b pop a!
+277 b! @b !+ a 1 and a! 
+a push 0 a!
+0 @+ + @+ +
+2/ 325 b! !b pop a!
+277 b! @b !+ a 1 and a! 
+a push 0 a!
+0 @+ + @+ +
+2/ 325 b! !b pop a!")))
