@@ -61,7 +61,7 @@
 (define (current-commstate)
   (let* ([messages (list send-u send-d send-l send-r
                          recv-u recv-d recv-l recv-r)]
-         [vectors (map (compose list->vector reverse) messages)]
+         [vectors (map (compose list->vector reverse (curry cons 0)) messages)]
          [lengths (map length messages)])
     (apply commstate (append vectors lengths))))
 

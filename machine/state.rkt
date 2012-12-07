@@ -11,6 +11,9 @@
 (define RIGHT #x1d5)
 (define IO #x15d)
 
+;;; Number of entries for the default communication vectors.
+(define ENTRIES 4)
+
 (struct progstate (a b p i r s t data return memory) #:mutable #:transparent)
 (struct commstate (send-u send-d send-l send-r
                    recv-u recv-d recv-l recv-r
@@ -35,7 +38,6 @@
                [data   (random-stack max-size)]
                [return (stack 0 (make-vector 8))]))
 
-(define ENTRIES 4)
 (define (default-commstate
 	 #:send-u [send-u (make-vector ENTRIES 0)]
 	 #:send-d [send-d (make-vector ENTRIES 0)]

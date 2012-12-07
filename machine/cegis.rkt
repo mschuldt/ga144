@@ -89,6 +89,17 @@
                (var 'mem)))
   `(,(extract-state 0) ,(extract-state prog-length)))
 
+;;; Extract the commstate from the model.
+(define (model->commstate model prog-length)
+  (define (send x) (assoc (format "send~s_v0" x) model))
+  (define (recv x) (assoc (format "recv~s_v0" x) model))
+  (define (sendp x) (assoc (format "send~s_~s_v0" x prog-length) model))
+  (define (recvp x) (assoc (format "recv~s_~s_v0" x prog-length) model))
+  (commstate (send 0) (send 1) (send 2) (send 3)
+             (recv 0) (recv 1) (recv 2) (recv 3)
+             (sendp 0) (sendp 1) (sendp 2) (sendp 3)
+             (recvp 0) (recvp 1) (recvp 2) (recvp 3)))
+
 ;;; Parses the given bitvector into a vector of 18bit numbers.
 (define (bytes->vector input size)
   (define (go bytes curr-size)
@@ -124,7 +135,7 @@
   (set! in (current-state))
   (reset-p! memory-start)
   (step-program!*)
-  `(,in ,(current-state)))
+  (cons `(,in ,(current-state)) (current-commstate)))
 
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair [comm #f])
@@ -141,7 +152,7 @@
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name name "syn" ".smt2"))
   (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
-  (map greensyn-add-pair previous-pairs)
+  (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
   
   (greensyn-check-sat #:file temp-file slots #:time-limit time-limit)
   
@@ -186,14 +197,15 @@
   
   (unless debug (delete-file temp-file))
   ;(when result (pretty-display "\t>> Add counterexample."))
-  (and result (model->pair result #:mem mem prog-length)))
+  (and result (cons (model->pair result #:mem mem prog-length)
+                    (model->commstate result prog-length))))
 
 ;;; This function runs the whole CEGIS loop. It stops when validate
 ;;; returns #f and returns the valid synthesized program. 
 (define (cegis program 
 	       #:name [name "prog"]
 	       #:mem [mem 1] 
-	       #:comm [comm 1] 
+	       #:comm [comm 1]
 	       #:slots [slots 30] 
 	       #:start [start 0] 
                #:constraint [constraint constraint-all] 
