@@ -129,7 +129,6 @@
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program [memory-start 0])
-  (pretty-display (format "BIT = ~a" BIT))
   (define in (random-state (expt 2 BIT)))
   (load-state! in)
   (load-program program memory-start)
@@ -140,8 +139,6 @@
 
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair [comm #f])
-  (pretty-display "random-pair")
-  (pretty-display comm)
   (greensyn-input (car pair))
   (greensyn-output (cadr pair))
   (greensyn-send-recv (or comm (default-commstate)))
@@ -152,6 +149,7 @@
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
 (define (generate-candidate program previous-pairs name mem comm slots init repeat constraint time-limit num-bits inst-pool)
+  (pretty-display "     + add pair")
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name name "syn" ".smt2"))
   (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
