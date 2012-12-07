@@ -201,6 +201,33 @@
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
+(define (syn-repeat)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 1 1 constraint-all)
+  (reset!)
+  (load-program "or and 2* nop and 2* nop nop")
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!*)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (default-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  ;; generate file for Z3 (check-sat <filename> <#holes>
+  (greensyn-check-sat #:file "repeat.smt2" 2 2 2 #:time-limit 50)
+ )
+
+(syn-repeat)
+
 ;; (greensyn-reset 1 1 #:num-bits 18)
 ;; (greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
 ;; (greensyn-verify "ver.smt2" "a! over over nop or dup push nop a and or dup pop or over")
@@ -231,28 +258,28 @@
 ;; (step-program!*)
 ;; (display-state)
 
-(reset! 18)
-(define my-state (random-state #x10))
-(load-state! my-state)
-(display-data)
-(load-program "
-dup dup or nop
-a! @+ @+ nop 
-+ dup @p nop 4
-b! !b nop nop
-2/ 2/ 2/ nop 
-2/ 2/ 2/ nop 
-2/ 2/ 2/ nop 
-2/ 2/ 2/ nop 
-2/ 2/ 2/ nop 
-2/ @+ @+ nop 
-+ nop + @p 5 
-b! !b nop nop" 20)
-(display-memory 6)
-(reset-p! 20)
-(step-program!*)
-(display-state)
-(display-memory 6)
+;; (reset! 18)
+;; (define my-state (random-state #x10))
+;; (load-state! my-state)
+;; (display-data)
+;; (load-program "
+;; dup dup or nop
+;; a! @+ @+ nop 
+;; + dup @p nop 4
+;; b! !b nop nop
+;; 2/ 2/ 2/ nop 
+;; 2/ 2/ 2/ nop 
+;; 2/ 2/ 2/ nop 
+;; 2/ 2/ 2/ nop 
+;; 2/ 2/ 2/ nop 
+;; 2/ @+ @+ nop 
+;; + nop + @p 5 
+;; b! !b nop nop" 20)
+;; (display-memory 6)
+;; (reset-p! 20)
+;; (step-program!*)
+;; (display-state)
+;; (display-memory 6)
 
 ;; (greensyn-reset 8 1 (constraint t))
 ;; (greensyn-input (progstate a b p i r s 1 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
