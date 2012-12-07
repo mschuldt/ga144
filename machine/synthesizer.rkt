@@ -113,6 +113,7 @@
   ;(greensyn-commit)
   
   (greensyn-check-sat #:file "mem.smt2" 14))
+;(syn-mem)
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -120,37 +121,44 @@
   (greensyn-spec "- 2* 2/")
   (greensyn-verify "verify.smt2" "- 2* 2/"))
 
+;(ver-example)
+
 (define (ver-mem) ; sat
   (greensyn-reset 3 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
   (greensyn-verify "ver-mem.smt2" "@+ 2/ or nop @b nop 2* nop + ! nop nop"))
 
-(ver-mem)
+;(ver-mem)
 
 (define (ver-mem-4) ; unsat
   (greensyn-reset 4 1)
   (greensyn-spec "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+  (greensyn-verify "ver-mem-4.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+;(ver-mem-4)
 
 (define (ver-mem-5) ; unsat
   (greensyn-reset 4 1 (constraint memory))
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+  (greensyn-verify "ver-mem-5.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+;(ver-mem-5)
 
 (define (ver-mem-6) ; sat (but we should allow this by relaxing constraint)
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+  (greensyn-verify "ver-mem-6.smt2" "dup or a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+;(ver-mem-6)
 
 (define (ver-mem-7) ; unsat
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "dup dup or nop a! @+ 2* nop @+ 2/ nop + ! nop nop nop"))
+  (greensyn-verify "ver-mem-7.smt2" "dup dup or nop a! @+ 2* nop @+ 2/ nop + ! nop nop nop"))
+;(ver-mem-7)
 
 (define (ver-mem-8) ; sat
   (greensyn-reset 4 1)
   (greensyn-spec "0 a! @ nop 2* 1 a! nop @+ 2/ nop + nop ! nop nop nop")
-  (greensyn-verify "ver-mem.smt2" "a! 0 a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+  (greensyn-verify "ver-mem-8.smt2" "a! 0 a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
+;(ver-mem-8)
 
 
 (define (syn-comm)
@@ -190,13 +198,9 @@
   (greensyn-reset 1 1 (constraint t))
   (greensyn-spec "277 b! @b 325 b! !")
   (greensyn-verify "comm-ver.smt2" "277 b! @b 325 b! !"))
-(define (ver-comm2)
-  (greensyn-reset 1 1 (constraint t))
-  (greensyn-spec "277 b! @b")
-  (greensyn-verify "comm-ver2.smt2" "277 b! @b"))
 
-(syn-comm)
-(ver-comm2)
+;; (syn-comm)
+;; (ver-comm)
 
 (define (syn-repeat)
   (define comm (make-vector 1))

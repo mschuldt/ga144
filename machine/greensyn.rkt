@@ -265,21 +265,15 @@
   (define (write-port reg port val)
     (string-append (string-append
       (format  "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if syn
-	  (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-		   port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format  "(= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))"
-		   port step i port prev i COMM_BIT)))
+      (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
+	       port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
       (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
     
   (define (read-port reg port val)
     (string-append (string-append
       (format "(ite (= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE)
-      (if syn
-	  (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
-		  port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format "(= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))"
-		  port step i port prev i COMM_BIT)))
+      (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e))"
+	      port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i))
       (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
   
   ;;; check that value in register is valid for read or write from a port
@@ -507,16 +501,6 @@
 ;;; This function is only called by verifier.
 (define (generate-choice-assumption choice step i name)
   (define prev (sub1 step))
-    
-  (define (write-port reg port val)
-    (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (format "(not (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
-    
-  (define (read-port reg port val)
-    (string-append
-      (format "(and (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (format "(not (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e)))" port i port prev i step i)))
   
   (define (mem-range reg)
     (string-append (string-append (string-append (string-append (string-append
@@ -532,40 +516,17 @@
     [(equal? choice `@+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; @
-    [(equal? choice `@) 
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `a) 
-		 (read-port `a U-ID UP) 
-		 (read-port `a D-ID DOWN) 
-		 (read-port `a L-ID LEFT)
-		 (read-port `a R-ID RIGHT))]
+    [(equal? choice `@) (mem-range `a)]
     ; @b
-    [(equal? choice `@b)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `b) 
-		 (read-port `b U-ID UP) 
-		 (read-port `b D-ID DOWN) 
-		 (read-port `b L-ID LEFT)
-		 (read-port `b R-ID RIGHT))]
+    [(equal? choice `@b) (mem-range `b)]
     ; !+ (can't store to port)
     [(equal? choice `!+)
 	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
     ; !
-    [(equal? choice `!)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `a) 
-		 (write-port `a U-ID UP) 
-		 (write-port `a D-ID DOWN) 
-		 (write-port `a L-ID LEFT)
-		 (write-port `a R-ID RIGHT))]
+    [(equal? choice `!) (mem-range `a)]
     ; !b
-    [(equal? choice `!b)
-	 (format "(or (or (or (or ~a ~a) ~a) ~a) ~a)" 
-		 (mem-range `b) 
-		 (write-port `b U-ID UP) 
-		 (write-port `b D-ID DOWN) 
-		 (write-port `b L-ID LEFT)
-		 (write-port `b R-ID RIGHT))]))
+    [(equal? choice `!b) (mem-range `b)]))
+
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_BIT check_assump))
 
 ;;; Returns the bv constant representing the given time (n).
