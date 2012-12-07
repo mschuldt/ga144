@@ -57,4 +57,5 @@
 (run-test "basic1")
 (run-test "basic2")
 (run-test "basic3")
-(display (compile-file "examples/basic3.aforth"))
+(display (compile-file "examples/basic3.aforth")) (newline)
+(display (compile-to-string (open-input-string "yellow 3 node green 1 2 3 4 + +")))
