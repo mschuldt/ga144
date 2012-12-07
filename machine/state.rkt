@@ -4,8 +4,18 @@
 
 (provide (all-defined-out))
 
+;;; this is consistent with arrayForth
+(define UP #x145)
+(define DOWN #x115)
+(define LEFT #x175)
+(define RIGHT #x1d5)
+(define IO #x15d)
+
 (struct progstate (a b p i r s t data return memory) #:mutable #:transparent)
-(struct commstate (send-u send-d send-l send-r recv-u recv-d recv-l recv-r sendp-u sendp-d sendp-l sendp-r recvp-u recvp-d recvp-l recvp-r))
+(struct commstate (send-u send-d send-l send-r
+                   recv-u recv-d recv-l recv-r
+                   sendp-u sendp-d sendp-l sendp-r
+                   recvp-u recvp-d recvp-l recvp-r) #:transparent)
 
 ;;; The blank state that the interpreter usually starts in.
 (define start-state (progstate 0 0 0 0 0 0 0

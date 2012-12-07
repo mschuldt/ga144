@@ -20,6 +20,16 @@
 
 (define memory (make-vector 64))
 
+(define send-u '())
+(define send-d '())
+(define send-l '())
+(define send-r '())
+
+(define recv-u '())
+(define recv-d '())
+(define recv-l '())
+(define recv-r '())
+
 (define instructions (make-vector 32))
 
 (define BIT 18)
@@ -47,9 +57,27 @@
 (define (current-state)
   (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
 
+;;; Returns the current commstate.
+(define (current-commstate)
+  (let* ([messages (list send-u send-d send-l send-r
+                         recv-u recv-d recv-l recv-r)]
+         [vectors (map (compose list->vector reverse) messages)]
+         [lengths (map length messages)])
+    (apply commstate (append vectors lengths))))
+
 ;;; Resets the state of the interpreter:
 (define (reset! [bit 18])
   (set! BIT bit)
+
+  (set! send-u '())
+  (set! send-d '())
+  (set! send-l '())
+  (set! send-r '())
+  (set! recv-u '())
+  (set! recv-d '())
+  (set! recv-l '())
+  (set! recv-r '())
+
   (load-state! start-state))
 
 ;;; Resets only p
@@ -165,6 +193,29 @@
       (vector-set! instructions current-opcode body)
       (set! current-opcode (add1 current-opcode)))))
 
+;;; Read from the given memory address or communication port. If it
+;;; gets a communication port, it just returns a random number (for
+;;; now).
+(define (read-memory addr)
+  (if (> addr #xFF)
+      (let ([value (random #x40000)])
+        (cond [(= addr UP)    (set! recv-u (cons value recv-u))]
+              [(= addr DOWN)  (set! recv-d (cons value recv-d))]
+              [(= addr LEFT)  (set! recv-l (cons value recv-l))]
+              [(= addr RIGHT) (set! recv-r (cons value recv-r))])
+        value)
+      (vector-ref memory addr)))
+
+;;; Write to the given memeory address or communication
+;;; port. Everything written to any communication port is simply
+;;; aggregated into a list.
+(define (set-memory! addr value)
+  (cond [(= addr UP)    (set! send-u (cons value send-u))]
+        [(= addr DOWN)  (set! send-d (cons value send-d))]
+        [(= addr LEFT)  (set! send-l (cons value send-l))]
+        [(= addr RIGHT) (set! send-r (cons value send-r))]
+        [else           (vector-set! memory addr value)]))
+
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
 (define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
 (define-instruction! (lambda (a) (set! p a) #f))                                     ; jump (name ;)
@@ -175,14 +226,14 @@
                            (begin (set! r (sub1 r)) (set! p a) #f))))
 (define-instruction! (lambda (a) (and (not (= t 0)) (set! p a) #f)))                 ; if (if)
 (define-instruction! (lambda (a) (and (not (bitwise-bit-set? t (sub1 BIT))) (set! p a) #f))) ; minus if (-if)
-(define-instruction! (lambda (_) (push! (vector-ref memory p)) (set! p (incr p))))   ; fetch-p (@p)
-(define-instruction! (lambda (_) (push! (vector-ref memory a)) (set! a (incr a))))   ; fetch-plus (@+)
-(define-instruction! (lambda (_) (push! (vector-ref memory b))))                     ; fetch-b (@b)
-(define-instruction! (lambda (_) (push! (vector-ref memory a))))                     ; fetch (@)
-(define-instruction! (lambda (_) (vector-set! memory p (pop!)) (set! p (incr p))))   ; store-p (!p)
-(define-instruction! (lambda (_) (vector-set! memory a (pop!)) (set! a (incr a))))   ; store-plus (!+)
-(define-instruction! (lambda (_) (vector-set! memory b (pop!))))                     ; store-b (!b)
-(define-instruction! (lambda (_) (vector-set! memory a (pop!))))                     ; store (!)
+(define-instruction! (lambda (_) (push! (read-memory p)) (set! p (incr p))))   ; fetch-p (@p)
+(define-instruction! (lambda (_) (push! (read-memory a)) (set! a (incr a))))   ; fetch-plus (@+)
+(define-instruction! (lambda (_) (push! (read-memory b))))                     ; fetch-b (@b)
+(define-instruction! (lambda (_) (push! (read-memory a))))                     ; fetch (@)
+(define-instruction! (lambda (_) (set-memory! p (pop!)) (set! p (incr p))))   ; store-p (!p)
+(define-instruction! (lambda (_) (set-memory! a (pop!)) (set! a (incr a))))   ; store-plus (!+)
+(define-instruction! (lambda (_) (set-memory! b (pop!))))                     ; store-b (!b)
+(define-instruction! (lambda (_) (set-memory! a (pop!))))                     ; store (!)
 (define-instruction! (lambda (_) (if (even? a)                                       ; multiply-step (+*)
                                      (multiply-step-even!)
                                      (multiply-step-odd!)))) 

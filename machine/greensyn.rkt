@@ -38,13 +38,6 @@
 (define L-RECV `recvp2)
 (define R-RECV `recvp3)
 
-;;; this is consistent with arrayForth
-(define UP #x145)
-(define DOWN #x115)
-(define LEFT #x175)
-(define RIGHT #x1d5)
-(define IO #x15d)
-
 (define CHOICES (vector-length choice-id))
 (define N_OF_SLOW (vector-length memory-op))
 (define HOLE_BIT (inexact->exact (ceiling (+ (/ (log CHOICES) (log 2))))))
