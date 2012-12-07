@@ -744,7 +744,9 @@
 
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
-       (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var))))
+       (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
+  (for ([i (in-range 0 4)])
+       (pretty-display (format "(assert (= recv~a_v0 recv~a_v1))" i i))))
 
 (define (assert-output-neq)
   ;;; Add this assertion to set the irrelevant communcation entries to 0
@@ -966,7 +968,7 @@
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] #:time-limit [time-limit 0])
+(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] #:time-limit [time-limit #f])
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
     (synthesize-prog sketch init repeat #f #t time-limit))

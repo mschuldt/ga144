@@ -30,8 +30,6 @@
   (greensyn-check-sat #:file "example.smt2" 8 #:time-limit 50)
  )
 
-(syn-example)
-
 
 (define (syn-literal)
   (define comm (make-vector 1))
@@ -114,7 +112,7 @@
   (greensyn-send-recv (default-commstate))
   ;(greensyn-commit)
   
-  (greensyn-check-sat #:file "mem.smt2" 14)); #:time-limit 100))
+  (greensyn-check-sat #:file "mem.smt2" 14))
 
 ;;; verify
 (define (ver-example) ; unsat
@@ -155,51 +153,50 @@
   (greensyn-verify "ver-mem.smt2" "a! 0 a! nop @+ 2* @+ nop 2/ nop + nop ! nop nop nop"))
 
 
-(define (syn-interp)
-  (define comm (make-vector 1))
-  (define mem (make-vector 64))
-  (vector-set! mem 0 0)
-  (vector-set! mem 1 450)
-  (vector-set! mem 2 900)
-  (vector-set! mem 3 1350)
-  (vector-set! mem 4 1800)
+(define (syn-comm)
+  (define vec (make-vector 1))
+  (define comm (default-commstate))
   
-  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
-  (greensyn-reset 6 1)
-  (reset!)
-  (set-state! a b p i r s t data return mem)
-  (load-program "@p @p nop nop 128 63 over 2/ 2/ nop 2/ 2/ 2/ nop 2/ a! and nop push @+ dup nop @+ - nop + - pop a! dup dup or +* +* +* +* +* +* push drop pop nop + nop nop nop" 16)
-  (reset-p! 16)
+  (greensyn-reset 1 1 (constraint t))
   
   ;; 1
+  (vector-set! vec 0 (random 1000))
+  (set-commstate-recv-d! comm vec)
+  (set-commstate-recvp-d! comm 1)
+  (set-commstate-send-u! comm vec)
+  (set-commstate-sendp-u! comm 1)
+
   (greensyn-input (current-state))
-  (step-program!*)
   (greensyn-output (current-state))
-  (greensyn-send-recv (default-commstate))
+  (greensyn-send-recv comm)
   (greensyn-commit)
 
-  ;; 2 ; dst 262143 ... 128
-  ;; (vector-set! mem 0 0)
-  ;; (vector-set! mem 1 0)
-  ;; (vector-set! mem 2 0)
-  ;; (vector-set! mem 3 0)
-  ;; (vector-set! mem 4 0)
-  (reset-p! 16)
-  (set-state! 203893 48523 p i 0 262015 262015 data return memory)
+  ;; 2
+  (vector-set! vec 0 (random 1000))
+  (set-commstate-recv-d! comm vec)
+  (set-commstate-recvp-d! comm 1)
+  (set-commstate-send-u! comm vec)
+  (set-commstate-sendp-u! comm 1)
+
   (greensyn-input (current-state))
-  (step-program!*)
-  (display-data)
   (greensyn-output (current-state))
-  (greensyn-send-recv (default-commstate))
+  (greensyn-send-recv comm)
   (greensyn-commit)
   
-  (greensyn-check-sat #:file "interp-syn.smt2" 33)
+  (greensyn-check-sat #:file "comm-syn.smt2" 8)
  )
 
-(define (ver-add)
-  (greensyn-reset 1 1)
-  (greensyn-spec "+ nop nop nop")
-  (greensyn-verify "ver-add.smt2" "- -"))
+(define (ver-comm)
+  (greensyn-reset 1 1 (constraint t))
+  (greensyn-spec "277 b! @b 325 b! !")
+  (greensyn-verify "comm-ver.smt2" "277 b! @b 325 b! !"))
+(define (ver-comm2)
+  (greensyn-reset 1 1 (constraint t))
+  (greensyn-spec "277 b! @b")
+  (greensyn-verify "comm-ver2.smt2" "277 b! @b"))
+
+(syn-comm)
+(ver-comm2)
 
 (define (syn-repeat)
   (define comm (make-vector 1))
@@ -226,7 +223,10 @@
   (greensyn-check-sat #:file "repeat.smt2" 2 2 2 #:time-limit 50)
  )
 
-(syn-repeat)
+(define (ver-add)
+  (greensyn-reset 1 1)
+  (greensyn-spec "+ nop nop nop")
+  (greensyn-verify "ver-add.smt2" "- -"))
 
 ;; (greensyn-reset 1 1 #:num-bits 18)
 ;; (greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
