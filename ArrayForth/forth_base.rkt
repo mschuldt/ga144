@@ -47,8 +47,6 @@
 (define last-slot-instructions '(";" "unext" "@p" "!p" "+*" "+" "dup" "."))
 (define instructions-preceded-by-nops '("+" "+*"))
 
-(define reset! (set-as-defaults!))
-
 (define (add-compiled-code! elmt)
   (cond [(bytes? elmt)
 	 (rvector-set! memory (* 4 location-counter) elmt)
@@ -206,4 +204,6 @@
                      (lambda ()
                        (let [(num (pop-int! dstack #t))]
                          (add-primitive-code! num))))
+
+(define reset! (set-as-defaults!))
 
