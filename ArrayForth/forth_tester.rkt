@@ -88,3 +88,6 @@ a push 0 a!
 a push 0 a!
 0 @+ + @+ +
 2/ 325 b! !b pop a!")))
+
+(pretty-display (compile-to-string (open-input-string "
+. ; nop ret UP left")))

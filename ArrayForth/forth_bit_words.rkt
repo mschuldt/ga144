@@ -80,6 +80,7 @@
 
 ; NOP
 (add-primitive-word! #f "." (lambda () (void)))
+(make-synonym "." "nop")
 
 ; Word alignment
 (add-primitive-word! #f ".." (lambda () (void)))

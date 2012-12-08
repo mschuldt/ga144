@@ -19,7 +19,7 @@
 
 ;; TODO: regb is initialized to io
 (define (make-new-core)
-  (state (make-dstack) (make-rstack) 0 1 0 0 (make-rvector 100 -1)))
+  (state (make-dstack) (make-rstack) 0 1 0 0 (make-rvector 100 ".")))
 
 (struct interpreter-struct 
 	(codespace cores state-index send-recv-table)
@@ -190,9 +190,19 @@
   (add-primitive-code! code)
   (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
 
+; Adds a new compiler directive - something that is executed
 (define (add-compiler-directive! name code)
   (add-element! compiler-directives (entry #t name (rvector-length codespace)))
   (add-primitive-code! code))
+
+(define (make-synonym a b)
+  (let [(a-dir (find-entry dict a))
+	(b-dir (find-entry dict b))]
+    ; If both are defined, or neither is defined, error.  (i.e. not xor)
+    (cond [(or (and a-dir b-dir) (not (or a-dir b-dir)))
+	   (raise "Cannot make synonym")]
+	  [a-dir (add-entry! (entry-primitive a-dir) b (entry-code a-dir))]
+	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir))])))
 
 (define (find-address d name)
   (define (loop address)
