@@ -52,42 +52,27 @@
         (output (string-append "examples/out/" (string-append name ".out")))]
     (exec-file file tmp)
     (displaynl (string-append ">>> " name))
-    (check-equal-files (open-input-file output) (open-input-file tmp))))
+    (check-equal-files (open-input-file output) (open-input-file tmp))
+    (newline)))
 
-(run-test "basic1")
-(run-test "basic2")
-(run-test "basic3")
-(pretty-display (compile-file "examples/basic3.aforth")) (newline)
-(pretty-display (compile-to-string (open-input-string "yellow 3 node green 1 2 3 4 + +"))) (newline)
-(pretty-display (compile-to-string (open-input-string "
-0 a! 
-277 b! @b !+
-a push 0 a!
-0 @+ + @+ + @+ + @+ +
-2/ 2/ 325 b! !b pop a!
-277 b! @b !+
-a push 0 a!
-0 @+ + @+ + @+ + @+ +
-2/ 2/ 325 b! !b pop a!"))) (newline)
-(pretty-display (compile-to-string (open-input-string "
-dup or dup a! @+ +  @+ + @+ + @+ +"))) (newline)
-(pretty-display (compile-to-string (open-input-string "
-277 b! @b !+ a 1 and a! 
-a push 0 a!
-0 @+ + @+ +
-2/ 325 b! !b pop a!
-277 b! @b !+ a 1 and a! 
-a push 0 a!
-0 @+ + @+ +
-2/ 325 b! !b pop a!
-277 b! @b !+ a 1 and a! 
-a push 0 a!
-0 @+ + @+ +
-2/ 325 b! !b pop a!
-277 b! @b !+ a 1 and a! 
-a push 0 a!
-0 @+ + @+ +
-2/ 325 b! !b pop a!")))
+(define (run-compiler-test name)
+  (let [(file (string-append "examples/" (string-append name ".ctest")))
+        (tmp (string-append "examples/out/" (string-append name ".tmp")))
+        (output (string-append "examples/out/" (string-append name ".out")))]
+    (call-with-output-file tmp
+      #:exists 'truncate
+      (lambda (out)
+	(parameterize ([current-output-port out])
+		      (pretty-display (compile-file file)))))
+    (displaynl (string-append ">>> " name))
+    (check-equal-files (open-input-file output) (open-input-file tmp))
+    (newline)))
 
-(pretty-display (compile-to-string (open-input-string "
-. ; nop ret UP left")))
+(for [(i (in-range 1 4))]
+     (run-test (string-append "basic" (number->string i))))
+
+(for [(i (in-range 1 2))]
+     (run-compiler-test (string-append "small" (number->string i))))
+
+(for [(i (in-range 1 3))]
+     (run-compiler-test (string-append "large" (number->string i))))

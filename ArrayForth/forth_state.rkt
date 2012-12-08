@@ -1,6 +1,6 @@
 #lang racket
 
-(require "forth_read.rkt" "forth_num_convert.rkt" "rvector.rkt" "circular-stack.rkt")
+(require "forth_num_convert.rkt" "rvector.rkt" "circular-stack.rkt")
 
 (provide (all-defined-out))
 
@@ -207,7 +207,7 @@
 (define (find-address d name)
   (define (loop address)
     (let [(word (rvector-ref d address))]
-      (cond [(string-ci=? name (entry-name word)) address]
+      (cond [(equal? name (entry-name word)) address]
             [(= address 0) #f]
             [else (loop (sub1 address))])))
   (loop (sub1 (rvector-length d))))
