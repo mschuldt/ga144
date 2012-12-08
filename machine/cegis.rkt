@@ -91,10 +91,10 @@
 
 ;;; Extract the commstate from the model.
 (define (model->commstate model prog-length)
-  (define (send x) (assoc (format "send~s_v0" x) model))
-  (define (recv x) (assoc (format "recv~s_v0" x) model))
-  (define (sendp x) (assoc (format "send~s_~s_v0" x prog-length) model))
-  (define (recvp x) (assoc (format "recv~s_~s_v0" x prog-length) model))
+  (define (send x) (car (cdr (assoc (string->symbol (format "send~s_v0" x)) model))))
+  (define (recv x) (car (cdr (assoc (string->symbol (format "recv~s_v0" x)) model))))
+  (define (sendp x) (car (cdr (assoc (string->symbol (format "sendp~s_~s_v0" x prog-length)) model))))
+  (define (recvp x) (car (cdr (assoc (string->symbol (format "recvp~s_~s_v0" x prog-length)) model))))
   (commstate (send 0) (send 1) (send 2) (send 3)
              (recv 0) (recv 1) (recv 2) (recv 3)
              (sendp 0) (sendp 1) (sendp 2) (sendp 3)
