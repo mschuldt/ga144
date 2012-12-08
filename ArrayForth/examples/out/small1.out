@@ -1,0 +1,1 @@
+dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + 
