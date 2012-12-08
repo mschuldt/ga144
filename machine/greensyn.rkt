@@ -584,12 +584,14 @@
 
 (define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
 (define support-no-fake '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-no-fake-no-p '#(@+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
 (define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
 (define (support)
   (cond
    [(equal? SUPPORT `all) support-all]
    [(equal? SUPPORT `no-fake) support-no-fake]
+   [(equal? SUPPORT `no-fake-no-p) support-no-fake-no-p]
    [(equal? SUPPORT `no-mem) support-no-mem]
    [(equal? SUPPORT `no-mem-no-p) support-no-mem-no-p]))
 
