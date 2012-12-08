@@ -77,6 +77,17 @@ b! !b nop nop" #:mem 6 #:constraint (constraint memory) #:time-limit 1000)
    #:slots 20 #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9 
    #:mem 4 #:comm 2 #:time-limit 1000)
 
-;; makt it faster
-;; 1) num-bits (up down left right with smaller number)
-;; 2) more sketch
+(pretty-display "fastest3--less sketch")
+(fastest-program3 "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop" 
+   #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _ _"
+   #:slots 36 #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 4 
+   #:mem 4 #:comm 2 #:time-limit 1000
+   #:name "3less")
+
+(pretty-display "fastest1--more sketch")
+(fastest-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop" 
+   #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _"
+   #:slots "12 b! @b  _ _ _ _ _ _ _ _ _ 2/ 2/ 14 nop b! !b _ _ _ _ _ _"
+   #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 4 
+   #:mem 4 #:comm 2 #:time-limit 1000
+   #:name "1more")

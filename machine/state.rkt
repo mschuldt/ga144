@@ -5,10 +5,15 @@
 (provide (all-defined-out))
 
 ;;; this is consistent with arrayForth
-(define UP #x145) ;325
-(define DOWN #x115) ;277
-(define LEFT #x175)
-(define RIGHT #x1d5)
+;; (define UP #x145) ;325
+;; (define DOWN #x115) ;277
+;; (define LEFT #x175)
+;; (define RIGHT #x1d5)
+;; (define IO #x15d)
+(define UP 14)
+(define DOWN 12)
+(define LEFT 10)
+(define RIGHT 8)
 (define IO #x15d)
 
 ;;; Number of entries for the default communication vectors.
