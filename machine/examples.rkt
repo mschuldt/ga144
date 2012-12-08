@@ -64,28 +64,19 @@ b! !b nop nop" #:mem 6 #:constraint (constraint memory) #:time-limit 1000)
 (fastest-program "or and 2* nop and 2* nop nop" #:init "or" #:slots "_ 2* _" #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
 (fastest-program "or and 2* nop and 2* nop nop" #:init 1 #:slots 3 #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
 
-;(fastest-program3 "@p b! @b dup 277 @p b! !b nop 277 @p b! !b nop 325" #:constraint (constraint t) #:num-bits 9)
-;; (pretty-display "11111111111111111111")
+;; PASS
 ;; (fastest-program "@p a! @p nop 0    277    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! @p b! nop 277    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! nop nop nop" 
-;;    #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _ _"
-;;    #:slots 20 #:repeat 2 #:constraint (constraint t) #:inst-pool `no-fake #:num-bits 9 #:time-limit 1000)
+;;    #:init "0 a!"
+;;    #:slots "277 nop b! @b !+ nop a push 0 nop a! 0 @+ nop + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ 325 nop b! !b pop nop a! nop"
+;;    #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9
+;;    #:mem 4 #:comm 2 #:time-limit 1000)
 
-;; (pretty-display "11111111111111111111")
-;; (fastest-program "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop"
-;;    #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop +"
-;;    #:slots 5 #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9 #:time-limit 1000 #:mem 4 #:comm 2) ;; TODO: why so many random pairs?
 
-;; (pretty-display "\n\n\2222222222222222222222")
-;; (fastest-program "@p b! @b nop 277    !+ a @p nop 1    and a! a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop 2/ @p b! nop 325    !b pop a! @p 277    b! @b !+ nop a @p and nop 1    a! a push @p 0    a! @p @+ nop 0    + @+ nop + 2/ @p b! nop 325    !b pop a! @p 277    b! @b !+ nop a @p and nop 1    a! a push @p 0    a! @p @+ nop 0    + @+ nop + 2/ @p b! nop 325    !b pop a! @p 277    b! @b !+ nop a @p and nop 1    a! a push @p 0    a! @p @+ nop 0    + @+ nop + 2/ @p b! nop 325    !b pop a! nop" 
-;;    #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _ _"
-;;    #:slots 20 #:repeat 4 #:constraint (constraint t) #:inst-pool `no-fake #:num-bits 9)
+(fastest-program "@p a! @p nop 0    277    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! @p b! nop 277    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! nop nop nop" 
+   #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _ _"
+   #:slots 20 #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9 
+   #:mem 4 #:comm 2 #:time-limit 1000)
 
-;; (pretty-display "\n\n\333333333333333333333")
-;; (fastest-program "@p a! @p nop 0    277    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! @p b! nop 277    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! nop nop nop" 
-;;    #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + _ _ _ _ _ _"
-;;    #:slots 24 #:repeat 2 #:constraint (constraint t) #:inst-pool `no-fake #:num-bits 9 #:time-limit 1000)
-
-;;; TODO: why so many random pairs?
-(fastest-program "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop"
-   #:init "dup or dup nop a! @+ nop + @+ nop + nop @+ nop + nop @+ nop +"
-   #:slots 5 #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9 #:time-limit 1000 #:mem 4 #:comm 2)
+;; makt it faster
+;; 1) num-bits (up down left right with smaller number)
+;; 2) more sketch
