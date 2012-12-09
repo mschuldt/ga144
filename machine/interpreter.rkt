@@ -105,7 +105,7 @@
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
 (define (display-state)
-  (pretty-display (format "p:~a a:~a r:~a" p a r))
+  (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
   (display-data))
 
 (define (display-vector vec n name)
@@ -187,8 +187,9 @@
 (define (step-program! [debug? #f])
   (set! i (vector-ref memory p))
   (set! p (incr p))
+  (when debug? (display-state))
   (execute-word!)
-  (when debug? (display-state)))
+  )
 
 ;;; Steps the program n times.
 (define (step-program-n! n [debug? #f])
@@ -215,14 +216,20 @@
 ;;; gets a communication port, it just returns a random number (for
 ;;; now).
 (define (read-memory addr)
-  (if (> addr #xFF)
-      (let ([value (random #x40000)])
+  (if (member addr (list UP DOWN LEFT RIGHT))
+      (let ([value (random (arithmetic-shift 1 BIT))])
         (cond [(= addr UP)    (set! recv-u (cons value recv-u))]
               [(= addr DOWN)  (set! recv-d (cons value recv-d))]
               [(= addr LEFT)  (set! recv-l (cons value recv-l))]
               [(= addr RIGHT) (set! recv-r (cons value recv-r))])
         value)
       (vector-ref memory addr)))
+
+;;; Read from the given memory address or communication port. If it
+;;; gets a communication port, it just returns a random number (for
+;;; now).
+(define (read-memory-@p addr)
+  (vector-ref memory addr))
 
 ;;; Write to the given memeory address or communication
 ;;; port. Everything written to any communication port is simply
@@ -244,7 +251,7 @@
                            (begin (set! r (sub1 r)) (set! p a) #f))))
 (define-instruction! (lambda (a) (and (not (= t 0)) (set! p a) #f)))                 ; if (if)
 (define-instruction! (lambda (a) (and (not (bitwise-bit-set? t (sub1 BIT))) (set! p a) #f))) ; minus if (-if)
-(define-instruction! (lambda (_) (push! (read-memory p)) (set! p (incr p))))   ; fetch-p (@p)
+(define-instruction! (lambda (_) (push! (read-memory-@p p)) (set! p (incr p))))   ; fetch-p (@p) TODO: this is a HACK!!!
 (define-instruction! (lambda (_) (push! (read-memory a)) (set! a (incr a))))   ; fetch-plus (@+)
 (define-instruction! (lambda (_) (push! (read-memory b))))                     ; fetch-b (@b)
 (define-instruction! (lambda (_) (push! (read-memory a))))                     ; fetch (@)

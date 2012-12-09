@@ -1,6 +1,6 @@
 #lang racket
 
-(require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt")
+(require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt" "programs.rkt")
 
 ;;; literal
 (define (test00)
@@ -225,10 +225,78 @@
   (greensyn-gen-formula "test07.smt2" #t)
  )
 
+(define (test08)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 4 2 #:num-bits 4)
+  (reset! 4)
+
+  (load-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop")
+  (greensyn-spec (fix-@p "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop"))
+
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!* #t)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (current-commstate))
+  (pretty-display (current-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  (greensyn-gen-formula "test08.smt2" #t)
+ )
+
+(define (test09)
+  (define comm (make-vector 1))
+  
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset 4 2 (constraint r) #:num-bits 4)
+  (reset! 4)
+
+  (load-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop")  
+  (greensyn-spec (fix-@p "dup or dup dup a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop over a! nop nop 
+@ - 1 nop + nop + 12 b! @b dup nop 
+!+ a 3 nop 
+and a! nop + 
+dup 2/ 2/ 14 
+b! !b nop nop
+@ - 1 nop + nop + 12 b! @b dup nop 
+!+ a 3 nop 
+and a! nop + 
+dup 2/ 2/ 14 
+b! !b nop nop
+"))
+  
+  ;; input
+  (greensyn-input (current-state))
+  
+  ;; run the interpreter
+  (step-program!*)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (current-commstate))
+  (pretty-display (current-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  (greensyn-gen-formula "test09.smt2" #t)
+ )
+
 ;; (test00)
-(test01)
+;; (test01)
 ;; (test02)
 ;; (test03)
 ;; (test04)
 ;; (test05)
+;; (test06)
 ;; (test07)
+(test09)

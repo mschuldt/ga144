@@ -597,18 +597,18 @@
 
 (define (support-len) (vector-length (support)))
  
-(define (generate-formula step n version name syn)
-  (define clauses (make-vector (support-len)))
+(define (generate-formula step n version name syn [sup (support)])
+  (define clauses (make-vector (vector-length sup)))
   (when (= (modulo step 4) 0)
 	(pretty-display (format "(assert (= (_ bv0 2) ((_ extract 1 0) ~a_~a)))" name step)))
-  (for* ([i (in-range 0 (support-len))])
-	(vector-set! clauses i (generate-choice (vector-ref (support) i) step n version name syn)))
-  (pretty-display `(assert ,(conjunct clauses (support-len) `or))))
+  (for* ([i (in-range 0 (vector-length sup))])
+	(vector-set! clauses i (generate-choice (vector-ref sup i) step n version name syn)))
+  (pretty-display `(assert ,(conjunct clauses (vector-length sup) `or))))
 
-(define (generate-formulas n from to name syn)
+(define (generate-formulas n from to name syn [sup (support)])
   (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
-    (generate-formula step n version name syn)))
+    (generate-formula step n version name syn sup)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -633,7 +633,7 @@
 	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
   (when (progstate-memory output-constraint)
 	(pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE)))
-  (when (progstate-t state)
+  (when (progstate-t output-constraint)
 	(pretty-display (format "(assert (= t_~e_v~e (_ bv~e ~e)))" n i (progstate-t state) SIZE)))
   (when (progstate-s output-constraint)
 	(pretty-display (format "(assert (= s_~e_v~e (_ bv~e ~e)))" n i (progstate-s state) SIZE)))
@@ -807,7 +807,7 @@
   (newline)
   (declare-vars (add1 spec-count) 0 1)
   (newline)
-  (generate-formulas (add1 spec-count) 0 1 `spec #t)
+  (generate-formulas (add1 spec-count) 0 1 `spec #t support-all)
   (newline)
 
   ; formular for candidate
@@ -880,7 +880,7 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:num-bits [num-bits 18] #:inst-pool [support `all] )
+(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:num-bits [num-bits 18] #:inst-pool [support `no-fake] )
   (set! output-constraint constraint)
   (set! SUPPORT support)
 
