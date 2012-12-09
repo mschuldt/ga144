@@ -35,27 +35,27 @@
 		       (push-int! rstack pc)
 		       (set-pc! a)))
 
-; NEXT
-; 1. Pop counter from the top of rstack.
-; 2. If counter is 0, continue.
-; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
-(define (next-loop-proc counter addr)
-  (push-int! rstack (- counter 1))
-  (set! pc addr))
-  
-(define (next-proc)
-  (let [(addr (pop-int! dstack #f))]
-    (add-primitive-code! (lambda ()
-                        (let [(counter (pop-int! rstack #t))]
-                          (if (= counter 0)
-                              (void)
-                              (next-loop-proc counter addr)))))))
+; unext
+; If R is zero, pops the return stack and continues with the next opcode.
+; If R is nonzero, decrements R by 1 and causes execution to continue with slot 0 of the current instruction word
+; This is done without re-fetching the word (irrelevant for this interpreter/compiler).
+(add-primitive-word! #f "unext"
+		     (lambda ()
+		       (let [(r (pop-int! rstack #f))]
+			 (unless (= r 0)
+				 (push-int! rstack (- r 1))
+				 (set-pc! (quotient (- pc 1) 4))))))
 
-(add-primitive-word! #t "next" next-proc)
-
-; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
-;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
-(add-primitive-word! #t "unext" next-proc)
+; next
+; If R is zero, pops the return stack and continues with the next instruction word addressed by P.
+; If R is nonzero, decrements R by 1 and jumps to the given address.
+(add-primitive-word! #f "next"
+		     (lambda (a)
+		       (let [(r (pop-int! rstack #f))]
+			 (if (= r 0)
+			     (set-pc! (+ 1 (quotient (- pc 1) 4)))
+			     (begin (push-int! rstack (- r 1))
+				    (set-pc! a))))))
 
 ; IF - 
 ; 1. Puts a procedure which jumps over one slot if TRUE is on the stack.

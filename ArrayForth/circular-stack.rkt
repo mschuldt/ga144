@@ -11,21 +11,21 @@
 (define (make-stack registers stack-body-size default)
   (stack (make-vector registers default) 0 (make-vector stack-body-size default) registers stack-body-size))
 
-(struct infinite-stack (bytes))
+(struct infinite-stack (lst) #:mutable)
 
 (define (make-infinite-stack)
-  (infinite-stack (mcons '**head** '())))
+  (infinite-stack '()))
 
 (define (stack-length st)
   (if (infinite-stack? st)
-      (sub1 (length (infinite-stack-bytes st)))
+      (length (infinite-stack-lst st))
       (+ (stack-numregs st)
 	 (stack-numrest st))))
 
 ;;; Push an element onto the given stack:
 (define (push! old-stack element)
   (if (infinite-stack? old-stack)
-      (set-mcdr! (infinite-stack-bytes old-stack) (mcons element (mcdr (infinite-stack-bytes old-stack))))
+      (set-infinite-stack-lst! old-stack (cons element (infinite-stack-lst old-stack)))
       (let-values ([(new-registers next)
 		    (vector-split-at-right (stack-registers old-stack) 1)])
 	(set-stack-registers! old-stack (vector-append `#(,element) new-registers))
@@ -36,10 +36,8 @@
 ;;; Pops an element off the stack and returns it.
 (define (pop! old-stack)
   (if (infinite-stack? old-stack)
-      (let ([result (peek old-stack)]
-	    [old (infinite-stack-bytes old-stack)])
-	(set-mcdr! old (cddr old))
-	result)
+      (begin0 (car (infinite-stack-lst old-stack))
+	      (set-infinite-stack-lst! old-stack (cdr (infinite-stack-lst old-stack))))
       (let-values ([(ret new-registers)
 		    (vector-split-at (stack-registers old-stack) 1)])
 	(let ([element (vector-ref (stack-rest old-stack) (stack-sp old-stack))])
@@ -50,7 +48,7 @@
 ;;; Returns the top value of the stack without taking it off the stack.
 (define (peek old-stack [pos 0])
   (if (infinite-stack? old-stack)
-      (list-ref (infinite-stack-bytes old-stack) (add1 pos))
+      (list-ref (infinite-stack-lst old-stack) pos)
       (let ((modpos (modulo pos (stack-length old-stack))))
 	(if (< modpos (stack-numregs old-stack))
 	    (vector-ref (stack-registers old-stack) modpos)

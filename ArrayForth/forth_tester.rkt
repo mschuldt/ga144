@@ -1,6 +1,6 @@
 #lang racket
 
-(require "forth_base.rkt")
+(require "compiler.rkt")
 
 (define (displaynl arg)
   (display arg)
@@ -52,7 +52,8 @@
         (output (string-append "examples/out/" (string-append name ".out")))]
     (exec-file file tmp)
     (displaynl (string-append ">>> " name))
-    (check-equal-files (open-input-file output) (open-input-file tmp))
+    (system (string-append "diff -b " output " " tmp))
+    (displaynl "Tests checked")
     (newline)))
 
 (define (run-compiler-test name)
@@ -65,13 +66,14 @@
 	(parameterize ([current-output-port out])
 		      (pretty-display (compile-file file)))))
     (displaynl (string-append ">>> " name))
-    (check-equal-files (open-input-file output) (open-input-file tmp))
+    (system (string-append "diff -b " output " " tmp))
+    (displaynl "Tests checked")
     (newline)))
 
 (for [(i (in-range 1 4))]
      (run-test (string-append "basic" (number->string i))))
 
-(for [(i (in-range 1 2))]
+(for [(i (in-range 1 4))]
      (run-compiler-test (string-append "small" (number->string i))))
 
 (for [(i (in-range 1 3))]

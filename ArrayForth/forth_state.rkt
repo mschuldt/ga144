@@ -202,7 +202,8 @@
     (cond [(or (and a-dir b-dir) (not (or a-dir b-dir)))
 	   (raise "Cannot make synonym")]
 	  [a-dir (add-entry! (entry-primitive a-dir) b (entry-code a-dir))]
-	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir))])))
+	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir))]))
+  (void))
 
 (define (find-address d name)
   (define (loop address)
