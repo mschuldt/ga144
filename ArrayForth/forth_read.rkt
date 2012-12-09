@@ -1,8 +1,8 @@
 #lang racket
 
-(provide forth_read_no_eof forth_read read read-syntax read-to-list)
+(provide forth_read_no_eof forth_read read-basic read-syntax read-to-list)
 
-(define (read in)
+(define (read-basic in)
   (define (get_first_char_in_list)
     (let ((new_char (read-char in)))
       (cond [(eof-object? new_char)
@@ -28,17 +28,35 @@
 
 ;;; Given a port, returns a list of forth tokens.
 (define (read-to-list port)
-  (let ([token (read port)])
+  (let ([token (read-basic port)])
     (if (eof-object? token) '() (cons token (read-to-list port)))))
 
 (define (read-syntax src in)
-  (read in))
+  (read-basic in))
 
-(define (forth_read)
-  (read (current-input-port)))
+(define (make-reader func)
+  (let [(stack '())]
+    (case-lambda
+     [()
+      (if (null? stack)
+	  (func)
+	  (begin0 (car stack)
+		  (set! stack (cdr stack))))]
+     [(msg)
+      (when (not (equal? msg 'clear))
+	    (raise (string-append "Unknown message to reader: " msg)))
+      (set! stack '())]
+     [(msg token)
+      (when (not (equal? msg 'put-back))
+	    (raise (string-append "Unknown message to reader: " msg)))
+      (set! stack (cons token stack))] )))
+
+(define forth_read
+  (make-reader (lambda () (read-basic (current-input-port)))))
 
 (define (forth_read_no_eof)
   (let [(res (forth_read))]
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))
+

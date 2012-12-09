@@ -12,6 +12,8 @@
       (string-ci=? a b)
       (equal-case-sensitive? a b)))
 
+(define address-required-on-cstack '("next" "if" "-if"))
+(define address-required '("jump" "call" "next" "if" "-if"))
 ; This code is ugly, because I don't know how to use Racket well.
 (define (code-loop)
   (let [(ended-list
@@ -23,9 +25,16 @@
 		(let [(code (rvector-ref memory pc))]
 		  (begin
 		    (increment-pc!)
-		    (cond ((string? code) ((rvector-ref codespace (entry-code (find-entry dict code)))))
-			  ((procedure? code) (code))
-			  (else (raise "Unknown type in memory -- code-loop")))
+		    (cond [(and (string? code) (member code address-required))
+			   (let [(addr (rvector-ref memory pc))]
+			     (increment-pc!)
+			     ((rvector-ref codespace (entry-code (find-entry dict code))) addr))]
+			  [(string? code)
+			   ((rvector-ref codespace (entry-code (find-entry dict code))))]
+			  [(procedure? code)
+			   (code)]
+			  [else
+			   (raise "Unknown type in memory -- code-loop")])
 		    #f))))
 	  used-cores))]
     (unless (for/and ([bool ended-list]) bool)
@@ -36,9 +45,6 @@
   (set-pc! addr))
 
 (define execute (compose execute-code entry-code))
-
-(add-primitive-word! #f ";" (lambda () (set-pc! (pop-int! rstack #f))))
-(make-synonym ";" "ret")
 
 (add-primitive-word! #f "ex" (lambda () (execute (rvector-ref dict (pop-int! dstack #f)))))
 
@@ -54,7 +60,22 @@
 (define last-slot-instructions '(";" "unext" "@p" "!p" "+*" "+" "dup" "."))
 (define instructions-preceded-by-nops '("+" "+*"))
 
+; Compiles an instruction or constant.
+; In the case of a constant, it implicitly adds @p.
+; Deals with instructions-preceded-by-nops
+; Deals with last-slot-instructions
+; Invariant:  At the beginning and the end of each invocation:
+; a. i-register is the index of the next slot (not word) in (the variable) memory to compile into
+; b. location-counter is the F18A address which is the next available word.  The memory address is 4*location-counter.
 (define (add-compiled-code! elmt)
+
+  (define (standard-compile! thing)
+    (rvector-set! memory i-register elmt)
+    (if (= (remainder i-register 4) 3)
+	(begin (set! i-register (* 4 location-counter))
+	       (set! location-counter (add1 location-counter)))
+	(set! i-register (add1 i-register))))
+
   (cond [(bytes? elmt)
 	 (rvector-set! memory (* 4 location-counter) elmt)
 	 (for [(i (in-range 1 4))]
@@ -67,11 +88,11 @@
 		   (and (= (remainder i-register 4) 3)
 			(not (member elmt last-slot-instructions))))
 	       (add-compiled-code! "."))
-	 (rvector-set! memory i-register elmt)
-	 (if (= (remainder i-register 4) 3)
-	     (begin (set! i-register (* 4 location-counter))
-		    (set! location-counter (add1 location-counter)))
-	     (set! i-register (add1 i-register)))]
+	 (standard-compile! elmt)]
+	[(number? elmt)
+	 (when (not (member (rvector-ref memory (sub1 i-register)) address-required))
+	       (raise "Tried to compile a number that was not an address --- add-compiled-code!"))
+	 (standard-compile! elmt)]
 	[else (raise "Unknown thing to compile --- add-compiled-code!")]))
 
 (define named-numbers (map (lambda (x) 
@@ -84,6 +105,8 @@
 ;; To compile an immediate word, you need to postpone it.
 ;; Compiler directives are added in this section.
 (define (compile code-port)
+  (when (string? code-port)
+	(set! code-port (open-input-string code-port)))
   (define (lookup key records)
     (cond ((null? records) #f)
 	  ((equal? key (caar records)) (cdar records))
@@ -104,15 +127,28 @@
 					       (add-compiled-code! num))
 					   (raise (string-append to-compile " ?"))))))]
 			      [execute?
+			       ; Assume that it is not an instruction that requires an address as an argument
 			       ((rvector-ref codespace (entry-code entry)))]
+			      [(member to-compile address-required-on-cstack)
+			       (when (= (remainder i-register 4) 3)
+				     (fill-rest-with-nops))
+			       (add-compiled-code! to-compile)
+			       (add-compiled-code! (pop-int! cstack #f))
+			       (fill-rest-with-nops)]
 			      [(entry-primitive entry)
 			       (add-compiled-code! to-compile)]
 			      [else
-			       (add-compiled-code! "call")
-			       (add-compiled-code! to-compile)] )))
+			       (let [(nxt (forth_read))]
+				 (if (equal? nxt ";")
+				     (add-compiled-code! "jump")
+				     (begin (forth_read 'put-back nxt)
+					    (add-compiled-code! "call")))
+				 (add-compiled-code! (entry-code entry))
+				 (fill-rest-with-nops))] )))
 	      (compile-loop))))
   (set! used-cores '())
   (let [(old (current-input-port))]
+    (forth_read 'clear)
     (current-input-port code-port)
     (set! execute? #f)
     (compile-loop)
@@ -189,15 +225,9 @@
 		     (lambda () (set! execute? #f)))
 
 (define (fill-rest-with-nops)
-  (define (loop)
-    (if (= (remainder i-register 4) 0)
-	(begin (set! i-register (* 4 location-counter))
-	       (set! location-counter (add1 location-counter)))
-	(begin (rvector-set! memory i-register ".")
-	       (set! i-register (add1 i-register))
-	       (loop))))
   (unless (= (remainder i-register 4) 0)
-	  (loop)))
+	  (add-compiled-code! ".")
+	  (fill-rest-with-nops)))
 
 ; TODO: Does this have to be on a word boundary?  If not, then use i-register.
 (add-compiler-directive! ":"

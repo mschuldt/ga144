@@ -214,7 +214,7 @@
                #:constraint [constraint constraint-all] 
 	       #:time-limit [time-limit (estimate-time program)]
 	       #:num-bits [num-bits 18]
-	       #:inst-pool [inst-pool `all])
+	       #:inst-pool [inst-pool `no-fake])
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
@@ -247,7 +247,7 @@
                          #:constraint [constraint constraint-all]
                          #:time-limit [time-limit (add1 (estimate-time program))]
 			 #:num-bits  [num-bits 18]
-			 #:inst-pool [inst-pool `all])
+			 #:inst-pool [inst-pool `no-fake])
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
   (define candidate (cegis program #:name name
@@ -277,7 +277,7 @@
                          #:constraint [constraint constraint-all]
                          #:time-limit [time-limit (estimate-time program)]
 			 #:num-bits  [num-bits 18]
-			 #:inst-pool [inst-pool `all])
+			 #:inst-pool [inst-pool `no-fake])
   (define candidate (cegis program #:name name
 			   #:mem mem #:comm comm #:slots slots 
 			   #:start start 
@@ -319,7 +319,7 @@
 			  #:constraint [constraint constraint-all]
 			  #:time-limit [time-limit (estimate-time program)]
 			  #:num-bits  [num-bits 18]
-			  #:inst-pool [inst-pool `all])
+			  #:inst-pool [inst-pool `no-fake])
   (pretty-display (format "original program\t: ~e" program))
   (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
   (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5)))

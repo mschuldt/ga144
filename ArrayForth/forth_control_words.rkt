@@ -4,7 +4,58 @@
 (provide (all-defined-out))
 
 ; Control
-(define (dummy-proc) (void))
+(define dummy-proc void)
+
+; Return
+; Moves R into P, popping the return stack.
+; As a result, it skips any remaining slots and fetches next instruction word.
+(add-primitive-word! #f ";" 
+		     (lambda () (set-pc! (pop-int! rstack #f))))
+(make-synonym ";" "ret")
+
+; Execute
+; Exchanges R and P.
+; As a result, it skips any remaining slots and fetches next instruction word.
+(add-primitive-word! #f "ex"
+		     (lambda () 
+		       (let [(temp pc)]
+			 (set-pc! (pop-int! rstack #f))
+			 (push-int! rstack temp))))
+
+; Jump
+; Sets P to destination address
+; As a result, it fetches next instruction word.
+(add-primitive-word! #f "jump" set-pc!)
+
+; Call
+; Moves P into R, pushing an item onto the return stack, sets P to destination address 
+; As a result, it fetches next instruction word.
+(add-primitive-word! #f "call"
+		     (lambda (a)
+		       (push-int! rstack pc)
+		       (set-pc! a)))
+
+; NEXT
+; 1. Pop counter from the top of rstack.
+; 2. If counter is 0, continue.
+; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
+(define (next-loop-proc counter addr)
+  (push-int! rstack (- counter 1))
+  (set! pc addr))
+  
+(define (next-proc)
+  (let [(addr (pop-int! dstack #f))]
+    (add-primitive-code! (lambda ()
+                        (let [(counter (pop-int! rstack #t))]
+                          (if (= counter 0)
+                              (void)
+                              (next-loop-proc counter addr)))))))
+
+(add-primitive-word! #t "next" next-proc)
+
+; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
+;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
+(add-primitive-word! #t "unext" next-proc)
 
 ; IF - 
 ; 1. Puts a procedure which jumps over one slot if TRUE is on the stack.
@@ -46,7 +97,7 @@
 
 ; Loops
 ;; Removed LEAVE
-
+#|
 ; LOOP
 (define (loop-proc)
   (let [(addr (pop-int! dstack #f))]
@@ -59,44 +110,31 @@
                   (set! pc addr)))))))
 (add-primitive-word! #t "loop" loop-proc)
 
+; BEGIN
+; Put HERE on the stack, to be used by UNTIL or REPEAT.
+; TODO:  Just use location-counter, or also use i-register?
+(define (begin-proc)
+  (fill-rest-with-nops)
+  (push-int! cstack location-counter))
+(add-compiler-directive! "begin" begin-proc)
+
 ; FOR
 ; 1. Add to compiled code the PUSH command.
 ; 2. Put HERE on the stack, to be used by NEXT.
 ; TODO: Is push-proc supposed to be called?  If yes, then rewrite push-proc in terms of the lambda (push-proc is not available in this file).
 ; TODO:  Just use location-counter, or also use i-register?
-#|
+
 (define (for-proc)
   (add-primitive-code!(push-proc))
   (push-int! dstack location-counter))
 (add-primitive-word! #t "for" for-proc)
-|#
-  
-; NEXT
-; 1. Pop counter from the top of rstack.
-; 2. If counter is 0, continue.
-; 3. If counter is not 0, push counter-1 back to rstack and jump to label pushed by FOR
-(define (next-loop-proc counter addr)
-  (push-int! rstack (- counter 1))
-  (set! pc addr))
-  
-(define (next-proc)
-  (let [(addr (pop-int! dstack #f))]
-    (add-primitive-code! (lambda ()
-                        (let [(counter (pop-int! rstack #t))]
-                          (if (= counter 0)
-                              (void)
-                              (next-loop-proc counter addr)))))))
 
-(add-primitive-word! #t "next" next-proc)
 
-; MICRO NEXT. Loop to the beginning of I, the current instruction word, instead of FOR.
-;; TODO: need assertion that instructions between FOR and UNEXT 3 slots and start at slot 0.
-(add-primitive-word! #t "unext" next-proc)
+(add-compiler-directive! "for"
+			 (lambda ()
+			   (add-compiled-code! "push")
+			   (begin-proc)))
 
-; BEGIN
-; Put HERE on the stack, to be used by UNTIL or REPEAT.
-; TODO:  Just use location-counter, or also use i-register?
-(add-primitive-word! #t "begin" (lambda () (push-int! dstack location-counter)))
 
 ; UNTIL
 ; Jumps back to the address left by BEGIN if it sees a false flag.
@@ -123,3 +161,4 @@
                                    (lambda () (if (= (pop-int! dstack #t) false)
                                                   (void)
                                                   (raise str)))))))
+|#
