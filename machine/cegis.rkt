@@ -3,11 +3,16 @@
 (require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
 (provide cegis fastest-program fastest-program2 fastest-program3)
-(provide estimate-time program-length)
+(provide estimate-time program-length perf-mode)
 
 (define debug #t)
+(define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
+
+(define (perf-mode)
+  (set! debug #f)
+  (set! demo #f))
 
 ;;; Returns a file name with the given prefix, containing the current
 ;;; step and run. You can also optionally specify a suffix like
@@ -149,7 +154,7 @@
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
 (define (generate-candidate program previous-pairs name mem comm slots init repeat constraint time-limit num-bits inst-pool)
-  (pretty-display "     + add pair")
+  (when demo (pretty-display "     + add pair"))
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name name "syn" ".smt2"))
   (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
@@ -218,9 +223,10 @@
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
-  (if (number? slots)
-      (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose approx runtime < ~a ns." slots (* time-limit 0.5)))
-      (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." slots (* time-limit 0.5))))
+  (when demo
+	(if (number? slots)
+	    (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose approx runtime < ~a ns." slots (* time-limit 0.5)))
+	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." slots (* time-limit 0.5)))))
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
@@ -231,9 +237,9 @@
             (if new-pair
                 (go (cons new-pair pairs))
                 (begin 
-		  (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5)))
+		  (when demo
+			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
 		  candidate))))))
-  (pretty-display "before call random-pair")
   (go (list (random-pair program start))))
 
 (define (fastest-program program [best-so-far #f]
@@ -264,8 +270,7 @@
                                       #:constraint constraint #:time-limit (cdr candidate)
 				      #:num-bits num-bits #:inst-pool inst-pool)
 		     best-so-far))
-  (when debug (display (format "Time: ~a seconds." (- (current-seconds) start-time)))
-        (newline))
+  (when demo (when debug (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))))
   result)
 
 (define (fastest-program2 program [best-so-far #f]
@@ -294,7 +299,6 @@
   result)
 
 (define (binary-search slot-min slot-max init repeat program name mem comm start constraint time-limit num-bits inst-pool [best-so-far #f])
-  ;(pretty-display (format "slot-min = ~a, slot-max = ~a" slot-min slot-max))
   (if (> slot-min slot-max)
       best-so-far
       (let* ([slot-mid (quotient (+ slot-min slot-max) 2)]
