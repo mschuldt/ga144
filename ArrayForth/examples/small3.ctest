@@ -1,0 +1,5 @@
+: multiply ( a b -- a*b) for +* next ;
+
+: exponent ( base power -- base^power) push dup begin over multiply next drop ;
+
+2 3 exponent .ns
