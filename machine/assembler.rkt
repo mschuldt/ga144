@@ -3,7 +3,7 @@
 (provide read-program)
 
 ;;; ; and . are ret and nop respectively so I can reuse the Racket lexer.
-(define names '#(ret ex jump call unext next if -if @p @+ @b @ !p !+ !b ! +*
+(define names '#(rshift lshift / call unext next if -if @p @+ @b @ !p !+ !b ! +*
                     2* 2/ - + and or drop dup pop over a nop push b! a!))
 
 ;;; Returns the op-code corresponding to the given name. #<eof> is

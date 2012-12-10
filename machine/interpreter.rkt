@@ -30,7 +30,7 @@
 (define recv-l '())
 (define recv-r '())
 
-(define instructions (make-vector 32))
+(define instructions (make-vector 35))
 
 (define BIT 18)
 
@@ -241,9 +241,15 @@
         [(= addr RIGHT) (set! send-r (cons value send-r))]
         [else           (vector-set! memory addr value)]))
 
-(define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
-(define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
-(define-instruction! (lambda (a) (set! p a) #f))                                     ; jump (name ;)
+(define-instruction! (lambda (_) (let ([dist (pop!)]
+                                       [num (pop!)])
+                                   (push! (arithmetic-shift num (- dist))))))
+(define-instruction! (lambda (_) (let ([dist (pop!)]
+                                       [num (pop!)])
+                                   (push! (arithmetic-shift num dist)))))
+(define-instruction! (lambda (_) (let ([num (pop!)]
+                                       [den (pop!)])
+                                   (push! (quotient num den)))))
 (define-instruction! (lambda (a) (r-push! p) (set! p a) #f))                         ; call (name)
 (define-instruction! (lambda (_) (if (= r 0) (r-pop!)                                ; micronext (unext) -- hacky!
                            (begin (set! r (sub1 r)) (set! p (sub1 p)) #f))))
@@ -277,6 +283,9 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
+
+;;; Fake instructions
+
 
 ;;; Treats T:A as a single 36 bit register and shifts it right by one
 ;;; bit. The most signficicant bit (T17) is kept the same.
