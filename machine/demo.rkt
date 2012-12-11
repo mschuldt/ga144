@@ -2,9 +2,15 @@
 
 (require "cegis.rkt" "state.rkt")
 
+;; >>> 0x3ffff = 262143
+;; >>> 0x1ffff = 131071
+;; >>> 0xffff = 65535
+;; >>> 0x7fff = 32767
+;; >>> 0x3fff = 16383
+;; >>> 0x1fff = 8191
 
 ;;; swap only at m is 1 xym -> - y' (first part)
-(fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
+;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
 
 ;;; x - (x & y)
 ;; (fastest-program3 "over and - @p 1 nop + nop +" #:slots 8 #:constraint (constraint t))
@@ -18,3 +24,28 @@
 
 ;;; some sketch examples here
 
+;; division /3 /5 /6
+;; (cegis "@p  and @p nop 131071 6 / nop nop nop" #:slots 
+;; "131071 and a! @p
+;; nop 0 +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; @p lshift a @p
+;; rshift @p and nop
+;; + nop nop nop"
+;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
+
+;; ; /7 /11
+(cegis "@p  and @p nop 32767  11 / nop nop nop" #:slots 
+"32767 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
