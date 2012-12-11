@@ -64,3 +64,73 @@
 ;; communication
 (fastest-program3 "@p b! @b dup 277 @p b! !b nop 277 @p b! !b nop 325" #:constraint (constraint t) #:num-bits 9 #:name "comm")
 ; ("277 b! @b dup !b 325 b! nop !b", 31) 35 sec
+
+;; division /3
+(fastest-program "@p  and @p nop 131071 3 / nop nop nop" #:slots 
+"131071 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t))
+; ("131071 and a! 43691 nop 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* 1 lshift a 18 rshift 1 and nop + nop nop nop" . 141) 59
+
+; /5
+(fastest-program "@p  and @p nop 131071 5 / nop nop nop" #:slots 
+"131071 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t))
+; ("131071 and a! 52429 nop 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* 0 lshift a 4 rshift 0 and nop + nop nop nop" . 141) 48
+
+; /6
+(fastest-program "@p  and @p nop 131071  6 / nop nop nop" #:slots 
+"131071 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t))
+; '("131071 and a! 43691 nop 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* 0 lshift a 8 rshift 0 and nop + nop nop nop" . 141) 37
+
+; /7
+(fastest-program "@p  and @p nop 32767  7 / nop nop nop" #:slots 
+"32767 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t))
+; '("32767 and a! 37450 nop 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* 0 lshift a 2 rshift 0 and nop + nop nop nop" . 141) 32
+
+; /11
+(fastest-program "@p  and @p nop 32767  11 / nop nop nop" #:slots 
+"32767 and a! @p
+nop 0 +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
+@p lshift a @p
+rshift @p and nop
++ nop nop nop"
+#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t))
+; ("32767 and a! 23832 nop 0 +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* +* 0 lshift a 0 rshift 7 and nop + nop nop nop" . 141) 25

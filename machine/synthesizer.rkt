@@ -242,64 +242,46 @@
   (greensyn-spec "+ nop nop nop")
   (greensyn-verify "ver-add.smt2" "- -"))
 
-;; (greensyn-reset 1 1 #:num-bits 18)
-;; (greensyn-spec "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop a and push nop a - and nop pop over over nop or push and nop pop or pop")
-;; (greensyn-verify "ver.smt2" "a! over over nop or dup push nop a and or dup pop or over")
+;; (reset! 18)
+;; (define my-state (random-state 16))
+;; (load-state! my-state)
+;; ;(display-data)
+;; (load-program "@p a! @p @p 49439 209716 0
+;; nop nop +* +*
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +*")
+;; (step-program!*)
+;; (display-state)
+;; ; 49439 * 209716 = 10368149324
 
-(reset! 4)
+;; ; not working because +* doesn't do the right thing
+;; (fastest-program "@p  and @p nop 131071 5 / nop nop nop" #:slots 
+;; "131071 and a! 209716
+;; nop 0 +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; 2 rshift nop nop"
+;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000)
+
+
+(reset! 18)
 (define my-state (random-state 16))
 (load-state! my-state)
 ;(display-data)
-(load-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop")
-;(display-state)
+(load-program "@p a! @p @p 49439 43691 0
+nop nop +* +*
++* +* +* +* 
++* +* +* +* 
++* +* +* +* 
++* +* +* +*
+2* a @p nop 17
+rshift @p and nop 1
++ nop nop nop")
 (step-program!*)
-;(display-state)
-(display-comm)
-(pretty-display (current-commstate))
+(display-state)
+; 49439 * 209716 = 10368149324
 
-;; (newline)
-;; (reset! 18)
-;; (load-state! my-state)
-;; ;(display-data)
-;; (load-program "a! over over nop or a and nop over or push nop over or a nop and or dup nop pop nop nop nop")
-;; (step-program!*)
-;; (display-state)
-
-
-;; (newline)
-;; (reset! 18)
-;; (load-state! my-state)
-;; ;(display-data)
-;; (load-program "a! over over nop or dup push nop a and or dup pop or over nop")
-;; (step-program!*)
-;; (display-state)
-
-;; (reset! 18)
-;; (define my-state (random-state #x10))
-;; (load-state! my-state)
-;; (display-data)
-;; (load-program "
-;; dup dup or nop
-;; a! @+ @+ nop 
-;; + dup @p nop 4
-;; b! !b nop nop
-;; 2/ 2/ 2/ nop 
-;; 2/ 2/ 2/ nop 
-;; 2/ 2/ 2/ nop 
-;; 2/ 2/ 2/ nop 
-;; 2/ 2/ 2/ nop 
-;; 2/ @+ @+ nop 
-;; + nop + @p 5 
-;; b! !b nop nop" 20)
-;; (display-memory 6)
-;; (reset-p! 20)
-;; (step-program!*)
-;; (display-state)
-;; (display-memory 6)
-
-;; (greensyn-reset 8 1 (constraint t))
-;; (greensyn-input (progstate a b p i r s 1 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
-;; (greensyn-output (progstate a b p i r s 0 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
-;; (greensyn-send-recv (default-commstate))
-;; (greensyn-commit)
-;; (greensyn-check-sat #:file "syn.smt2" "@p" #:time-limit 100000)
