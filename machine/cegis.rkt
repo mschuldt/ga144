@@ -133,14 +133,14 @@
          (and (member 'sat res) (extract-model (cadr res))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
-(define (random-pair program [memory-start 0])
-  (define in (random-state (expt 2 BIT)))
-  (load-state! in)
+(define (random-pair program [memory-start 0]
+		     #:start-state [start-state (random-state (expt 2 BIT))])
+  (load-state! start-state)
   (load-program program memory-start)
-  (set! in (current-state))
+  (set! start-state (current-state))
   (reset-p! memory-start)
   (step-program!*)
-  (cons `(,in ,(current-state)) (current-commstate)))
+  (cons `(,start-state ,(current-state)) (current-commstate)))
 
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair [comm #f])
@@ -219,7 +219,8 @@
                #:constraint [constraint constraint-all] 
 	       #:time-limit [time-limit (estimate-time program)]
 	       #:num-bits [num-bits 18]
-	       #:inst-pool [inst-pool `no-fake])
+	       #:inst-pool [inst-pool `no-fake]
+	       #:start-state [start-state (random-state (expt 2 BIT))])
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
@@ -240,7 +241,7 @@
 		  (when demo
 			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
 		  candidate))))))
-  (go (list (random-pair program start))))
+  (go (list (random-pair program start #:start-state start-state))))
 
 (define (fastest-program program [best-so-far #f]
 			 #:name       [name "prog"]
@@ -253,7 +254,8 @@
                          #:constraint [constraint constraint-all]
                          #:time-limit [time-limit (add1 (estimate-time program))]
 			 #:num-bits  [num-bits 18]
-			 #:inst-pool [inst-pool `no-fake])
+			 #:inst-pool [inst-pool `no-fake]
+			 #:start-state [start-state (random-state (expt 2 BIT))])
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
   (define candidate (cegis program #:name name
@@ -261,14 +263,15 @@
                            #:slots slots #:init init #:repeat repeat
                            #:start start 
 			   #:constraint constraint #:time-limit time-limit
-			   #:num-bits num-bits #:inst-pool inst-pool))
+			   #:num-bits num-bits #:inst-pool inst-pool #:start-state start-state))
   (define result (if candidate
                      (fastest-program program candidate #:name name
 				      #:mem mem #:comm comm 
                                       #:slots slots #:init init #:repeat repeat
                                       #:start start 
                                       #:constraint constraint #:time-limit (cdr candidate)
-				      #:num-bits num-bits #:inst-pool inst-pool)
+				      #:num-bits num-bits #:inst-pool inst-pool
+				      #:start-state start-state)
 		     best-so-far))
   (when demo (when debug (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))))
   result)
@@ -298,7 +301,7 @@
 		     best-so-far))
   result)
 
-(define (binary-search slot-min slot-max init repeat program name mem comm start constraint time-limit num-bits inst-pool [best-so-far #f])
+(define (binary-search slot-min slot-max init repeat program name mem comm start constraint time-limit num-bits inst-pool start-state [best-so-far #f])
   (if (> slot-min slot-max)
       best-so-far
       (let* ([slot-mid (quotient (+ slot-min slot-max) 2)]
@@ -309,8 +312,8 @@
 			       #:constraint constraint #:time-limit time-limit
 			       #:num-bits num-bits #:inst-pool inst-pool)])
 	(if candidate
-	    (binary-search slot-min (sub1 slot-mid) init repeat program name mem comm start constraint (cdr candidate) num-bits inst-pool candidate)
-	    (binary-search (add1 slot-mid) slot-max init repeat program name mem comm start constraint (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool best-so-far)))))
+	    (binary-search slot-min (sub1 slot-mid) init repeat program name mem comm start constraint (cdr candidate) num-bits inst-pool start-state candidate)
+	    (binary-search (add1 slot-mid) slot-max init repeat program name mem comm start constraint (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)))))
 
 (define (fastest-program3 program [best-so-far #f]
 			  #:name       [name "prog"]
@@ -323,20 +326,22 @@
 			  #:constraint [constraint constraint-all]
 			  #:time-limit [time-limit (estimate-time program)]
 			  #:num-bits  [num-bits 18]
-			  #:inst-pool [inst-pool `no-fake])
+			  #:inst-pool [inst-pool `no-fake]
+			  #:start-state [start-state (random-state (expt 2 BIT))])
+  (when demo
   (pretty-display (format "original program\t: ~e" program))
   (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
-  (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5)))
+  (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5))))
 
   (define start-time (current-seconds))
 
-  (newline)
+  ;; (newline)
   ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
   (define candidate (binary-search 1 slots init repeat program name 
 				   mem comm start constraint 
-				   time-limit num-bits inst-pool))
+				   time-limit num-bits inst-pool start-state))
 
-  (newline)
+  (when demo (newline))
   (define result candidate)
   ;; (pretty-display "PHASE 2: optimizing for runtime.")
   ;; (define result 
@@ -348,12 +353,13 @@
   ;; 			  #:constraint constraint #:time-limit (cdr candidate)
   ;; 			  #:num-bits num-bits #:inst-pool inst-pool)
   ;; 	#f))
+  (when demo
   (newline)
   (when result
 	(pretty-display (format "output program\t\t: ~e" (car result)))
 	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
 	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5))))
-  (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
+  (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time)))))
 
   
 		 
