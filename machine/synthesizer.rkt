@@ -271,17 +271,31 @@
 (reset! 18)
 (define my-state (random-state 16))
 (load-state! my-state)
-;(display-data)
-(load-program "@p a! @p @p 49439 43691 0
-nop nop +* +*
-+* +* +* +* 
-+* +* +* +* 
-+* +* +* +* 
-+* +* +* +*
-2* a @p nop 17
-rshift @p and nop 1
-+ nop nop nop")
+(display-state)
+(display-memory 4)
+(load-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop" 4)
+(reset-p! 4)
 (step-program!*)
 (display-state)
-; 49439 * 209716 = 10368149324
+(display-memory 4)
+(display-comm)
+
+(newline)
+(newline)
+(reset! 18)
+(load-state! my-state)
+(display-state)
+(display-memory 4)
+(load-program "dup or dup dup a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop over a! nop nop 
+@ push nop dup pop push pop @p 12 
+b! @b dup nop !+ - nop + - nop nop + dup 2/ 2/ nop 
+@p b! !b nop 14
+@ push nop dup pop push pop @p 12 
+b! @b dup nop !+ - nop + - nop nop + dup 2/ 2/ nop 
+@p b! !b nop 14" 4)
+(reset-p! 4)
+(step-program!*)
+(display-state)
+(display-memory 4)
+(display-comm)
 

@@ -108,7 +108,7 @@
   (pretty-display (format "p:~a a:~a b:~a r:~a"
                           (progstate-p state) (progstate-a state)
                           (progstate-b state) (progstate-r state)))
-  (display-data))
+  (display-data state))
 
 (define (display-vector vec n name)
   (when (> n 0)
@@ -219,7 +219,7 @@
 ;;; now).
 (define (read-memory addr)
   (if (member addr (list UP DOWN LEFT RIGHT))
-      (let ([value (random (arithmetic-shift 1 BIT))])
+      (let ([value 12]);(random (arithmetic-shift 1 BIT))])
         (cond [(= addr UP)    (set! recv-u (cons value recv-u))]
               [(= addr DOWN)  (set! recv-d (cons value recv-d))]
               [(= addr LEFT)  (set! recv-l (cons value recv-l))]
