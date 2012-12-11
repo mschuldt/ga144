@@ -85,9 +85,9 @@
   (set! p start))
 
 ;;; Print the data stack:
-(define (display-data)
-  (display (format "|d> ~x ~x" t s))
-  (display-stack data)
+(define (display-data [state (current-state)])
+  (display (format "|d> ~x ~x" (progstate-t state) (progstate-s state)))
+  (display-stack (progstate-data state))
   (newline))
 
 ;;; Print the return stack:
@@ -104,8 +104,10 @@
 
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
-(define (display-state)
-  (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
+(define (display-state [state (current-state)])
+  (pretty-display (format "p:~a a:~a b:~a r:~a"
+                          (progstate-p state) (progstate-a state)
+                          (progstate-b state) (progstate-r state)))
   (display-data))
 
 (define (display-vector vec n name)
