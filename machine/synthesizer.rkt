@@ -269,33 +269,13 @@
 
 
 (reset! 18)
-(define my-state (random-state 16))
-(load-state! my-state)
+;(define my-state (random-state 16))
+;(load-state! my-state)
 (display-state)
-(display-memory 4)
-(load-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop" 4)
-(reset-p! 4)
+(display-memory 3)
+(load-program "10 0 0 @p b! @p nop 1 0 b! @b @p nop 2 - @p nop + 1 nop + !b @p 1 b! @b @p nop 0 - @p nop + 1 nop + -if 21 nop jump 40 @p b! @p b! 1 1 @b @p nop - 3 @p nop + nop 1 + !b @p b! 2 @p b! nop @b 2 @p nop + !b 1" 0)
+(reset-p! 3)
 (step-program!*)
 (display-state)
-(display-memory 4)
-(display-comm)
-
-(newline)
-(newline)
-(reset! 18)
-(load-state! my-state)
-(display-state)
-(display-memory 4)
-(load-program "dup or dup dup a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop over a! nop nop 
-@ push nop dup pop push pop @p 12 
-b! @b dup nop !+ - nop + - nop nop + dup 2/ 2/ nop 
-@p b! !b nop 14
-@ push nop dup pop push pop @p 12 
-b! @b dup nop !+ - nop + - nop nop + dup 2/ 2/ nop 
-@p b! !b nop 14" 4)
-(reset-p! 4)
-(step-program!*)
-(display-state)
-(display-memory 4)
-(display-comm)
+(display-memory 3)
 

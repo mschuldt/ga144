@@ -15,6 +15,7 @@
 (define LEFT 10)
 (define RIGHT 8)
 (define IO #x15d)
+(define MEM-SIZE 1024)
 
 ;;; Number of entries for the default communication vectors.
 (define ENTRIES 4)
@@ -29,7 +30,7 @@
 (define start-state (progstate 0 0 0 0 0 0 0
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
-                      (make-vector 64)))
+                      (make-vector MEM-SIZE)))
 
 ;;; Generates a state with a randomized data stack and everything else
 ;;; empty.

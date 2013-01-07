@@ -48,11 +48,11 @@
 (define inout-list '())
 
 ;; TODO: Use lists instead of vectors, or something.
-(define spec (make-vector 200))
-(define spec-lit (make-vector 200))
+(define spec (make-vector MEM-SIZE))
+(define spec-lit (make-vector MEM-SIZE))
 (define spec-count 0) ; number of instructions in spec
-(define cand (make-vector 200))
-(define cand-lit (make-vector 200))
+(define cand (make-vector MEM-SIZE))
+(define cand-lit (make-vector MEM-SIZE))
 (define cand-count 0) ; number of instructions in candidate program
 (define output-constraint constraint-all)
 (define SUPPORT `all)

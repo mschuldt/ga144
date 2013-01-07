@@ -223,7 +223,6 @@
 	       #:start-state [start-state (random-state (expt 2 BIT))]
 	       #:print-time [print-time #f])
   (define cegis-start (current-seconds))
->>>>>>> 30dbdcd6cd9a0bb094c295c804a59ed9435c4589
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))

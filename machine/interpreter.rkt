@@ -18,7 +18,7 @@
 (define s 0)
 (define t 0)
 
-(define memory (make-vector 64))
+(define memory (make-vector MEM-SIZE))
 
 (define send-u '())
 (define send-d '())
@@ -55,7 +55,7 @@
 
 ;;; Returns a snapshot of the current state.
 (define (current-state)
-  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
+  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
 
 ;;; Returns the current commstate.
 (define (current-commstate)
