@@ -16,7 +16,7 @@
 ;; (fastest-program3 "over and - @p 1 nop + nop +" #:slots 8 #:constraint (constraint t))
 
 ;;; x | y
-;; (fastest-program3 "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
+(fastest-program3 "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
 ;; ("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
@@ -38,14 +38,14 @@
 ;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
 
 ;; ; /7 /11
-(cegis "@p  and @p nop 32767  11 / nop nop nop" #:slots 
-"32767 and a! @p
-nop 0 +* +* 
-+* +* +* +* 
-+* +* +* +* 
-+* +* +* +* 
-+* +* +* +* 
-@p lshift a @p
-rshift @p and nop
-+ nop nop nop"
-#:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
+;; (cegis "@p  and @p nop 32767  11 / nop nop nop" #:slots 
+;; "32767 and a! @p
+;; nop 0 +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; +* +* +* +* 
+;; @p lshift a @p
+;; rshift @p and nop
+;; + nop nop nop"
+;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)

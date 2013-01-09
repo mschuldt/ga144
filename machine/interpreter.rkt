@@ -243,15 +243,9 @@
         [(= addr RIGHT) (set! send-r (cons value send-r))]
         [else           (vector-set! memory addr value)]))
 
-(define-instruction! (lambda (_) (let ([dist (pop!)]
-                                       [num (pop!)])
-                                   (push! (arithmetic-shift num (- dist))))))
-(define-instruction! (lambda (_) (let ([dist (pop!)]
-                                       [num (pop!)])
-                                   (push! (arithmetic-shift num dist)))))
-(define-instruction! (lambda (_) (let ([den (pop!)]
-                                       [num (pop!)])
-                                   (push! (quotient num den)))))
+(define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
+(define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
+(define-instruction! (lambda (a) (set! p a) #f))                                     ; jump (name ;)
 (define-instruction! (lambda (a) (r-push! p) (set! p a) #f))                         ; call (name)
 (define-instruction! (lambda (_) (if (= r 0) (r-pop!)                                ; micronext (unext) -- hacky!
                            (begin (set! r (sub1 r)) (set! p (sub1 p)) #f))))
