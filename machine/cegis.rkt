@@ -4,6 +4,7 @@
 
 (provide cegis fastest-program fastest-program2 fastest-program3)
 (provide estimate-time program-length perf-mode)
+(provide z3 read-sexps)
 
 (define debug #t)
 (define demo #t)
