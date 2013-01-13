@@ -64,12 +64,20 @@ b! !b nop nop" #:mem 6 #:constraint (constraint memory) #:time-limit 1000)
 (fastest-program "or and 2* nop and 2* nop nop" #:init "or" #:slots "_ 2* _" #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
 (fastest-program "or and 2* nop and 2* nop nop" #:init 1 #:slots 3 #:repeat 2 #:constraint (constraint t) #:time-limit 1000)
 
-;; PASS
+;; moving average: original PASS
 ;; (fastest-program "@p a! @p nop 0    277    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! @p b! nop 277    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! nop nop nop" 
 ;;    #:init "0 a!"
 ;;    #:slots "277 nop b! @b !+ nop a push 0 nop a! 0 @+ nop + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ 325 nop b! !b pop nop a! nop"
 ;;    #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 9
 ;;    #:mem 4 #:comm 2 #:time-limit 1000)
+
+;; moving average: optimized PASS
+;; (fastest-program "@p a! @p nop 0    12    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! @p b! nop 12    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 14    b! !b pop nop a! nop nop nop" 
+;;    #:init "dup or dup dup a! @+ nop + @+ nop + nop @+ nop + nop @+ nop + nop over a! nop nop"
+;;    #:slots "@ - 1 nop + nop + 12 b! @b dup nop !+ a 3 nop and a! nop + dup 2/ 2/ 14 b! !b nop nop"
+;;    #:repeat 2 #:constraint (constraint r) #:inst-pool `no-fake #:num-bits 4 
+;;    #:mem 4 #:comm 2 #:time-limit 1000
+;;    #:name "check")
 
 
 (fastest-program "@p a! @p nop 0    277    b! @b !+ nop a push @p nop 0    a! @p @+ nop 0    + @+ nop + @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! @p b! nop 277    @b !+ a nop push @p a! @p 0    0    @+ nop + nop @+ nop + nop @+ nop + nop @+ nop + nop 2/ 2/ @p nop 325    b! !b pop nop a! nop nop nop" 

@@ -264,28 +264,3 @@
 ;; (load-program "a! over over nop or a and nop over or push nop over or a nop and or dup nop pop nop nop nop")
 ;; (step-program!*)
 ;; (display-state)
-
-
-;; (newline)
-;; (reset! 18)
-;; (load-state! my-state)
-;; ;(display-data)
-;; (load-program "a! over over nop or dup push nop a and or dup pop or over nop")
-;; (step-program!*)
-;; (display-state)
-
-(reset! 18)
-(display-data)
-(load-program "@p @p a! nop 42 10 ! nop nop nop" 0)
-(display-memory 20)
-(reset-p! 0)
-(step-program!*)
-(display-state)
-(display-memory 20)
-
-;; (greensyn-reset 8 1 (constraint t))
-;; (greensyn-input (progstate a b p i r s 1 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
-;; (greensyn-output (progstate a b p i r s 0 (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
-;; (greensyn-send-recv (default-commstate))
-;; (greensyn-commit)
-;; (greensyn-check-sat #:file "syn.smt2" "@p" #:time-limit 100000)

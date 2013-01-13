@@ -18,7 +18,7 @@
 (define s 0)
 (define t 0)
 
-(define memory (make-vector 64))
+(define memory (make-vector MEM-SIZE))
 
 (define send-u '())
 (define send-d '())
@@ -30,7 +30,7 @@
 (define recv-l '())
 (define recv-r '())
 
-(define instructions (make-vector 32))
+(define instructions (make-vector 35))
 
 (define BIT 18)
 
@@ -55,7 +55,7 @@
 
 ;;; Returns a snapshot of the current state.
 (define (current-state)
-  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 64)))
+  (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
 
 ;;; Returns the current commstate.
 (define (current-commstate)
@@ -108,7 +108,7 @@
   (pretty-display (format "p:~a a:~a b:~a r:~a"
                           (progstate-p state) (progstate-a state)
                           (progstate-b state) (progstate-r state)))
-  (display-data))
+  (display-data state))
 
 (define (display-vector vec n name)
   (when (> n 0)
@@ -219,7 +219,7 @@
 ;;; now).
 (define (read-memory addr)
   (if (member addr (list UP DOWN LEFT RIGHT))
-      (let ([value (random (arithmetic-shift 1 BIT))])
+      (let ([value 12]);(random (arithmetic-shift 1 BIT))])
         (cond [(= addr UP)    (set! recv-u (cons value recv-u))]
               [(= addr DOWN)  (set! recv-d (cons value recv-d))]
               [(= addr LEFT)  (set! recv-l (cons value recv-l))]
@@ -279,6 +279,9 @@
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
 (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
+
+;;; Fake instructions
+
 
 ;;; Treats T:A as a single 36 bit register and shifts it right by one
 ;;; bit. The most signficicant bit (T17) is kept the same.

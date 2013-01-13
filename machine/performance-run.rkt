@@ -5,11 +5,10 @@
 (define (test prog)
   (newline)
   (pretty-display prog)
-  (pretty-display (instr-pools prog))
-  (pretty-display (bits prog))
-  (pretty-display (constraints prog))
-  ;(pretty-display (optimizer prog))
-)
+  (bits prog)
+  (instr-pools prog)
+  (constraints prog)
+  (optimizer prog))
 
 
 (define (test2 prog)

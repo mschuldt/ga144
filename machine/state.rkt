@@ -10,6 +10,7 @@
 (define LEFT #x175) ;373
 (define RIGHT #x1d5) ;469
 (define IO #x15d)
+(define MEM-SIZE 1024)
 
 ;; (define UP 14)
 ;; (define DOWN 12)
@@ -36,7 +37,7 @@
 (define start-state (progstate 0 0 0 0 0 0 0
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
-                      (make-vector 64)))
+                      (make-vector MEM-SIZE)))
 
 ;;; Generates a state with a randomized data stack and everything else
 ;;; empty.

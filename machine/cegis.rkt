@@ -221,14 +221,16 @@
 	       #:time-limit [time-limit (estimate-time program)]
 	       #:num-bits [num-bits 18]
 	       #:inst-pool [inst-pool `no-fake]
-	       #:start-state [start-state (random-state (expt 2 BIT))])
+	       #:start-state [start-state (random-state (expt 2 BIT))]
+	       #:print-time [print-time #f])
+  (define cegis-start (current-seconds))
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
   (when demo
 	(if (number? slots)
 	    (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose approx runtime < ~a ns." slots (* time-limit 0.5)))
-	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." slots (* time-limit 0.5)))))
+	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." (regexp-replace* #rx"\n" slots " ") (* time-limit 0.5)))))
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
@@ -242,7 +244,10 @@
 		  (when demo
 			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
 		  candidate))))))
-  (go (list (random-pair program start #:start-state start-state))))
+  (define result (go (list (random-pair program start #:start-state start-state))))
+  (when print-time (newline) 
+	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))
+  result)
 
 (define (fastest-program program [best-so-far #f]
 			 #:name       [name "prog"]
