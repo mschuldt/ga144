@@ -264,3 +264,46 @@
 ;; (load-program "a! over over nop or a and nop over or push nop over or a nop and or dup nop pop nop nop nop")
 ;; (step-program!*)
 ;; (display-state)
+
+
+(define (test name prog mem comm #:load-prog-at [start-p 0])
+
+  ;; reset the solver (reset <mem_entries> <comm_entries> <comm_bit>)
+  (greensyn-reset mem comm)
+  (reset!)
+  (load-state! (random-state))
+  (load-program prog start-p)
+  (reset-p! start-p)
+  (greensyn-spec (fix-@p prog))
+
+  ;; input
+  (greensyn-input (current-state))
+
+  (display-state)
+  (display-memory mem)
+  
+  ;; run the interpreter
+  (step-program!*)
+
+  (display-state)
+  (display-memory mem)
+  
+  ;; output (no communication in this example)
+  (greensyn-output (current-state))
+  (greensyn-send-recv (current-commstate))
+  
+  ;; commit to add input-output pair
+  (greensyn-commit)
+  
+  (define temp-file "test.smt2")
+  (greensyn-gen-formula temp-file #t)
+  (define res (read-sexps (z3 temp-file)))
+
+  (set! all (add1 all))
+  (if (member 'sat res)
+      (begin (pretty-display (format "~a \tPASSED" name))
+	     (set! pass (add1 pass)))
+      (pretty-display (format "~a \tFAILED" name))))
+
+
+(test "!b" "@p b! !b nop 2" 4 1 #:load-prog-at 8)

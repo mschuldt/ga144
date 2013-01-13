@@ -413,7 +413,7 @@
     [(equal? choice `!b)
                (set! check_b (mem-range `b))
     	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-    	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
+    	       (set! check_mem (format "(ite (bvult b_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
     				       step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
     	       (set! check_sendp_u (write-port `b U-ID UP))
     	       (set! check_sendp_d (write-port `b D-ID DOWN))
