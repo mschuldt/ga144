@@ -2,39 +2,16 @@
 
 (require "performance.rkt" "state.rkt")
 
-(define (test prog)
-  (newline)
-  (pretty-display prog)
-  (bits prog)
-  (instr-pools prog)
-  (constraints prog)
-  (optimizer prog))
-
-
-(define (test2 prog)
-  (newline)
-  (pretty-display prog)
-  (pretty-display (bits prog))
-  (pretty-display (constraints prog))
-  ;(pretty-display (optimizer prog))
-)
-
 (define prog1 "over over or nop a! and a nop or nop nop nop")
 (define prog2 "over and - @p 1 nop + nop +")
 (define prog3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop")
 
-;; ;1st RUN
-;; (test "over over or nop a! and a nop or nop nop nop")
-;; (test2 "over and - @p 1 nop + nop +")
-;; (test2 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop")
-
-
-;; 2nd RUN
+;; 1st RUN
 (pretty-display "RUN 2 - (bits) with (constraint t)")
 (bits prog1 #:constraint (constraint t))
 (bits prog2 #:constraint (constraint t))
 
-;; 2.5nd RUN
+;; 2nd RUN
 (pretty-display "RUN 2.5 - (bits) with constraint-all")
 (bits prog1)
 (bits prog2)

@@ -29,9 +29,9 @@
   (set! RIGHT (port-r default-port))
   (define bound (arithmetic-shift 1 num-bits))
   (when (or (< DOWN mem) (>= RIGHT bound))
-	(begin (when (< (- bound mem) 5)
+	(begin (when (< (- bound mem) 8)
 		     (begin (pretty-display "num-bits is too small!") (exit)))
-	       (set-udlr (- bound 4) (- bound 5) (- bound 3) (- bound 2))))
+	       (set-udlr (- bound 8) (- bound 11) (- bound 5) (- bound 2))))
 )
 
 (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))

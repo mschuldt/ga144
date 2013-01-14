@@ -23,12 +23,13 @@
   (pretty-display program)
   (newline)
   (perf-mode)
-  (for/list ([bits (in-range 2 19)])
-	    (define t (time (fastest-program program #:num-bits bits 
-					     #:constraint constraint 
-					     #:inst-pool inst-pool 
-					     #:slots slots
-					     #:start-state state)))
+  (for/list ([bits (in-range 4 19)])
+	    (define t (time (optimize program #:num-bits bits 
+					      #:constraint constraint 
+					      #:inst-pool inst-pool 
+					      #:slots slots
+					      #:start-state state
+					      #:bin-search #f)))
             (pretty-display (format "~a\t~a" bits t))
             (cons bits t)))
 
@@ -39,8 +40,8 @@
   (newline)
   (perf-mode)
   (for/list ([instrs pool])
-	    (define t (time (fastest-program program #:inst-pool instrs #:slots slots
-					     #:start-state state)))
+	    (define t (time (optimize program #:inst-pool instrs #:slots slots
+					     #:start-state state #:bin-search #f)))
             (pretty-display (format "~a\t~a" instrs t))
             (cons instrs t)))
 
@@ -51,11 +52,12 @@
   (newline)
   (perf-mode)
   (for/list ([constraints (list constraint-all (constraint t) (constraint s) (constraint s t))])
-	    (define t (time (fastest-program program #:constraint constraints 
+	    (define t (time (optimize program #:constraint constraints 
 					     #:num-bits num-bits 
 					     #:inst-pool inst-pool
 					     #:slots slots
-					     #:start-state state)))
+					     #:start-state state
+					     #:bin-search #f)))
             (pretty-display (format "~a\t~a" constraints t))
             (cons constraints t)))
 
@@ -64,7 +66,7 @@
   (pretty-display program)
   (newline)
   (perf-mode)
-  (for/list ([opt (list fastest-program3 fastest-program)])
-	    (define t (time (opt program #:start-state state)))
+  (for/list ([opt (list #t #f)])
+	    (define t (time (optimize program #:start-state state #:bin-search opt)))
             (pretty-display (format "~a\t~a" opt t))
             (cons opt t)))

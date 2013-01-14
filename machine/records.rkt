@@ -24,7 +24,7 @@
 (fastest-program "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop" #:name "swap1" #:constraint (constraint a r s t) #:slots 20 #:num-bits 4 #:inst-pool `no-mem-no-p)
 ;("a! over over nop or a and nop over or push nop nop nop nop nop nop nop nop nop" . 33) 32639
 (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or push nop" #:name "swap1" #:constraint (constraint a r s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
-;("a! over over nop or a and nop over or push nop nop nop nop" . 33) 2278
+;("a! over over nop or a and nop over or push nop nop nop nop" . 33) 2278, mem-pair 834
 
 ;;; swap only at m is 1 xym -> - x' (second part)
 (pretty-display "swap only at m (x' y')")
@@ -33,7 +33,7 @@
 (fastest-program "push nop a nop and push a nop - and nop nop pop over over nop or push and nop pop or pop nop" #:name "swap2" #:constraint (constraint s t) #:slots 16 #:num-bits 4 #:inst-pool `no-mem-no-p)
 ;("push over or nop a and or dup pop nop nop nop nop nop nop nop" . 27) 8989
 (fastest-program3 "push nop a nop and push a nop - and nop nop pop over over nop or push and nop pop or pop nop" #:name "swap2" #:constraint (constraint s t) #:num-bits 4 #:inst-pool `no-mem-no-p)
-;("push over or nop a and or dup pop nop nop nop" . 27) 2852
+;("push over or nop a and or dup pop nop nop nop" . 27) 2852, mem-pair 254
 
 ;;; f' in MD5
 (fastest-program "push over - nop push and pop nop pop and over @p 15 or and or nop" #:slots 16 #:num-bits 4 #:inst-pool `no-mem)
@@ -53,7 +53,7 @@
 (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 4 #:inst-pool `no-mem)
 ;("7 nop + dup 2* 2/ or" . 28) 312
 (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
-;("7 nop + 248 and nop nop nop" . 29) 219
+;("7 nop + 248 and nop nop nop" . 29) 219, mem-pair 6
 
 (fastest-program
 "@p a! ! @p 0 2 a! ! nop + push @p a! nop 1 ! @p a! nop 3 ! nop + nop pop dup 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop push a! pop nop + a over nop"
@@ -63,7 +63,7 @@
 
 ;; communication
 (fastest-program3 "@p b! @b dup 277 @p b! !b nop 277 @p b! !b nop 325" #:constraint (constraint t) #:num-bits 9 #:name "comm")
-; ("277 b! @b dup !b 325 b! nop !b", 31) 35 sec
+; ("277 b! @b dup !b 325 b! nop !b", 31) 35 sec, mem-pairs 6 sec
 
 ;; division /3
 (fastest-program "@p  and @p nop 131071 3 / nop nop nop" #:slots 

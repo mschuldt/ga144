@@ -1,6 +1,6 @@
 #lang racket
 
-(require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt" "programs.rkt" "cegis.rkt")
+(require racket/system "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt" "programs.rkt" "cegis.rkt")
 
 (set-udlr #x145 #x115 #x175 #x1d5)
 
@@ -94,3 +94,4 @@
 	  #:comm 2 'unsat #:constraint constraint-none)
 
 (pretty-display (format "\nSummary: pass ~a/~a" pass all))
+(system "rm test.smt2")

@@ -2,11 +2,11 @@
 
 (require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
-(provide cegis fastest-program fastest-program3 optimize)
+(provide optimize)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #t)
+(define debug #f)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
@@ -162,9 +162,10 @@
   (set! start-state (current-state))
   (reset-p! memory-start)
   (step-program!*)
+
   (define comm (current-commstate))
   (set-comm-length comm)
-  (pretty-display (format "comm-l = ~a" comm-length))
+
   (cons `(,start-state ,(current-state)) comm))
 
 ;;; Add an input/output pair to greensyn.
@@ -246,7 +247,6 @@
 	       #:inst-pool [inst-pool `no-fake]
 	       #:start-state [start-state (random-state (expt 2 BIT))]
 	       #:print-time [print-time #f])
-  (set-udlr-from-constraints mem num-bits)
   (define cegis-start (current-seconds))
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
@@ -258,17 +258,21 @@
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
-  (define (go pairs)
-    (let ([candidate (generate-candidate program pairs name mem slots init repeat constraint time-limit num-bits inst-pool)])
+  (define (go)
+    (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)])
       (and candidate
           (let ([new-pair (validate program-for-ver (car candidate) name mem (program-length program-for-ver) constraint num-bits inst-pool)])
             (if new-pair
-                (go (cons new-pair pairs))
+		(begin
+		  (set! all-pairs (cons new-pair all-pairs))
+		  (go))
                 (begin 
 		  (when demo
 			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
 		  candidate))))))
-  (define result (go (list (random-pair program start #:start-state start-state))))
+  (when (empty? all-pairs)
+	(set! all-pairs (list (random-pair program start #:start-state start-state))))
+  (define result (go))
   (when print-time (newline) 
 	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))
   result)
@@ -357,7 +361,74 @@
 
   candidate)
 
-(define (optimize raw-program 
+;; Optimize for the fastest running program. The runtime is estimated by summing runtime of 
+;; all instructions in the given program without considering instruction fetching time.
+;;
+;; Output (on display):
+;; The fasted F18A program that is equivalent to the given input program. 
+;; Programs that we can synthesize do not contain instructions that change 
+;; the control flow of the program, which are ; ex jump call next if -if.
+;; It also cannot synthesize !p instruction.
+;;
+;; Required arguments:
+;; orig-program :: F18A program to be optimized. Literals have to be written in form of @p as in F18A, 
+;;                not arrayForth (e.g. @p @p @p @p 1 2 3 4). up down left right have to be written as 
+;;                UP DOWN LEFT RIGHT (with capitalized letters) and written as they are literal 
+;;                (e.g. @p @p @p @p UP DOWN LEFT RIGHT). Multiport read and write are not supported.
+;; 
+;; Optional arguments:
+;; name  :: description of the program.
+;; mem   :: number of entries of memory. The more it is the longer the synthesizer takes. 
+;;          Therefore, provide just enough for the program. Note that we only support storing data
+;;          from memory 0th entry until mem-1'th entry and the program itself is stored starting at
+;;          mem'th entry. 
+;;          DEFAULT = 1
+;; slots :: maximum length of the synthesized program.
+;;          slots can be string when user want to provide a sketch.
+;;          For example, "_ . + _" means the synthesized program contains 4 instructions.
+;;          The 1st and 4st instructions can be anything. The 2nd instruction is nop, 
+;;          and the 3rd instruction is plus. 
+;;          DEFAULT = original program's length
+;; repeat :: When slots is a sketch in form of string. repeat can be used to indicate how many time 
+;;           the sketch is unrolled. For example, #:slots "dup _ _ ." #:repeat 3 means that
+;;           the actual sketch is "dup _ _ . dup _ _ . dup _ _ ."
+;;           DEFAULT = 1
+;; init   :: Init is the additional header sketch that comes before slots.
+;;           For example, #:init "over push - 2*" #:slots "dup _ _ ." #:repeat 3 means that
+;;           the actual sketch is "over push - 2* dup _ _ . dup _ _ . dup _ _ ."
+;;           DEFAULT = ""
+;; start  :: The entry of the memory where the program is loaded to (starting from that entry).
+;;           DEFAULT = mem
+;; constraint :: The registers and/or stacks that contain the output you are looking for.
+;;               For example, if you want to synthesize x y --> x+y, you might only care that you want
+;;               register t (the top of th stack) to be equal to x+y and don't care that if other registers 
+;;               and stacks are changed or not. The synthesizer always constraints reads and writes to NSWE.
+;;               Use "#:constraint constraint-all" to constraint on everything 
+;;               (a b r s t data-stack return-stack memory).
+;;               Use "#:constraint constraint-none" to constraint on nothing except reads and writes 
+;;               to NSEW.
+;;               Use "#:constraint (constraint <reg> ...) to constraint on <reg>. 
+;;               For example, to constraint on a and t, use "#:constraint (constraint a t)"
+;;               DEFAULT = constraint-all
+;; time-limit :: The maximum runtime in ns that of the synthesized program.
+;;               DEFAULT = the original runtime
+;; num-bits ::   number of bits of a word.
+;;               DEFAULT = 18
+;; inst-pool ::  Instructions available to compose the synthesized program. 
+;;               #:inst-pool `no-fake = {@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!}
+;;               #:inst-pool `no-fake-no-p = `no-fake - {@p}
+;;               #:inst-pool `no-mem = `no-fake - {@+ @b @ !+ !b !}
+;;               #:inst-pool `no-mem = `no-mem - {@p}
+;;               DEFAULT = `no-fake
+;; bin-search :: When slots is a number. We perform binary search the length of the synthesized program.
+;;               For example, if slots is 8, we will start searching for a program whose length is 4.
+;;               If we find an equivalent program, we will search on length 2. 
+;;               If not, we will search on length 6. The process keeps going like normal binary search.
+;;               If bin-search is set to false, we will always search program whose length is equal
+;;               to slots.
+;;               DEFAULT = true
+
+(define (optimize orig-program 
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
 		  #:init       [init 0]
@@ -368,14 +439,17 @@
 		  #:time-limit [raw-time-limit 0]
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
-		  #:start-state [start-state (random-state (expt 2 BIT))])
+		  #:bin-search [bin-search #t])
   (when (> mem 64) (begin (pretty-display "memory has to be less than 64!") (exit)))
   (initialize)
+  (set-udlr-from-constraints mem num-bits)
 
-  (define program (preprocess raw-program))
+  (define program (preprocess orig-program))
   (define slots raw-slots)
   (when (and (number? slots) (= slots 0))
 	(set! slots (program-length-abs program)))
+  (when (string? slots)
+	(set! slots (fix-@p (preprocess slots))))
   (define time-limit raw-time-limit)
   (when (= time-limit 0)
 	(set! time-limit (estimate-time program)))
@@ -383,7 +457,7 @@
   (define start-time (current-seconds))
 
   (define result 
-    (if (number? slots)
+    (if (and (number? slots) bin-search)
       (fastest-program3 program 
 			#:name       name
 			#:mem        mem
@@ -395,22 +469,23 @@
 			#:time-limit time-limit
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
-			#:start-state start-state)
+			#:start-state (random-state (expt 2 BIT)))
       (fastest-program program 
 			#:name       name
 			#:mem        mem
 			#:init       init
-			#:slots      (preprocess slots)
+			#:slots      slots
 			#:repeat     repeat
 			#:start      start
 			#:constraint constraint
 			#:time-limit time-limit
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
-			#:start-state start-state)))
+			#:start-state (random-state (expt 2 BIT)))))
   (when demo
   (newline)
-  (when result
+  (if result
+      (begin
 	(pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
 	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
 	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
@@ -418,7 +493,9 @@
 	(pretty-display "Constants for neighbor ports:")
 	(pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
 	(newline))
+      (pretty-display (format "No better implementation found.")))
   (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
+
 )
   
 		 
