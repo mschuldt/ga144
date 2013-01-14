@@ -15,8 +15,12 @@
 (define all-pairs '())
 
 (define (initialize)
+  (system "mkdir debug")
   (set! comm-length 1)
   (set! all-pairs '()))
+
+(define (finalize)
+  (system "rm -r debug"))
 
 (define (set-comm-length comm)
   (define (check-and-set entry)
@@ -496,6 +500,8 @@
       (pretty-display (format "No better implementation found.")))
   (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
 
+  (when (not debug)
+	(finalize))
 )
   
 		 
