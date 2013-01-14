@@ -141,6 +141,7 @@
   (set! start-state (current-state))
   (reset-p! memory-start)
   (step-program!*)
+  (pretty-display (current-commstate))
   (cons `(,start-state ,(current-state)) (current-commstate)))
 
 ;;; Add an input/output pair to greensyn.
