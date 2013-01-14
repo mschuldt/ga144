@@ -11,6 +11,27 @@
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
 
+(define comm-length 1)
+(define all-pairs '())
+
+(define (initialize)
+  (set! comm-length 1)
+  (set! all-pairs '()))
+
+(define (set-comm-length comm)
+  (define (check-and-set entry)
+    (when (> (entry comm) comm-length)
+  	  (set! comm-length (entry comm))))
+  (check-and-set commstate-sendp-u)
+  (check-and-set commstate-sendp-d)
+  (check-and-set commstate-sendp-l)
+  (check-and-set commstate-sendp-r)
+  (check-and-set commstate-recvp-u)
+  (check-and-set commstate-recvp-d)
+  (check-and-set commstate-recvp-l)
+  (check-and-set commstate-recvp-r)
+)
+
 (define (perf-mode)
   (set! debug #f)
   (set! demo #f))
@@ -141,25 +162,27 @@
   (set! start-state (current-state))
   (reset-p! memory-start)
   (step-program!*)
-  (pretty-display (current-commstate))
-  (cons `(,start-state ,(current-state)) (current-commstate)))
+  (define comm (current-commstate))
+  (set-comm-length comm)
+  (pretty-display (format "comm-l = ~a" comm-length))
+  (cons `(,start-state ,(current-state)) comm))
 
 ;;; Add an input/output pair to greensyn.
-(define (greensyn-add-pair pair [comm #f])
+(define (greensyn-add-pair pair comm)
   (greensyn-input (car pair))
   (greensyn-output (cadr pair))
-  (greensyn-send-recv (or comm (default-commstate)))
+  (greensyn-send-recv comm)
   (greensyn-commit))
 
 ;;; Generate a candidate using the specified input/output pairs. If no
 ;;; pairs are specified, seed the process with a randomly generated
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
-(define (generate-candidate program previous-pairs name mem comm slots init repeat constraint time-limit num-bits inst-pool)
+(define (generate-candidate program previous-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)
   (when demo (pretty-display "     + add pair"))
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name name "syn" ".smt2"))
-  (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
+  (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
   (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
   
   (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
@@ -189,11 +212,11 @@
   (and result (model->program result)))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate name mem comm prog-length constraint num-bits inst-pool)
+(define (validate spec candidate name mem prog-length constraint num-bits inst-pool)
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name name "verify" ".smt2"))
-  (greensyn-reset mem comm constraint #:num-bits num-bits #:inst-pool inst-pool)
+  (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
   (define result (read-model (z3 temp-file)))
@@ -213,7 +236,6 @@
 (define (cegis program 
 	       #:name [name "prog"]
 	       #:mem [mem 1] 
-	       #:comm [comm 1]
 	       #:slots [slots 30] 
 	       #:init [init 0] 
 	       #:repeat [repeat 1] 
@@ -237,9 +259,9 @@
   (set! current-step 0)
 
   (define (go pairs)
-    (let ([candidate (generate-candidate program pairs name mem comm slots init repeat constraint time-limit num-bits inst-pool)])
+    (let ([candidate (generate-candidate program pairs name mem slots init repeat constraint time-limit num-bits inst-pool)])
       (and candidate
-          (let ([new-pair (validate program-for-ver (car candidate) name mem comm (program-length program-for-ver) constraint num-bits inst-pool)])
+          (let ([new-pair (validate program-for-ver (car candidate) name mem (program-length program-for-ver) constraint num-bits inst-pool)])
             (if new-pair
                 (go (cons new-pair pairs))
                 (begin 
@@ -254,7 +276,6 @@
 (define (fastest-program program [best-so-far #f]
 			 #:name       [name "prog"]
                          #:mem        [mem 1]
-                         #:comm       [comm 1]
 			 #:init       [init 0]
 			 #:slots      [slots (program-length-abs program)]
 			 #:repeat     [repeat 1]
@@ -267,14 +288,14 @@
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
   (define candidate (cegis program #:name name
-			   #:mem mem #:comm comm 
+			   #:mem mem 
                            #:slots slots #:init init #:repeat repeat
                            #:start start 
 			   #:constraint constraint #:time-limit time-limit
 			   #:num-bits num-bits #:inst-pool inst-pool #:start-state start-state))
   (define result (if candidate
                      (fastest-program program candidate #:name name
-				      #:mem mem #:comm comm 
+				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat
                                       #:start start 
                                       #:constraint constraint #:time-limit (cdr candidate)
@@ -284,24 +305,23 @@
   (when demo (when debug (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))))
   result)
 
-(define (binary-search slot-min slot-max init repeat program name mem comm start constraint time-limit num-bits inst-pool start-state [best-so-far #f])
+(define (binary-search slot-min slot-max init repeat program name mem start constraint time-limit num-bits inst-pool start-state [best-so-far #f])
   (if (> slot-min slot-max)
       best-so-far
       (let* ([slot-mid (quotient (+ slot-min slot-max) 2)]
 	     [candidate (cegis program 
 			       #:name name
-			       #:mem mem #:comm comm #:slots slot-mid #:init init #:repeat repeat
+			       #:mem mem #:slots slot-mid #:init init #:repeat repeat
 			       #:start start 
 			       #:constraint constraint #:time-limit time-limit
 			       #:num-bits num-bits #:inst-pool inst-pool)])
 	(if candidate
-	    (binary-search slot-min (sub1 slot-mid) init repeat program name mem comm start constraint (cdr candidate) num-bits inst-pool start-state candidate)
-	    (binary-search (add1 slot-mid) slot-max init repeat program name mem comm start constraint (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)))))
+	    (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint (cdr candidate) num-bits inst-pool start-state candidate)
+	    (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)))))
 
 (define (fastest-program3 program [best-so-far #f]
 			  #:name       [name "prog"]
 			  #:mem        [mem 1]
-			  #:comm       [comm 1]
 			  #:init       [init 0]
 			  #:slots      [slots (program-length-abs program)]
 			  #:repeat     [repeat 1]
@@ -320,7 +340,7 @@
 
   ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
   (define candidate (binary-search 1 slots init repeat program name 
-				   mem comm start constraint 
+				   mem start constraint 
 				   time-limit num-bits inst-pool start-state))
 
 
@@ -328,7 +348,7 @@
   ;; (set! candidate 
   ;;   (if candidate
   ;; 	(fastest-program2 program candidate 
-  ;; 			  #:name name #:mem mem #:comm comm 
+  ;; 			  #:name name #:mem mem
   ;; 			  #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
   ;; 			  #:start start 
   ;; 			  #:constraint constraint #:time-limit (cdr candidate)
@@ -340,7 +360,6 @@
 (define (optimize raw-program 
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
-		  #:comm       [comm 1]
 		  #:init       [init 0]
 		  #:slots      [raw-slots 0]
 		  #:repeat     [repeat 1]
@@ -351,6 +370,7 @@
 		  #:inst-pool  [inst-pool `no-fake]
 		  #:start-state [start-state (random-state (expt 2 BIT))])
   (when (> mem 64) (begin (pretty-display "memory has to be less than 64!") (exit)))
+  (initialize)
 
   (define program (preprocess raw-program))
   (define slots raw-slots)
@@ -367,7 +387,6 @@
       (fastest-program3 program 
 			#:name       name
 			#:mem        mem
-			#:comm       comm
 			#:init       init
 			#:slots      slots
 			#:repeat     repeat
@@ -380,7 +399,6 @@
       (fastest-program program 
 			#:name       name
 			#:mem        mem
-			#:comm       comm
 			#:init       init
 			#:slots      (preprocess slots)
 			#:repeat     repeat
