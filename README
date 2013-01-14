@@ -38,4 +38,3 @@ Instructions for setting up GreenSyn on Windows.
        - Hightlight the "Path" variable in the Systems Variable section, and click the "Edit" button. Add ";Path\to\z3\directory" at the end.
 
 2) Download and install DrRacket from http://racket-lang.org/download/
-  - Racket:   sudo apt-get install racket
