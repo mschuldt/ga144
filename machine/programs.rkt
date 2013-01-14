@@ -6,18 +6,15 @@
 (provide (all-defined-out))
 
 ;;; this is consistent with arrayForth
+(struct port (u d l r))
+(define default-port (port #x145 #x115 #x175 #x1d5))
+
 (define UP #x145) ;325
 (define DOWN #x115) ;277
 (define LEFT #x175) ;373
 (define RIGHT #x1d5) ;469
 (define IO #x15d)
 (define MEM-SIZE 1024)
-
-;; (define UP 14)
-;; (define DOWN 12)
-;; (define LEFT 10)
-;; (define RIGHT 8)
-;; (define IO #x15d)
 
 (define (set-udlr u d l r)
   (set! UP u)
@@ -26,9 +23,14 @@
   (set! RIGHT r))
 
 (define (set-udlr-from-constraints mem num-bits)
+  (set! UP   (port-u default-port))
+  (set! DOWN (port-d default-port))
+  (set! LEFT (port-l default-port))
+  (set! RIGHT (port-r default-port))
   (define bound (arithmetic-shift 1 num-bits))
   (when (or (< DOWN mem) (>= RIGHT bound))
-	(begin (check-equal? (>= (- bound mem) 5) #t)
+	(begin (when (< (- bound mem) 5)
+		     (begin (pretty-display "num-bits is too small!") (exit)))
 	       (set-udlr (- bound 4) (- bound 5) (- bound 3) (- bound 2))))
 )
 
@@ -86,6 +88,12 @@
   (set! out (regexp-replace* "RIGHT" out (format "~a" RIGHT)))
   (set! out (regexp-replace* #rx"[.]" out "nop"))
   (set! out (regexp-replace* #rx"[;]" out "ret"))
+  out)
+
+(define (postprocess prog)
+  (define out prog)
+  (set! out (regexp-replace* "nop" out "."))
+  (set! out (regexp-replace* "ret" out ";"))
   out)
 
 ;;; Returns the length of the program.

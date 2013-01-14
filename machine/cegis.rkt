@@ -317,16 +317,14 @@
 
   (define start-time (current-seconds))
 
-  ;; (newline)
   ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
   (define candidate (binary-search 1 slots init repeat program name 
 				   mem comm start constraint 
 				   time-limit num-bits inst-pool start-state))
 
-  (when demo (newline))
-  (define result candidate)
+
   ;; (pretty-display "PHASE 2: optimizing for runtime.")
-  ;; (define result 
+  ;; (set! candidate 
   ;;   (if candidate
   ;; 	(fastest-program2 program candidate 
   ;; 			  #:name name #:mem mem #:comm comm 
@@ -335,13 +333,8 @@
   ;; 			  #:constraint constraint #:time-limit (cdr candidate)
   ;; 			  #:num-bits num-bits #:inst-pool inst-pool)
   ;; 	#f))
-  (when demo
-  (newline)
-  (when result
-	(pretty-display (format "output program\t\t: ~e" (car result)))
-	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
-	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5))))
-  (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time)))))
+
+  candidate)
 
 (define (optimize raw-program 
 		  #:name       [name "prog"]
@@ -356,6 +349,8 @@
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
 		  #:start-state [start-state (random-state (expt 2 BIT))])
+  (when (> mem 64) (begin (pretty-display "memory has to be less than 64!") (exit)))
+
   (define program (preprocess raw-program))
   (define slots raw-slots)
   (when (and (number? slots) (= slots 0))
@@ -364,7 +359,10 @@
   (when (= time-limit 0)
 	(set! time-limit (estimate-time program)))
 
-  (if (number? slots)
+  (define start-time (current-seconds))
+
+  (define result 
+    (if (number? slots)
       (fastest-program3 program 
 			#:name       name
 			#:mem        mem
@@ -383,7 +381,7 @@
 			#:mem        mem
 			#:comm       comm
 			#:init       init
-			#:slots      slots
+			#:slots      (preprocess slots)
 			#:repeat     repeat
 			#:start      start
 			#:constraint constraint
@@ -391,5 +389,17 @@
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
 			#:start-state start-state)))
+  (when demo
+  (newline)
+  (when result
+	(pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
+	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
+	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
+	(newline)
+	(pretty-display "Constants for neighbor ports:")
+	(pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
+	(newline))
+  (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
+)
   
 		 

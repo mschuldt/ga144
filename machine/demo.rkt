@@ -21,31 +21,3 @@
 
 ;;; round up to multiple of 8 (8-bit)
 (optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
-
-;;; some sketch examples here
-
-;; division /3 /5 /6
-;; (cegis "@p  and @p nop 131071 6 / nop nop nop" #:slots 
-;; "131071 and a! @p
-;; nop 0 +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; @p lshift a @p
-;; rshift @p and nop
-;; + nop nop nop"
-;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
-
-;; ; /7 /11
-;; (cegis "@p  and @p nop 32767  11 / nop nop nop" #:slots 
-;; "32767 and a! @p
-;; nop 0 +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; +* +* +* +* 
-;; @p lshift a @p
-;; rshift @p and nop
-;; + nop nop nop"
-;; #:name "divide" #:num-bits 18 #:inst-pool `all #:time-limit 1000 #:constraint (constraint t) #:print-time #t)
