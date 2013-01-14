@@ -24,7 +24,7 @@ DrRacket comes with both Racket interpreter and Racket IDE. If you prefer to use
   - Racket:   sudo apt-get install racket
 
 ==============================================================
-Instructions for setting up GreenSyn on Linux.
+Instructions for setting up GreenSyn on Windows.
 
 1) Download and install z3.
 
