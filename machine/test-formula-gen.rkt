@@ -2,7 +2,7 @@
 
 (require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt" "programs.rkt" "cegis.rkt")
 
-(set-uplr #x145 #x115 #x175 #x1d5)
+(set-udlr #x145 #x115 #x175 #x1d5)
 
 (define all 0)
 (define pass 0)

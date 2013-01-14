@@ -2,7 +2,7 @@
 
 (require "state.rkt" "stack.rkt" "interpreter.rkt" "greensyn.rkt" "programs.rkt" "cegis.rkt")
 
-(set-uplr #x145 #x115 #x175 #x1d5)
+(set-udlr #x145 #x115 #x175 #x1d5)
 
 (define all 0)
 (define pass 0)
@@ -55,12 +55,13 @@
 
 (pretty-display "============== SYNTHESIZER TEST ==============")
 
-(test-syn "random" "- 2/ dup dup dup + a! dup")
+(test-syn "random-prog" "- 2/ dup dup dup + a! dup")
 (test-syn "literal" "@p @p @p @p 1 2 3 4")
 (test-syn "add-basic" "+ nop nop nop")
 (test-syn "add-sat" "@p @p nop + 1 2")
 (test-syn "add-unsat" "@p @p @p + 1 2 3" #:expect 'unsat)
 (test-syn "memory" "dup or a! @p 123 !+ @p ! nop 456" #:mem 2)
+(test-syn "comm" "@p a! @ @p 277 325 b! !b nop nop" #:comm 1)
 
 (test-ver "same" "- 2* 2/" "- 2* 2/" 'unsat)
 (test-ver "differnt" 

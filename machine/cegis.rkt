@@ -2,7 +2,7 @@
 
 (require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
 
-(provide cegis fastest-program fastest-program2 fastest-program3)
+(provide cegis fastest-program fastest-program3 optimize)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
@@ -223,6 +223,7 @@
 	       #:inst-pool [inst-pool `no-fake]
 	       #:start-state [start-state (random-state (expt 2 BIT))]
 	       #:print-time [print-time #f])
+  (set-udlr-from-constraints mem num-bits)
   (define cegis-start (current-seconds))
   (reset! num-bits)
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
@@ -280,31 +281,6 @@
 				      #:start-state start-state)
 		     best-so-far))
   (when demo (when debug (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))))
-  result)
-
-(define (fastest-program2 program [best-so-far #f]
-			 #:name       [name "prog"]
-                         #:mem        [mem 1]
-                         #:comm       [comm 1]
-                         #:slots      [slots (+ (program-length-abs program) 2)]
-                         #:start      [start mem] 
-                         #:constraint [constraint constraint-all]
-                         #:time-limit [time-limit (estimate-time program)]
-			 #:num-bits  [num-bits 18]
-			 #:inst-pool [inst-pool `no-fake])
-  (define candidate (cegis program #:name name
-			   #:mem mem #:comm comm #:slots slots 
-			   #:start start 
-			   #:constraint constraint #:time-limit time-limit
-			   #:num-bits num-bits #:inst-pool inst-pool))
-  (define result (if candidate
-                     (fastest-program2 program candidate 
-				       #:name name #:mem mem #:comm comm 
-				       #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
-				       #:start start 
-				       #:constraint constraint #:time-limit (cdr candidate)
-				       #:num-bits num-bits #:inst-pool inst-pool)
-		     best-so-far))
   result)
 
 (define (binary-search slot-min slot-max init repeat program name mem comm start constraint time-limit num-bits inst-pool start-state [best-so-far #f])
@@ -367,5 +343,53 @@
 	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5))))
   (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time)))))
 
+(define (optimize raw-program 
+		  #:name       [name "prog"]
+		  #:mem        [mem 1]
+		  #:comm       [comm 1]
+		  #:init       [init 0]
+		  #:slots      [raw-slots 0]
+		  #:repeat     [repeat 1]
+		  #:start      [start mem] 
+		  #:constraint [constraint constraint-all]
+		  #:time-limit [raw-time-limit 0]
+		  #:num-bits   [num-bits 18]
+		  #:inst-pool  [inst-pool `no-fake]
+		  #:start-state [start-state (random-state (expt 2 BIT))])
+  (define program (preprocess raw-program))
+  (define slots raw-slots)
+  (when (and (number? slots) (= slots 0))
+	(set! slots (program-length-abs program)))
+  (define time-limit raw-time-limit)
+  (when (= time-limit 0)
+	(set! time-limit (estimate-time program)))
+
+  (if (number? slots)
+      (fastest-program3 program 
+			#:name       name
+			#:mem        mem
+			#:comm       comm
+			#:init       init
+			#:slots      slots
+			#:repeat     repeat
+			#:start      start
+			#:constraint constraint
+			#:time-limit time-limit
+			#:num-bits   num-bits
+			#:inst-pool  inst-pool
+			#:start-state start-state)
+      (fastest-program program 
+			#:name       name
+			#:mem        mem
+			#:comm       comm
+			#:init       init
+			#:slots      slots
+			#:repeat     repeat
+			#:start      start
+			#:constraint constraint
+			#:time-limit time-limit
+			#:num-bits   num-bits
+			#:inst-pool  inst-pool
+			#:start-state start-state)))
   
 		 
