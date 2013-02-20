@@ -6,7 +6,7 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #f)
+(define debug #t)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
@@ -501,7 +501,7 @@
   (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
 
   (when (not debug)
-	(finalize))
+  	(finalize))
 )
   
 		 
