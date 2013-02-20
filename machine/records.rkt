@@ -4,15 +4,15 @@
 
 ;;; x - (x & y)
 (fastest-program "over and - @p 1 nop + nop +" #:slots 8 #:constraint (constraint t))
-;("- and" . 6) 81.95
+;("- and" . 6) 81.95; mem-pair 2
 
 ;;; ~ (x - y)
 (fastest-program "- @p nop + 1 nop + - nop"  #:slots 8 #:constraint (constraint t))
-;; ("over - nop +" . 12) 64.18
+;; ("over - nop +" . 12) 64.18; mem-pair 3
 
 ;; ;;; x | y
 (fastest-program "over over or nop a! and a nop or nop nop nop" #:slots 8 #:constraint (constraint t))
-;; ("over - and nop +" . 15) 191.03
+;; ("over - and nop +" . 15) 191.03; mem-pair 5
 
 ;;; (x | y) - (x & y)
 (fastest-program "over over and nop - @p nop + 1 push over over nop or a! and nop a or pop nop + nop nop nop" #:slots 8 #:constraint (constraint t) #:num-bits 4)
@@ -53,7 +53,7 @@
 (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 4 #:inst-pool `no-mem)
 ;("7 nop + dup 2* 2/ or" . 28) 312
 (fastest-program3 "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
-;("7 nop + 248 and nop nop nop" . 29) 219, mem-pair 6
+;("7 nop + 248 and nop nop nop" . 29) 219, mem-pair 30
 
 (fastest-program
 "@p a! ! @p 0 2 a! ! nop + push @p a! nop 1 ! @p a! nop 3 ! nop + nop pop dup 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop 2/ 2/ 2/ nop push a! pop nop + a over nop"
