@@ -2,6 +2,9 @@
 
 (require racket/system "cegis.rkt" "state.rkt")
 
+;; Hello World example :)
+(optimize "@p . . + 1")
+
 ;; Inclusive or with constraint on everything
 (optimize "over over or nop a! and a nop or nop nop nop")
 

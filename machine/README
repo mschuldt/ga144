@@ -1,0 +1,11 @@
+Run GreenSyn from command line.
+
+> racket your_file.rkt
+
+Run Green Syn from DrRacket.
+- Start DrRacket
+- Open your_file.rkt
+- Click "Run" button.
+
+Instructions on how to write your_file.rkt can be found at http://bitbucket.org/rohinmshah/forth-interpreter/wiki/Home
+examples.rkt is also a good place to start.
