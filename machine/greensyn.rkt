@@ -318,7 +318,7 @@
      (shrink)]
     ; 2/
     [(equal? choice `2/)
-               (set! check_t (format "(= t_~e_v~e (bvlshr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
+               (set! check_t (format "(= t_~e_v~e (bvashr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
     ; shiftr
     [(equal? choice `rshift)
      (set! check_t (format "(= t_~e_v~e (bvashr s_~e_v~e t_~e_v~e))" step i prev i prev i))
