@@ -20,6 +20,7 @@
 
 (define COMM_ENTRIES 4)
 (define COMM_SIZE (* COMM_ENTRIES SIZE))
+(define ORDER_SIZE (* 2 COMM_ENTRIES))
 (define COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
 (define COMM_BIT 3)
 
@@ -104,12 +105,14 @@
   (string->symbol (format "bv~e" bit)))
 
 (define (declare-bitvector )
+  (pretty-display `(define-sort BV1 () (_ BitVec 1)))  
   (pretty-display `(define-sort BV3 () (_ BitVec 3)))                            ; for index
   (pretty-display `(define-sort ,(makeBV HOLE_BIT) () (_ BitVec ,HOLE_BIT)))     ; for hole
   (pretty-display `(define-sort ,(makeBV SIZE) () (_ BitVec ,SIZE)))             ; for normal variables
   (pretty-display `(define-sort ,(makeBV STACK_SIZE) () (_ BitVec ,STACK_SIZE))) ; for stack
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
   (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm
+  (pretty-display `(define-sort ,(makeBV ORDER_SIZE) () (_ BitVec ,ORDER_SIZE)))   ; for comm order
   (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
   (pretty-display `(define-sort ,(makeBV TIME_SIZE) () (_ BitVec ,TIME_SIZE)))     ; for time
   )
@@ -124,22 +127,22 @@
 ;  (concat (_ bv0 ,(- (- STACK_SIZE 3) LOG_SIZE)) (concat i (_ bv0 ,LOG_SIZE))))
 
 ;;; Create index into "array" bitvector
-(define (declare-bitidx func-name array-size index-size)
+(define (declare-bitidx func-name array-size index-size [val-size SIZE])
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
   (newline)
   (pretty-display
    `(define-fun ,func-name ((i ,index-type)) (,array-type)
-      (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv SIZE) ,array-size)))))
+      (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv val-size) ,array-size)))))
 
 ;;; Get an entry in "array" bitvector at the given index
-(define (declare-get func-name array-size index-size index-func)
+(define (declare-get func-name array-size index-size index-func [val-size SIZE])
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
   (newline)
   (pretty-display 
-   `(define-fun ,func-name ((array ,array-type) (index ,index-type)) (,TYPE)
-      ((_ extract ,(sub1 SIZE) 0) (bvlshr array (,index-func index))))))
+   `(define-fun ,func-name ((array ,array-type) (index ,index-type)) (,(format "BV~a" val-size))
+      ((_ extract ,(sub1 val-size) 0) (bvlshr array (,index-func index))))))
 
 ;;; Return the "array" bitvector that is replaced at the given index with the given value
 (define (declare-modify func-name array-size index-size index-func)
@@ -153,12 +156,16 @@
        (bvshl (concat (_ bv0 ,(- array-size SIZE)) ele) (,index-func index))))))
       
 (define (declare-functions)
-  (declare-bitidx `bitidx-stack STACK_SIZE 3)
-  (declare-bitidx `bitidx-mem   MEM_SIZE   SIZE)
-  (declare-bitidx `bitidx-comm  COMM_SIZE  COMM_BIT)
-  (declare-get `get-stack       STACK_SIZE 3    `bitidx-stack)
-  (declare-get `get-mem         MEM_SIZE   SIZE `bitidx-mem)
-  (declare-get `get-comm        COMM_SIZE  COMM_BIT `bitidx-comm)
+  (declare-bitidx `bitidx-stack STACK_SIZE   3)
+  (declare-bitidx `bitidx-mem   MEM_SIZE     SIZE)
+  (declare-bitidx `bitidx-comm  COMM_SIZE    COMM_BIT)
+  (declare-bitidx `bitidx-order ORDER_SIZE   COMM_BIT 1)
+
+  (declare-get `get-stack       STACK_SIZE   3        `bitidx-stack)
+  (declare-get `get-mem         MEM_SIZE     SIZE     `bitidx-mem)
+  (declare-get `get-comm        COMM_SIZE    COMM_BIT `bitidx-comm)
+  (declare-get `get-order       ORDER_SIZE   COMM_BIT `bitidx-order 1)
+
   (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
   (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
 
@@ -198,13 +205,17 @@
        (declare-init `mem n i MEM_SIZE)
 
        (for* ([var `(t s r a b)])
-	    (declare-init var n i SIZE))
+	     (declare-init var n i SIZE))
 
        (for* ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-	    (declare-init-zero var n i COMM_BIT))
+	     (declare-init-zero var n i COMM_BIT))
 
        (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
-	    (declare-vector-one var i COMM_ENTRIES))))
+	     (declare-vector-one var i COMM_ENTRIES))
+
+       ;; each bit determines if it is send or recv
+       (for* ([name `(order0 order1 order2 order3)])
+	     (pretty-display `(declare-const ,(var name i) ,(makeBV ORDER_SIZE))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Generate Z3 formulas ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -256,24 +267,36 @@
 			  step i prev i a-even a-odd)))
 
   (define (write-port reg port val)
-    (string-append (string-append
-      (format  "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (if syn
-	  (format  "(and (and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
-		   port i port prev i prev i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format  "(and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e)))) "
-		   port i port prev i prev i     port step i port prev i COMM_BIT)))
-      (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
+    (define common-constraint 
+      (format  "(and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e))) (= (get-order order~a_v~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) #b1)) "
+	       port i port prev i prev i     
+	       port step i port prev i COMM_BIT
+	       port i port prev i port prev i))
+    
+    (string-append
+     (format  "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
+     (if syn
+	 (format  "(and ~a (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
+		  common-constraint    
+		  port step i port (sub1 n) i)
+	 common-constraint)
+    (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
     
   (define (read-port reg port val)
+    (define common-constraint
+      (format "(and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e))) (= (get-order order~a_v~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) #b0)) "
+	      port i port prev i step i     
+	      port step i port prev i COMM_BIT
+	      port i port prev i port prev i))
+
     (string-append (string-append
       (format "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
       (if syn
-	  (format "(and (and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
-		  port i port prev i step i     port step i port prev i COMM_BIT     port step i port (sub1 n) i)
-	  (format "(and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e)))) "
-		  port i port prev i step i     port step i port prev i COMM_BIT)))
-      (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i)))
+	  (format "(and ~a (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
+		  common-constraint     
+		  port step i port (sub1 n) i)
+	  common-constraint)
+      (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i))))
   
   ;;; check that value in register is valid for read or write from a port
   (define (mem-range reg)
@@ -549,7 +572,7 @@
              (pretty-display (format "(assert (= h_~a (_ bv~a ~a)))"
                                      (add1 (+ i begin)) (car (to-choice (string->symbol instr))) HOLE_BIT))
              (when num
-               (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"
+               (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"n
                                        (add1 (+ i begin)) num SIZE))))))))
 
 ;;; Returns an expression counting the number of trailing nops given
@@ -645,22 +668,33 @@
 	(pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))))
 
 (define (assert-comm comm n i)
+  ;; TODO: get rid of redundant constraints
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" U-ID i (commstate-send-u comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" D-ID i (commstate-send-d comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" L-ID i (commstate-send-l comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" R-ID i (commstate-send-r comm) COMM_SIZE))
+
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" U-ID i (commstate-recv-u comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" D-ID i (commstate-recv-d comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" L-ID i (commstate-recv-l comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" R-ID i (commstate-recv-r comm) COMM_SIZE))
+
+  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" U-ID i (commstate-order-u comm) ORDER_SIZE))
+  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" D-ID i (commstate-order-d comm) ORDER_SIZE))
+  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" L-ID i (commstate-order-l comm) ORDER_SIZE))
+  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" R-ID i (commstate-order-r comm) ORDER_SIZE))
+
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-sendp-u comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-sendp-d comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-sendp-l comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-sendp-r comm) COMM_BIT))
+
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-recvp-u comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-recvp-d comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-recvp-l comm) COMM_BIT))
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT)))
+  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT))
+
+)
 
 (define (assert-pair input output comm n i has-out)
   (assert-state-input input 0 i)
@@ -720,7 +754,13 @@
 	   [i (in-range 0 COMM_ENTRIES)])
 	  (define index (format "(_ bv~a ~a)" i COMM_BIT))
 	  (pretty-display (format "(assert (or (bvult ~a ~ap~a_~a_v~a) (= (get-comm ~a~a_v~a ~a) (_ bv0 ~a))))" 
-				  index port p n v   port p v index SIZE))))
+				  index port p n v   port p v index SIZE)))
+    (for* ([p (in-range 0 4)]
+           [i (in-range 0 ORDER_SIZE)])
+      (define index (format "(_ bv~a ~a)" i COMM_BIT))
+      (pretty-display (format "(assert (or (bvult ~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) (= (get-order order~a_v~a ~a) (_ bv0 1))))" 
+                              index p n v p n v   p v index)))
+    )
   (assert-ir-comm 0 spec-count)
   (assert-ir-comm 1 cand-count)
 
@@ -735,7 +775,7 @@
   ;;; TODO: relax constraint here too
   (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
        (vector-add var))
-  (for* ([var `(send recv)]
+  (for* ([var `(send recv order)] ;; TODO: no recv
 	 [channel (in-range 0 4)])
        (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
        (set! index (add1 index)))
@@ -828,20 +868,23 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Input-Output-Rend-Recv storage, converter, and generator ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (vec-to-bits-inner vec vec-size)
-  (define bits 0)
-  (for* ([i (in-range 0 vec-size)])
-    (define ele (if (< (- (- vec-size i) 1) (vector-length vec))
-                    (vector-ref vec (- (- vec-size i) 1))
-                    0))
-    (set! bits (+ (arithmetic-shift bits SIZE) (modulo ele (arithmetic-shift 1 SIZE)))))
-  bits)
-(define (vec-to-bits vec vec-size)
+
+(define (vec-to-bits vec vec-size [nbit SIZE])
+  (define (vec-to-bits-inner)
+    (define bits 0)
+    (for* ([i (in-range 0 vec-size)])
+	  (define ele (if (< (- (- vec-size i) 1) (vector-length vec))
+			  (vector-ref vec (- (- vec-size i) 1))
+			  0))
+	  (set! bits (+ (arithmetic-shift bits nbit) (modulo ele (arithmetic-shift 1 nbit)))))
+    bits)
+
   (if (vector? vec)
       (vec-to-bits-inner vec vec-size)
       vec))
 
 (define (convert-progstate state)
+  ;(pretty-display `(convert-progstate ,(progstate-memory state)))
   (define data (if (progstate-data state)
 		   (stack (stack-sp (progstate-data state)) (vec-to-bits (stack-body (progstate-data state)) 8))
 		   #f))
@@ -866,7 +909,12 @@
              (vec-to-bits (commstate-recv-l state) COMM_ENTRIES)
              (vec-to-bits (commstate-recv-r state) COMM_ENTRIES)
              (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state)
-             (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)))
+             (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)
+             (vec-to-bits (commstate-order-u state) ORDER_SIZE 1)
+             (vec-to-bits (commstate-order-d state) ORDER_SIZE 1)
+             (vec-to-bits (commstate-order-l state) ORDER_SIZE 1)
+             (vec-to-bits (commstate-order-r state) ORDER_SIZE 1)))
+	     
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; GreenSyn API ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -898,8 +946,9 @@
 
   (set! COMM_ENTRIES comm-entries)
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
+  (set! ORDER_SIZE (* 2 COMM_ENTRIES))
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
-  (set! COMM_BIT (inexact->exact (floor (+ (/ (log COMM_ENTRIES) (log 2)) 1))))
+  (set! COMM_BIT (inexact->exact (floor (+ (/ (log (* 2 COMM_ENTRIES)) (log 2)) 1))))
 
   (set! inout-list '()))
 

@@ -79,8 +79,13 @@
 (for [(i (in-range 1 3))]
      (run-compiler-test (string-append "large" (number->string i))))
 
+#|
 (compile-to-string "
 277 b! @b !+ a 3 and
 push 0 a!
 0 @+ + @+ + @+ + @+ +
-2/ 2/ 325 b! !b pop a!")
+2/ 2/ 325 b! !b pop a!")|#
+
+(compile-to-string "0 a! @ 469 a! ! 277 a! @ 469 a! ! 469 a! @ 0 a! !")
+
+;(exec-file "examples/test.forth" "examples/test.out")

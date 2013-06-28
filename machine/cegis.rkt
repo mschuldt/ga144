@@ -124,12 +124,14 @@
 (define (model->commstate model prog-length)
   (define (send x) (car (cdr (assoc (string->symbol (format "send~s_v0" x)) model))))
   (define (recv x) (car (cdr (assoc (string->symbol (format "recv~s_v0" x)) model))))
+  (define (order x) (car (cdr (assoc (string->symbol (format "order~s_v0" x)) model))))
   (define (sendp x) (car (cdr (assoc (string->symbol (format "sendp~s_~s_v0" x prog-length)) model))))
   (define (recvp x) (car (cdr (assoc (string->symbol (format "recvp~s_~s_v0" x prog-length)) model))))
   (commstate (send 0) (send 1) (send 2) (send 3)
              (recv 0) (recv 1) (recv 2) (recv 3)
              (sendp 0) (sendp 1) (sendp 2) (sendp 3)
-             (recvp 0) (recvp 1) (recvp 2) (recvp 3)))
+             (recvp 0) (recvp 1) (recvp 2) (recvp 3)
+	     (order 0) (order 1) (order 2) (order 3)))
 
 ;;; Parses the given bitvector into a vector of 18bit numbers.
 (define (bytes->vector input size)
@@ -184,38 +186,41 @@
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
 (define (generate-candidate program previous-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)
-  (when demo (pretty-display "     + add pair"))
-  (when (null? previous-pairs) (error "No input/output pairs given!"))
-  (define temp-file (temp-file-name name "syn" ".smt2"))
-  (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
-  (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
+  (define (inner)
+    (when demo (pretty-display "     + add pair"))
+    (when (null? previous-pairs) (error "No input/output pairs given!"))
+    (define temp-file (temp-file-name name "syn" ".smt2"))
+    (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
+    (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
+    
+    (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
+    
+    (define z3-res (z3 temp-file))
+    (define result (read-model z3-res))
+    
+    (unless debug (delete-file temp-file))
+    
+    (when debug
+	  (call-with-output-file #:exists 'truncate (temp-file-name name "syn-model")
+				 (curry display z3-res))
+	  (call-with-output-file #:exists 'truncate (temp-file-name name "syn-result")
+				 (lambda (out)
+				   (and result
+					(map (lambda (p)
+					       (display p out) (newline out)) result))))
+	  (call-with-output-file #:exists 'truncate (temp-file-name name "pair")
+				 (curry display (first previous-pairs)))
+	  (call-with-output-file #:exists 'truncate (temp-file-name name "program")
+				 (lambda (file)
+				   (and result (display (car (model->program result)) file)))))
+					;(when result (pretty-display "\t>> Found a candidate."))
+
+    (and result (model->program result)))
+
+  (if (null? previous-pairs)
+      (cons (string-join (for/list ([i (in-range slots)]) "nop")) 0)
+      (inner)))
   
-  (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
-  
-  (define z3-res (z3 temp-file))
-  (define result (read-model z3-res))
-
-  (unless debug (delete-file temp-file))
-
-  (when debug
-    (call-with-output-file #:exists 'truncate (temp-file-name name "syn-model")
-                           (curry display z3-res))
-    (call-with-output-file #:exists 'truncate (temp-file-name name "syn-result")
-                           (lambda (out)
-                             (and result
-                                  (map (lambda (p)
-                                         (display p out) (newline out)) result))))
-    (call-with-output-file #:exists 'truncate (temp-file-name name "pair")
-                           (curry display (first previous-pairs)))
-    (call-with-output-file #:exists 'truncate (temp-file-name name "program")
-                           (lambda (file)
-                             (and result (display (car (model->program result)) file)))))
-  ;(when result (pretty-display "\t>> Found a candidate."))
-  ;; (if result
-  ;;     (model->program result)
-  ;;     null))
-  (and result (model->program result)))
-
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate name mem prog-length constraint num-bits inst-pool)
   (set! current-step (add1 current-step))
@@ -274,8 +279,8 @@
 		  (when demo
 			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
 		  candidate))))))
-  (when (empty? all-pairs)
-	(set! all-pairs (list (random-pair program start #:start-state start-state))))
+  ;; (when (empty? all-pairs)
+  ;; 	(set! all-pairs (list (random-pair program start #:start-state start-state))))
   (define result (go))
   (when print-time (newline) 
 	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))

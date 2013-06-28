@@ -11,7 +11,8 @@
 (struct commstate (send-u send-d send-l send-r
                    recv-u recv-d recv-l recv-r
                    sendp-u sendp-d sendp-l sendp-r
-                   recvp-u recvp-d recvp-l recvp-r) #:transparent #:mutable)
+                   recvp-u recvp-d recvp-l recvp-r
+                   order-u order-d order-l order-r) #:transparent #:mutable)
 
 ;;; The blank state that the interpreter usually starts in.
 (define start-state (progstate 0 0 0 0 0 0 0
@@ -40,7 +41,7 @@
 	 #:recv-d [recv-d (make-vector ENTRIES 0)]
 	 #:recv-l [recv-l (make-vector ENTRIES 0)]
 	 #:recv-r [recv-r (make-vector ENTRIES 0)])
-  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0))
+  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0 0 0 0 0))
 
 ;;; The empty constraint. Pretty useless.
 (define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
