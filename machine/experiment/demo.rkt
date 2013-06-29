@@ -13,25 +13,26 @@
 ;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
 
 ;;; x - (x & y)
-;T(optimize "over and - @p 1 . + . +" #:slots 8 #:constraint (constraint t))
+;(optimize "over and - @p 1 . + . +" #:slots 8 #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
-;; ("over - and nop +" . 15)
+; ("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
-;;(optimize "@p b! !b . 325 @p b! !b . 325" 
-;;          #:constraint constraint-none #:num-bits 9 #:name "comm")
+(optimize "@p b! !b . 325 @p b! !b . 325" 
+          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
 
+#|
 (optimize "@p a! @ @p 0    469    
 a! ! @p nop 277    
 a! @ @p nop 469    
 a! ! @p nop 469    
 a! @ @p nop 0    
 a! ! . ."
-          #:name "test" #:constraint (constraint memory) #:num-bits 9 #:mem 1 #:start 10)
+          #:name "test" #:constraint (constraint memory) #:num-bits 9 #:mem 1 #:start 10)|#
 

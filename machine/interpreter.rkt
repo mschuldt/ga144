@@ -30,6 +30,11 @@
 (define recv-l '())
 (define recv-r '())
 
+(define order-u '())
+(define order-d '())
+(define order-l '())
+(define order-r '())
+
 (define instructions (make-vector 35))
 
 (define BIT 18)
@@ -62,8 +67,10 @@
   (let* ([messages (list send-u send-d send-l send-r
                          recv-u recv-d recv-l recv-r)]
          [vectors (map (compose list->vector reverse (curry cons 0)) messages)]
-         [lengths (map length messages)])
-    (apply commstate (append vectors lengths))))
+         [lengths (map length messages)]
+	 [orders  (list order-u order-d order-l order-r)]
+	 [order-vecs (map (compose list->vector reverse (curry cons 0)) orders)])
+    (apply commstate (append vectors lengths order-vecs))))
 
 ;;; Resets the state of the interpreter:
 (define (reset! [bit 18])
@@ -220,10 +227,14 @@
 (define (read-memory addr)
   (if (member addr (list UP DOWN LEFT RIGHT))
       (let ([value 12]);(random (arithmetic-shift 1 BIT))])
-        (cond [(= addr UP)    (set! recv-u (cons value recv-u))]
-              [(= addr DOWN)  (set! recv-d (cons value recv-d))]
-              [(= addr LEFT)  (set! recv-l (cons value recv-l))]
-              [(= addr RIGHT) (set! recv-r (cons value recv-r))])
+        (cond [(= addr UP)    (set! recv-u (cons value recv-u))
+	                      (set! order-u (cons 0 order-u))]
+              [(= addr DOWN)  (set! recv-d (cons value recv-d))
+	                      (set! order-d (cons 0 order-d))]
+              [(= addr LEFT)  (set! recv-l (cons value recv-l))
+	                      (set! order-l (cons 0 order-l))]
+              [(= addr RIGHT) (set! recv-r (cons value recv-r))
+	                      (set! order-r (cons 0 order-r))])
         value)
       (vector-ref memory addr)))
 
@@ -237,10 +248,14 @@
 ;;; port. Everything written to any communication port is simply
 ;;; aggregated into a list.
 (define (set-memory! addr value)
-  (cond [(= addr UP)    (set! send-u (cons value send-u))]
-        [(= addr DOWN)  (set! send-d (cons value send-d))]
-        [(= addr LEFT)  (set! send-l (cons value send-l))]
-        [(= addr RIGHT) (set! send-r (cons value send-r))]
+  (cond [(= addr UP)    (set! send-u (cons value send-u))
+	                (set! order-u (cons 1 order-u))]
+        [(= addr DOWN)  (set! send-d (cons value send-d))
+	                (set! order-d (cons 1 order-d))]
+        [(= addr LEFT)  (set! send-l (cons value send-l))
+	                (set! order-l (cons 1 order-l))]
+        [(= addr RIGHT) (set! send-r (cons value send-r))
+	                (set! order-r (cons 1 order-r))]
         [else           (vector-set! memory addr value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)

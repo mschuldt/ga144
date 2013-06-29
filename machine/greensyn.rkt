@@ -122,18 +122,17 @@
 (define-syntax-rule (define-fun id form ...)
   (define id `(define-fun id form ...)))
 
-; for power-of-2-bit
-;(define-fun bitidx ((i BV3)) (,STACK_TYPE)
-;  (concat (_ bv0 ,(- (- STACK_SIZE 3) LOG_SIZE)) (concat i (_ bv0 ,LOG_SIZE))))
-
 ;;; Create index into "array" bitvector
 (define (declare-bitidx func-name array-size index-size [val-size SIZE])
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
+  (define i
+    (if (> array-size index-size)
+	(format "(concat (_ bv0 ~a) i)" (- array-size index-size))
+	"i"))
   (newline)
-  (pretty-display
-   `(define-fun ,func-name ((i ,index-type)) (,array-type)
-      (bvmul (concat (_ bv0 ,(- array-size index-size)) i) (_ ,(makebv val-size) ,array-size)))))
+  (pretty-display `(define-fun ,func-name ((i ,index-type)) (,array-type)
+		     (bvmul ,i (_ ,(makebv val-size) ,array-size)))))
 
 ;;; Get an entry in "array" bitvector at the given index
 (define (declare-get func-name array-size index-size index-func [val-size SIZE])
@@ -148,12 +147,16 @@
 (define (declare-modify func-name array-size index-size index-func)
   (define array-type (string->symbol (format "BV~e" array-size)))
   (define index-type (string->symbol (format "BV~e" index-size)))
+  (define ele
+    (if (> array-size SIZE)
+	(format "(concat (_ bv0 ~a) ele)" (- array-size SIZE))
+	"ele"))
   (newline)
   (pretty-display
    `(define-fun ,func-name ((array ,array-type) (index ,index-type) (ele ,TYPE)) (,array-type)
       (bvor
        (bvand array (bvnot (bvshl (_ ,EXP_MASK ,array-size) (,index-func index))))
-       (bvshl (concat (_ bv0 ,(- array-size SIZE)) ele) (,index-func index))))))
+       (bvshl ,ele (,index-func index))))))
       
 (define (declare-functions)
   (declare-bitidx `bitidx-stack STACK_SIZE   3)
@@ -633,6 +636,11 @@
 	 [step (in-range 1 n)])
     (generate-formula step n version name syn sup)))
 
+(define (generate-known-formulas program n version name syn)
+  (for ([step (in-range 1 n)])
+       (define choice (vector-ref choice-id (vector-ref program (sub1 step))))
+       (pretty-display `(assert ,(generate-choice choice step n version name syn)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer helper functions ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (assert-state-input state n i)
@@ -812,6 +820,8 @@
   (declare-bitvector)
   (declare-functions)
   (newline)
+
+  ;; holes
   (if has-prog
       (encode-program spec spec-lit slots+1 `h)
       (declare-holes slots+1))
@@ -824,8 +834,11 @@
 	       (generate-known-holes sketch (+ init-n (* i n)) n)))
   (generate-repeat-constraints init-n n repeat)
 
+  ;; formula
   (newline)
   (generate-formulas slots+1 0 (length inout-list) `h #t)
+
+  ;; input-output
   (newline)
   (assert-input-output slots has-out)
   (newline)
@@ -847,7 +860,8 @@
   (newline)
   (declare-vars (add1 spec-count) 0 1)
   (newline)
-  (generate-formulas (add1 spec-count) 0 1 `spec #t support-all)
+  ;; (generate-formulas (add1 spec-count) 0 1 `spec #t support-all)
+  (generate-known-formulas spec (add1 spec-count) 0 `spec #t)
   (newline)
 
   ; formular for candidate
@@ -855,7 +869,8 @@
   (newline)
   (declare-vars (add1 cand-count) 1 2)
   (newline)
-  (generate-formulas (add1 cand-count) 1 2 `cand #f)
+  ;; (generate-formulas (add1 cand-count) 1 2 `cand #f)
+  (generate-known-formulas cand (add1 cand-count) 1 `cand #f)
   (newline)
   
   (assert-input-eq)
@@ -880,7 +895,7 @@
     bits)
 
   (if (vector? vec)
-      (vec-to-bits-inner vec vec-size)
+      (vec-to-bits-inner)
       vec))
 
 (define (convert-progstate state)
