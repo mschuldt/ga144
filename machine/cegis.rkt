@@ -340,9 +340,11 @@
 			  #:inst-pool [inst-pool `no-fake]
 			  #:start-state [start-state (random-state (expt 2 BIT))])
   (when demo
-  (pretty-display (format "original program\t: ~e" program))
-  (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
-  (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5))))
+        (pretty-display (format "original program\t: ~e" program))
+        (pretty-display (format "memory\t: ~a" mem))
+        (pretty-display (format "constraint\t: ~a" constraint))
+        (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
+        (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5))))
 
   (define start-time (current-seconds))
 

@@ -84,6 +84,10 @@
   (set! recv-d '())
   (set! recv-l '())
   (set! recv-r '())
+  (set! order-u '())
+  (set! order-d '())
+  (set! order-l '())
+  (set! order-r '())
 
   (load-state! start-state))
 
