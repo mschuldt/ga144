@@ -203,11 +203,6 @@
 				 (begin (add-compiled-code! "next")
 					(compile-address! addr))))))
 
-(define named-numbers (map (lambda (x) 
-			     (cons (car x) 
-				   (integer->integer-bytes (cdr x) 4 #f)))
-			   '(("up" . #x145) ("down" . #x115) ("left" . #x175) ("right" . #x1d5))))
-
 ;; Input:  Code in the form of an input port
 ;; If a word is an immediate word, it is executed instead.
 ;; To compile an immediate word, you need to postpone it.
@@ -215,10 +210,21 @@
 (define (compile code-port)
   (when (string? code-port)
 	(set! code-port (open-input-string code-port)))
+  
   (define (lookup key records)
     (cond ((null? records) #f)
 	  ((equal? key (caar records)) (cdar records))
 	  (else (lookup key (cdr records)))))
+  
+  (define (port->number str)
+    (cond
+      [(equal? str "up")    (int->bytes 325)]
+      [(equal? str "down")  (int->bytes 277)]
+      [(equal? str "left")  (int->bytes 373)]
+      [(equal? str "right") (int->bytes 469)]
+      [(equal? str "io")    (int->bytes 349)]
+      [else #f]))
+      
   (define (compile-loop)
     (let [(to-compile (forth_read))]
       (unless (eof-object? to-compile)
@@ -228,7 +234,8 @@
 			    ((rvector-ref codespace (entry-code directive)))
 			    (let [(entry (find-entry dict to-compile))]
 			      (cond [(not entry)
-				     (let [(num (or (lookup to-compile named-numbers) (string->bytes to-compile)))]
+				     (let [(num (or (port->number to-compile) 
+                                                    (string->bytes to-compile)))]
 				       (if num
 					   (if execute?
 					       (push-cells! dstack num)
@@ -262,6 +269,7 @@
     (current-input-port code-port)
     (set! execute? #f)
     (compile-loop)
+    (fill-rest-with-nops)
     (current-input-port old)))
 
 (define reset! (set-as-defaults!))
