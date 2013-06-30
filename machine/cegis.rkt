@@ -445,6 +445,8 @@
 		  #:inst-pool  [inst-pool `no-fake]
 		  #:bin-search [bin-search #t])
   (when (> mem 64) (begin (pretty-display "memory has to be less than 64!") (exit)))
+  (when (< mem 1) (set! mem 1))
+  
   (initialize)
   (set-udlr-from-constraints mem num-bits)
 
@@ -502,6 +504,10 @@
 
   (when (not debug)
   	(finalize))
+
+  (if result
+      (car result)
+      orig-program)
 )
   
 		 
