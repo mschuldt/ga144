@@ -764,41 +764,40 @@
   (assert-ir-comm 1 cand-count)
 
   ;;; Assert outputs are not equal
-  (define clauses (make-vector 26))
-  (define index 0)
+  ;(define clauses (make-vector 26))
+  ;(define index 0)
+  (define clauses (list))
 
-  (define (vector-add var)
-    (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
-    (set! index (add1 index)))
+  (define (list-add var)
+    (set! clauses (cons (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count) clauses)))
 
   ;;; TODO: relax constraint here too
   (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-       (vector-add var))
+       (list-add var))
   (for* ([var `(send recv order)] ;; TODO: no recv
 	 [channel (in-range 0 5)])
-       (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
-       (set! index (add1 index)))
+       (set! clauses (cons (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel) clauses)))
   (when (progstate-data output-constraint)
-	(vector-add `dst)
-	(vector-add `sp))
+	(list-add `dst)
+	(list-add `sp))
   (when (progstate-return output-constraint)
-	(vector-add `rst)
-	(vector-add `rp))
+	(list-add `rst)
+	(list-add `rp))
   (when (progstate-memory output-constraint)
-	(vector-add `mem))
+	(list-add `mem))
   (when (progstate-t output-constraint)
-	(vector-add `t))
+	(list-add `t))
   (when (progstate-s output-constraint)
-	(vector-add `s))
+	(list-add `s))
   (when (progstate-r output-constraint)
-	(vector-add `r))
+	(list-add `r))
   (when (progstate-a output-constraint)
-	(vector-add `a))
+	(list-add `a))
   (when (progstate-b output-constraint)
-	(vector-add `b))
+	(list-add `b))
 
   ;;; Include assumption throughtout the program
-  (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses index `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
+  (pretty-display (format "(assert (or ~a ~a))" (string-join clauses) (generate-assumptions (add1 cand-count) 1 2 `cand))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 

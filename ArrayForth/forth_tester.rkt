@@ -70,6 +70,7 @@
     (displaynl "Tests checked")
     (newline)))
 
+#|
 (for [(i (in-range 1 4))]
      (run-test (string-append "basic" (number->string i))))
 
@@ -79,7 +80,7 @@
 (for [(i (in-range 1 3))]
      (run-compiler-test (string-append "large" (number->string i))))
 
-#|
+
 (compile-to-string "
 277 b! @b !+ a 3 and
 push 0 a!
@@ -89,3 +90,9 @@ push 0 a!
 ;(compile-to-string "0 a! @ 469 a! ! 277 a! @ 469 a! ! 469 a! @ 0 a! !")
 
 ;(exec-file "examples/test.forth" "examples/test.out")
+(compile-to-string "
+yellow 2 node
+4 org 
+green
+: sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ .ns ;")
+

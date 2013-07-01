@@ -23,9 +23,10 @@
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communi;cation
-;(optimize "@p b! !b . 325 @p b! !b . 325" 
-;          #:constraint constraint-none #:num-bits 9 #:name "comm")
+(optimize "@p b! !b . 325 @p b! !b . 325" 
+          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
+#|
 (optimize 
  "@p a! @ @p 349    
 0    
@@ -43,6 +44,6 @@ a! !+ @b .
 ! @ 325 .
 a! !"
  #:mem 3
- #:constraint (constraint memory) #:num-bits 9 #:name "hi1")
+ #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
 
 
