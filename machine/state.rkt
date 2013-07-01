@@ -8,11 +8,11 @@
 (define ENTRIES 4)
 
 (struct progstate (a b p i r s t data return memory) #:mutable #:transparent)
-(struct commstate (send-u send-d send-l send-r
-                   recv-u recv-d recv-l recv-r
-                   sendp-u sendp-d sendp-l sendp-r
-                   recvp-u recvp-d recvp-l recvp-r
-                   order-u order-d order-l order-r) #:transparent #:mutable)
+(struct commstate (send-u send-d send-l send-r send-io
+                   recv-u recv-d recv-l recv-r recv-io
+                   sendp-u sendp-d sendp-l sendp-r sendp-io
+                   recvp-u recvp-d recvp-l recvp-r recvp-io
+                   order-u order-d order-l order-r order-io) #:transparent #:mutable)
 
 ;;; The blank state that the interpreter usually starts in.
 (define start-state (progstate 0 0 0 0 0 0 0
@@ -37,11 +37,13 @@
 	 #:send-d [send-d (make-vector ENTRIES 0)]
 	 #:send-l [send-l (make-vector ENTRIES 0)]
 	 #:send-r [send-r (make-vector ENTRIES 0)]
+	 #:send-io [send-io (make-vector ENTRIES 0)]
 	 #:recv-u [recv-u (make-vector ENTRIES 0)]
 	 #:recv-d [recv-d (make-vector ENTRIES 0)]
 	 #:recv-l [recv-l (make-vector ENTRIES 0)]
-	 #:recv-r [recv-r (make-vector ENTRIES 0)])
-  (commstate send-u send-d send-l send-r recv-u recv-d recv-l recv-r 0 0 0 0 0 0 0 0 0 0 0 0))
+	 #:recv-r [recv-r (make-vector ENTRIES 0)]
+	 #:recv-io [recv-io (make-vector ENTRIES 0)])
+  (commstate send-u send-d send-l send-r send-io recv-u recv-d recv-l recv-r recv-io 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
 
 ;;; The empty constraint. Pretty useless.
 (define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
