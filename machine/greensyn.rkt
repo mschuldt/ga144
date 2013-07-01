@@ -304,8 +304,8 @@
 	  (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i UP SIZE)
 	  (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i DOWN SIZE)
           (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i LEFT SIZE)
-          (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE)
-          ;(format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i IO SIZE)
+          (format "(= ~a_~a_v~e (_ bv~e ~e))" reg prev i RIGHT SIZE)
+          (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i IO SIZE)
           )
 	(format "(= ~a_~e_v~e ~a_~a_v~e)" reg step i reg prev i)))
 
@@ -514,12 +514,13 @@
   (define prev (sub1 step))
   
   (define (mem-range reg)
-    (string-append (string-append (string-append (string-append (string-append
-      (format "(and (and (and (and (bvuge ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i UP SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i DOWN SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i LEFT SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE)))
+    (string-append 
+      (format "(and (bvuge ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i UP SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i DOWN SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i LEFT SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))" reg prev i RIGHT SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i IO SIZE)))
 
   (define check_assump 
   (cond 

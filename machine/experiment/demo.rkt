@@ -26,7 +26,6 @@
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
-#|
 (optimize 
  "@p a! @ @p 349    
 0    
@@ -38,18 +37,11 @@ a! ! @p nop 2
 a! @ @p nop 325    
 a! ! nop nop"
  #:slots 
- "349 b! @b 0
-a! ! @b 1   
-a! ! @b 2  
-a! ! @ 325    
-a! ! nop nop"
- #:mem 3
- #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
-
-(optimize 
- "nop @p a! nop 349 @ nop nop nop"
- #:slots 
- "349 a! @"
+ "349 b! @b 0 
+a! ! @b 1 
+a! !+ @b .
+! @ 325 .
+a! !"
  #:mem 3
  #:constraint (constraint memory) #:num-bits 9 #:name "hi1")
 
