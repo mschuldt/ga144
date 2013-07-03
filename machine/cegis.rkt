@@ -345,8 +345,8 @@
 			  #:start-state [start-state (random-state (expt 2 BIT))])
   (when demo
         (pretty-display (format "original program\t: ~e" program))
-        (pretty-display (format "memory\t: ~a" mem))
-        (pretty-display (format "constraint\t: ~a" constraint))
+        (pretty-display (format "memory\t\t\t: ~a" mem))
+        (pretty-display (format "constraint\t\t: ~a" constraint))
         (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
         (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5))))
 
@@ -457,6 +457,7 @@
   (initialize)
   (set-udlr-from-constraints mem num-bits)
 
+  (pretty-display orig-program)
   (define program (preprocess (if f18a orig-program (compile-to-string orig-program))))
   (define slots raw-slots)
   (when (and (number? slots) (= slots 0))

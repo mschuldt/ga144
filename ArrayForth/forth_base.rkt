@@ -148,7 +148,8 @@
 	 ; Standard instruction compilation.  Deals with inserting nops where necessary.
 	 ; Addresses (for address-required instructions) must be supplied separately.
 	 (when (or (and (member elmt instructions-preceded-by-nops)
-			(not (equal? (rvector-ref memory (sub1 i-register)) ".")))
+                        (or (= i-register 0)
+                            (not (equal? (rvector-ref memory (sub1 i-register)) "."))))
 		   (and (= (remainder i-register 4) 3)
 			(not (member elmt last-slot-instructions))))
 	       (add-compiled-code! "."))

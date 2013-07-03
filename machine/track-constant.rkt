@@ -1,7 +1,8 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt" "stack.rkt" "state.rkt" "programs.rkt")
+(require "assembler.rkt" "stack.rkt" "state.rkt" "programs.rkt"
+         rackunit)
 
 (provide track-index)
 
@@ -108,49 +109,79 @@
 
   (for ([inst program]
         [i (in-range (length program))])
-       (cond
-	[(member inst (list "@+" "@"))
-	 (push! (read-memory a))]
-
-	[(member inst (list "!+" "!"))
-	 (set-memory! a (pop!))]
-
-        [(equal? inst "+*")
-         (define all (set-union t s a))
-         (set! t all)
-         (set! s all)
-         (set! a all)]
-
-        [(member inst (list "2*" "2/"))
-         void]
+    (cond
+      [(member inst (list "@+" "@"))
+       (push! (read-memory a))]
+      
+      [(member inst (list "@b"))
+       (push! (read-memory b))]
+      
+      [(member inst (list "!+" "!"))
+       (set-memory! a (pop!))]
+      
+      [(member inst (list "!b"))
+       (set-memory! b (pop!))]
+      
+      [(equal? inst "+*")
+       (define all (set-union t s a))
+       (set! t all)
+       (set! s all)
+       (set! a all)]
+      
+      [(member inst (list "2*" "2/" "." "nop"))
+       void]
         
-        [(member inst (list "-" "+" "and" "or"))
-         (push! (set-union (pop!) (pop!)))]
-         
-        [(equal? inst "drop")
-         (pop!)]
-
-        [(equal? inst "dup")
-         (push! t)]
-
-        [(equal? inst "over")
-         (push! s)]
-
-        [(equal? inst "pop")
-         (push! (r-pop!))]
-
-        [(equal? inst "push")
-         (r-push! (pop!))]
-
-        [(equal? inst "b!")
-         (set! b (pop!))]
-        
-        [(equal? inst "a!")
-         (set! a (pop!))]
-
-        [else ;number
-         (push! (set i))]))
+      [(member inst (list "-" "+" "and" "or"))
+       (push! (set-union (pop!) (pop!)))]
+      
+      [(equal? inst "drop")
+       (pop!)]
+      
+      [(equal? inst "dup")
+       (push! t)]
+      
+      [(equal? inst "over")
+       (push! s)]
+      
+      [(equal? inst "pop")
+       (push! (r-pop!))]
+      
+      [(equal? inst "push")
+       (r-push! (pop!))]
+      
+      [(equal? inst "b!")
+       (set! b (pop!))]
+      
+      [(equal? inst "a!")
+       (set! a (pop!))]
+      
+      [else ;number
+       (push! (set i))]))
   
   index-set)
+
+(define (test)
+  (check-equal? (track-index (string-split "0 a! @ 3 a! @+ 6 b! @b 9 a! ! 12 a! !+ 15 b! !b"))
+                (set 0 3 6 9 12 15)
+                "test-1")
+  (check-equal? (track-index (string-split "0 1 2 a! ! a! !"))
+                (set 0 2)
+                "test-2")
+  (check-equal? (track-index (string-split "0 1 . + a! !+"))
+                (set 0 1)
+                "test-3")
+  (check-equal? (track-index (string-split "0 1 . + over b! !b"))
+                (set)
+                "test-4")
+  (check-equal? (track-index (string-split "0 dup a! @ 1 drop a! @"))
+                (set 0)
+                "test-5")
+  (check-equal? (track-index (string-split "0 push 2 push pop b! @b"))
+                (set 2)
+                "test-6")
+  (check-equal? (track-index (string-split "pop b! @b 3 push pop pop b! @b"))
+                (set)
+                "test-7")
+  )
          
        
