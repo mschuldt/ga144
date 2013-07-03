@@ -448,7 +448,7 @@
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
 		  #:bin-search [bin-search #t])
-  (when (> mem 64) (begin (pretty-display "memory has to be less than 64!") (exit)))
+  (when (> mem 512) (begin (pretty-display (format "~a words of member is too big!") mem) (exit)))
   (when (< mem 1) (set! mem 1))
   
   (initialize)
