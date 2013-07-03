@@ -3,69 +3,44 @@
 
 (require "assembler.rkt" "stack.rkt" "state.rkt" "programs.rkt")
 
-(provide (all-defined-out))
+(provide track-index)
+
+(define (clean-stack)
+  (stack 0 (vector (set) (set) (set) (set) (set) (set) (set) (set))))
 
 ;;; stacks:
-(define data   (stack 0 (make-vector 8)))
-(define return (stack 0 (make-vector 8)))
+(define data   (clean-stack))
+(define return (clean-stack))
 
 ;;; registers:
-(define a 0)
-(define b 0)
-(define p 0)
-(define i 0)
-(define r 0)
-(define s 0)
-(define t 0)
+(define a (set))
+(define b (set))
+(define p (set))
+(define i (set))
+(define r (set))
+(define s (set))
+(define t (set))
+(define memory (set))
+(define index-set (set))
 
-(define memory 0)
-
-(define instructions (make-vector 35))
-
-(define BIT 18)
-
-;;; Reset the interpreter to the given state.
-(define (load-state! state)
-  (set! a (progstate-a state))
-  (set! b (progstate-b state))
-  (set! p (progstate-p state))
-  (set! i (progstate-i state))
-  (set! r (progstate-r state))
-  (set! s (progstate-s state))
-  (set! t (progstate-t state))
-
-  (set! data   (copy-stack (progstate-data state)))
-  (set! return (copy-stack (progstate-return state)))
-
-  (set! memory (progstate-memory state))
-
-;;; Sets the current state to the given values for the registers,
-;;; stacks and memory.
-(define set-state! (lambda args (load-state! (apply progstate args))))
-
-;;; Returns a snapshot of the current state.
-(define (current-state)
-  (progstate a b p i r s t (copy-stack data) (copy-stack return) memory))
-
-;;; Print the data stack:
-(define (display-data [state (current-state)])
-  (display (format "|d> ~x ~x" (progstate-t state) (progstate-s state)))
-  (display-stack (progstate-data state))
-  (newline))
+(define (reset!)
+  (set! index-set (set))
+  (set! a (set))
+  (set! b (set))
+  (set! p (set))
+  (set! i (set))
+  (set! r (set))
+  (set! s (set))
+  (set! t (set))
+  (set! memory (set))
+  (set! data (clean-stack))
+  (set! return (clean-stack)))
 
 ;;; Print the return stack:
 (define (display-return)
   (display (format "|r> ~x" r))
   (display-stack return)
   (newline))
-
-;;; Displays some state, useful for debugging. Currently this just
-;;; shows the pc and data stack.
-(define (display-state [state (current-state)])
-  (pretty-display (format "p:~a a:~a b:~a r:~a"
-                          (progstate-p state) (progstate-a state)
-                          (progstate-b state) (progstate-r state)))
-  (display-data state))
 
 (define (display-vector vec n name)
   (when (> n 0)
@@ -78,7 +53,7 @@
 (define (push! value)
   (push-stack! data s)
   (set! s t)
-  (set! t (value)))
+  (set! t value))
 
 ;;; Pushes to the return stack.
 (define (r-push! value)
@@ -109,44 +84,73 @@
         [(= curr #x0FF) #x080]
         [else curr]))
 
-(define index-set (set))
 
 ;;; Read from the given memory address or communication port. If it
 ;;; gets a communication port, it just returns a random number (for
 ;;; now).
 (define (read-memory addr)
-  (when (set? addr)
-	(set! index-set (set-union index-set addr)))
+  (set! index-set (set-union index-set addr))
   memory)
-      
-
-;;; Read from the given memory address or communication port. If it
-;;; gets a communication port, it just returns a random number (for
-;;; now).
-(define (read-memory-@p addr)
-  (vector-ref memory addr))
 
 ;;; Write to the given memeory address or communication
 ;;; port. Everything written to any communication port is simply
 ;;; aggregated into a list.
 (define (set-memory! addr value)
-  (when (set? addr)
-	(set! index-set (set-union index-set addr)))
+  (set! index-set (set-union index-set addr))
 
-  (when (set? value)
-	(set! memory (if (set? memory)
-			 (set-union memory value)
-			 value))))
+  (set! memory (if (set? memory)
+                   (set-union memory value)
+                   value)))
 
 
-(define (track-constant program)
-  (for ([inst (string-split program)])
+(define (track-index program)
+  (reset!)
+
+  (for ([inst program]
+        [i (in-range (length program))])
        (cond
-	[(or (equal? inst "@+")
-	     (equal? inst "@"))
+	[(member inst (list "@+" "@"))
 	 (push! (read-memory a))]
 
-	[(or (equal? inst "!+")
-	     (equal? inst "!"))
-	 (set-memory! a (pop!))])))
+	[(member inst (list "!+" "!"))
+	 (set-memory! a (pop!))]
+
+        [(equal? inst "+*")
+         (define all (set-union t s a))
+         (set! t all)
+         (set! s all)
+         (set! a all)]
+
+        [(member inst (list "2*" "2/"))
+         void]
+        
+        [(member inst (list "-" "+" "and" "or"))
+         (push! (set-union (pop!) (pop!)))]
+         
+        [(equal? inst "drop")
+         (pop!)]
+
+        [(equal? inst "dup")
+         (push! t)]
+
+        [(equal? inst "over")
+         (push! s)]
+
+        [(equal? inst "pop")
+         (push! (r-pop!))]
+
+        [(equal? inst "push")
+         (r-push! (pop!))]
+
+        [(equal? inst "b!")
+         (set! b (pop!))]
+        
+        [(equal? inst "a!")
+         (set! a (pop!))]
+
+        [else ;number
+         (push! (set i))]))
+  
+  index-set)
+         
        

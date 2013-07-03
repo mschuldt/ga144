@@ -1,6 +1,8 @@
 #lang racket
 
-(require racket/system openssl/sha1 "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt")
+(require racket/system openssl/sha1 
+         "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
+         "../ArrayForth/compiler.rkt")
 
 (provide optimize)
 (provide estimate-time program-length perf-mode)
@@ -437,6 +439,7 @@
 ;;               DEFAULT = true
 
 (define (optimize orig-program 
+                  #:f18a       [f18a #t]
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
 		  #:init       [init 0]
@@ -454,7 +457,7 @@
   (initialize)
   (set-udlr-from-constraints mem num-bits)
 
-  (define program (preprocess orig-program))
+  (define program (preprocess (if f18a orig-program (compile-to-string orig-program))))
   (define slots raw-slots)
   (when (and (number? slots) (= slots 0))
 	(set! slots (program-length-abs program)))
