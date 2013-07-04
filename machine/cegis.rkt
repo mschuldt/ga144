@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 300)
+(define timeout 1200)
 
 (define (initialize)
   (system "mkdir debug")
@@ -54,16 +54,28 @@
 	  suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
-(define (z3 file)
+(define (z3 file break)
   (define-values (sp o i e) (subprocess #f #f #f (find-executable-path "z3") file))
   (sync/timeout timeout sp)
 
-  (when (equal? (subprocess-status sp) 'running)
-  	(subprocess-kill sp #t))
-
   (close-output-port i)
   (close-input-port e)
-  o)
+  
+  (if (and break (equal? (subprocess-status sp) 'running))
+      (begin
+        (pretty-display "\t[timeout]")
+        (subprocess-kill sp #t)
+        (close-output-port i)
+        (close-input-port e)
+        (close-input-port o)
+        #f)
+      (begin
+        (when (equal? (subprocess-status sp) 'running)
+          (subprocess-wait sp))
+        
+        (close-output-port i)
+        (close-input-port e)
+        o)))
 
 ;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
 ;;; numbers as numbers; otherwise compares as strings.
@@ -166,14 +178,15 @@
 ;;; If the z3 output is sat, reads in the model. If it isn't, returns
 ;;; #f.
 (define (read-model in)
-  (define input (read-sexps in))
-  (close-input-port in)
-  (and (not (member 'unsat input))
-       (member 'sat input)
-       (let ([res (filter
-                   (lambda (x)
-                     (or (equal? x 'sat) (equal? (car x) 'model))) input)])
-         (and (member 'sat res) (extract-model (cadr res))))))
+  (and in
+       (let ([input (read-sexps in)])
+        (close-input-port in)
+        (and (not (member 'unsat input))
+             (member 'sat input)
+             (let ([res (filter
+                         (lambda (x)
+                           (or (equal? x 'sat) (equal? (car x) 'model))) input)])
+               (and (member 'sat res) (extract-model (cadr res))))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program [memory-start 0]
@@ -210,27 +223,30 @@
   (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
   
   (pretty-display `(temp-file ,temp-file))
-  (define z3-res (z3 temp-file))
-  (define result (read-model z3-res))
+  (define z3-res (z3 temp-file #t))
   
-  (unless debug (delete-file temp-file))
-  
-  (when debug
-	(call-with-output-file #:exists 'truncate (temp-file-name name "syn-model")
-			       (curry display z3-res))
-	(call-with-output-file #:exists 'truncate (temp-file-name name "syn-result")
-			       (lambda (out)
-				 (and result
-				      (map (lambda (p)
-					     (display p out) (newline out)) result))))
-	(call-with-output-file #:exists 'truncate (temp-file-name name "pair")
-			       (curry display (first previous-pairs)))
-	(call-with-output-file #:exists 'truncate (temp-file-name name "program")
-			       (lambda (file)
-				 (and result (display (car (model->program result)) file)))))
-					;(when result (pretty-display "\t>> Found a candidate."))
-  
-  (and result (model->program result)))
+  (if z3-res
+      ;; not timeout
+      (let ([result (read-model z3-res)])
+        (unless debug (delete-file temp-file))
+        
+        (when debug
+          (call-with-output-file #:exists 'truncate (temp-file-name name "syn-model")
+            (curry display z3-res))
+          (call-with-output-file #:exists 'truncate (temp-file-name name "syn-result")
+            (lambda (out)
+              (and result
+                   (map (lambda (p)
+                          (display p out) (newline out)) result))))
+          (call-with-output-file #:exists 'truncate (temp-file-name name "pair")
+            (curry display (first previous-pairs)))
+          (call-with-output-file #:exists 'truncate (temp-file-name name "program")
+            (lambda (file)
+              (and result (display (car (model->program result)) file)))))
+        ;;(when result (pretty-display "\t>> Found a candidate."))
+        
+        (and result (model->program result)))
+      'timeout))
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate name mem prog-length constraint num-bits inst-pool)
@@ -240,7 +256,8 @@
   (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate)
-  (define result (read-model (z3 temp-file)))
+  (pretty-display `(ver-file ,temp-file))
+  (define result (read-model (z3 temp-file #f)))
   
   (when debug
     (call-with-output-file
@@ -280,19 +297,24 @@
 
   (define (go)
     (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)])
-      (and candidate
-          (let ([new-pair (validate program-for-ver (car candidate) name mem (program-length program-for-ver) constraint num-bits inst-pool)])
-            (if new-pair
-		(begin
-		  (set! all-pairs (cons new-pair all-pairs))
-		  (go))
-                (begin 
-		  (when demo
-			(pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
-		  candidate))))))
+      (if (equal? candidate 'timeout)
+          'timeout
+          (and candidate
+               (let ([new-pair (validate program-for-ver (car candidate) name mem (program-length program-for-ver) constraint num-bits inst-pool)])
+                 (if new-pair
+                     (begin
+                       (set! all-pairs (cons new-pair all-pairs))
+                       (go))
+                     (begin 
+                       (when demo
+                         (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
+                       candidate)))))))
+  
   (when (empty? all-pairs)
   	(set! all-pairs (list (random-pair program start #:start-state start-state))))
+  
   (define result (go))
+  
   (when print-time (newline) 
 	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))
   result)
@@ -317,7 +339,7 @@
                            #:start start 
 			   #:constraint constraint #:time-limit time-limit
 			   #:num-bits num-bits #:inst-pool inst-pool #:start-state start-state))
-  (define result (if candidate
+  (define result (if (and candidate (not (equal? candidate 'timeout)))
                      (fastest-program program candidate #:name name
 				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat
@@ -339,9 +361,14 @@
 			       #:start start 
 			       #:constraint constraint #:time-limit time-limit
 			       #:num-bits num-bits #:inst-pool inst-pool)])
-	(if candidate
-	    (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint (cdr candidate) num-bits inst-pool start-state candidate)
-	    (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)))))
+        (cond
+          [(equal? candidate 'timeout) best-so-far]
+          [(not candidate)
+           (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint 
+                           (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)]
+          [else
+           (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint 
+                          (cdr candidate) num-bits inst-pool start-state candidate)]))))
 
 (define (fastest-program3 program [best-so-far #f]
 			  #:name       [name "prog"]
