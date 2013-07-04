@@ -15,6 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
+(define timeout 300)
 
 (define (initialize)
   (system "mkdir debug")
@@ -54,7 +55,15 @@
 
 ;;; Run z3 on the given file, returning all output as a string.
 (define (z3 file)
-  (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
+  (define-values (sp o i e) (subprocess #f #f #f (find-executable-path "z3") file))
+  (sync/timeout timeout sp)
+
+  (when (equal? (subprocess-status sp) 'running)
+  	(subprocess-kill sp #t))
+
+  (close-output-port i)
+  (close-input-port e)
+  o)
 
 ;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
 ;;; numbers as numbers; otherwise compares as strings.
@@ -158,7 +167,9 @@
 ;;; #f.
 (define (read-model in)
   (define input (read-sexps in))
+  (close-input-port in)
   (and (not (member 'unsat input))
+       (member 'sat input)
        (let ([res (filter
                    (lambda (x)
                      (or (equal? x 'sat) (equal? (car x) 'model))) input)])
@@ -198,6 +209,7 @@
   
   (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
   
+  (pretty-display `(temp-file ,temp-file))
   (define z3-res (z3 temp-file))
   (define result (read-model z3-res))
   
