@@ -32,7 +32,7 @@
 ; As a result, it fetches next instruction word.
 (add-primitive-word! #f "call"
 		     (lambda (a)
-		       (push-int! rstack pc)
+		       (push-int! rstack (add1 (quotient pc 4)))
 		       (set-pc! a)))
 
 ; unext

@@ -1,8 +1,9 @@
 #lang racket
 
 (require (only-in racket [equal? equal-case-sensitive?]))
-(require "arithmetic.rkt" "rvector.rkt" "forth_read.rkt" "forth_num_convert.rkt")
-(require "forth_state.rkt" "forth_state_words.rkt" "forth_bit_words.rkt" "forth_io_words.rkt" "forth_control_words.rkt")
+(require "arithmetic.rkt" "rvector.rkt" "forth_read.rkt"
+	 "forth_num_convert.rkt" "forth_state.rkt" "forth_state_words.rkt"
+	 "forth_bit_words.rkt" "forth_io_words.rkt" "forth_control_words.rkt")
 
 (provide (all-defined-out))
 
@@ -75,6 +76,13 @@
 		     (lambda ()
 		       (fill-rest-with-nops)
 		       (add-entry! #f (forth_read_no_eof) (quotient i-register 4))))
+
+(add-compiler-directive! ".." (lambda () (fill-rest-with-nops)))
+
+; Custom addition to make it easy to specify where to start programs.
+(add-compiler-directive! "start"
+		     (lambda ()
+		       (set-pc! (sub1 location-counter))))
 
 ; Comments
 (define (comment)
