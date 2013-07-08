@@ -83,7 +83,7 @@
 10 org 
 green
 : sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ ;
-.. start sum .ns")
+.. start sum .ns 0 5 .mem")
 (compile-to-string test-str)
 (compile-and-run test-str)
 #|

@@ -32,3 +32,18 @@
 (add-primitive-word! #f ".ns" (lambda () (print state-index) (display ": ") (print-stack dstack) (newline)))
 (add-primitive-word! #f ".r" (lambda () (print-stack rstack)))
 (add-primitive-word! #f ".nr" (lambda () (print state-index) (display ": ") (print-stack rstack) (newline)))
+
+(define (print-memory start end)
+  (if (>= start end)
+      (display " |")
+      (begin (display " | ")
+	     (display (rvector-ref memory start))
+	     (print-memory (add1 start) end))))
+
+(add-primitive-word! #f ".mem"
+		     (lambda ()
+		       (let* ((end (pop-int! dstack #f))
+			      (start (pop-int! dstack #f)))
+			 (printf "Printing memory from ~a to ~a:" start end)
+			 (print-memory start end)
+			 (newline))))
