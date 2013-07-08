@@ -22,32 +22,27 @@
 ;;; round up to multiple of 8 (8-bit)
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
-;; communication
+;; communi;cation
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
+(optimize 
+ "@p a! @ @p 349    
+0    
+a! ! @p nop 349    
+a! @ @p nop 1    
+a! ! @p nop 349    
+a! @ @p nop 2    
+a! ! @p nop 2    
+a! @ @p nop 325    
+a! ! nop nop"
+ #:slots 
+ "349 b! @b 0 
+a! ! @b 1 
+a! !+ @b .
+! @ 325 .
+a! !"
+ #:mem 3
+ #:constraint (constraint memory) #:num-bits 9 #:name "hi1")
 
-#|(optimize "@p a! @ @p 0    277    a! ! @p nop 277    a! @ @p nop 0    a! ! nop nop" 
-          #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
-
-(optimize "@p a! @ @p 349    0    a! ! @p nop 277    a! @ nop nop" 
-          #:constraint (constraint memory t) #:num-bits 9 #:name "hi2")
-;; bug (277 a! @)
-
-;;(optimize "@p a! @ @p 0    349    a! ! nop nop" 
-;;          #:constraint (constraint memory) #:num-bits 9 #:name "hi3")
-;; "dup" --> we should allow 0 # of inst
-
-;;(optimize "@p a! @ @p 277    325    a! @ nop + @p a! ! nop 277" 
-;;          #:constraint (constraint memory) #:num-bits 9 #:name "right")
-
-
-#|
-(optimize "@p a! @ @p 0    469    
-a! ! @p nop 277    
-a! @ @p nop 469    
-a! ! @p nop 469    
-a! @ @p nop 0    
-a! ! . ."
-          #:name "test" #:constraint (constraint memory) #:num-bits 9 #:mem 1 #:start 10)|#
 

@@ -30,14 +30,7 @@
 (define D-ID 1)
 (define L-ID 2)
 (define R-ID 3)
-(define U-SEND `sendp0)
-(define D-SEND `sendp1)
-(define L-SEND `sendp2)
-(define R-SEND `sendp3)
-(define U-RECV `recvp0)
-(define D-RECV `recvp1)
-(define L-RECV `recvp2)
-(define R-RECV `recvp3)
+(define IO-ID 4)
 
 (define CHOICES (vector-length choice-id))
 (define N_OF_SLOW (vector-length memory-op))
@@ -64,6 +57,7 @@
    [(equal? word `down) DOWN]
    [(equal? word `left) LEFT]
    [(equal? word `right) RIGHT]
+   [(equal? word `io) RIGHT]
    [else word]))
 
 ;;; Converts a name of an instruction (as a symbol) to its numeric
@@ -210,14 +204,14 @@
        (for* ([var `(t s r a b)])
 	     (declare-init var n i SIZE))
 
-       (for* ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
+       (for* ([var `(sendp0 sendp1 sendp2 sendp3 sendp4 recvp0 recvp1 recvp2 recvp3 recvp4)])
 	     (declare-init-zero var n i COMM_BIT))
 
-       (for* ([var `(send0 send1 send2 send3 recv0 recv1 recv2 recv3)])
+       (for* ([var `(send0 send1 send2 send3 send4 recv0 recv1 recv2 recv3 recv4)])
 	     (declare-vector-one var i COMM_ENTRIES))
 
        ;; each bit determines if it is send or recv
-       (for* ([name `(order0 order1 order2 order3)])
+       (for* ([name `(order0 order1 order2 order3 order4)])
 	     (pretty-display `(declare-const ,(var name i) ,(makeBV ORDER_SIZE))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Generate Z3 formulas ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -304,17 +298,19 @@
   ;;; check that value in register is valid for read or write from a port
   (define (mem-range reg)
     (if syn
-	(string-append (string-append (string-append (string-append (string-append
+	(string-append 
           (format "(and (= ~a_~e_v~e ~a_~a_v~e) " reg step i reg prev i)
-	  (format "(or (or (or (or (bvult ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE))
-	  (format "(= ~a_~a_v~e (_ bv~e ~e))) " reg prev i UP SIZE))
-	  (format "(= ~a_~a_v~e (_ bv~e ~e))) " reg prev i DOWN SIZE))
-          (format "(= ~a_~a_v~e (_ bv~e ~e))) " reg prev i LEFT SIZE))
-          (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE))
+	  (format "(or (bvult ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE)
+	  (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i UP SIZE)
+	  (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i DOWN SIZE)
+          (format "(= ~a_~a_v~e (_ bv~e ~e)) " reg prev i LEFT SIZE)
+          (format "(= ~a_~a_v~e (_ bv~e ~e))" reg prev i RIGHT SIZE)
+          (format "(= ~a_~a_v~e (_ bv~e ~e))))" reg prev i IO SIZE)
+          )
 	(format "(= ~a_~e_v~e ~a_~a_v~e)" reg step i reg prev i)))
 
   ;;; default formula for an instruction: equal to the value in the previous step
-  (define check_hole (format "(and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (and (= ~a_~e (_ bv~e ~e)) " name step (vector-member choice choice-id) HOLE_BIT))
+  (define check_hole (format "(= ~a_~e (_ bv~e ~e))" name step (vector-member choice choice-id) HOLE_BIT))
   (define check_sp (format "(= sp_~e_v~e sp_~e_v~e)" step i prev i))
   (define check_rp (format "(= rp_~e_v~e rp_~e_v~e)" step i prev i))
   (define check_t (format "(= t_~e_v~e t_~e_v~e)" step i prev i))
@@ -329,10 +325,12 @@
   (define check_sendp_d (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" D-ID step i D-ID prev i))
   (define check_sendp_l (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" L-ID step i L-ID prev i))
   (define check_sendp_r (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" R-ID step i R-ID prev i))
+  (define check_sendp_io (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" IO-ID step i IO-ID prev i))
   (define check_recvp_u (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" U-ID step i U-ID prev i))
   (define check_recvp_d (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" D-ID step i D-ID prev i))
   (define check_recvp_l (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" L-ID step i L-ID prev i))
   (define check_recvp_r (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" R-ID step i R-ID prev i))
+  (define check_recvp_io (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" IO-ID step i IO-ID prev i))
 
   (cond 
     ; 2*
@@ -394,11 +392,12 @@
                (set! check_a (mem-range `a))
 	       (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
 				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
-	       (grow)
 	       (set! check_recvp_u (read-port `a U-ID UP))
 	       (set! check_recvp_d (read-port `a D-ID DOWN))
 	       (set! check_recvp_l (read-port `a L-ID LEFT))
-	       (set! check_recvp_r (read-port `a R-ID RIGHT))]
+	       (set! check_recvp_r (read-port `a R-ID RIGHT))
+	       (set! check_recvp_io (read-port `a IO-ID IO))
+               (grow)]
     ; @b
     [(equal? choice `@b)
                (set! check_b (mem-range `b))
@@ -408,6 +407,7 @@
 	       (set! check_recvp_d (read-port `b D-ID DOWN))
 	       (set! check_recvp_l (read-port `b L-ID LEFT))
 	       (set! check_recvp_r (read-port `b R-ID RIGHT))
+	       (set! check_recvp_io (read-port `b IO-ID IO))
 	       (grow)]
     ; @p
     [(equal? choice `@p)
@@ -434,6 +434,7 @@
     	       (set! check_sendp_d (write-port `a D-ID DOWN))
     	       (set! check_sendp_l (write-port `a L-ID LEFT))
     	       (set! check_sendp_r (write-port `a R-ID RIGHT))
+    	       (set! check_sendp_io (write-port `a IO-ID IO))
     	       (shrink)]
     ; !b
     [(equal? choice `!b)
@@ -445,6 +446,7 @@
     	       (set! check_sendp_d (write-port `b D-ID DOWN))
     	       (set! check_sendp_l (write-port `b L-ID LEFT))
     	       (set! check_sendp_r (write-port `b R-ID RIGHT))
+    	       (set! check_sendp_io (write-port `b IO-ID IO))
     	       (shrink)]
     ; a!
     [(equal? choice `a!)
@@ -480,46 +482,30 @@
     ; nop
     [(equal? choice `nop) (void)]
         )
-  (set! check_sp (string-append check_sp ") "))
-  (set! check_rp (string-append check_rp ") "))
-  (set! check_t (string-append check_t ") "))
-  (set! check_s (string-append check_s ") "))
-  (set! check_r (string-append check_r ") "))
-  (set! check_a (string-append check_a ") "))
-  (set! check_b (string-append check_b ") "))
-  (set! check_dst (string-append check_dst ") "))
-  (set! check_rst (string-append check_rst ") "))
-  (set! check_mem (string-append check_mem ") "))
-  (set! check_sendp_u (string-append check_sendp_u ") "))
-  (set! check_sendp_d (string-append check_sendp_d ") "))
-  (set! check_sendp_l (string-append check_sendp_l ") "))
-  (set! check_sendp_r (string-append check_sendp_r ") "))
-  (set! check_recvp_u (string-append check_recvp_u ") "))
-  (set! check_recvp_d (string-append check_recvp_d ") "))
-  (set! check_recvp_l (string-append check_recvp_l ") "))
-  (set! check_recvp_r (string-append check_recvp_r ")"))
-  (string-append (string-append (string-append (string-append (string-append (string-append (string-append (string-append 
-    (string-append (string-append (string-append (string-append (string-append (string-append (string-append (string-append 
-      (string-append (string-append
-    check_hole 
-    check_sp)
-    check_rp)
-    check_t)
-    check_s) 
-    check_r) 
-    check_a)
-    check_b)
-    check_dst)
-    check_rst)
-    check_mem)
-    check_sendp_u)
-    check_sendp_d)
-    check_sendp_l)
-    check_sendp_r)
-    check_recvp_u)
-    check_recvp_d)
-    check_recvp_l)
-    check_recvp_r))
+  (string-join (list
+                "(and"
+                check_hole 
+                check_sp
+                check_rp
+                check_t
+                check_s
+                check_r
+                check_a
+                check_b
+                check_dst
+                check_rst
+                check_mem
+                check_sendp_u
+                check_sendp_d
+                check_sendp_l
+                check_sendp_r
+                check_sendp_io
+                check_recvp_u
+                check_recvp_d
+                check_recvp_l
+                check_recvp_r
+                check_recvp_io
+                ")")))
 
 ;;; Handle assumption differently from assertion on input-outpout pair.
 ;;; Memory out of bound check and communication check happen here.
@@ -528,12 +514,13 @@
   (define prev (sub1 step))
   
   (define (mem-range reg)
-    (string-append (string-append (string-append (string-append (string-append
-      (format "(and (and (and (and (bvuge ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i UP SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i DOWN SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))) " reg prev i LEFT SIZE))
-      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i RIGHT SIZE)))
+    (string-append 
+      (format "(and (bvuge ~a_~a_v~e (_ bv~e ~e)) " reg prev i MEM_ENTRIES SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i UP SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i DOWN SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))) " reg prev i LEFT SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e)))" reg prev i RIGHT SIZE)
+      (format "(not (= ~a_~a_v~e (_ bv~e ~e))))" reg prev i IO SIZE)))
 
   (define check_assump 
   (cond 
@@ -575,7 +562,7 @@
              (pretty-display (format "(assert (= h_~a (_ bv~a ~a)))"
                                      (add1 (+ i begin)) (car (to-choice (string->symbol instr))) HOLE_BIT))
              (when num
-               (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"n
+               (pretty-display (format "(assert (= hlit_~a (_ bv~a ~a)))"
                                        (add1 (+ i begin)) num SIZE))))))))
 
 ;;; Returns an expression counting the number of trailing nops given
@@ -676,31 +663,35 @@
 	(pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))))
 
 (define (assert-comm comm n i)
-  ;; TODO: get rid of redundant constraints
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" U-ID i (commstate-send-u comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" D-ID i (commstate-send-d comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" L-ID i (commstate-send-l comm) COMM_SIZE))
   (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" R-ID i (commstate-send-r comm) COMM_SIZE))
+  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-send-io comm) COMM_SIZE))
 
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" U-ID i (commstate-recv-u comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" D-ID i (commstate-recv-d comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" L-ID i (commstate-recv-l comm) COMM_SIZE))
   (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" R-ID i (commstate-recv-r comm) COMM_SIZE))
+  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-recv-io comm) COMM_SIZE))
 
   (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" U-ID i (commstate-order-u comm) ORDER_SIZE))
   (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" D-ID i (commstate-order-d comm) ORDER_SIZE))
   (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" L-ID i (commstate-order-l comm) ORDER_SIZE))
   (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" R-ID i (commstate-order-r comm) ORDER_SIZE))
+  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-order-io comm) ORDER_SIZE))
 
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-sendp-u comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-sendp-d comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-sendp-l comm) COMM_BIT))
   (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-sendp-r comm) COMM_BIT))
+  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" IO-ID n i (commstate-sendp-io comm) COMM_BIT))
 
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-recvp-u comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-recvp-d comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-recvp-l comm) COMM_BIT))
   (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT))
+  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" IO-ID n i (commstate-recvp-io comm) COMM_BIT))
 
 )
 
@@ -750,7 +741,7 @@
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
-  (for ([i (in-range 0 4)])
+  (for ([i (in-range 0 5)])
        (pretty-display (format "(assert (= recv~a_v0 recv~a_v1))" i i))))
 
 (define (assert-output-neq)
@@ -758,12 +749,12 @@
   ;;; so that it's easy for comparision
   (define (assert-ir-comm v n)
     (for* ([port `(send recv)]
-	   [p (in-range 0 4)]
+	   [p (in-range 0 5)]
 	   [i (in-range 0 COMM_ENTRIES)])
 	  (define index (format "(_ bv~a ~a)" i COMM_BIT))
 	  (pretty-display (format "(assert (or (bvult ~a ~ap~a_~a_v~a) (= (get-comm ~a~a_v~a ~a) (_ bv0 ~a))))" 
 				  index port p n v   port p v index SIZE)))
-    (for* ([p (in-range 0 4)]
+    (for* ([p (in-range 0 5)]
            [i (in-range 0 ORDER_SIZE)])
       (define index (format "(_ bv~a ~a)" i COMM_BIT))
       (pretty-display (format "(assert (or (bvult ~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) (= (get-order order~a_v~a ~a) (_ bv0 1))))" 
@@ -784,7 +775,7 @@
   (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
        (vector-add var))
   (for* ([var `(send recv order)] ;; TODO: no recv
-	 [channel (in-range 0 4)])
+	 [channel (in-range 0 5)])
        (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
        (set! index (add1 index)))
   (when (progstate-data output-constraint)
@@ -919,17 +910,21 @@
              (vec-to-bits (commstate-send-d state) COMM_ENTRIES)
              (vec-to-bits (commstate-send-l state) COMM_ENTRIES)
              (vec-to-bits (commstate-send-r state) COMM_ENTRIES)
+             (vec-to-bits (commstate-send-io state) COMM_ENTRIES)
              (vec-to-bits (commstate-recv-u state) COMM_ENTRIES)
              (vec-to-bits (commstate-recv-d state) COMM_ENTRIES)
              (vec-to-bits (commstate-recv-l state) COMM_ENTRIES)
              (vec-to-bits (commstate-recv-r state) COMM_ENTRIES)
-             (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state)
+             (vec-to-bits (commstate-recv-io state) COMM_ENTRIES)
+             (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state) 
+             (commstate-sendp-io state)
              (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)
+             (commstate-recvp-io state)
              (vec-to-bits (commstate-order-u state) ORDER_SIZE 1)
              (vec-to-bits (commstate-order-d state) ORDER_SIZE 1)
              (vec-to-bits (commstate-order-l state) ORDER_SIZE 1)
-             (vec-to-bits (commstate-order-r state) ORDER_SIZE 1)))
-	     
+             (vec-to-bits (commstate-order-r state) ORDER_SIZE 1)
+             (vec-to-bits (commstate-order-io state) ORDER_SIZE 1)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; GreenSyn API ;;;;;;;;;;;;;;;;;;;;;;;;

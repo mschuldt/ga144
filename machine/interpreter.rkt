@@ -24,16 +24,19 @@
 (define send-d '())
 (define send-l '())
 (define send-r '())
+(define send-io '())
 
 (define recv-u '())
 (define recv-d '())
 (define recv-l '())
 (define recv-r '())
+(define recv-io '())
 
 (define order-u '())
 (define order-d '())
 (define order-l '())
 (define order-r '())
+(define order-io '())
 
 (define instructions (make-vector 35))
 
@@ -64,11 +67,11 @@
 
 ;;; Returns the current commstate.
 (define (current-commstate)
-  (let* ([messages (list send-u send-d send-l send-r
-                         recv-u recv-d recv-l recv-r)]
+  (let* ([messages (list send-u send-d send-l send-r send-io
+                         recv-u recv-d recv-l recv-r recv-io)]
          [vectors (map (compose list->vector reverse (curry cons 0)) messages)]
          [lengths (map length messages)]
-	 [orders  (list order-u order-d order-l order-r)]
+	 [orders  (list order-u order-d order-l order-r order-io)]
 	 [order-vecs (map (compose list->vector reverse (curry cons 0)) orders)])
     (apply commstate (append vectors lengths order-vecs))))
 
@@ -80,14 +83,17 @@
   (set! send-d '())
   (set! send-l '())
   (set! send-r '())
+  (set! send-io '())
   (set! recv-u '())
   (set! recv-d '())
   (set! recv-l '())
   (set! recv-r '())
+  (set! recv-io '())
   (set! order-u '())
   (set! order-d '())
   (set! order-l '())
   (set! order-r '())
+  (set! order-io '())
 
   (load-state! start-state))
 
@@ -229,7 +235,7 @@
 ;;; gets a communication port, it just returns a random number (for
 ;;; now).
 (define (read-memory addr)
-  (if (member addr (list UP DOWN LEFT RIGHT))
+  (if (member addr (list UP DOWN LEFT RIGHT IO))
       (let ([value 12]);(random (arithmetic-shift 1 BIT))])
         (cond [(= addr UP)    (set! recv-u (cons value recv-u))
 	                      (set! order-u (cons 0 order-u))]
@@ -238,7 +244,9 @@
               [(= addr LEFT)  (set! recv-l (cons value recv-l))
 	                      (set! order-l (cons 0 order-l))]
               [(= addr RIGHT) (set! recv-r (cons value recv-r))
-	                      (set! order-r (cons 0 order-r))])
+	                      (set! order-r (cons 0 order-r))]
+              [(= addr IO)    (set! recv-io (cons value recv-io))
+	                      (set! order-io (cons 0 order-io))])
         value)
       (vector-ref memory addr)))
 
@@ -260,6 +268,8 @@
 	                (set! order-l (cons 1 order-l))]
         [(= addr RIGHT) (set! send-r (cons value send-r))
 	                (set! order-r (cons 1 order-r))]
+        [(= addr IO)    (set! send-io (cons value send-io))
+	                (set! order-io (cons 1 order-io))]
         [else           (vector-set! memory addr value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
