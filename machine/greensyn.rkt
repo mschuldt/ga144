@@ -546,6 +546,9 @@
 (define (bv-time n)
   (format "(_ bv~a ~a)" n TIME_SIZE))
 
+(define (bv n size)
+  (format "(_ bv~a ~a)" n size))
+
 (define (generate-time-constraint step)
   (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) ~a ~a))))"
                           step (sub1 step) step N_OF_SLOW HOLE_BIT (bv-time 10) (bv-time 3))))
@@ -574,12 +577,12 @@
 ;;; Returns an expression counting the number of trailing nops given
 ;;; the total number of slots. This can then be subtracted from the
 ;;; total time.
-(define (nop-offset begin end)
+(define (nop-offset begin end cost size)
   (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop choice-id) HOLE_BIT))
   (define (go hole-number expr)
     (format "(ite (= h_~a ~a) (bvadd ~a ~a) ~a)"
-            hole-number bv-nop (bv-time 3) expr (bv-time 0)))
-  (define start (format "(ite (= h_~a ~a) ~a ~a)" begin bv-nop (bv-time 3) (bv-time 0)))
+            hole-number bv-nop (bv cost size) expr (bv 0 size)))
+  (define start (format "(ite (= h_~a ~a) ~a ~a)" begin bv-nop (bv cost size) (bv 0 size)))
   (foldr go start (reverse (stream->list (in-range (add1 begin) (add1 end))))))
 
 (define (generate-time-constraints begin end repeat time-limit)
@@ -590,7 +593,7 @@
 	(generate-time-constraint step))
   (pretty-display `(declare-const total_time ,(makeBV TIME_SIZE)))
   (pretty-display (format "(assert (= total_time (bvmul (bvsub time_~a ~a) (_ bv~a ~a))))" 
-			  end (nop-offset (add1 begin) end) repeat TIME_SIZE))
+			  end (nop-offset (add1 begin) end 3 TIME_SIZE) repeat TIME_SIZE))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
 
 (define (generate-length-constraints begin end length-limit)
@@ -600,7 +603,8 @@
   (for* ([step (in-range (add1 begin) (add1 end))])
 	(generate-length-constraint step))
   (pretty-display `(declare-const total_length ,(makeBV TIME_SIZE)))
-  (pretty-display (format "(assert (= total_length length_~a))" end))
+  (pretty-display (format "(assert (= total_length (bvsub length_~a ~a)))" 
+                          end (nop-offset (add1 begin) end 1 LENGTH_SIZE)))
   (pretty-display (format "(assert (bvult total_length (_ bv~a ~a)))" length-limit LENGTH_SIZE)))
 
 ;;; Generates assertions for repeated body such that 
@@ -661,7 +665,13 @@
 (define (assert-state-output state n i)
   (when (progstate-data output-constraint)
         ;; (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
-        (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3)))
+        (define stack (progstate-data state))
+        (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
+                                (top-stack n i) 
+                                (data-at (stack-body stack) (stack-sp stack)) SIZE))
+        ;; (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" 
+        ;;                         n i (stack-sp stack) 3))
+        )
   (when (progstate-return output-constraint)
 	(pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
 	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
@@ -754,6 +764,13 @@
 	(set! index (add1 index)))
   (conjunct clauses  index `or))
 
+(define (top-stack step i)
+  (format "(get-stack dst_~e_v~e sp_~e_v~e)" step i step i))
+
+(define (data-at stack index)
+  (modulo (arithmetic-shift stack (- 0 (* index SIZE)))
+          (arithmetic-shift 1 SIZE)))
+
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
@@ -794,8 +811,13 @@
 	 [channel (in-range 0 5)])
        (set! clauses (cons (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel) clauses)))
   (when (progstate-data output-constraint)
+        (set! clauses (cons (format "(not (= ~a ~a))" 
+                                    (top-stack spec-count 0)
+                                    (top-stack cand-count 1))
+                            clauses))
 	;(list-add `dst)
-	(list-add `sp))
+	;(list-add `sp)
+        )
   (when (progstate-return output-constraint)
 	(list-add `rst)
 	(list-add `rp))
