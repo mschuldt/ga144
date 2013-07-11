@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 1200)
+(define timeout 20)
 
 (define (initialize)
   (system "mkdir debug")
@@ -54,12 +54,10 @@
 	  suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
+#|
 (define (z3 file break)
   (define-values (sp o i e) (subprocess #f #f #f (find-executable-path "z3") file))
   (sync/timeout timeout sp)
-
-  (close-output-port i)
-  (close-input-port e)
   
   (if (and break (equal? (subprocess-status sp) 'running))
       (begin
@@ -75,7 +73,13 @@
         
         (close-output-port i)
         (close-input-port e)
-        o)))
+        o)))|#
+
+(define (z3 file break)
+  (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
+
+;(z3 "experiment/debug/debug-syn-3-4.smt2" #t)
+;(system "z3 experiment/debug/debug-syn-3-4.smt2")
 
 ;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
 ;;; numbers as numbers; otherwise compares as strings.
@@ -123,11 +127,13 @@
   (define (time)
       (let* ([name `total_time]
              [result (assoc name model)])
-        (if result
-            (cadr result)
-            (error (format "~a not found in model!" name)))))
+        (and result (cadr result))))
+  (define (length)
+      (let* ([name `total_length]
+             [result (assoc name model)])
+        (and result (cadr result))))
   ;(pretty-display (time))
-  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (time)))
+  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (or (length) (time))))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -180,13 +186,13 @@
 (define (read-model in)
   (and in
        (let ([input (read-sexps in)])
-        (close-input-port in)
-        (and (not (member 'unsat input))
-             (member 'sat input)
-             (let ([res (filter
-                         (lambda (x)
-                           (or (equal? x 'sat) (equal? (car x) 'model))) input)])
-               (and (member 'sat res) (extract-model (cadr res))))))))
+         ;(close-input-port in)
+         (and (not (member 'unsat input))
+              (member 'sat input)
+              (let ([res (filter
+                          (lambda (x)
+                            (or (equal? x 'sat) (equal? (car x) 'model))) input)])
+                (and (member 'sat res) (extract-model (cadr res))))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program [memory-start 0]
@@ -213,14 +219,14 @@
 ;;; pairs are specified, seed the process with a randomly generated
 ;;; pair. The returned model is an assoc list of variable name symbols
 ;;; and their numerical values.
-(define (generate-candidate program previous-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)
+(define (generate-candidate program previous-pairs name mem slots init repeat constraint time-limit length-limit num-bits inst-pool)
   (when demo (pretty-display "     + add pair"))
   (when (null? previous-pairs) (error "No input/output pairs given!"))
   (define temp-file (temp-file-name name "syn" ".smt2"))
   (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
   (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
   
-  (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit)
+  (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit #:length-limit length-limit)
   
   (pretty-display `(temp-file ,temp-file))
   (define z3-res (z3 temp-file #t))
@@ -279,7 +285,8 @@
 	       #:repeat [repeat 1] 
 	       #:start [start 0] 
                #:constraint [constraint constraint-all] 
-	       #:time-limit [time-limit (estimate-time program)]
+	       #:time-limit [time-limit #f]
+	       #:length-limit [length-limit #f]
 	       #:num-bits [num-bits 18]
 	       #:inst-pool [inst-pool `no-fake]
 	       #:start-state [start-state (random-state (expt 2 BIT))]
@@ -289,14 +296,22 @@
   (unless (nop-before-plus? program) (error "+ has to follow a nop unless it's the first instruction!"))
   (define program-for-ver (fix-@p program))
   (when demo
+    (if length-limit
+        (if (number? slots)
+	    (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose actual length < ~a." 
+                                    slots length-limit))
+	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a." 
+                                    (regexp-replace* #rx"\n" slots " ") length-limit)))
 	(if (number? slots)
-	    (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose approx runtime < ~a ns." slots (* time-limit 0.5)))
-	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." (regexp-replace* #rx"\n" slots " ") (* time-limit 0.5)))))
+	    (pretty-display (format ">> Synthesizing a program with <= ~a instructions, whose approx runtime < ~a ns." 
+                                    slots (* time-limit 0.5)))
+	    (pretty-display (format ">> Synthesizing a program from ~e.\n   Approx runtime < ~a ns." 
+                                    (regexp-replace* #rx"\n" slots " ") (* time-limit 0.5))))))
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
   (define (go)
-    (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit num-bits inst-pool)])
+    (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit length-limit num-bits inst-pool)])
       (if (equal? candidate 'timeout)
           'timeout
           (and candidate
@@ -307,7 +322,11 @@
                        (go))
                      (begin 
                        (when demo
-                         (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." (car candidate) (* (cdr candidate) 0.5))))
+                         (if length-limit
+                             (pretty-display (format "\tFound ~e.\n\tActual length = ~e." 
+                                                     (car candidate) (cdr candidate)))
+                             (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." 
+                                                     (car candidate) (* (cdr candidate) 0.5)))))
                        candidate)))))))
   
   (when (empty? all-pairs)
@@ -327,7 +346,8 @@
 			 #:repeat     [repeat 1]
                          #:start      [start mem] 
                          #:constraint [constraint constraint-all]
-                         #:time-limit [time-limit (add1 (estimate-time program))]
+                         #:time-limit [time-limit #f]
+                         #:length-limit [length-limit #f]
 			 #:num-bits  [num-bits 18]
 			 #:inst-pool [inst-pool `no-fake]
 			 #:start-state [start-state (random-state (expt 2 BIT))])
@@ -337,21 +357,23 @@
 			   #:mem mem 
                            #:slots slots #:init init #:repeat repeat
                            #:start start 
-			   #:constraint constraint #:time-limit time-limit
+			   #:constraint constraint #:time-limit time-limit #:length-limit length-limit
 			   #:num-bits num-bits #:inst-pool inst-pool #:start-state start-state))
   (define result (if (and candidate (not (equal? candidate 'timeout)))
                      (fastest-program program candidate #:name name
 				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat
                                       #:start start 
-                                      #:constraint constraint #:time-limit (cdr candidate)
+                                      #:constraint constraint #:time-limit (cdr candidate) #:length-limit (cdr candidate)
 				      #:num-bits num-bits #:inst-pool inst-pool
 				      #:start-state start-state)
 		     best-so-far))
   (when demo (when debug (pretty-display (format "Time: ~a seconds." (- (current-seconds) start-time)))))
   result)
 
-(define (binary-search slot-min slot-max init repeat program name mem start constraint time-limit num-bits inst-pool start-state [best-so-far #f])
+(define (binary-search slot-min slot-max init repeat program name mem start 
+                       constraint limit length-search num-bits inst-pool 
+                       start-state [best-so-far #f])
   (if (> slot-min slot-max)
       best-so-far
       (let* ([slot-mid (quotient (+ slot-min slot-max) 2)]
@@ -359,16 +381,19 @@
 			       #:name name
 			       #:mem mem #:slots slot-mid #:init init #:repeat repeat
 			       #:start start 
-			       #:constraint constraint #:time-limit time-limit
+			       #:constraint constraint 
+                               #:time-limit (and (not length-search) limit) 
+                               #:length-limit (and length-search limit)
 			       #:num-bits num-bits #:inst-pool inst-pool)])
         (cond
           [(equal? candidate 'timeout) best-so-far]
+          [(and (not candidate) (= slot-min slot-max)) best-so-far]
           [(not candidate)
            (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint 
-                           (if best-so-far (cdr best-so-far) time-limit) num-bits inst-pool start-state best-so-far)]
+                           (if best-so-far (cdr best-so-far) limit) length-search num-bits inst-pool start-state best-so-far)]
           [else
-           (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint 
-                          (cdr candidate) num-bits inst-pool start-state candidate)]))))
+           (binary-search slot-min slot-mid init repeat program name mem start constraint 
+                          (cdr candidate) length-search num-bits inst-pool start-state candidate)]))))
 
 (define (fastest-program3 program [best-so-far #f]
 			  #:name       [name "prog"]
@@ -378,7 +403,8 @@
 			  #:repeat     [repeat 1]
 			  #:start      [start mem] 
 			  #:constraint [constraint constraint-all]
-			  #:time-limit [time-limit (estimate-time program)]
+			  #:time-limit [time-limit #f]
+                          #:length-limit [length-limit #f]
 			  #:num-bits  [num-bits 18]
 			  #:inst-pool [inst-pool `no-fake]
 			  #:start-state [start-state (random-state (expt 2 BIT))])
@@ -387,14 +413,16 @@
         (pretty-display (format "memory\t\t\t: ~a" mem))
         (pretty-display (format "constraint\t\t: ~a" constraint))
         (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
-        (pretty-display (format "approx. runtime\t\t: ~a" (* time-limit 0.5))))
+        (pretty-display (format "approx. runtime\t\t: ~a" (estimate-time program)))
+        (pretty-display (format "length with literal\t: ~a" (length-with-literal program))))
 
   (define start-time (current-seconds))
 
   ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
-  (define candidate (binary-search 1 slots init repeat program name 
+  (define candidate (binary-search 1 (+ slots 2) init repeat program name 
 				   mem start constraint 
-				   time-limit num-bits inst-pool start-state))
+				   (or length-limit time-limit) length-limit
+                                   num-bits inst-pool start-state))
 
 
   ;; (pretty-display "PHASE 2: optimizing for runtime.")
@@ -486,10 +514,11 @@
 		  #:repeat     [repeat 1]
 		  #:start      [start mem] 
 		  #:constraint [constraint constraint-all]
-		  #:time-limit [raw-time-limit 0]
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
-		  #:bin-search [bin-search #t])
+		  #:time-limit [time-limit #f]
+                  #:length-limit [length-limit #f]
+		  #:bin-search [bin-search `length])
   (when (> mem 512) (begin (pretty-display (format "~a words of member is too big!") mem) (exit)))
   (when (< mem 1) (set! mem 1))
   
@@ -503,9 +532,10 @@
 	(set! slots (program-length-abs program)))
   (when (string? slots)
 	(set! slots (fix-@p (preprocess slots))))
-  (define time-limit raw-time-limit)
-  (when (= time-limit 0)
+  (unless time-limit
 	(set! time-limit (estimate-time program)))
+  (unless length-limit
+        (set! length-limit (length-with-literal program)))
 
   (define start-time (current-seconds))
 
@@ -519,7 +549,8 @@
 			#:repeat     repeat
 			#:start      start
 			#:constraint constraint
-			#:time-limit time-limit
+			#:time-limit (and (equal? bin-search `time) time-limit)
+                        #:length-limit (and (equal? bin-search `length) length-limit)
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
 			#:start-state (random-state (expt 2 BIT)))
@@ -532,6 +563,7 @@
 			#:start      start
 			#:constraint constraint
 			#:time-limit time-limit
+                        #:length-limit length-limit
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
 			#:start-state (random-state (expt 2 BIT)))))
@@ -541,7 +573,9 @@
       (begin
 	(pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
 	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
-	(pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
+        (if (equal? bin-search `time)
+            (pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
+            (pretty-display (format "length with literal\t: ~a" (cdr result))))
 	(newline)
 	(pretty-display "Constants for neighbor ports:")
 	(pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))

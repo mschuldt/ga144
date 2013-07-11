@@ -89,10 +89,11 @@ push 0 a!
 
 ;(compile-to-string "0 a! @ 469 a! ! 277 a! @ 469 a! ! 469 a! @ 0 a! !")
 
-;(exec-file "examples/test.forth" "examples/test.out")
+(exec-file "examples/test.forth" "examples/test.out")
+#|
 (compile-to-string "
 yellow 2 node
 4 org 
 green
-: sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ .ns ;")
+: sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ .ns ;")|#
 

@@ -46,6 +46,12 @@
                              (filter (lambda (x) (vector-member x choice-id))
                                      (map string->symbol (program->instructions program)))))))
 
+(define (length-with-literal program)
+  (define inst-list (drop-trailing-nops (string-split program)))
+  (define total (length inst-list))
+  (define count-@p (count (lambda (x) (equal? x "@p")) inst-list))
+  (+ total (* 3 count-@p))) ;; @p 1 -> count as 2 + 3
+
 ;;; Drop elements from the list while some predicate holds.
 (define (drop-while pred? list)
   (cond
@@ -56,7 +62,7 @@
 ;;; Given a list of instructions, drops all the nops at the end of the
 ;;; list.
 (define drop-trailing-nops
-  (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
+  (compose reverse (curry drop-while (lambda (x) (or (equal? x 'nop) (equal? x "nop")))) reverse))
 
 ;;; Trim leading and trailing whitespace.
 (define (trim str)

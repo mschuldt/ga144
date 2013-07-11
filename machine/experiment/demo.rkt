@@ -26,16 +26,8 @@
 ;;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;;          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
-; <= 10
-;(optimize "@p a! @ @p 469    40    a! @ @p nop 0    nop + nop nop"
-;          #:constraint (constraint memory s t) #:num-bits 9 #:name "try" #:mem 41)
-; <= 8
-;(optimize "@p a! @ @p 469    40    a! @ @p nop 0"
-;          #:constraint (constraint memory s t data) #:num-bits 9 #:name "try" #:mem 41)
-
-; timeout: 1200
-(optimize "left a! ! 2 a! @ 65535 and 2 a! ! 2 a! @"
-          #:constraint (constraint memory t) #:num-bits 17 #:name "debug"
+(optimize "5 a! @ 4 a! @ "
+          #:constraint (constraint memory s t data) #:num-bits 9 #:name "debug"
           #:mem 6 #:f18a #f)
 
 ;(optimize "left a! ! 2 a! @ 7 and 2 a! ! 2 a! @"
