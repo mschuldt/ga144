@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 20)
+(define timeout 600)
 
 (define (initialize)
   (system "mkdir debug")
@@ -54,9 +54,12 @@
 	  suffix))
 
 ;;; Run z3 on the given file, returning all output as a string.
-#|
+
 (define (z3 file break)
-  (define-values (sp o i e) (subprocess #f #f #f (find-executable-path "z3") file))
+  (define out-port (open-output-file "output.tmp" #:exists 'truncate))
+  (define-values (sp o i e) (subprocess out-port 
+                                        #f #f 
+                                        (find-executable-path "z3") file))
   (sync/timeout timeout sp)
   
   (if (and break (equal? (subprocess-status sp) 'running))
@@ -65,7 +68,7 @@
         (subprocess-kill sp #t)
         (close-output-port i)
         (close-input-port e)
-        (close-input-port o)
+        (close-output-port out-port)
         #f)
       (begin
         (when (equal? (subprocess-status sp) 'running)
@@ -73,13 +76,8 @@
         
         (close-output-port i)
         (close-input-port e)
-        o)))|#
-
-(define (z3 file break)
-  (with-output-to-string (lambda () (system (format "z3 ~a" file)))))
-
-;(z3 "experiment/debug/debug-syn-3-4.smt2" #t)
-;(system "z3 experiment/debug/debug-syn-3-4.smt2")
+        (close-output-port out-port)
+        (open-input-file "output.tmp"))))
 
 ;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
 ;;; numbers as numbers; otherwise compares as strings.
