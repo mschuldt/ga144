@@ -889,7 +889,6 @@
   (newline)
   (declare-vars (add1 spec-count) 0 1)
   (newline)
-  ;; (generate-formulas (add1 spec-count) 0 1 `spec #t support-all)
   (generate-known-formulas spec (add1 spec-count) 0 `spec #t)
   (newline)
 
@@ -898,7 +897,6 @@
   (newline)
   (declare-vars (add1 cand-count) 1 2)
   (newline)
-  ;; (generate-formulas (add1 cand-count) 1 2 `cand #f)
   (generate-known-formulas cand (add1 cand-count) 1 `cand #f)
   (newline)
   

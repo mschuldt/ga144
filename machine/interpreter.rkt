@@ -55,7 +55,8 @@
   (set! data   (copy-stack (progstate-data state)))
   (set! return (copy-stack (progstate-return state)))
 
-  (set! memory (vector-copy (progstate-memory state))))
+  (set! memory (vector-copy (progstate-memory state)))
+  )
 
 ;;; Sets the current state to the given values for the registers,
 ;;; stacks and memory.

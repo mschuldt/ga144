@@ -117,3 +117,33 @@
      [(and (equal? (second instrs) "+") (not (equal? (first instrs) "nop"))) #f]
      [else (go (rest instrs))]))
   (go (program->instructions (fix-@p program))))
+
+(define (insert-nops program)
+
+  (define (nop-before-plus insts)
+    (cond
+     [(empty? insts) insts]
+     [(and (or (equal? (first insts) "nop") (equal? (first insts) "."))
+           (not (empty? (cdr insts)))
+           (equal? (second insts) "+"))
+      (append (list "nop" "+") (nop-before-plus (cddr insts)))]
+     [(equal? (first insts) "+")
+      (append (list "nop" "+" )(nop-before-plus (cdr insts)))]
+     [else
+      (cons (car insts) (nop-before-plus (cdr insts)))]))
+
+  (define (nop-last-slot program count)
+    (cond
+     [(empty? program) program]
+     [(= (modulo count 4) 3)
+      (define id (vector-member (car program) choice-id))
+      (if (or (not id) (= (modulo id 4) 0))
+          (cons (car program) (nop-last-slot (cdr program) (add1 count)))
+          (cons "nop" (nop-last-slot program (add1 count))))]
+     [else
+      (cons (car program) (nop-last-slot (cdr program) (add1 count)))]))
+
+  (when (string? program)
+        (set! program (string-split program)))
+  (string-join (nop-last-slot (nop-before-plus program) 0)))
+      

@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../cegis.rkt" "../state.rkt")
+(require "../cegis.rkt" "../state.rkt" "../greensyn.rkt" "../programs.rkt")
 
 ;; >>> 0x3ffff = 262143
 ;; >>> 0x1ffff = 131071
@@ -22,13 +22,9 @@
 ;;; round up to multiple of 8 (8-bit)
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
-;; communi;cation
+;; communication
 ;;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;;          #:constraint constraint-none #:num-bits 9 #:name "comm")
-
-(optimize "5 a! @ 4 a! @ "
-          #:constraint (constraint memory s t data) #:num-bits 9 #:name "debug"
-          #:mem 6 #:f18a #f)
 
 ;(optimize "left a! ! 2 a! @ 7 and 2 a! ! 2 a! @"
 ;          #:constraint (constraint memory t) #:num-bits 4 #:name "debug"
@@ -54,4 +50,17 @@ a! !"
  #:mem 3
  #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
 
+(define (verify spec candidate mem comm-length constraint num-bits)
+  (greensyn-reset mem comm-length constraint #:num-bits num-bits)
+  (greensyn-spec spec)
+  (greensyn-verify "me.smt2" candidate)
+  )
+
+#|(verify "6 a! @ 2   - 1 nop +   nop + 4 nop   + a! @ 6    a! @"
+        "6 a! @ 2   - 1 nop +   nop + 4 nop   + a! @ 6    a! @"
+        32 1 (constraint memory s t data) 18)|#
+
+(validate (insert-nops "2 6 a! ! 1")
+          (insert-nops "6 a! 1 2 !")
+          "me" 7 (constraint memory s t) 18)
 

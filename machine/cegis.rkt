@@ -4,7 +4,7 @@
          "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
          "../ArrayForth/compiler.rkt")
 
-(provide optimize)
+(provide optimize program-equal?)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
@@ -184,7 +184,7 @@
 (define (read-model in)
   (and in
        (let ([input (read-sexps in)])
-         ;(close-input-port in)
+         (close-input-port in)
          (and (not (member 'unsat input))
               (member 'sat input)
               (let ([res (filter
@@ -252,8 +252,12 @@
         (and result (model->program result)))
       'timeout))
 
+(define (program-equal? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
+  (validate (insert-nops spec) (insert-nops candidate) 
+            "eqtest" mem-size constraint num-bits inst-pool))
+
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate name mem prog-length constraint num-bits inst-pool)
+(define (validate spec candidate name mem constraint num-bits [inst-pool `no-fake])
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name name "verify" ".smt2"))
@@ -270,6 +274,7 @@
   
   (unless debug (delete-file temp-file))
   ;(when result (pretty-display "\t>> Add counterexample."))
+  (define prog-length (program-length spec))
   (and result (cons (model->pair result #:mem mem prog-length)
                     (model->commstate result prog-length))))
 
@@ -313,7 +318,7 @@
       (if (equal? candidate 'timeout)
           'timeout
           (and candidate
-               (let ([new-pair (validate program-for-ver (car candidate) name mem (program-length program-for-ver) constraint num-bits inst-pool)])
+               (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits inst-pool)])
                  (if new-pair
                      (begin
                        (set! all-pairs (cons new-pair all-pairs))
