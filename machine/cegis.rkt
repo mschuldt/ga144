@@ -4,7 +4,7 @@
          "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
          "../ArrayForth/compiler.rkt")
 
-(provide optimize program-equal?)
+(provide optimize program-diff?)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
@@ -252,7 +252,7 @@
         (and result (model->program result)))
       'timeout))
 
-(define (program-equal? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
+(define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
   (validate (insert-nops spec) (insert-nops candidate) 
             "eqtest" mem-size constraint num-bits inst-pool))
 

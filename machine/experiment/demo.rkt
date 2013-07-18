@@ -30,6 +30,14 @@
 ;          #:constraint (constraint memory t) #:num-bits 4 #:name "debug"
 ;          #:mem 6 #:f18a #f)
 
+;(program-equal? "0 1 2 3 4"
+;                "0 dup 1 2 3 4"
+;                1 (constraint-data 3 s t) 18)
+
+;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
+;          #:f18a #f)
+          
+
 #|
 (optimize 
  "@p a! @ @p 349    
@@ -50,17 +58,8 @@ a! !"
  #:mem 3
  #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
 
-(define (verify spec candidate mem comm-length constraint num-bits)
-  (greensyn-reset mem comm-length constraint #:num-bits num-bits)
-  (greensyn-spec spec)
-  (greensyn-verify "me.smt2" candidate)
-  )
 
-#|(verify "6 a! @ 2   - 1 nop +   nop + 4 nop   + a! @ 6    a! @"
-        "6 a! @ 2   - 1 nop +   nop + 4 nop   + a! @ 6    a! @"
-        32 1 (constraint memory s t data) 18)|#
-
-(validate (insert-nops "2 6 a! ! 1")
-          (insert-nops "6 a! 1 2 !")
-          "me" 7 (constraint memory s t) 18)
+(program-diff? "6 a! @ 2 - 1 . + . + 4 . + a! @"
+                "6 b! @b a! @ @b"
+                7 (constraint-data 2 memory s t) 18)
 

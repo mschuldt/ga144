@@ -64,3 +64,7 @@
   (syntax-rules (except)
     ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
     ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))))
+
+(define-syntax constraint-data
+  (syntax-rules ()
+    ((constraint-data x var ...) (struct-copy progstate constraint-none [data x] [var #t] ...))))

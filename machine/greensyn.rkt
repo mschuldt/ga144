@@ -666,9 +666,12 @@
   (when (progstate-data output-constraint)
         ;; (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
         (define stack (progstate-data state))
-        (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
-                                (top-stack n i) 
-                                (data-at (stack-body stack) (stack-sp stack)) SIZE))
+        (for ([nth (in-range (progstate-data output-constraint))])
+             (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
+                                     (nth-stack n i nth) 
+                                     (data-at (stack-body stack) 
+                                              (modulo (- (stack-sp stack) nth) 8)) 
+                                     SIZE)))
         ;; (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" 
         ;;                         n i (stack-sp stack) 3))
         )
@@ -767,6 +770,10 @@
 (define (top-stack step i)
   (format "(get-stack dst_~e_v~e sp_~e_v~e)" step i step i))
 
+(define (nth-stack step i n)
+  (format "(get-stack dst_~e_v~e (bvsub sp_~e_v~e (_ bv~e 3)))"
+          step i step i n))
+
 (define (data-at stack index)
   (modulo (arithmetic-shift stack (- 0 (* index SIZE)))
           (arithmetic-shift 1 SIZE)))
@@ -811,10 +818,16 @@
 	 [channel (in-range 0 5)])
        (set! clauses (cons (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel) clauses)))
   (when (progstate-data output-constraint)
-        (set! clauses (cons (format "(not (= ~a ~a))" 
-                                    (top-stack spec-count 0)
-                                    (top-stack cand-count 1))
-                            clauses))
+        (define data (progstate-data output-constraint))
+        ;; (set! clauses (cons (format "(not (= ~a ~a))" 
+        ;;                             (top-stack spec-count 0)
+        ;;                             (top-stack cand-count 1))
+        ;;                     clauses))
+        (for ([i (in-range (progstate-data output-constraint))])
+             (set! clauses (cons (format "(not (= ~a ~a))"
+                                         (nth-stack spec-count 0 i)
+                                         (nth-stack cand-count 1 i))
+                                 clauses)))
 	;(list-add `dst)
 	;(list-add `sp)
         )
