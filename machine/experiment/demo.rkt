@@ -23,16 +23,8 @@
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
-;;(optimize "@p b! !b . 325 @p b! !b . 325" 
-;;          #:constraint constraint-none #:num-bits 9 #:name "comm")
-
-;(optimize "left a! ! 2 a! @ 7 and 2 a! ! 2 a! @"
-;          #:constraint (constraint memory t) #:num-bits 4 #:name "debug"
-;          #:mem 6 #:f18a #f)
-
-;(program-equal? "0 1 2 3 4"
-;                "0 dup 1 2 3 4"
-;                1 (constraint-data 3 s t) 18)
+(optimize "@p b! !b . 325 @p b! !b . 325" 
+          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
 ;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
 ;          #:f18a #f)
@@ -58,8 +50,8 @@ a! !"
  #:mem 3
  #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
 
-
+#|
 (program-diff? "6 a! @ 2 - 1 . + . + 4 . + a! @"
                 "6 b! @b a! @ @b"
-                7 (constraint-data 2 memory s t) 18)
+                7 (constraint-data 2 memory s t) 18)|#
 
