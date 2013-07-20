@@ -46,10 +46,10 @@
 ; fetch via register
 (add-primitive-word! #f "@+"
                      (lambda ()
-                         (push-int! dstack (rvector-ref codespace rega))
+                         (push-int! dstack (rvector-ref memory rega))
                          (set! rega (add1 rega))))
-(add-primitive-word! #f "@" (lambda () (push-int! dstack (rvector-ref codespace rega))))
-(add-primitive-word! #f "@b" (lambda () (push-int! dstack (rvector-ref codespace regb))))
+(add-primitive-word! #f "@" (lambda () (push-int! dstack (rvector-ref memory rega))))
+(add-primitive-word! #f "@b" (lambda () (push-int! dstack (rvector-ref memory regb))))
 
 ; @p only works when it is immediately followed by { .. }
 ; Annoyingly, needs to take into account the pc increment done by code-loop
@@ -69,14 +69,14 @@
 ;; TODO: !p doesn't work if write to memory
 (add-primitive-word! #f "!p" 
                      (lambda () 
-                       (rvector-set! codespace pc (pop-cells! dstack))
+                       (rvector-set! memory pc (pop-cells! dstack))
                        (increment-pc!)))
 (add-primitive-word! #f "!+" 
                      (lambda () 
-                       (rvector-set! codespace rega (pop-int! dstack #t))
+                       (rvector-set! memory rega (pop-int! dstack #t))
                        (set! rega (add1 rega))))
-(add-primitive-word! #f "!" (lambda () (rvector-set! codespace rega (pop-int! dstack #t))))
-(add-primitive-word! #f "!b" (lambda () (rvector-set! codespace regb (pop-int! dstack #t))))
+(add-primitive-word! #f "!" (lambda () (rvector-set! memory rega (pop-int! dstack #t))))
+(add-primitive-word! #f "!b" (lambda () (rvector-set! memory regb (pop-int! dstack #t))))
 
 ; fetch from register
 (add-primitive-word! #f "a" (lambda () (push-int! dstack rega)))

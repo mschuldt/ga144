@@ -188,7 +188,7 @@
 (define (add-primitive-word! prec name code)
   (add-word! #t name)
   (add-primitive-code! code)
-  (add-primitive-code! exit-addr)) ; To prevent Racket from spewing a bunch of #<entry> when the file is loaded.
+  (add-primitive-code! exit-addr))
 
 ; Adds a new compiler directive - something that is executed
 (define (add-compiler-directive! name code)
