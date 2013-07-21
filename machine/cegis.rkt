@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 600)
+(define timeout 300)
 
 (define (initialize)
   (system "mkdir debug")
@@ -253,8 +253,12 @@
       'timeout))
 
 (define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
-  (validate (insert-nops spec) (insert-nops candidate) 
-            "eqtest" mem-size constraint num-bits inst-pool))
+  (define formatted-spec (insert-nops spec))
+  (define formatted-cand (insert-nops candidate))
+  (if (equal? formatted-spec formatted-cand)
+      #f
+      (validate formatted-spec formatted-cand
+                "eqtest" mem-size constraint num-bits inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate name mem constraint num-bits [inst-pool `no-fake])
