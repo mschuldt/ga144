@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../cegis.rkt" "../state.rkt")
+(require "../cegis.rkt" "../state.rkt" "../greensyn.rkt" "../programs.rkt")
 
 ;; >>> 0x3ffff = 262143
 ;; >>> 0x1ffff = 131071
@@ -22,10 +22,15 @@
 ;;; round up to multiple of 8 (8-bit)
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
-;; communi;cation
-;(optimize "@p b! !b . 325 @p b! !b . 325" 
-;          #:constraint constraint-none #:num-bits 9 #:name "comm")
+;; communication
+(optimize "@p b! !b . 325 @p b! !b . 325" 
+          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
+;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
+;          #:f18a #f)
+          
+
+#|
 (optimize 
  "@p a! @ @p 349    
 0    
@@ -43,6 +48,10 @@ a! !+ @b .
 ! @ 325 .
 a! !"
  #:mem 3
- #:constraint (constraint memory) #:num-bits 9 #:name "hi1")
+ #:constraint (constraint memory) #:num-bits 9 #:name "hi1")|#
 
+#|
+(program-diff? "6 a! @ 2 - 1 . + . + 4 . + a! @"
+                "6 b! @b a! @ @b"
+                7 (constraint-data 2 memory s t) 18)|#
 

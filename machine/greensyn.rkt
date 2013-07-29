@@ -25,6 +25,7 @@
 (define COMM_BIT 3)
 
 (define TIME_SIZE 16)
+(define LENGTH_SIZE 16)
 
 (define U-ID 0)
 (define D-ID 1)
@@ -545,9 +546,17 @@
 (define (bv-time n)
   (format "(_ bv~a ~a)" n TIME_SIZE))
 
+(define (bv n size)
+  (format "(_ bv~a ~a)" n size))
+
 (define (generate-time-constraint step)
   (pretty-display (format "(assert (= time_~a (bvadd time_~a (ite (bvult h_~a (_ bv~a ~a)) ~a ~a))))"
                           step (sub1 step) step N_OF_SLOW HOLE_BIT (bv-time 10) (bv-time 3))))
+
+(define (generate-length-constraint step)
+  (pretty-display (format "(assert (= length_~a (bvadd length_~a (ite (= h_~a (_ bv~a ~a)) (_ bv5 ~a) (_ bv1 ~a)))))"
+                          step (sub1 step) 
+                          step (vector-member `@p choice-id) HOLE_BIT LENGTH_SIZE LENGTH_SIZE)))
 
 ;;; Generates assertions for holes which are already know, given a
 ;;; spec. The spec should have normal instructions as well as
@@ -568,12 +577,12 @@
 ;;; Returns an expression counting the number of trailing nops given
 ;;; the total number of slots. This can then be subtracted from the
 ;;; total time.
-(define (nop-offset begin end)
+(define (nop-offset begin end cost size)
   (define bv-nop (format "(_ bv~a ~a)" (vector-member 'nop choice-id) HOLE_BIT))
   (define (go hole-number expr)
     (format "(ite (= h_~a ~a) (bvadd ~a ~a) ~a)"
-            hole-number bv-nop (bv-time 3) expr (bv-time 0)))
-  (define start (format "(ite (= h_~a ~a) ~a ~a)" begin bv-nop (bv-time 3) (bv-time 0)))
+            hole-number bv-nop (bv cost size) expr (bv 0 size)))
+  (define start (format "(ite (= h_~a ~a) ~a ~a)" begin bv-nop (bv cost size) (bv 0 size)))
   (foldr go start (reverse (stream->list (in-range (add1 begin) (add1 end))))))
 
 (define (generate-time-constraints begin end repeat time-limit)
@@ -584,8 +593,19 @@
 	(generate-time-constraint step))
   (pretty-display `(declare-const total_time ,(makeBV TIME_SIZE)))
   (pretty-display (format "(assert (= total_time (bvmul (bvsub time_~a ~a) (_ bv~a ~a))))" 
-			  end (nop-offset (add1 begin) end) repeat TIME_SIZE))
+			  end (nop-offset (add1 begin) end 3 TIME_SIZE) repeat TIME_SIZE))
   (pretty-display (format "(assert (bvult total_time (_ bv~a ~a)))" time-limit TIME_SIZE)))
+
+(define (generate-length-constraints begin end length-limit)
+  (for* ([step (in-range begin (add1 end))])
+        (pretty-display `(declare-const ,(var-no-v `length step) ,(makeBV LENGTH_SIZE))))
+  (pretty-display `(assert (= ,(var-no-v `length begin) (_ bv0 ,LENGTH_SIZE))))
+  (for* ([step (in-range (add1 begin) (add1 end))])
+	(generate-length-constraint step))
+  (pretty-display `(declare-const total_length ,(makeBV TIME_SIZE)))
+  (pretty-display (format "(assert (= total_length (bvsub length_~a ~a)))" 
+                          end (nop-offset (add1 begin) end 1 LENGTH_SIZE)))
+  (pretty-display (format "(assert (bvult total_length (_ bv~a ~a)))" length-limit LENGTH_SIZE)))
 
 ;;; Generates assertions for repeated body such that 
 ;;; the i-th hole in the body is the same for all copies.
@@ -644,8 +664,17 @@
 
 (define (assert-state-output state n i)
   (when (progstate-data output-constraint)
-	(pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
-	(pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-data state)) 3)))
+        ;; (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
+        (define stack (progstate-data state))
+        (for ([nth (in-range (progstate-data output-constraint))])
+             (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
+                                     (nth-stack n i nth) 
+                                     (data-at (stack-body stack) 
+                                              (modulo (- (stack-sp stack) nth) 8)) 
+                                     SIZE)))
+        ;; (pretty-display (format "(assert (= sp_~e_v~e (_ bv~e ~e)))" 
+        ;;                         n i (stack-sp stack) 3))
+        )
   (when (progstate-return output-constraint)
 	(pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
 	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
@@ -738,6 +767,17 @@
 	(set! index (add1 index)))
   (conjunct clauses  index `or))
 
+(define (top-stack step i)
+  (format "(get-stack dst_~e_v~e sp_~e_v~e)" step i step i))
+
+(define (nth-stack step i n)
+  (format "(get-stack dst_~e_v~e (bvsub sp_~e_v~e (_ bv~e 3)))"
+          step i step i n))
+
+(define (data-at stack index)
+  (modulo (arithmetic-shift stack (- 0 (* index SIZE)))
+          (arithmetic-shift 1 SIZE)))
+
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
@@ -764,45 +804,55 @@
   (assert-ir-comm 1 cand-count)
 
   ;;; Assert outputs are not equal
-  (define clauses (make-vector 26))
-  (define index 0)
+  ;(define clauses (make-vector 26))
+  ;(define index 0)
+  (define clauses (list))
 
-  (define (vector-add var)
-    (vector-set! clauses index (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count))
-    (set! index (add1 index)))
+  (define (list-add var)
+    (set! clauses (cons (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count) clauses)))
 
   ;;; TODO: relax constraint here too
   (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-       (vector-add var))
+       (list-add var))
   (for* ([var `(send recv order)] ;; TODO: no recv
 	 [channel (in-range 0 5)])
-       (vector-set! clauses index (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel))
-       (set! index (add1 index)))
+       (set! clauses (cons (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel) clauses)))
   (when (progstate-data output-constraint)
-	(vector-add `dst)
-	(vector-add `sp))
+        (define data (progstate-data output-constraint))
+        ;; (set! clauses (cons (format "(not (= ~a ~a))" 
+        ;;                             (top-stack spec-count 0)
+        ;;                             (top-stack cand-count 1))
+        ;;                     clauses))
+        (for ([i (in-range (progstate-data output-constraint))])
+             (set! clauses (cons (format "(not (= ~a ~a))"
+                                         (nth-stack spec-count 0 i)
+                                         (nth-stack cand-count 1 i))
+                                 clauses)))
+	;(list-add `dst)
+	;(list-add `sp)
+        )
   (when (progstate-return output-constraint)
-	(vector-add `rst)
-	(vector-add `rp))
+	(list-add `rst)
+	(list-add `rp))
   (when (progstate-memory output-constraint)
-	(vector-add `mem))
+	(list-add `mem))
   (when (progstate-t output-constraint)
-	(vector-add `t))
+	(list-add `t))
   (when (progstate-s output-constraint)
-	(vector-add `s))
+	(list-add `s))
   (when (progstate-r output-constraint)
-	(vector-add `r))
+	(list-add `r))
   (when (progstate-a output-constraint)
-	(vector-add `a))
+	(list-add `a))
   (when (progstate-b output-constraint)
-	(vector-add `b))
+	(list-add `b))
 
   ;;; Include assumption throughtout the program
-  (pretty-display (format "(assert (or ~a ~a))" (conjunct clauses index `or) (generate-assumptions (add1 cand-count) 1 2 `cand))))
+  (pretty-display (format "(assert (or ~a ~a))" (string-join clauses) (generate-assumptions (add1 cand-count) 1 2 `cand))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Synthesizer (and general formula generator) ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (synthesize-prog sketch init repeat has-prog has-out [time-limit #f])
+(define (synthesize-prog sketch init repeat has-prog has-out time-limit length-limit)
   (define n (if (number? sketch) sketch (program-length sketch)))
   (define init-n (if (number? init) init (program-length init)))
   (define slots (+ init-n (* n repeat)))
@@ -834,6 +884,7 @@
   (assert-input-output slots has-out)
   (newline)
   (when time-limit (generate-time-constraints init-n (+ init-n n) repeat time-limit))
+  (when length-limit (generate-length-constraints init-n (+ init-n n) length-limit))
   (newline)
   (pretty-display `(check-sat))
   (pretty-display `(get-model))
@@ -851,7 +902,6 @@
   (newline)
   (declare-vars (add1 spec-count) 0 1)
   (newline)
-  ;; (generate-formulas (add1 spec-count) 0 1 `spec #t support-all)
   (generate-known-formulas spec (add1 spec-count) 0 `spec #t)
   (newline)
 
@@ -860,7 +910,6 @@
   (newline)
   (declare-vars (add1 cand-count) 1 2)
   (newline)
-  ;; (generate-formulas (add1 cand-count) 1 2 `cand #f)
   (generate-known-formulas cand (add1 cand-count) 1 `cand #f)
   (newline)
   
@@ -938,7 +987,7 @@
 ;;; Set
 ;;; 1) number of entries of memory
 ;;; 2) number of entries of send/recv storage of each 4 neighbors
-(define (greensyn-reset mem-entries comm-entries [constraint constraint-all] #:num-bits [num-bits 18] #:inst-pool [support `no-fake] )
+(define (greensyn-reset mem-entries comm-entries constraint #:num-bits [num-bits 18] #:inst-pool [support `no-fake] )
   (set! output-constraint constraint)
   (set! SUPPORT support)
 
@@ -993,10 +1042,11 @@
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
 ;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] #:time-limit [time-limit #f])
+(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] 
+                            #:time-limit [time-limit #f] #:length-limit [length-limit #f])
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (synthesize-prog sketch init repeat #f #t time-limit))
+    (synthesize-prog sketch init repeat #f #t time-limit length-limit))
   (close-output-port out))
 
 ;;; Generate Z3 file for verification from spec and a given candidate

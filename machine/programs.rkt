@@ -46,6 +46,13 @@
                              (filter (lambda (x) (vector-member x choice-id))
                                      (map string->symbol (program->instructions program)))))))
 
+(define (length-with-literal program)
+  (define inst-list (drop-trailing-nops (string-split program)))
+  (define total (length inst-list))
+  (define count-@p (count (lambda (x) (or (equal? x "@p") (equal? x `@p)))
+                          inst-list))
+  (+ total (* 3 count-@p))) ;; @p 1 -> count as 2 + 3
+
 ;;; Drop elements from the list while some predicate holds.
 (define (drop-while pred? list)
   (cond
@@ -55,8 +62,26 @@
 
 ;;; Given a list of instructions, drops all the nops at the end of the
 ;;; list.
-(define drop-trailing-nops
-  (compose reverse (curry drop-while (curry equal? 'nop)) reverse))
+;(define drop-trailing-nops
+;  (compose reverse (curry drop-while (lambda (x) (or (equal? x 'nop) (equal? x "nop")))) reverse))
+
+(define (drop-trailing-nops program)
+  (define rm #t)
+  (define (inner insts)
+    (if (empty? insts)
+        insts
+        (let* ([rest (inner (cdr insts))]
+               [ele (car insts)]
+               [x (if (string? ele) (string->symbol ele) ele)])
+          (cond
+            [(and rm (equal? x 'nop))
+             rest]
+            [(vector-member x choice-id)
+             (set! rm #f)
+             (cons ele rest)]
+            [else
+             (cons ele rest)]))))
+  (inner program))
 
 ;;; Trim leading and trailing whitespace.
 (define (trim str)
@@ -111,3 +136,33 @@
      [(and (equal? (second instrs) "+") (not (equal? (first instrs) "nop"))) #f]
      [else (go (rest instrs))]))
   (go (program->instructions (fix-@p program))))
+
+(define (insert-nops program)
+
+  (define (nop-before-plus insts)
+    (cond
+     [(empty? insts) insts]
+     [(and (or (equal? (first insts) "nop") (equal? (first insts) "."))
+           (not (empty? (cdr insts)))
+           (equal? (second insts) "+"))
+      (append (list "nop" "+") (nop-before-plus (cddr insts)))]
+     [(equal? (first insts) "+")
+      (append (list "nop" "+" )(nop-before-plus (cdr insts)))]
+     [else
+      (cons (car insts) (nop-before-plus (cdr insts)))]))
+
+  (define (nop-last-slot program count)
+    (cond
+     [(empty? program) program]
+     [(= (modulo count 4) 3)
+      (define id (vector-member (car program) choice-id))
+      (if (or (not id) (= (modulo id 4) 0))
+          (cons (car program) (nop-last-slot (cdr program) (add1 count)))
+          (cons "nop" (nop-last-slot program (add1 count))))]
+     [else
+      (cons (car program) (nop-last-slot (cdr program) (add1 count)))]))
+
+  (when (string? program)
+        (set! program (string-split program)))
+  (string-join (nop-last-slot (nop-before-plus program) 0)))
+      

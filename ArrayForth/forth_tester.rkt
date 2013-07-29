@@ -57,20 +57,39 @@
 (for [(i (in-range 1 3))]
      (run-compiler-test (string-append "large" (number->string i))))
 
+#|
 (define test-str "yellow 2 node
-10 org 
+10 org
 green
 : sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ ;
-.. start sum .ns 0 5 .mem")
+.. start sum .ns 0 0 .mem")|#
+
+(define test-str "
+yellow 0 node
+6 org green
+: sum 
+  0 a! !+ !+ !+ !+ 
+  3 a! @ 2 a! @ . + 1 a! @ . + 0 a! @ . + ; 
+: main 
+  4 a! @ 5 a! @ right a! @ right a! @ right a! @ 
+  5 a! @ 4 a! @ sum sum 
+  dup down a! ! ; 
+.. start main .ns 0 6 .mem
+
+yellow 1 node
+2 org green
+: main 
+  0 a! @ right a! ! 1 a! @ right a! ! 
+  0 a! @ right a! ! ; 
+.. start main .ns 0 2 .mem
+
+yellow 100 node
+1 org green
+: main 
+  down a! @ 0 a! ! ; 
+.. start main .ns 0 1 .mem")
+
 (compile-to-string test-str)
 (compile-and-run test-str)
-#|
-(compile-to-string "
-277 b! @b !+ a 3 and
-push 0 a!
-0 @+ + @+ + @+ + @+ +
-2/ 2/ 325 b! !b pop a!")|#
-
-;(compile-to-string "0 a! @ 469 a! ! 277 a! @ 469 a! ! 469 a! @ 0 a! !")
 
 ;(exec-file "examples/test.forth" "examples/test.out")

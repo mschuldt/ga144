@@ -27,10 +27,14 @@
                [a      (random max-size)]
                [b      (random max-size)]
                [r      (random max-size)]
-               [s      (random max-size)]
-               [t      (random max-size)]
-               [data   (random-stack max-size)]
+               [s 0]
+               [t 0]
+               [data (stack 0 (make-vector 8))]
                [return (stack 0 (make-vector 8))]))
+               ;[s      (random max-size)]
+               ;[t      (random max-size)]
+               ;[data   (random-stack max-size)]
+               ;[return (stack 0 (make-vector 8))]))
 
 (define (default-commstate
 	 #:send-u [send-u (make-vector ENTRIES 0)]
@@ -60,3 +64,7 @@
   (syntax-rules (except)
     ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
     ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))))
+
+(define-syntax constraint-data
+  (syntax-rules ()
+    ((constraint-data x var ...) (struct-copy progstate constraint-none [data x] [var #t] ...))))
