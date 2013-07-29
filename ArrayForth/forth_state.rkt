@@ -7,7 +7,7 @@
 (define num-cores 144)
 
 ; State for a core
-; Currently, stacks and dict are infinite.
+; Currently, dict is infinite.
 ; Once a size is determined, a dict can be just a vector, not an rvector.
 ; Need to add ports for each core.
 ; Use Racket ports?  Probably not, since we want to only have 1 word at a time.
@@ -22,7 +22,7 @@
   (state (make-dstack) (make-rstack) 0 1 0 0 (make-rvector 100 ".")))
 
 (struct interpreter-struct 
-	(codespace cores state-index send-recv-table)
+	(used-cores cores state-index send-recv-table)
 	#:mutable)
 
 (define (make-interpreter)
@@ -32,9 +32,12 @@
 	 (vector-set! core-list i (make-new-core)))
     (for ([i (in-range 100)])
 	 (rvector-set! srtable i #f))
-    (interpreter-struct (make-rvector 500 -1) core-list 0 srtable)))
+    (interpreter-struct '() core-list 0 srtable)))
 
-(struct compiler-struct (compiler-directives dict location-counter i-register execute? cstack literal-mode litspace lit-entry) #:mutable)
+(define (make-compiler)
+  (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) (make-rvector 500 -1) 0 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+
+(struct compiler-struct (compiler-directives codespace dict location-counter i-register execute? cstack literal-mode litspace lit-entry) #:mutable)
 
 (define-syntax-rule (generate-compiler-macro name getter setter)
   (define-syntax name
@@ -44,6 +47,7 @@
 
 (generate-compiler-macro compiler-directives compiler-struct-compiler-directives set-compiler-struct-compiler-directives!)
 (generate-compiler-macro dict compiler-struct-dict set-compiler-struct-dict!)
+(generate-compiler-macro codespace compiler-struct-codespace set-compiler-struct-codespace!)
 (generate-compiler-macro location-counter compiler-struct-location-counter set-compiler-struct-location-counter!)
 (generate-compiler-macro i-register compiler-struct-i-register set-compiler-struct-i-register!)
 (generate-compiler-macro execute? compiler-struct-execute? set-compiler-struct-execute?!)
@@ -77,7 +81,7 @@
 (gen-i-macro codespace)
 |#
 
-(generate-interpreter-macro codespace interpreter-struct-codespace set-interpreter-struct-codespace!)
+(generate-interpreter-macro used-cores interpreter-struct-used-cores set-interpreter-struct-used-cores!)
 (generate-interpreter-macro cores interpreter-struct-cores set-interpreter-struct-cores!)
 (generate-interpreter-macro state-index interpreter-struct-state-index set-interpreter-struct-state-index!)
 (generate-interpreter-macro send-recv-table interpreter-struct-send-recv-table set-interpreter-struct-send-recv-table!)
@@ -97,19 +101,19 @@
 (generate-core-macro rstack state-rstack set-state-rstack!)
 (generate-core-macro memory state-memory set-state-memory!)
 
-(define (increment-pc!)
+(define (increment-pc! . interpreter)
   (if (= (remainder pc 4) 3)
       (begin (set! pc (* 4 next-word))
 	     (set! next-word (add1 next-word)))
       (set! pc (add1 pc))))
 
 ; TODO: Need to make sure that setting next-word to (add1 num) is fine.
-(define (set-pc! num)
+(define (set-pc! num . interpreter)
   (set! pc (* 4 num))
   (set! next-word (add1 num)))
 
 (define interpreter (make-interpreter))
-(define compiler (compiler-struct (make-rvector 100 -1) (make-rvector 100 -1) 0 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+(define compiler (make-compiler))
 
 (define (set-as-defaults!)
   (let ((default-codespace (make-rvector 1))
@@ -120,7 +124,7 @@
     (rvector-copy! default-directives 0 compiler-directives 0 (rvector-length compiler-directives))
     (lambda ()
       (set! interpreter (make-interpreter))
-      (set! compiler (compiler-struct (make-rvector 1 -1) (make-rvector 1 -1) 0 0 #f (make-infinite-stack) 0 (make-rvector 100 -1) 0))
+      (set! compiler (make-compiler))
       (for [(i (in-range 0 num-cores))]
 	   (vector-set! cores i (make-new-core)))
       (rvector-copy! codespace 0 default-codespace 0 (rvector-length default-codespace))
@@ -156,53 +160,42 @@
 
 ; Dictionary
 
-(define (add-entry! prim name code)
+(define (add-entry! prim name code . compiler)
   (let [(new (entry prim name code))]
     (add-element! dict new)
     new))
 
-(define (add-to-codespace elmt)
+(define (add-to-codespace elmt . compiler)
   (add-element! codespace elmt))
   
-(define (add-to-litspace proc-or-addr)
+(define (add-to-litspace proc-or-addr . compiler)
   (add-element! litspace proc-or-addr))
 
-(define (add-primitive-code! proc-or-addr)
+(define (add-primitive-code! proc-or-addr . compiler)
   (if (= literal-mode 0)
-      (add-to-codespace proc-or-addr)
-      (add-to-litspace proc-or-addr)))
+      (add-to-codespace proc-or-addr compiler)
+      (add-to-litspace proc-or-addr compiler)))
 
-(define exit-addr 0) ; Kind of hacky, but not too bad.
-; It's obvious that it will be at address 0.
+(define (add-word! prim name . compiler)
+  (add-entry! prim name (rvector-length codespace) compiler))
 
-(define (exit)
-  (pop-int! rstack #f) ; Don't return to wherever exit came from
-  (let ((val (pop-int! rstack #f)))
-    (set! pc (if (= val 0) -1 val))))
-
-(define (add-word! prim name)
-  (add-entry! prim name (rvector-length codespace)))
-(void (add-word! #f "exit"))
-(add-primitive-code! exit)
-
-(define (add-primitive-word! prec name code)
-  (add-word! #t name)
-  (add-primitive-code! code)
-  (add-primitive-code! exit-addr))
+(define (add-primitive-word! prec name code . compiler)
+  (add-word! #t name compiler)
+  (add-primitive-code! code compiler))
 
 ; Adds a new compiler directive - something that is executed
-(define (add-compiler-directive! name code)
+(define (add-compiler-directive! name code . compiler)
   (add-element! compiler-directives (entry #t name (rvector-length codespace)))
-  (add-primitive-code! code))
+  (add-primitive-code! code compiler))
 
-(define (make-synonym a b)
+(define (make-synonym a b . compiler)
   (let [(a-dir (find-entry dict a))
 	(b-dir (find-entry dict b))]
     ; If both are defined, or neither is defined, error.  (i.e. not xor)
     (cond [(or (and a-dir b-dir) (not (or a-dir b-dir)))
 	   (raise "Cannot make synonym")]
-	  [a-dir (add-entry! (entry-primitive a-dir) b (entry-code a-dir))]
-	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir))]))
+	  [a-dir (add-entry! (entry-primitive a-dir) b (entry-code a-dir) compiler)]
+	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir) compiler)]))
   (void))
 
 (define (find-address d name)

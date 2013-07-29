@@ -22,8 +22,8 @@
 
   ; Use node 0 for compilation
   (push-int! dstack 0)
-  ((rvector-ref codespace (entry-code (find-entry compiler-directives "node"))))
-  ((rvector-ref codespace (entry-code (find-entry compiler-directives "green"))))
+  ((rvector-ref codespace (entry-code (find-entry compiler-directives "node"))) compiler)
+  ((rvector-ref codespace (entry-code (find-entry compiler-directives "green"))) compiler)
   (compile code-port)
 
   ; Compilation stores everything into memory.

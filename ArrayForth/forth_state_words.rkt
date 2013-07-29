@@ -1,89 +1,170 @@
 #lang racket
 
-(require "rvector.rkt" "forth_state.rkt")
+(require "classes.rkt" "rvector.rkt")
 
-(provide (all-defined-out))
+(provide add-state-words!)
 
-; Stack manipulation words
+(define (add-state-words!)
 
-(define (dup)
-  (push-cells! dstack (get-cells dstack))) ; Get the first cell and push it back on
-(add-primitive-word! #f "dup" dup)
+  ; Stack manipulation words
 
-(define (over)
-  (push-cells! dstack (get-cells dstack 1)))
-(add-primitive-word! #f "over" over)
+  ; Get the first cell and push it back on
+  (add-primitive-word!
+   "dup"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))]
+       (push-cells! dstack (get-cells dstack)))))
 
-(define (drop)
-  (pop-cells! dstack))
-(add-primitive-word! #f "drop" drop)
+  ; Get the second cell and push it back on
+  (add-primitive-word!
+   "over"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))]
+       (push-cells! dstack (get-cells dstack 1)))))
 
-(add-primitive-word! #f "c" (lambda () (set-state-dstack! (vector-ref cores state-index) (make-bytes 0))))
+  (add-primitive-word!
+   "drop"
+   (lambda (i)
+     (pop-cells! (send i get 'dstack))))
 
-(define (swap)
-  (let* [(arg1 (pop-cells! dstack))
-         (arg2 (pop-cells! dstack))]
-    (push-cells! dstack arg1)
-    (push-cells! dstack arg2)))
-(add-primitive-word! #f "swap" swap)
+#|
+  (add-primitive-word!
+   "swap"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (arg1 (pop-cells! dstack))
+	    (arg2 (pop-cells! dstack))]
+       (push-cells! dstack arg1)
+       (push-cells! dstack arg2))))
 
-(define (rot)
-  (let* [(arg1 (pop-cells! dstack))
-         (arg2 (pop-cells! dstack))
-         (arg3 (pop-cells! dstack))]
-    (push-cells! dstack arg2)
-    (push-cells! dstack arg1)
-    (push-cells! dstack arg3)))
-(add-primitive-word! #f "rot" rot)
+  (add-primitive-word!
+   "rot"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (arg1 (pop-cells! dstack))
+	    (arg2 (pop-cells! dstack))
+	    (arg3 (pop-cells! dstack))]
+       (push-cells! dstack arg2)
+       (push-cells! dstack arg1)
+       (push-cells! dstack arg3))))
+|#
 
-; rstack manipulation words
+  ; rstack manipulation words
 
-(add-primitive-word! #f "push" (lambda () (push-cells! rstack (pop-cells! dstack))))
-(add-primitive-word! #f "pop" (lambda () (push-cells! dstack (pop-cells! rstack))))
+  (add-primitive-word!
+   "push"
+   (lambda (i)
+     (push-cells! (send i get 'rstack)
+		  (pop-cells! (send i get 'dstack)))))
 
-; register manipulation
+  (add-primitive-word!
+   "pop"
+   (lambda (i)
+     (push-cells! (send i get 'dstack)
+		  (pop-cells! (send i get 'rstack)))))
 
-; fetch via register
-(add-primitive-word! #f "@+"
-                     (lambda ()
-                         (push-int! dstack (rvector-ref memory rega))
-                         (set! rega (add1 rega))))
-(add-primitive-word! #f "@" (lambda () (push-int! dstack (rvector-ref memory rega))))
-(add-primitive-word! #f "@b" (lambda () (push-int! dstack (rvector-ref memory regb))))
+  ; register manipulation
 
-; @p only works when it is immediately followed by { .. }
-; Annoyingly, needs to take into account the pc increment done by code-loop
-(define (fetch-p-proc)
-  (push-int! dstack location-counter)
-  (add-primitive-code! (lambda () (void))))
-(add-primitive-word! #f "@p" 
-                     (lambda ()
-		       (if (= (remainder pc 4) 0)
-			   (begin (push-cells! dstack (rvector-ref memory (* 4 (sub1 next-word))))
-				  (set! pc (* 4 next-word)))
-			   (push-cells! dstack (rvector-ref memory (* 4 next-word))))
-		       (set! next-word (add1 next-word))))
+  ; fetch via register
 
-; store via register
+  (add-primitive-word!
+   "@+"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (rega (send i get 'rega))]
+       (push-int! dstack (rvector-ref memory rega))
+       (send i set 'rega (add1 rega)))))
 
-;; TODO: !p doesn't work if write to memory
-(add-primitive-word! #f "!p" 
-                     (lambda () 
-                       (rvector-set! memory pc (pop-cells! dstack))
-                       (increment-pc!)))
-(add-primitive-word! #f "!+" 
-                     (lambda () 
-                       (rvector-set! memory rega (pop-int! dstack #t))
-                       (set! rega (add1 rega))))
-(add-primitive-word! #f "!" (lambda () (rvector-set! memory rega (pop-int! dstack #t))))
-(add-primitive-word! #f "!b" (lambda () (rvector-set! memory regb (pop-int! dstack #t))))
+  (add-primitive-word!
+   "@"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (rega (send i get 'rega))]
+       (push-int! dstack (rvector-ref memory rega)))))
 
-; fetch from register
-(add-primitive-word! #f "a" (lambda () (push-int! dstack rega)))
+  (add-primitive-word!
+   "@b"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (regb (send i get 'regb))]
+     (push-int! dstack (rvector-ref memory regb)))))
 
-; store to register
-(add-primitive-word! #f "a!" (lambda () (set! rega (pop-int! dstack #f))))
-(add-primitive-word! #f "b!" (lambda () (set! regb (pop-int! dstack #f))))
+  ; @p only works when it is immediately followed by { .. }
+  ; Annoyingly, needs to take into account the pc increment done by code-loop
+  (add-primitive-word!
+   "@p" 
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (pc (send i get 'pc))
+	   (next-word (send i get 'next-word))]
+       (if (= (remainder pc 4) 0)
+	   (begin (push-cells! dstack
+			       (rvector-ref memory (* 4 (sub1 next-word))))
+		  (send i set-pc! next-word))
+	   (begin (push-cells! dstack
+			       (rvector-ref memory (* 4 next-word)))
+		  (send i set 'next-word (add1 next-word)))))))
 
-;;;;;;;;;;;;;;;;;;;; (testing only) : store to pc ;;;;;;;;;;;;;;;;;;;
-(add-primitive-word! #f "p!" (lambda () (set! pc (pop-int! dstack #f))))
+  ; store via register
+
+  ; TODO: !p doesn't work if write to memory
+  (add-primitive-word!
+   "!p" 
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (pc (send i get 'pc))]
+       (rvector-set! memory pc (pop-cells! dstack))
+       (send i increment-pc!))))
+
+  (add-primitive-word!
+   "!+" 
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (rega (send i get 'rega))]
+       (rvector-set! memory rega (pop-int! dstack #t))
+       (send i set 'rega (add1 rega)))))
+
+  (add-primitive-word!
+   "!"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (rega (send i get 'rega))]
+       (rvector-set! memory rega (pop-int! dstack #t)))))
+
+  (add-primitive-word!
+   "!b"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))
+	   (memory (send i get 'memory))
+	   (regb (send i get 'regb))]
+     (rvector-set! memory regb (pop-int! dstack #t)))))
+
+  ; fetch from register
+  (add-primitive-word!
+   "a"
+   (lambda (i)
+     (push-int! (send i get 'dstack) (send i get 'rega))))
+
+  ; store to register
+  (add-primitive-word!
+   "a!"
+   (lambda (i)
+     (send i set 'rega (pop-int! (send i get 'dstack) #f))))
+
+  (add-primitive-word!
+   "b!"
+   (lambda (i)
+     (send i set 'regb (pop-int! (send i get 'dstack) #f))))
+
+  ;;;;;;;;;;;;;;;;;;;; (testing only) : store to pc ;;;;;;;;;;;;;;;;;;;
+  (add-primitive-word!
+   "p!"
+   (lambda (i)
+     (send i set 'pc (pop-int! (send i get 'dstack) #f)))))
