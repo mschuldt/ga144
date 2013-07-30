@@ -68,8 +68,8 @@
   (add-compiler-directive!
    ","
    (lambda (compiler)
-     (let [(num (pop-int! (send compiler get 'dstack) #t))]
-       (send compiler compile-constant! num))))
+     (let [(data (pop-cells! (send compiler get 'dstack)))]
+       (send compiler add-compiled-data! data))))
 
   ; begin
   (define (begin-proc compiler)

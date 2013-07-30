@@ -61,9 +61,16 @@
   (define (print-memory memory start end)
     (if (>= start end)
 	(display " |")
-	(begin (display " | ")
-	       (display (rvector-ref memory start))
-	       (print-memory memory (add1 start) end))))
+	(begin (display " |")
+	       (for [(i (in-range 0 4))]
+		    (let [(elmt (rvector-ref memory (+ start i)))]
+		      (cond [(bytes? elmt)
+			     (display " ")
+			     (display (integer-bytes->integer elmt #t #t))]
+			    [elmt
+			     (display " ")
+			     (display elmt)])))
+	       (print-memory memory (+ 4 start) end))))
 
   (add-primitive-word!
    ".mem"
@@ -73,5 +80,5 @@
 	    (end (pop-int! dstack #f))
 	    (start (pop-int! dstack #f))]
        (printf "Printing memory from ~a to ~a:" start end)
-       (print-memory memory start end)
+       (print-memory memory (* 4 start) (* 4 end))
        (newline)))))

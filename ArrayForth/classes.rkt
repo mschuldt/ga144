@@ -19,7 +19,7 @@
 
 ; Some instructions end execution of the current word.
 ; So, the rest of the word should be filled with nops.
-(define instructions-using-entire-word '(";" "ret" "unext"))
+(define instructions-using-entire-word '(";" "ret" "ex" "unext"))
 
 (define core%
   (class object%
@@ -177,6 +177,15 @@
 
 	 (define/public (increment-pc!)
 	   (send interpreter increment-pc!))
+
+	 (define/public (add-compiled-data! data)
+	   (let [(memory (get 'memory))
+		 (i-register (get 'i-register))]
+	     (unless (= (remainder i-register 4) 0)
+		     (fill-rest-with-nops))
+	     (rvector-set! memory (get 'i-register) data)
+	     (set 'i-register (add1 (get 'i-register)))
+	     (fill-rest-with-false)))
 
 ; Compiles a single instruction or constant.
 ; In the case of a constant, it implicitly adds @p.
