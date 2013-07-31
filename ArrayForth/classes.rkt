@@ -1,8 +1,8 @@
 #lang racket
 
 (require (only-in racket [equal? equal-case-sensitive?]))
-(require "arithmetic.rkt" "circular-stack.rkt" "forth_num_convert.rkt"
-	 "forth_read.rkt" "rvector.rkt")
+(require "circular-stack.rkt" "forth_num_convert.rkt" "forth_read.rkt"
+	 "rvector.rkt")
 
 (provide (all-defined-out))
 
