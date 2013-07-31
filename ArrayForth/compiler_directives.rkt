@@ -74,7 +74,7 @@
   ; begin
   (define (begin-proc compiler)
     (send compiler fill-rest-with-nops)
-    (push-int! (send compiler get 'cstack)
+    (push-int! (send compiler get 'dstack)
 	       (quotient (send compiler get 'i-register) 4)))
   (add-compiler-directive! "begin" begin-proc)
   
@@ -88,31 +88,8 @@
   (add-compiler-directive!
    "next"
    (lambda (compiler)
-     (let [(addr (pop-int! (send compiler get 'cstack) #f))]
+     (let [(addr (pop-int! (send compiler get 'dstack) #f))]
        (if (= addr (quotient (send compiler get 'i-register) 4))
 	   (send compiler add-compiled-code! "unext")
 	   (begin (send compiler add-compiled-code! "next")
 		  (send compiler compile-address! addr)))))))
-  
-#|
-(define (start-literal)
-  (set! literal-mode 1)
-  (set! lit-entry 0)
-  (for* ([i (in-range 0 4)])
-    (rvector-set! litspace i (lambda () (void)))))
-(add-compiler-directive! "{" start-literal)
-
-(define (stop-literal)
-  (set! literal-mode 0)
-  (let [(code0 (rvector-ref litspace 0)) 
-        (code1 (rvector-ref litspace 1)) 
-        (code2 (rvector-ref litspace 2)) 
-        (code3 (rvector-ref litspace 3))]
-    (add-primitive-code! (lambda () 
-                        (code0) 
-                        (code1)
-                        (code2)
-                        (code3)
-                        ))))
-(add-compiler-directive! "}" stop-literal)
-|#

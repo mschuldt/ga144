@@ -11,8 +11,8 @@
       (string-ci=? a b)
       (equal-case-sensitive? a b)))
 
-(define address-required-on-cstack '("next" "if" "-if"))
-(define address-required (append '("jump" "call") address-required-on-cstack))
+(define address-required-on-dstack '("next" "if" "-if"))
+(define address-required (append '("jump" "call") address-required-on-dstack))
 (define last-slot-instructions
   '(";" "ret" "unext" "@p" "!p" "+*" "+" "dup" "." "nop"))
 (define instructions-preceded-by-nops '("+" "+*"))
@@ -143,7 +143,7 @@
 
 ; Entry for the dictionary.
 ; Code must be mutable to allow procs which refer to the entry itself.
-(struct entry (primitive name [code #:mutable]))
+(struct entry (primitive name code))
 
 (define compiler%
   (class object%
@@ -152,12 +152,12 @@
 	 (field (location-counter 1)
 		(i-register 0)
 		(execute? #f)
-		(cstack (make-infinite-stack))
-		(literal-mode 0)
-		(litspace (make-rvector 100 -1))
+		(dstack (make-infinite-stack))
 		(lit-entry 0)
 		(interpreter (new interpreter%)))
 
+	 ; Note: It is important that we look in this object before the
+	 ; interpreter, because both of them have a dstack.
 	 (define/public (get name)
 	   (with-handlers
 	    ([exn:fail:object?
@@ -287,11 +287,11 @@
 					   [execute?
 ; Assume that it is not an instruction that requires an address as an argument
 					    ((rvector-ref codespace (entry-code entry)) (get 'interpreter))]
-					   [(member to-compile address-required-on-cstack)
+					   [(member to-compile address-required-on-dstack)
 					    (when (= (remainder i-register 4) 3)
 						  (fill-rest-with-nops))
 					    (add-compiled-code! to-compile)
-					    (compile-address! (pop-int! cstack #f))
+					    (compile-address! (pop-int! dstack #f))
 					    (fill-rest-with-nops)]
 					   [(entry-primitive entry)
 					    (add-compiled-code! to-compile)

@@ -133,7 +133,7 @@
 ; TODO:  Just use location-counter, or also use i-register?
 (define (begin-proc)
   (fill-rest-with-nops)
-  (push-int! cstack location-counter))
+  (push-int! dstack location-counter))
 (add-compiler-directive! "begin" begin-proc)
 
 ; FOR
