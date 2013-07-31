@@ -512,7 +512,7 @@
 ;;               to slots.
 ;;               DEFAULT = true
 
-(define (optimize orig-program 
+(define (optimize-interal orig-program 
                   #:f18a       [f18a #t]
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
@@ -598,4 +598,36 @@
       orig-program)
 )
   
-		 
+(define cache (make-hash))
+(define (optimize orig-program 
+                  #:f18a       [f18a #t]
+		  #:name       [name "prog"]
+		  #:mem        [mem 1]
+		  #:init       [init 0]
+		  #:slots      [raw-slots 0]
+		  #:repeat     [repeat 1]
+		  #:start      [start mem] 
+		  #:constraint [constraint constraint-all]
+		  #:num-bits   [num-bits 18]
+		  #:inst-pool  [inst-pool `no-fake]
+		  #:time-limit [time-limit #f]
+                  #:length-limit [length-limit #f]
+		  #:bin-search [bin-search `length])
+  (if (hash-has-key? cache orig-program)
+      (hash-ref cache orig-program)
+      (let ([result (optimize-interal orig-program
+				      #:f18a       f18a
+				      #:name       name
+				      #:mem        mem
+				      #:init       init
+				      #:slots      raw-slots
+				      #:repeat     repeat
+				      #:start      start
+				      #:constraint constraint
+				      #:num-bits   num-bits
+				      #:inst-pool  inst-pool
+				      #:time-limit time-limit
+				      #:length-limit length-limit
+				      #:bin-search bin-search)])
+	(hash-set! cache orig-program result)
+	result)))
