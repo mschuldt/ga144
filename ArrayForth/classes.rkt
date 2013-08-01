@@ -71,6 +71,11 @@
 		      (set 'next-word (add1 (get 'next-word))))
 	       (set 'pc (add1 (get 'pc)))))
 
+	 (define/public (read-and-increment-pc!)
+	   (let [(old-pc (get 'pc))]
+	     (increment-pc!)
+	     (rvector-ref (get 'memory) old-pc)))
+
 	 (define/public (set-pc! addr)
 	   (set 'pc (* 4 addr))
 	   (set 'next-word (add1 addr)))
@@ -83,29 +88,28 @@
 	 (define/public (execute entry)
 	   (execute-code (entry-code entry)))
 
-	 (define/public (code-loop)
-	   (let* [(ended-list
-		   (map
-		    (lambda (num)
-		      (set 'state-index num)
-		      (let [(memory (get 'memory))]
-			(if (or (< (get 'pc) 0) (>= (get 'pc) (rvector-length memory)))
-			    #t
-			    (let [(code (rvector-ref memory (get 'pc)))]
-			      (increment-pc!)
-			      (cond [(and (string? code) (member code address-required))
-				     (let [(addr (rvector-ref memory (get 'pc)))]
-				       (increment-pc!)
-				       ((rvector-ref codespace (entry-code (find-entry dict code))) this addr))]
-				    [(string? code)
-				     ((rvector-ref codespace (entry-code (find-entry dict code))) this)]
-				    [else
-				     (raise "Instruction is not a string -- code-loop")])
-			      #f))))
-		    used-cores))]
-	     (unless (for/and ([bool ended-list]) bool)
-		     (code-loop))))))
+	 (define/public (single-step core)
+	   (set 'state-index core)
+	   (let [(memory (get 'memory))
+		 (pc (get 'pc))]
+	     (if (or (< pc 0) (>= pc (rvector-length memory)))
+		 (set 'used-cores (remove core (get 'used-cores)))
+		 (let [(code (read-and-increment-pc!))]
+		   (unless (string? code)
+			   (raise "Not a string -- single-step"))
+		   (let [(proc (rvector-ref codespace (entry-code (find-entry dict code))))]
+		     (if (member code address-required)
+			 (proc this (read-and-increment-pc!))
+			 (proc this)))))))
 
+	 (define/public (step)
+	   (for [(core (get 'used-cores))]
+		(single-step core)))
+
+	 (define/public (interpret)
+	   (step)
+	   (unless (null? (get 'used-cores))
+		   (interpret)))))
 
 (define codespace (make-rvector 100 -1))
 (define dict (make-rvector 500 -1))

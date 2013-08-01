@@ -93,7 +93,7 @@
      (push-int! dstack (rvector-ref memory regb)))))
 
   ; @p only works when it is immediately followed by { .. }
-  ; Annoyingly, needs to take into account the pc increment done by code-loop
+  ; Annoyingly, needs to take into account the pc increment done by interpret.
   (add-primitive-word!
    "@p" 
    (lambda (i)
