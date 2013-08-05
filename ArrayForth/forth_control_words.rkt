@@ -10,16 +10,16 @@
 ; Return
 ; Moves R into P, popping the return stack.
 ; As a result, it skips any remaining slots and fetches next instruction word.
-  (add-primitive-word!
+  (add-instruction!
    ";" 
    (lambda (i)
      (send i set-pc! (pop-int! (send i get 'rstack) #f))))
-  (make-synonym ";" "ret")
+  (make-instruction-synonym ";" "ret")
 
 ; Execute
 ; Exchanges R and P.
 ; As a result, it skips any remaining slots and fetches next instruction word.
-  (add-primitive-word!
+  (add-instruction!
    "ex"
    (lambda (i)
      (let [(temp (send i get 'pc))
@@ -30,7 +30,7 @@
 ; Jump
 ; Sets P to destination address
 ; As a result, it fetches next instruction word.
-  (add-primitive-word!
+  (add-instruction!
    "jump"
    (lambda (i addr) (send i set-pc! addr)))
 
@@ -38,7 +38,7 @@
 ; Moves P into R, pushing an item onto the return stack,
 ; Sets P to destination address 
 ; As a result, it fetches next instruction word.
-  (add-primitive-word!
+  (add-instruction!
    "call"
    (lambda (i addr)
      (let [(pc (send i get 'pc))
@@ -50,7 +50,7 @@
 ; If R is zero, pops the return stack and continues with the next opcode.
 ; If R is nonzero, decrements R by 1 and causes execution to continue with slot 0 of the current instruction word
 ; This is done without re-fetching the word (irrelevant here).
-  (add-primitive-word!
+  (add-instruction!
    "unext"
    (lambda (i)
      (let* [(rstack (send i get 'rstack))
@@ -63,7 +63,7 @@
 ; next
 ; If R is zero, pops the return stack and continues with the next instruction word addressed by P.
 ; If R is nonzero, decrements R by 1 and jumps to the given address.
-  (add-primitive-word!
+  (add-instruction!
    "next"
    (lambda (i addr)
      (let* [(rstack (send i get 'rstack))
@@ -87,7 +87,7 @@
 		    (set! pc (add1 pc)))))
     (push-int! dstack location-counter)
     (add-primitive-code! dummy-proc))
-  (add-primitive-word! #t "if" if-proc)
+  (add-instruction! #t "if" if-proc)
 
 ; -IF
 ; 1. Puts a procedure which jumps over one slot if the top of stack is negative.
@@ -101,7 +101,7 @@
                   (set! pc (add1 pc)))))
   (push-int! dstack location-counter)
   (add-primitive-code! dummy-proc))
-(add-primitive-word! #t "-if" nif-proc)
+(add-instruction! #t "-if" nif-proc)
 
 ; THEN
 ; Put an unconditional branch to HERE.
@@ -110,7 +110,7 @@
 (define (then-proc)
   (let [(here-addr location-counter)]
     (rvector-set! codespace (pop-int! dstack #f) (lambda () (set! pc here-addr)))))
-(add-primitive-word! #t "then" then-proc)
+(add-instruction! #t "then" then-proc)
 
 
 ; Loops
@@ -126,7 +126,7 @@
 		  (pop-int! rstack #t))
            (begin (push-int! rstack (add1 (pop-int! rstack #t)))
                   (set! pc addr)))))))
-(add-primitive-word! #t "loop" loop-proc)
+(add-instruction! #t "loop" loop-proc)
 
 ; BEGIN
 ; Put HERE on the stack, to be used by UNTIL or REPEAT.
@@ -145,7 +145,7 @@
 (define (for-proc)
   (add-primitive-code!(push-proc))
   (push-int! dstack location-counter))
-(add-primitive-word! #t "for" for-proc)
+(add-instruction! #t "for" for-proc)
 
 
 (add-compiler-directive! "for"
@@ -162,18 +162,18 @@
                           (if (= (pop-int! dstack #t) 0)
                               (set! pc addr)
                               (void))))))
-(add-primitive-word! #t "until" until-proc)
+(add-instruction! #t "until" until-proc)
 
 ; WHILE
 ; Does the same thing as IF.
 ; BEGIN - WHILE - REPEAT is like BEGIN - IF - LOOP THEN
-(add-primitive-word! #t "while" if-proc)
+(add-instruction! #t "while" if-proc)
 
-(add-primitive-word! #f "?dup" (lambda () (if (= 0 (get-int dstack #f))
+(add-instruction! #f "?dup" (lambda () (if (= 0 (get-int dstack #f))
                                               (void)
                                               (push-cells! (get-cells dstack)))))
 
-(add-primitive-word! #t "abort\""
+(add-instruction! #t "abort\""
                      (lambda () (let [(str (read-string))]
                                   (add-primitive-code!
                                    (lambda () (if (= (pop-int! dstack #t) false)

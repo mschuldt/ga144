@@ -7,7 +7,7 @@
 
 (provide compile compile-and-run compile-to-vector compile-to-string)
 
-(add-compiler-directives!)
+(add-directives!)
 (add-bit-words!)
 (add-control-words!)
 (add-io-words!)

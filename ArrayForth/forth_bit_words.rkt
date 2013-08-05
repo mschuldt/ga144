@@ -9,7 +9,7 @@
 (define false 0)
 
 (define (add-bit-words!)
-  (add-primitive-word!
+  (add-instruction!
    "and" ; bitwise and
    (lambda (i)
      (let* [(dstack (send i get 'dstack))
@@ -17,7 +17,7 @@
 	    (arg2 (pop-int! dstack #t))]
        (push-int! dstack (bitwise-and arg1 arg2)))))
 
-  (add-primitive-word!
+  (add-instruction!
    "or" ; bitwise exclusive or
    (lambda (i)
      (let* [(dstack (send i get 'dstack))
@@ -25,7 +25,7 @@
 	    (arg2 (pop-int! dstack #t))]
        (push-int! dstack (bitwise-xor arg1 arg2)))))
 
-  (add-primitive-word!
+  (add-instruction!
    "-" ; invert (bitwise negation)
    (lambda (i)
      (let [(dstack (send i get 'dstack))]
@@ -35,7 +35,7 @@
 ; Math
 
 ; Addition - adds 2 ints, pushes it back onto the stack.  Treated as signed, but works for unsigned as well.
-  (add-primitive-word!
+  (add-instruction!
    "+"
    (lambda (i)
      (let* [(dstack (send i get 'dstack))
@@ -66,19 +66,19 @@
 	(push-int! dstack (+ (bitwise-and t 131072)
 			     (quotient (bitwise-and t 262143) 2))))))
 
-  (add-primitive-word! "+*" multiply-step-proc)
+  (add-instruction! "+*" multiply-step-proc)
 
-  (add-primitive-word!
+  (add-instruction!
    "2*"
    (lambda (i)
      (let [(dstack (send i get 'dstack))]
        (push-int! dstack (* (pop-int! dstack #t) 2)))))
 
-  (add-primitive-word!
+  (add-instruction!
    "2/"
    (lambda (i)
      (let [(dstack (send i get 'dstack))]
        (push-int! dstack (/ (pop-int! dstack #t) 2)))))
 
-  (add-primitive-word! "." (lambda (i) (void)))
-  (make-synonym "." "nop"))
+  (add-instruction! "." (lambda (i) (void)))
+  (make-instruction-synonym "." "nop"))

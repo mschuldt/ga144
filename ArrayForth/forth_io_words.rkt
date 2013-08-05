@@ -5,7 +5,7 @@
 
 (define (add-io-words!)
 
-  (add-primitive-word!
+  (add-instruction!
    "send"
    (lambda (i)
      (let* [(dstack (send i get 'dstack))
@@ -17,7 +17,7 @@
 	   (send i set 'pc (sub1 pc))
 	   (rvector-set! table arg1 arg2)))))
 
-  (add-primitive-word!
+  (add-instruction!
    "recv"
    (lambda (i)
      (let* [(dstack (send i get 'dstack))
@@ -32,12 +32,12 @@
 		  (send i set 'pc (sub1 pc)))))))
 
   ; Debugging
-  (add-primitive-word!
+  (add-instruction!
    ".s"
    (lambda (i)
      (print-stack (send i get 'dstack))))
 
-  (add-primitive-word!
+  (add-instruction!
    ".ns"
    (lambda (i)
      (print (send i get 'state-index))
@@ -45,12 +45,12 @@
      (print-stack (send i get 'dstack))
      (newline)))
 
-  (add-primitive-word!
+  (add-instruction!
    ".r"
    (lambda (i)
      (print-stack (send i get 'rstack))))
 
-  (add-primitive-word!
+  (add-instruction!
    ".nr"
    (lambda (i)
      (print (send i get 'state-index))
@@ -72,7 +72,7 @@
 			     (display elmt)])))
 	       (print-memory memory (+ 4 start) end))))
 
-  (add-primitive-word!
+  (add-instruction!
    ".mem"
    (lambda (i)
      (let* [(dstack (send i get 'dstack))

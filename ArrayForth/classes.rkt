@@ -80,25 +80,17 @@
 	   (set 'pc (* 4 addr))
 	   (set 'next-word (add1 addr)))
 
-	 (define/public (execute-code addr)
-	   ; pc will be the address of the next instruction to execute
-	   (push-int! (get 'rstack) (inexact->exact (ceiling (/ (get 'pc) 4))))
-	   (set-pc! addr))
-
-	 (define/public (execute entry)
-	   (execute-code (entry-code entry)))
-
 	 (define/public (single-step core)
 	   (set 'state-index core)
 	   (let [(memory (get 'memory))
 		 (pc (get 'pc))]
 	     (if (or (< pc 0) (>= pc (rvector-length memory)))
 		 (set 'used-cores (remove core (get 'used-cores)))
-		 (let [(code (read-and-increment-pc!))]
-		   (unless (string? code)
+		 (let [(name (read-and-increment-pc!))]
+		   (unless (string? name)
 			   (raise "Not a string -- single-step"))
-		   (let [(proc (rvector-ref codespace (entry-code (find-entry dict code))))]
-		     (if (member code address-required)
+		   (let [(proc (get-instruction-proc name))]
+		     (if (member name address-required)
 			 (proc this (read-and-increment-pc!))
 			 (proc this)))))))
 
@@ -111,43 +103,35 @@
 	   (unless (null? (get 'used-cores))
 		   (interpret)))))
 
-(define codespace (make-rvector 100 -1))
-(define dict (make-rvector 500 -1))
-(define compiler-directives (make-rvector 100 -1))
+(define instructions (make-hash))
+(define (is-instruction? name)
+  (hash-has-key? instructions name))
+(define (add-instruction! name code)
+  (hash-set! instructions name code))
+(define (get-instruction-proc name)
+  (and (is-instruction? name)
+       (hash-ref instructions name)))
 
-(define (add-entry! prim name code)
-  (let [(new (entry prim name code))]
-    (add-element! dict new)
-    new))
+; Compiler directive - something that is executed at compile time
+(define directives (make-hash))
+(define (is-directive? name)
+  (hash-has-key? directives name))
+(define (add-directive! name code)
+  (hash-set! directives name code))
+(define (get-directive-proc name)
+  (and (is-directive? name)
+       (hash-ref directives name)))
 
-(define (add-primitive-code! elmt)
-  (add-element! codespace elmt))
-
-(define (add-word! prim name)
-  (add-entry! prim name (rvector-length codespace)))
-
-(define (add-primitive-word! name code)
-  (add-word! #t name)
-  (add-primitive-code! code))
-
-; Adds a new compiler directive - something that is executed
-(define (add-compiler-directive! name code)
-  (add-element! compiler-directives
-		(entry #t name (rvector-length codespace)))
-  (add-primitive-code! code))
-
-(define (make-synonym a b)
-  (let [(a-dir (find-entry dict a))
-	(b-dir (find-entry dict b))]
+(define (make-instruction-synonym a b)
+  (let [(a-present (is-instruction? a))
+	(b-present (is-instruction? b))]
     ; If both are defined, or neither is defined, error.
-    (cond [(or (and a-dir b-dir) (not (or a-dir b-dir)))
+    (cond [(or (and a-present b-present) (not (or a-present b-present)))
 	   (raise "Cannot make synonym")]
-	  [a-dir (add-entry! (entry-primitive a-dir) b (entry-code a-dir))]
-	  [else (add-entry! (entry-primitive b-dir) a (entry-code b-dir))])))
-
-; Entry for the dictionary.
-; Code must be mutable to allow procs which refer to the entry itself.
-(struct entry (primitive name code))
+	  [a-present
+	   (add-instruction! b (hash-ref instructions a))]
+	  [else
+	   (add-instruction! a (hash-ref instructions b))])))
 
 (define compiler%
   (class object%
@@ -155,9 +139,9 @@
 
 	 (field (location-counter 1)
 		(i-register 0)
+		(dict (make-hash))
 		(execute? #f)
 		(dstack (make-infinite-stack))
-		(lit-entry 0)
 		(interpreter (new interpreter%)))
 
 	 ; Note: It is important that we look in this object before the
@@ -181,6 +165,13 @@
 
 	 (define/public (increment-pc!)
 	   (send interpreter increment-pc!))
+
+	 (define/public (add-word! name code)
+	   (hash-set! dict name code))
+
+	 (define/public (get-word-address name)
+	   (and (hash-has-key? dict name)
+		(hash-ref dict name)))
 
 	 (define/public (add-compiled-data! data)
 	   (let [(memory (get 'memory))
@@ -273,46 +264,43 @@
 	    [else #f]))
 
 	 (define/public (compile-loop)
-	   (let [(to-compile (forth_read))]
-	     (unless (eof-object? to-compile)
-		     (unless (eq? to-compile #\newline)
-			     (let [(directive (find-entry compiler-directives to-compile))]
-			       (if directive
-				   ((rvector-ref codespace (entry-code directive)) this)
-				   (let [(entry (find-entry dict to-compile))]
-				     (cond [(not entry)
-					    (let [(num (or (port->number to-compile) 
-							   (string->bytes to-compile)))]
-					      (if num
-						  (if execute?
-						      (push-cells! (get 'dstack) num)
-						      (compile-constant! num))
-						  (raise (string-append to-compile " ?"))))]
-					   [execute?
+	   (let [(token (forth_read))]
+	     (unless (eof-object? token)
+		     (unless (eq? token #\newline)
+			     (compile-token token))
+		     (compile-loop))))
+
+	 (define/public (compile-token token)
+	   (let [(directive (get-directive-proc token))
+		 (instruction (get-instruction-proc token))
+		 (address (get-word-address token))]
+	     (cond [directive
+		    (directive this)]
+		   [(and instruction execute?)
 ; Assume that it is not an instruction that requires an address as an argument
-					    ((rvector-ref codespace (entry-code entry)) (get 'interpreter))]
-					   [(member to-compile address-required-on-dstack)
-					    (when (= (remainder i-register 4) 3)
-						  (fill-rest-with-nops))
-					    (add-compiled-code! to-compile)
-					    (compile-address! (pop-int! dstack #f))
-					    (fill-rest-with-nops)]
-					   [(entry-primitive entry)
-					    (add-compiled-code! to-compile)
-					    (when (member to-compile instructions-using-entire-word)
-						  (fill-rest-with-nops))]
-					   [else
-					    (let [(nxt (forth_read))]
+		    (instruction (get 'interpreter))]
+		   [instruction
+		    (add-compiled-code! token)
+		    (when (member token instructions-using-entire-word)
+			  (fill-rest-with-nops))]
+		   [address
+		    (let [(nxt (forth_read))]
 ; TODO: Check if address can fit.  For now, don't put jump/call in last slot.
 ; This is already taken care of by add-compiled-code!
-					      (if (equal? nxt ";")
-						  (add-compiled-code! "jump")
-						  (begin (forth_read 'put-back nxt)
-							 (add-compiled-code! "call")))
+		      (if (equal? nxt ";")
+			  (add-compiled-code! "jump")
+			  (begin (forth_read 'put-back nxt)
+				 (add-compiled-code! "call")))
 ; Compile the address.  Automatically compiles #f into the rest of the word.
-					      (compile-address! (entry-code entry)))])))))
-	      (compile-loop))))))
-
+		      (compile-address! address))]
+		   [else
+		    (let [(num (or (port->number token) 
+				   (string->bytes token)))]
+		      (if num
+			  (if execute?
+			      (push-cells! (get 'dstack) num)
+			      (compile-constant! num))
+			  (raise (string-append token " ?"))))])))))
 
 ; Stacks
 (define push-cells! push!)
@@ -327,8 +315,6 @@
 (define (get-int stack signed? [pos 0])
   (integer-bytes->integer (get-cells stack pos) signed? #t))
 
-; Debugging
-
 (define (print-stack stack)
   (define (loop pos)
     (print (get-int stack #t pos))
@@ -337,25 +323,3 @@
   (display "| ")
   (loop (sub1 (stack-length stack)))
   (display ">"))
-
-(define (find-address d name)
-  (define (loop address)
-    (let [(word (rvector-ref d address))]
-      (cond [(equal? name (entry-name word)) address]
-            [(= address 0) #f]
-            [else (loop (sub1 address))])))
-  (let ((len (rvector-length d)))
-    (if (= len 0)
-	#f
-	(loop (sub1 len)))))
-
-(define (find-entry d name)
-  (let [(address (find-address d name))]
-    (if address
-        (rvector-ref d address)
-        #f)))
-
-(define (lookup key records)
-  (cond ((null? records) #f)
-	((equal? key (caar records)) (cdar records))
-	(else (lookup key (cdr records)))))
