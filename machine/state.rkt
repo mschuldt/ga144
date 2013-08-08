@@ -24,9 +24,9 @@
 ;;; empty.
 (define (random-state [max-size #x40000])
   (struct-copy progstate start-state
-               [a      (random max-size)]
-               [b      (random max-size)]
-               [r      (random max-size)]
+               [a      0]
+               [b      0]
+               [r      0]
                [s 0]
                [t 0]
                [data (stack 0 (make-vector 8))]
@@ -53,7 +53,7 @@
 (define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
 
 ;;; Constrain everything. We must have perfection!
-(define constraint-all (progstate #t #t #t #t #t #t #t #t #t #t))
+(define constraint-all (progstate #t #t #t #t #t #t #t 8 #t #t))
 
 ;;; Defines a constraint for some fields. For example, `(constraint
 ;;; t)' is the same as constraint-only-t and evaluates to `(progstate
