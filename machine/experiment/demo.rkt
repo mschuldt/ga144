@@ -13,7 +13,7 @@
 ;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
 
 ;;; x - (x & y)
-;(optimize "over and - @p 1 . + . +" #:slots 8 #:constraint (constraint t))
+;(optimize "over and - @p 1 . + . +" #:slots 4 #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
@@ -23,12 +23,15 @@
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
-(optimize "@p b! !b . 325 @p b! !b . 325" 
-          #:constraint constraint-none #:num-bits 9 #:name "comm")
+;(optimize "@p b! !b . 325 @p b! !b . 325" 
+;          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
 ;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
 ;          #:f18a #f)
           
+(optimize "3 b! @b 4 b! @b . + 15 and 3 b! !b" 
+          #:constraint (constraint t memory) #:f18a #f
+          #:mem 5 #:num-bits 5)
 
 #|
 (optimize 

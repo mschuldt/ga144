@@ -8,14 +8,14 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #t)
+(define debug #f)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 300)
+(define timeout 30)
 
 (define (initialize)
   (system "mkdir debug")
@@ -253,12 +253,13 @@
       'timeout))
 
 (define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
+  (pretty-display `(program-diff? mem-size ,mem-size))
   (define formatted-spec (insert-nops spec))
   (define formatted-cand (insert-nops candidate))
   (if (equal? formatted-spec formatted-cand)
       #f
       (validate formatted-spec formatted-cand
-                "eqtest" mem-size constraint num-bits inst-pool)))
+                "eqtest" (if (> mem-size 0) mem-size 1) constraint num-bits inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate name mem constraint num-bits [inst-pool `no-fake])
@@ -393,7 +394,7 @@
                                #:length-limit (and length-search limit)
 			       #:num-bits num-bits #:inst-pool inst-pool)])
         (cond
-          [(equal? candidate 'timeout) best-so-far]
+          [(equal? candidate 'timeout) 'timeout]
           [(and (not candidate) (= slot-min slot-max)) best-so-far]
           [(not candidate)
            (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint 
@@ -512,7 +513,7 @@
 ;;               to slots.
 ;;               DEFAULT = true
 
-(define (optimize-interal orig-program 
+(define (optimize-internal orig-program 
                   #:f18a       [f18a #t]
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
@@ -575,27 +576,34 @@
 			#:inst-pool  inst-pool
 			#:start-state (random-state (expt 2 BIT)))))
   (when demo
-  (newline)
-  (if result
-      (begin
-	(pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
-	(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
-        (if (equal? bin-search `time)
-            (pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
-            (pretty-display (format "length with literal\t: ~a" (cdr result))))
-	(newline)
-	(pretty-display "Constants for neighbor ports:")
-	(pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
-	(newline))
-      (pretty-display (format "No better implementation found.")))
-  (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
+    (newline)
+    (cond
+     [(equal? result 'timeout)
+      (pretty-display "Timeout.")]
+     
+     [result
+      (pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
+      (pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
+      (if (equal? bin-search `time)
+          (pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
+          (pretty-display (format "length with literal\t: ~a" (cdr result))))
+      (newline)
+      (pretty-display "Constants for neighbor ports:")
+      (pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
+      (newline)]
+     
+     [else
+      (pretty-display "No better implementation found.")])
+    
+    (pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) start-time))))
 
   (when (not debug)
   	(finalize))
 
-  (if result
-      (car result)
-      orig-program)
+  (cond
+   [(equal? result 'timeout) 'timeout]
+   [result (car result)]
+   [else orig-program])
 )
   
 (define cache (make-hash))
@@ -615,7 +623,7 @@
 		  #:bin-search [bin-search `length])
   (if (hash-has-key? cache orig-program)
       (hash-ref cache orig-program)
-      (let ([result (optimize-interal orig-program
+      (let ([result (optimize-internal orig-program
 				      #:f18a       f18a
 				      #:name       name
 				      #:mem        mem
