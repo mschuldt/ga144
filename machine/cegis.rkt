@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 30)
+(define timeout 100)
 
 (define (initialize)
   (system "mkdir debug")
@@ -23,7 +23,8 @@
   (set! all-pairs '()))
 
 (define (finalize)
-  (system "rm -r debug"))
+  ;(system "rm debug/*"))
+  void)
 
 (define (set-comm-length comm)
   (define (check-and-set entry)
