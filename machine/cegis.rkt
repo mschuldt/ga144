@@ -8,14 +8,14 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #f)
+(define debug #t)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 100)
+(define timeout 300)
 
 (define (initialize)
   (system "mkdir debug")
@@ -27,19 +27,21 @@
   void)
 
 (define (set-comm-length comm)
-  (define (check-and-set entry)
-    (when (> (entry comm) comm-length)
-  	  (set! comm-length (entry comm))))
-  (check-and-set commstate-sendp-u)
-  (check-and-set commstate-sendp-d)
-  (check-and-set commstate-sendp-l)
-  (check-and-set commstate-sendp-r)
-  (check-and-set commstate-sendp-io)
-  (check-and-set commstate-recvp-u)
-  (check-and-set commstate-recvp-d)
-  (check-and-set commstate-recvp-l)
-  (check-and-set commstate-recvp-r)
-  (check-and-set commstate-recvp-io)
+  ;; (define (check-and-set entry)
+  ;;   (when (> (entry comm) comm-length)
+  ;; 	  (set! comm-length (entry comm))))
+  ;; (check-and-set commstate-sendp-u)
+  ;; (check-and-set commstate-sendp-d)
+  ;; (check-and-set commstate-sendp-l)
+  ;; (check-and-set commstate-sendp-r)
+  ;; (check-and-set commstate-sendp-io)
+  ;; (check-and-set commstate-recvp-u)
+  ;; (check-and-set commstate-recvp-d)
+  ;; (check-and-set commstate-recvp-l)
+  ;; (check-and-set commstate-recvp-r)
+  ;; (check-and-set commstate-recvp-io)
+
+  (set! comm-length (max 1 (vector-length (commstate-data comm))))
 )
 
 (define (perf-mode)
@@ -152,16 +154,11 @@
 
 ;;; Extract the commstate from the model.
 (define (model->commstate model prog-length)
-  (define (send x) (car (cdr (assoc (string->symbol (format "send~s_v0" x)) model))))
-  (define (recv x) (car (cdr (assoc (string->symbol (format "recv~s_v0" x)) model))))
-  (define (order x) (car (cdr (assoc (string->symbol (format "order~s_v0" x)) model))))
-  (define (sendp x) (car (cdr (assoc (string->symbol (format "sendp~s_~s_v0" x prog-length)) model))))
-  (define (recvp x) (car (cdr (assoc (string->symbol (format "recvp~s_~s_v0" x prog-length)) model))))
-  (commstate (send 0) (send 1) (send 2) (send 3) (send 4)
-             (recv 0) (recv 1) (recv 2) (recv 3) (recv 4)
-             (sendp 0) (sendp 1) (sendp 2) (sendp 3) (sendp 4)
-             (recvp 0) (recvp 1) (recvp 2) (recvp 3) (recvp 4)
-	     (order 0) (order 1) (order 2) (order 3) (order 4)))
+  (define commdata (car (cdr (assoc (string->symbol "commdata_v0") model))))
+  (define commtype (car (cdr (assoc (string->symbol "commtype_v0") model))))
+  (define recvdata (car (cdr (assoc (string->symbol "recvdata_v0") model))))
+  (define commp (car (cdr (assoc (string->symbol (format "commp_~s_v0" prog-length)) model))))
+  (commstate commdata commtype recvdata commp))
 
 ;;; Parses the given bitvector into a vector of 18bit numbers.
 (define (bytes->vector input size)

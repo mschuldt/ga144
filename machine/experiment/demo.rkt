@@ -29,10 +29,9 @@
 ;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
 ;          #:f18a #f)
           
-(optimize "3 b! @b 4 b! @b . + 15 and 3 b! !b" 
-          #:constraint (constraint t memory) #:f18a #f
-          #:mem 5 #:num-bits 5)
-
+;(optimize "3 b! @b 4 b! @b . + 15 and 3 b! !b" 
+;          #:constraint (constraint t memory) #:f18a #f
+;          #:mem 5 #:num-bits 5)
 #|
 (optimize 
  "@p a! @ @p 349    

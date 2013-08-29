@@ -20,9 +20,10 @@
 
 (define COMM_ENTRIES 4)
 (define COMM_SIZE (* COMM_ENTRIES SIZE))
-(define ORDER_SIZE (* 2 COMM_ENTRIES))
+(define COMMTYPE_UNIT 4)
+(define COMMTYPE_SIZE (* COMM_ENTRIES 4))
 (define COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
-(define COMM_BIT 3)
+(define COMM_BIT 4)
 
 (define TIME_SIZE 16)
 (define LENGTH_SIZE 16)
@@ -51,6 +52,20 @@
 (define cand-count 0) ; number of instructions in candidate program
 (define output-constraint constraint-all)
 (define SUPPORT `all)
+
+(define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
+(define support-no-fake '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-no-fake-no-p '#(@+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
+(define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
+(define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
+(define (support)
+  (cond
+   [(equal? SUPPORT `all) support-all]
+   [(equal? SUPPORT `no-fake) support-no-fake]
+   [(equal? SUPPORT `no-fake-no-p) support-no-fake-no-p]
+   [(equal? SUPPORT `no-mem) support-no-mem]
+   [(equal? SUPPORT `no-mem-no-p) support-no-mem-no-p]))
+(define (support-len) (vector-length (support)))
 
 (define (to-number word)
   (cond
@@ -101,14 +116,18 @@
 
 (define (declare-bitvector )
   (pretty-display `(define-sort BV1 () (_ BitVec 1)))  
-  (pretty-display `(define-sort BV3 () (_ BitVec 3)))                            ; for index
+  (pretty-display `(define-sort BV3 () (_ BitVec 3)))   ; for index
+
   (pretty-display `(define-sort ,(makeBV HOLE_BIT) () (_ BitVec ,HOLE_BIT)))     ; for hole
   (pretty-display `(define-sort ,(makeBV SIZE) () (_ BitVec ,SIZE)))             ; for normal variables
   (pretty-display `(define-sort ,(makeBV STACK_SIZE) () (_ BitVec ,STACK_SIZE))) ; for stack
+
   (pretty-display `(define-sort ,(makeBV MEM_SIZE) () (_ BitVec ,MEM_SIZE)))     ; for mem
-  (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm
-  (pretty-display `(define-sort ,(makeBV ORDER_SIZE) () (_ BitVec ,ORDER_SIZE)))   ; for comm order
+  (pretty-display `(define-sort ,(makeBV COMM_SIZE) () (_ BitVec ,COMM_SIZE)))   ; for comm array
+  (pretty-display `(define-sort ,(makeBV COMMTYPE_SIZE) () (_ BitVec ,COMMTYPE_SIZE)))   ; for commtype array
   (pretty-display `(define-sort ,(makeBV COMM_BIT) () (_ BitVec ,COMM_BIT)))     ; for comm index
+  (pretty-display `(define-sort BV4 () (_ BitVec ,COMMTYPE_UNIT)))   ; for commtype unit
+
   (pretty-display `(define-sort ,(makeBV TIME_SIZE) () (_ BitVec ,TIME_SIZE)))     ; for time
   )
 
@@ -157,12 +176,12 @@
   (declare-bitidx `bitidx-stack STACK_SIZE   3)
   (declare-bitidx `bitidx-mem   MEM_SIZE     SIZE)
   (declare-bitidx `bitidx-comm  COMM_SIZE    COMM_BIT)
-  (declare-bitidx `bitidx-order ORDER_SIZE   COMM_BIT 1)
+  (declare-bitidx `bitidx-commtype COMMTYPE_SIZE   COMM_BIT COMMTYPE_UNIT)
 
   (declare-get `get-stack       STACK_SIZE   3        `bitidx-stack)
   (declare-get `get-mem         MEM_SIZE     SIZE     `bitidx-mem)
   (declare-get `get-comm        COMM_SIZE    COMM_BIT `bitidx-comm)
-  (declare-get `get-order       ORDER_SIZE   COMM_BIT `bitidx-order 1)
+  (declare-get `get-commtype    COMMTYPE_SIZE   COMM_BIT `bitidx-commtype COMMTYPE_UNIT)
 
   (declare-modify `modify-stack STACK_SIZE 3    `bitidx-stack)
   (declare-modify `modify-mem   MEM_SIZE   SIZE `bitidx-mem))
@@ -178,8 +197,8 @@
     (pretty-display `(declare-const ,(var v step i) ,(makeBV bit))))
   (pretty-display `(assert (= ,(var v 0 i) (_ ,(makebv 0) ,bit)))))
 
-(define (declare-vector-one name i vec-size)
-  (pretty-display `(declare-const ,(var name i) ,(makeBV (* vec-size SIZE)))))
+(define (declare-vector-one name i bit)
+  (pretty-display `(declare-const ,(var name i) ,(makeBV bit))))
 
 (define (declare-holes n)
   (for* ([step (in-range 1 n)])
@@ -201,19 +220,15 @@
        (declare-init `sp n i 3)
        (declare-init `rp n i 3)
        (declare-init `mem n i MEM_SIZE)
+       (declare-init-zero `commp n i COMM_BIT)
+       (declare-init-zero `recvp n i COMM_BIT)
 
        (for* ([var `(t s r a b)])
 	     (declare-init var n i SIZE))
 
-       (for* ([var `(sendp0 sendp1 sendp2 sendp3 sendp4 recvp0 recvp1 recvp2 recvp3 recvp4)])
-	     (declare-init-zero var n i COMM_BIT))
-
-       (for* ([var `(send0 send1 send2 send3 send4 recv0 recv1 recv2 recv3 recv4)])
-	     (declare-vector-one var i COMM_ENTRIES))
-
-       ;; each bit determines if it is send or recv
-       (for* ([name `(order0 order1 order2 order3 order4)])
-	     (pretty-display `(declare-const ,(var name i) ,(makeBV ORDER_SIZE))))))
+       (declare-vector-one `commdata i COMM_SIZE)
+       (declare-vector-one `recvdata i COMM_SIZE)
+       (declare-vector-one `commtype i COMMTYPE_SIZE)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Generate Z3 formulas ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -263,38 +278,74 @@
 			  step i prev i t-even t-odd))
     (set! check_a (format "(= a_~e_v~e (ite (= ((_ extract 0 0) a_~e_v~e) #b0) ~a ~a))" 
 			  step i prev i a-even a-odd)))
-
-  (define (write-port reg port val)
-    (define common-constraint 
-      (format  "(and (= (get-comm send~a_v~e sendp~a_~a_v~e) t_~a_v~e) (= sendp~a_~e_v~e (bvadd sendp~a_~a_v~e (_ bv1 ~e))) (= (get-order order~a_v~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) #b1)) "
-	       port i port prev i prev i     
-	       port step i port prev i COMM_BIT
-	       port i port prev i port prev i))
     
-    (string-append
-     (format  "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-     (if syn
-	 (format  "(and ~a (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
-		  common-constraint    
-		  port step i port (sub1 n) i)
-	 common-constraint)
-    (format  "(= sendp~e_~e_v~e sendp~e_~e_v~e))" port step i port prev i)))
-    
-  (define (read-port reg port val)
-    (define common-constraint
-      (format "(and (= (get-comm recv~a_v~e recvp~a_~a_v~e) t_~a_v~e) (= recvp~a_~e_v~e (bvadd recvp~a_~a_v~e (_ bv1 ~e))) (= (get-order order~a_v~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) #b0)) "
-	      port i port prev i step i     
-	      port step i port prev i COMM_BIT
-	      port i port prev i port prev i))
+  (define (write-port reg)
+    (define (test val)
+      (format "(= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE))
 
-    (string-append (string-append
-      (format "(ite (= ~a_~a_v~e (_ bv~e ~e)) " reg prev i val SIZE)
-      (if syn
-	  (format "(and ~a (bvule sendp~e_~e_v~e sendp~e_~e_v~e)) "
-		  common-constraint     
-		  port step i port (sub1 n) i)
-	  common-constraint)
-      (format "(= recvp~e_~e_v~e recvp~e_~e_v~e))" port step i port prev i))))
+    (define (typecheck port val)
+      (format "(and ~a (= (get-commtype commtype_v~e commp_~a_v~e) (_ bv~a ~a)))"
+              (test val)
+              i prev i (+ 5 port) COMMTYPE_UNIT))
+
+    (define main (format "(and (= (get-comm commdata_v~e commp_~a_v~e) t_~a_v~e) (= commp_~e_v~e (bvadd commp_~a_v~e (_ bv1 ~e))) (or ~a ~a ~a ~a ~a))"
+                                        i prev i prev i   
+                                        step i prev i COMM_BIT
+                                        (typecheck U-ID UP) (typecheck D-ID DOWN) 
+                                        (typecheck L-ID LEFT) (typecheck R-ID RIGHT)
+                                        (typecheck IO-ID IO)))
+
+    (when syn
+          (set! main (format "(and ~a (bvule commp_~e_v~e commp_~e_v~e))"
+                             main step i (sub1 n) i)))
+                                        
+    (format "(ite (or ~a ~a ~a ~a ~a) ~a (= commp_~e_v~e commp_~e_v~e))"
+            (test UP) (test DOWN) (test LEFT) (test RIGHT) (test IO)
+            main
+            step i prev i))
+    
+  (define (read-port reg)
+    (define (test val)
+      (format "(= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE))
+
+    (define (typecheck port val)
+      (format "(and ~a (= (get-commtype commtype_v~e commp_~a_v~e) (_ bv~a ~a)))"
+              (test val)
+              i prev i port COMMTYPE_UNIT))
+
+    (define main (format "(and (= (get-comm commdata_v~e commp_~a_v~e) t_~a_v~e) (= commp_~e_v~e (bvadd commp_~a_v~e (_ bv1 ~e))) (or ~a ~a ~a ~a ~a))"
+                                        i prev i step i   
+                                        step i prev i COMM_BIT
+                                        (typecheck U-ID UP) (typecheck D-ID DOWN) 
+                                        (typecheck L-ID LEFT) (typecheck R-ID RIGHT)
+                                        (typecheck IO-ID IO)))
+
+    (when syn
+          (set! main (format "(and ~a (bvule commp_~e_v~e commp_~e_v~e))"
+                             main step i (sub1 n) i)))
+                                        
+    (format "(ite (or ~a ~a ~a ~a ~a) ~a (= commp_~e_v~e commp_~e_v~e))"
+            (test UP) (test DOWN) (test LEFT) (test RIGHT) (test IO)
+            main
+            step i prev i))
+    
+  (define (recv-port reg)
+    (define (test val)
+      (format "(= ~a_~a_v~e (_ bv~e ~e))" reg prev i val SIZE))
+
+    (define main (format "(and (= (get-comm recvdata_v~e recvp_~a_v~e) t_~a_v~e) (= recvp_~e_v~e (bvadd recvp_~a_v~e (_ bv1 ~e))))"
+                         i prev i step i
+                         step i prev i COMM_BIT
+                         ))
+
+    ;; (when syn
+    ;;       (set! main (format "(and ~a (and ~a (bvule recvp_~e_v~e recvp_~e_v~e)))"
+    ;;                          main step i (sub1 n) i)))
+                                        
+    (format "(ite (or ~a ~a ~a ~a ~a) ~a (= recvp_~e_v~e recvp_~e_v~e))"
+            (test UP) (test DOWN) (test LEFT) (test RIGHT) (test IO)
+            main
+            step i prev i))
   
   ;;; check that value in register is valid for read or write from a port
   (define (mem-range reg)
@@ -322,167 +373,171 @@
   (define check_dst (format "(= dst_~e_v~e dst_~e_v~e)" step i prev i))
   (define check_rst (format "(= rst_~e_v~e rst_~e_v~e)" step i prev i))
   (define check_mem (format "(= mem_~e_v~e mem_~e_v~e)" step i prev i))
-  (define check_sendp_u (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" U-ID step i U-ID prev i))
-  (define check_sendp_d (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" D-ID step i D-ID prev i))
-  (define check_sendp_l (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" L-ID step i L-ID prev i))
-  (define check_sendp_r (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" R-ID step i R-ID prev i))
-  (define check_sendp_io (format "(= sendp~e_~e_v~e sendp~e_~e_v~e)" IO-ID step i IO-ID prev i))
-  (define check_recvp_u (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" U-ID step i U-ID prev i))
-  (define check_recvp_d (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" D-ID step i D-ID prev i))
-  (define check_recvp_l (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" L-ID step i L-ID prev i))
-  (define check_recvp_r (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" R-ID step i R-ID prev i))
-  (define check_recvp_io (format "(= recvp~e_~e_v~e recvp~e_~e_v~e)" IO-ID step i IO-ID prev i))
+  (define check_comm (format "(= commp_~e_v~e commp_~e_v~e)" step i prev i))
+  (define check_recv (format "(= recvp_~e_v~e recvp_~e_v~e)" step i prev i))
 
   (cond 
-    ; 2*
+    ;; 2*
     [(equal? choice `2*) 
-               (set! check_t (format "(= t_~e_v~e (bvshl t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
-    ; shiftl
+     (set! check_t (format "(= t_~e_v~e (bvshl t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
+
+    ;; shiftl
     [(equal? choice `lshift)
      (set! check_t (format "(= t_~e_v~e (bvshl s_~e_v~e t_~e_v~e))" step i prev i prev i))
      (shrink)]
-    ; 2/
+
+    ;; 2/
     [(equal? choice `2/)
-               (set! check_t (format "(= t_~e_v~e (bvashr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
-    ; shiftr
+     (set! check_t (format "(= t_~e_v~e (bvashr t_~e_v~e (_ bv1 ~e)))" step i prev i SIZE))]
+    
+    ;; shiftr
     [(equal? choice `rshift)
      (set! check_t (format "(= t_~e_v~e (bvashr s_~e_v~e t_~e_v~e))" step i prev i prev i))
      (shrink)]
-    ; /
+
+    ;; /
     [(equal? choice `/)
      (set! check_t (format "(= t_~e_v~e (bvsdiv s_~e_v~e t_~e_v~e))" step i prev i prev i))
      (shrink)]
-    ; -
+
+    ;; -
     [(equal? choice `-)
-               (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
-    ; +
+     (set! check_t (format "(= t_~e_v~e (bvnot t_~e_v~e))" step i prev i))]
+
+    ;; +
     [(equal? choice `+)
-               (set! check_t 
-		     (if (= step 1)
-			 (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i)
-			 (format "(and (= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e)) (= ~a_~a (_ bv~a ~a)))" 
-				 step i prev i prev i     name prev (vector-member 'nop choice-id) HOLE_BIT)))
-               (shrink)]
-    ; and
+     (set! check_t 
+           (if (= step 1)
+               (format "(= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e))" step i prev i prev i)
+               (format "(and (= t_~e_v~e (bvadd t_~e_v~e s_~e_v~e)) (= ~a_~a (_ bv~a ~a)))" 
+                       step i prev i prev i     
+                       name prev (vector-member 'nop choice-id) HOLE_BIT)))
+     (shrink)]
+
+    ;; and
     [(equal? choice `and)
-               (set! check_t (format "(= t_~e_v~e (bvand t_~e_v~e s_~e_v~e))" step i prev i prev i))
-               (shrink)]
-    ; or
+     (set! check_t (format "(= t_~e_v~e (bvand t_~e_v~e s_~e_v~e))" step i prev i prev i))
+     (shrink)]
+
+    ;; or
     [(equal? choice `or)
-               (set! check_t (format "(= t_~e_v~e (bvxor t_~e_v~e s_~e_v~e))" step i prev i prev i))
-               (shrink)]
-    ; drop
+     (set! check_t (format "(= t_~e_v~e (bvxor t_~e_v~e s_~e_v~e))" step i prev i prev i))
+     (shrink)]
+
+    ;; drop
     [(equal? choice `drop) 
-               (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-               (shrink)]
-    ; dup
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (shrink)]
+
+    ;; dup
     [(equal? choice `dup)
-               (set! check_t (format "(= t_~e_v~e t_~a_v~e)" step i prev i))
-	       (grow)]
-    ; @+ (can't read port)
+     (set! check_t (format "(= t_~e_v~e t_~a_v~e)" step i prev i))
+     (grow)]
+
+    ;; @+ (can't read port)
     [(equal? choice `@+)
-               (set! check_a 
-		     (if syn
-			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
-				 prev i MEM_ENTRIES SIZE step i prev i SIZE)
-			 (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
-	       (set! check_t (format "(= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e))" step i prev i prev i))
-	       (grow)]
-    ; @
+     (set! check_a 
+           (if syn
+               (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
+                       prev i MEM_ENTRIES SIZE step i prev i SIZE)
+               (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
+     (set! check_t (format "(= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e))" step i prev i prev i))
+     (grow)]
+
+    ;; @
     [(equal? choice `@)
-               (set! check_a (mem-range `a))
-	       (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
-				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
-	       (set! check_recvp_u (read-port `a U-ID UP))
-	       (set! check_recvp_d (read-port `a D-ID DOWN))
-	       (set! check_recvp_l (read-port `a L-ID LEFT))
-	       (set! check_recvp_r (read-port `a R-ID RIGHT))
-	       (set! check_recvp_io (read-port `a IO-ID IO))
-               (grow)]
-    ; @b
+     (set! check_a (mem-range `a))
+     (set! check_t (format "(or (bvugt a_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e a_~e_v~e)))" 
+                           prev i MEM_ENTRIES SIZE     step i prev i prev i))
+     (set! check_comm (read-port `a))
+     (set! check_recv (recv-port `a))
+     (grow)]
+
+    ;; @b
     [(equal? choice `@b)
-               (set! check_b (mem-range `b))
-	       (set! check_t (format "(or (bvugt b_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e b_~e_v~e)))" 
-				     prev i MEM_ENTRIES SIZE     step i prev i prev i))
-	       (set! check_recvp_u (read-port `b U-ID UP))
-	       (set! check_recvp_d (read-port `b D-ID DOWN))
-	       (set! check_recvp_l (read-port `b L-ID LEFT))
-	       (set! check_recvp_r (read-port `b R-ID RIGHT))
-	       (set! check_recvp_io (read-port `b IO-ID IO))
-	       (grow)]
-    ; @p
+     (set! check_b (mem-range `b))
+     (set! check_t (format "(or (bvugt b_~a_v~e (_ bv~e ~e)) (= t_~e_v~e (get-mem mem_~e_v~e b_~e_v~e)))" 
+                           prev i MEM_ENTRIES SIZE     step i prev i prev i))
+     (set! check_comm (read-port `b))
+     (set! check_recv (recv-port `b))
+     (grow)]
+
+    ;; @p
     [(equal? choice `@p)
-               (set! check_t (format "(= t_~e_v~e ~alit_~e)" step i name step))
-	       (grow)]
-    ; !+ (can't store to port)
+     (set! check_t (format "(= t_~e_v~e ~alit_~e)" step i name step))
+     (grow)]
+
+    ;; !+ (can't store to port)
     [(equal? choice `!+)
-               (set! check_a 
-    		     (if syn
-    			 (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
-    				 prev i MEM_ENTRIES SIZE step i prev i SIZE)
-    			 (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
-    	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-    	       (set! check_mem (format "(= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e))" 
-    				       step i prev i prev i prev i))
-    	       (shrink)]
-    ; !
+     (set! check_a 
+           (if syn
+               (format "(and (bvult a_~a_v~e (_ bv~e ~e)) (= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a))))" 
+                       prev i MEM_ENTRIES SIZE step i prev i SIZE)
+               (format "(= a_~e_v~e (bvadd a_~a_v~e (_ bv1 ~a)))" step i prev i SIZE)))
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (set! check_mem (format "(= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e))" 
+                             step i prev i prev i prev i))
+     (shrink)]
+
+    ;; !
     [(equal? choice `!)
-               (set! check_a (mem-range `a))
-    	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-    	       (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
-    				       step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
-    	       (set! check_sendp_u (write-port `a U-ID UP))
-    	       (set! check_sendp_d (write-port `a D-ID DOWN))
-    	       (set! check_sendp_l (write-port `a L-ID LEFT))
-    	       (set! check_sendp_r (write-port `a R-ID RIGHT))
-    	       (set! check_sendp_io (write-port `a IO-ID IO))
-    	       (shrink)]
-    ; !b
+     (set! check_a (mem-range `a))
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (set! check_mem (format "(ite (bvult a_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e a_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
+                             step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
+     (set! check_comm (write-port `a))
+     (shrink)]
+
+    ;; !b
     [(equal? choice `!b)
-               (set! check_b (mem-range `b))
-    	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-    	       (set! check_mem (format "(ite (bvult b_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
-    				       step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
-    	       (set! check_sendp_u (write-port `b U-ID UP))
-    	       (set! check_sendp_d (write-port `b D-ID DOWN))
-    	       (set! check_sendp_l (write-port `b L-ID LEFT))
-    	       (set! check_sendp_r (write-port `b R-ID RIGHT))
-    	       (set! check_sendp_io (write-port `b IO-ID IO))
-    	       (shrink)]
-    ; a!
+     (set! check_b (mem-range `b))
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (set! check_mem (format "(ite (bvult b_~a_v~e (_ bv~e ~e)) (= mem_~e_v~e (modify-mem mem_~a_v~e b_~a_v~e t_~a_v~e)) (= mem_~e_v~e mem_~a_v~e))" 
+                             step i MEM_ENTRIES SIZE step i prev i prev i prev i step i prev i))
+     (set! check_comm (write-port `b))
+     (shrink)]
+
+    ;; a!
     [(equal? choice `a!)
-               (set! check_a (format "(= a_~e_v~e t_~a_v~e)" step i prev i))
-	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-	       (shrink)]
-    ; b!
+     (set! check_a (format "(= a_~e_v~e t_~a_v~e)" step i prev i))
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (shrink)]
+
+    ;; b!
     [(equal? choice `b!)
-               (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
-	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-	       (shrink)]
-    ; a
+     (set! check_b (format "(= b_~e_v~e t_~a_v~e)" step i prev i))
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (shrink)]
+
+    ;; a
     [(equal? choice `a)
-               (set! check_t (format "(= t_~e_v~e a_~e_v~e)" step i prev i))
-	       (grow)]
-    ; +*
+     (set! check_t (format "(= t_~e_v~e a_~e_v~e)" step i prev i))
+     (grow)]
+
+    ;; +*
     [(equal? choice `+*)
-               (multiply-step)]
-    ; pop
+     (multiply-step)]
+
+    ;; pop
     [(equal? choice `pop)
-	       (set! check_t (format "(= t_~e_v~e r_~e_v~e)" step i prev i))
-               (shrink-return)
-	       (grow)]
-    ; push
+     (set! check_t (format "(= t_~e_v~e r_~e_v~e)" step i prev i))
+     (shrink-return)
+     (grow)]
+
+    ;; push
     [(equal? choice `push)
-	       (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
-               (grow-return)
-	       (shrink)]
-    ; over
+     (set! check_t (format "(= t_~e_v~e s_~e_v~e)" step i prev i))
+     (grow-return)
+     (shrink)]
+
+    ;; over
     [(equal? choice `over)
-               (set! check_t (format "(= t_~e_v~e s_~a_v~e)" step i prev i))
-	       (grow)]
-    ; nop
+     (set! check_t (format "(= t_~e_v~e s_~a_v~e)" step i prev i))
+     (grow)]
+
+    ;; nop
     [(equal? choice `nop) (void)]
-        )
+    )
   (string-join (list
                 "(and"
                 check_hole 
@@ -496,16 +551,8 @@
                 check_dst
                 check_rst
                 check_mem
-                check_sendp_u
-                check_sendp_d
-                check_sendp_l
-                check_sendp_r
-                check_sendp_io
-                check_recvp_u
-                check_recvp_d
-                check_recvp_l
-                check_recvp_r
-                check_recvp_io
+                check_comm
+                check_recv
                 ")")))
 
 ;;; Handle assumption differently from assertion on input-outpout pair.
@@ -525,19 +572,19 @@
 
   (define check_assump 
   (cond 
-    ; @+ (can't read port)
+    ;; @+ (can't read port)
     [(equal? choice `@+)
-	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
-    ; @
+     (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
+    ;; @
     [(equal? choice `@) (mem-range `a)]
-    ; @b
+    ;; @b
     [(equal? choice `@b) (mem-range `b)]
-    ; !+ (can't store to port)
+    ;; !+ (can't store to port)
     [(equal? choice `!+)
-	 (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
-    ; !
+     (format "(bvuge a_~a_v~e (_ bv~e ~e))" prev i MEM_ENTRIES SIZE)]
+    ;; !
     [(equal? choice `!) (mem-range `a)]
-    ; !b
+    ;; !b
     [(equal? choice `!b) (mem-range `b)]))
 
     (format "(and (= ~a_~e (_ bv~e ~e)) ~a)" name step (vector-member choice choice-id) HOLE_BIT check_assump))
@@ -615,20 +662,6 @@
        (pretty-display (format "(assert (= h_~a h_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))
        (pretty-display (format "(assert (= hlit_~a hlit_~a))" (add1 (+ init i)) (add1 (+ init (+ i (* t body))))))))
 
-(define support-all '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
-(define support-no-fake '#(@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define support-no-fake-no-p '#(@+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!))
-(define support-no-mem '#(@p +* 2* 2/ - + and or drop dup pop over a nop push a!))
-(define support-no-mem-no-p '#(+* 2* 2/ - + and or drop dup pop over a nop push a!))
-(define (support)
-  (cond
-   [(equal? SUPPORT `all) support-all]
-   [(equal? SUPPORT `no-fake) support-no-fake]
-   [(equal? SUPPORT `no-fake-no-p) support-no-fake-no-p]
-   [(equal? SUPPORT `no-mem) support-no-mem]
-   [(equal? SUPPORT `no-mem-no-p) support-no-mem-no-p]))
-
-(define (support-len) (vector-length (support)))
  
 (define (generate-formula step n version name syn [sup (support)])
   (define clauses (make-vector (vector-length sup)))
@@ -692,36 +725,17 @@
 	(pretty-display (format "(assert (= b_~e_v~e (_ bv~e ~e)))" n i (progstate-b state) SIZE))))
 
 (define (assert-comm comm n i)
-  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" U-ID i (commstate-send-u comm) COMM_SIZE))
-  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" D-ID i (commstate-send-d comm) COMM_SIZE))
-  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" L-ID i (commstate-send-l comm) COMM_SIZE))
-  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" R-ID i (commstate-send-r comm) COMM_SIZE))
-  (pretty-display (format "(assert (= send~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-send-io comm) COMM_SIZE))
+  (pretty-display (format "(assert (= commdata_v~e (_ bv~e ~e)))" 
+                          i (commstate-data comm) COMM_SIZE))
+  (pretty-display (format "(assert (= recvdata_v~e (_ bv~e ~e)))" 
+                          i (commstate-recv comm) COMM_SIZE))
+  (pretty-display (format "(assert (= commtype_v~e (_ bv~e ~e)))" 
+                          i (commstate-type comm) COMMTYPE_SIZE))
 
-  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" U-ID i (commstate-recv-u comm) COMM_SIZE))
-  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" D-ID i (commstate-recv-d comm) COMM_SIZE))
-  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" L-ID i (commstate-recv-l comm) COMM_SIZE))
-  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" R-ID i (commstate-recv-r comm) COMM_SIZE))
-  (pretty-display (format "(assert (= recv~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-recv-io comm) COMM_SIZE))
-
-  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" U-ID i (commstate-order-u comm) ORDER_SIZE))
-  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" D-ID i (commstate-order-d comm) ORDER_SIZE))
-  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" L-ID i (commstate-order-l comm) ORDER_SIZE))
-  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" R-ID i (commstate-order-r comm) ORDER_SIZE))
-  (pretty-display (format "(assert (= order~e_v~e (_ bv~e ~e)))" IO-ID i (commstate-order-io comm) ORDER_SIZE))
-
-  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-sendp-u comm) COMM_BIT))
-  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-sendp-d comm) COMM_BIT))
-  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-sendp-l comm) COMM_BIT))
-  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-sendp-r comm) COMM_BIT))
-  (pretty-display (format "(assert (= sendp~e_~e_v~e (_ bv~e ~e)))" IO-ID n i (commstate-sendp-io comm) COMM_BIT))
-
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" U-ID n i (commstate-recvp-u comm) COMM_BIT))
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" D-ID n i (commstate-recvp-d comm) COMM_BIT))
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" L-ID n i (commstate-recvp-l comm) COMM_BIT))
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" R-ID n i (commstate-recvp-r comm) COMM_BIT))
-  (pretty-display (format "(assert (= recvp~e_~e_v~e (_ bv~e ~e)))" IO-ID n i (commstate-recvp-io comm) COMM_BIT))
-
+  (pretty-display (format "(assert (= commp_~e_v~e (_ bv~e ~e)))" 
+                          n i (commstate-p comm) COMM_BIT))
+  ;; (pretty-display (format "(assert (= recvp_~e_v~e (_ bv~e ~e)))" 
+  ;;                         n i (vector-length (commstate-recv comm)) COMM_BIT)))
 )
 
 (define (assert-pair input output comm n i has-out)
@@ -781,25 +795,20 @@
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
-  (for ([i (in-range 0 5)])
-       (pretty-display (format "(assert (= recv~a_v0 recv~a_v1))" i i))))
+  (pretty-display "(assert (= recvdata_v0 recvdata_v1))"))
 
 (define (assert-output-neq)
   ;;; Add this assertion to set the irrelevant communcation entries to 0
   ;;; so that it's easy for comparision
   (define (assert-ir-comm v n)
-    (for* ([port `(send recv)]
-	   [p (in-range 0 5)]
-	   [i (in-range 0 COMM_ENTRIES)])
-	  (define index (format "(_ bv~a ~a)" i COMM_BIT))
-	  (pretty-display (format "(assert (or (bvult ~a ~ap~a_~a_v~a) (= (get-comm ~a~a_v~a ~a) (_ bv0 ~a))))" 
-				  index port p n v   port p v index SIZE)))
-    (for* ([p (in-range 0 5)]
-           [i (in-range 0 ORDER_SIZE)])
-      (define index (format "(_ bv~a ~a)" i COMM_BIT))
-      (pretty-display (format "(assert (or (bvult ~a (bvadd sendp~a_~a_v~a recvp~a_~a_v~a)) (= (get-order order~a_v~a ~a) (_ bv0 1))))" 
-                              index p n v p n v   p v index)))
-    )
+    (for ([i (in-range 0 COMM_ENTRIES)])
+         (define index (format "(_ bv~a ~a)" i COMM_BIT))
+         (pretty-display (format "(assert (or (bvult ~a commp_~a_v~a) (= (get-comm commdata_v~a ~a) (_ bv0 ~a))))" 
+        			  index n v v index SIZE))
+         (pretty-display (format "(assert (or (bvult ~a commp_~a_v~a) (= (get-commtype commtype_v~a ~a) (_ bv0 ~a))))" 
+        			  index n v v index COMMTYPE_UNIT))
+    ))
+
   (assert-ir-comm 0 spec-count)
   (assert-ir-comm 1 cand-count)
 
@@ -808,15 +817,17 @@
   ;(define index 0)
   (define clauses (list))
 
-  (define (list-add var)
+  (define (list-add-var var)
     (set! clauses (cons (format "(not (= ~a_~e_v0 ~a_~e_v1))" var spec-count var cand-count) clauses)))
 
-  ;;; TODO: relax constraint here too
-  (for ([var `(sendp0 sendp1 sendp2 sendp3 recvp0 recvp1 recvp2 recvp3)])
-       (list-add var))
-  (for* ([var `(send recv order)] ;; TODO: no recv
-	 [channel (in-range 0 5)])
-       (set! clauses (cons (format "(not (= ~a~a_v0 ~a~a_v1))" var channel var channel) clauses)))
+  (define (list-add x)
+    (set! clauses (cons x clauses)))
+
+  (list-add "(not (= commdata_v0 commdata_v1))")
+  (list-add "(not (= commtype_v0 commtype_v1))")
+  (list-add-var `commp)
+  (list-add-var `recvp)
+
   (when (progstate-data output-constraint)
         (define data (progstate-data output-constraint))
         ;; (set! clauses (cons (format "(not (= ~a ~a))" 
@@ -824,28 +835,27 @@
         ;;                             (top-stack cand-count 1))
         ;;                     clauses))
         (for ([i (in-range (progstate-data output-constraint))])
-             (set! clauses (cons (format "(not (= ~a ~a))"
+             (list-add (format "(not (= ~a ~a))"
                                          (nth-stack spec-count 0 i)
-                                         (nth-stack cand-count 1 i))
-                                 clauses)))
+                                         (nth-stack cand-count 1 i))))
 	;(list-add `dst)
 	;(list-add `sp)
         )
   (when (progstate-return output-constraint)
-	(list-add `rst)
-	(list-add `rp))
+	(list-add-var `rst)
+	(list-add-var `rp))
   (when (progstate-memory output-constraint)
-	(list-add `mem))
+	(list-add-var `mem))
   (when (progstate-t output-constraint)
-	(list-add `t))
+	(list-add-var `t))
   (when (progstate-s output-constraint)
-	(list-add `s))
+	(list-add-var `s))
   (when (progstate-r output-constraint)
-	(list-add `r))
+	(list-add-var `r))
   (when (progstate-a output-constraint)
-	(list-add `a))
+	(list-add-var `a))
   (when (progstate-b output-constraint)
-	(list-add `b))
+	(list-add-var `b))
 
   ;;; Include assumption throughtout the program
   (pretty-display (format "(assert (or ~a ~a))" (string-join clauses) (generate-assumptions (add1 cand-count) 1 2 `cand))))
@@ -955,26 +965,10 @@
 	     data return mem))
              
 (define (convert-commstate state)
-  (commstate (vec-to-bits (commstate-send-u state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-d state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-l state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-r state) COMM_ENTRIES)
-             (vec-to-bits (commstate-send-io state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-u state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-d state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-l state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-r state) COMM_ENTRIES)
-             (vec-to-bits (commstate-recv-io state) COMM_ENTRIES)
-             (commstate-sendp-u state) (commstate-sendp-d state) (commstate-sendp-l state) (commstate-sendp-r state) 
-             (commstate-sendp-io state)
-             (commstate-recvp-u state) (commstate-recvp-d state) (commstate-recvp-l state) (commstate-recvp-r state)
-             (commstate-recvp-io state)
-             (vec-to-bits (commstate-order-u state) ORDER_SIZE 1)
-             (vec-to-bits (commstate-order-d state) ORDER_SIZE 1)
-             (vec-to-bits (commstate-order-l state) ORDER_SIZE 1)
-             (vec-to-bits (commstate-order-r state) ORDER_SIZE 1)
-             (vec-to-bits (commstate-order-io state) ORDER_SIZE 1)))
-
+  (commstate (vec-to-bits (commstate-data state) COMM_ENTRIES)
+             (vec-to-bits (commstate-type state) COMM_ENTRIES COMMTYPE_UNIT)
+             (vec-to-bits (commstate-recv state) COMM_ENTRIES)
+             (commstate-p state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; GreenSyn API ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1005,7 +999,7 @@
 
   (set! COMM_ENTRIES comm-entries)
   (set! COMM_SIZE (* COMM_ENTRIES SIZE))
-  (set! ORDER_SIZE (* 2 COMM_ENTRIES))
+  (set! COMMTYPE_SIZE (* COMM_ENTRIES 4))
   (set! COMM_TYPE (string->symbol (format "BV~e" COMM_SIZE)))
   (set! COMM_BIT (inexact->exact (floor (+ (/ (log (* 2 COMM_ENTRIES)) (log 2)) 1))))
 
@@ -1021,7 +1015,8 @@
 
 ;;; Set send/recv storage for counterexmaple.
 (define (greensyn-send-recv state)
-  (set! current-comm (convert-commstate state)))
+  (set! current-comm (convert-commstate state))
+  )
 
 ;;; Add previously set counterexample (input, output, and send/recv)
 ;;; to the list that will be generated as formula.

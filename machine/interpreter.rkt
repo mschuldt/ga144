@@ -20,23 +20,9 @@
 
 (define memory (make-vector MEM-SIZE))
 
-(define send-u '())
-(define send-d '())
-(define send-l '())
-(define send-r '())
-(define send-io '())
-
-(define recv-u '())
-(define recv-d '())
-(define recv-l '())
-(define recv-r '())
-(define recv-io '())
-
-(define order-u '())
-(define order-d '())
-(define order-l '())
-(define order-r '())
-(define order-io '())
+(define comm-data '())
+(define comm-type '())
+(define comm-recv '())
 
 (define instructions (make-vector 35))
 
@@ -68,33 +54,18 @@
 
 ;;; Returns the current commstate.
 (define (current-commstate)
-  (let* ([messages (list send-u send-d send-l send-r send-io
-                         recv-u recv-d recv-l recv-r recv-io)]
-         [vectors (map (compose list->vector reverse (curry cons 0)) messages)]
-         [lengths (map length messages)]
-	 [orders  (list order-u order-d order-l order-r order-io)]
-	 [order-vecs (map (compose list->vector reverse (curry cons 0)) orders)])
-    (apply commstate (append vectors lengths order-vecs))))
+  (commstate (list->vector (reverse comm-data)) 
+             (list->vector (reverse comm-type))
+             (list->vector (reverse comm-recv))
+             (length comm-data)))
 
 ;;; Resets the state of the interpreter:
 (define (reset! [bit 18])
   (set! BIT bit)
 
-  (set! send-u '())
-  (set! send-d '())
-  (set! send-l '())
-  (set! send-r '())
-  (set! send-io '())
-  (set! recv-u '())
-  (set! recv-d '())
-  (set! recv-l '())
-  (set! recv-r '())
-  (set! recv-io '())
-  (set! order-u '())
-  (set! order-d '())
-  (set! order-l '())
-  (set! order-r '())
-  (set! order-io '())
+  (set! comm-data '())
+  (set! comm-type '())
+  (set! comm-recv '())
 
   (load-state! start-state))
 
@@ -137,14 +108,9 @@
 
 (define (display-comm)
   (define comm (current-commstate))
-  (display-vector (commstate-send-u comm) (commstate-sendp-u comm) "send-u: ")
-  (display-vector (commstate-send-d comm) (commstate-sendp-d comm) "send-d: ")
-  (display-vector (commstate-send-l comm) (commstate-sendp-l comm) "send-l: ")
-  (display-vector (commstate-send-r comm) (commstate-sendp-r comm) "send-r: ")
-  (display-vector (commstate-recv-u comm) (commstate-recvp-u comm) "recv-u: ")
-  (display-vector (commstate-recv-d comm) (commstate-recvp-d comm) "recv-d: ")
-  (display-vector (commstate-recv-l comm) (commstate-recvp-l comm) "recv-l: ")
-  (display-vector (commstate-recv-r comm) (commstate-recvp-r comm) "recv-r: "))
+  (pretty-display (format "comm-data: ~a" (commstate-data comm)))
+  (pretty-display (format "comm-type: ~a" (commstate-type comm)))
+  (pretty-display (format "comm-recv: ~a" (commstate-type comm))))
 
 ;;; Loads the given program into memory at the given start
 ;;; address. The program is run through the assembler before being
@@ -238,16 +204,21 @@
 (define (read-memory addr)
   (if (member addr (list UP DOWN LEFT RIGHT IO))
       (let ([value 12]);(random (arithmetic-shift 1 BIT))])
-        (cond [(= addr UP)    (set! recv-u (cons value recv-u))
-	                      (set! order-u (cons 0 order-u))]
-              [(= addr DOWN)  (set! recv-d (cons value recv-d))
-	                      (set! order-d (cons 0 order-d))]
-              [(= addr LEFT)  (set! recv-l (cons value recv-l))
-	                      (set! order-l (cons 0 order-l))]
-              [(= addr RIGHT) (set! recv-r (cons value recv-r))
-	                      (set! order-r (cons 0 order-r))]
-              [(= addr IO)    (set! recv-io (cons value recv-io))
-	                      (set! order-io (cons 0 order-io))])
+        (cond [(= addr UP)    (set! comm-data (cons value comm-data))
+                              (set! comm-recv (cons value comm-recv))
+                              (set! comm-type (cons 0 comm-type))]
+              [(= addr DOWN)  (set! comm-data (cons value comm-data))
+                              (set! comm-recv (cons value comm-recv))
+                              (set! comm-type (cons 1 comm-type))]
+              [(= addr LEFT)  (set! comm-data (cons value comm-data))
+                              (set! comm-recv (cons value comm-recv))
+                              (set! comm-type (cons 2 comm-type))]
+              [(= addr RIGHT) (set! comm-data (cons value comm-data))
+                              (set! comm-recv (cons value comm-recv))
+                              (set! comm-type (cons 3 comm-type))]
+              [(= addr IO)    (set! comm-data (cons value comm-data))
+                              (set! comm-recv (cons value comm-recv))
+                              (set! comm-type (cons 4 comm-type))])
         value)
       (vector-ref memory addr)))
 
@@ -261,16 +232,16 @@
 ;;; port. Everything written to any communication port is simply
 ;;; aggregated into a list.
 (define (set-memory! addr value)
-  (cond [(= addr UP)    (set! send-u (cons value send-u))
-	                (set! order-u (cons 1 order-u))]
-        [(= addr DOWN)  (set! send-d (cons value send-d))
-	                (set! order-d (cons 1 order-d))]
-        [(= addr LEFT)  (set! send-l (cons value send-l))
-	                (set! order-l (cons 1 order-l))]
-        [(= addr RIGHT) (set! send-r (cons value send-r))
-	                (set! order-r (cons 1 order-r))]
-        [(= addr IO)    (set! send-io (cons value send-io))
-	                (set! order-io (cons 1 order-io))]
+  (cond [(= addr UP)    (set! comm-data (cons value comm-data))
+                        (set! comm-type (cons 5 comm-type))]
+        [(= addr DOWN)  (set! comm-data (cons value comm-data))
+                        (set! comm-type (cons 6 comm-type))]
+        [(= addr LEFT)  (set! comm-data (cons value comm-data))
+                        (set! comm-type (cons 7 comm-type))]
+        [(= addr RIGHT) (set! comm-data (cons value comm-data))
+                        (set! comm-type (cons 8 comm-type))]
+        [(= addr IO)    (set! comm-data (cons value comm-data))
+                        (set! comm-type (cons 9 comm-type))]
         [else           (vector-set! memory addr value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
