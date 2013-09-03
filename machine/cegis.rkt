@@ -392,7 +392,7 @@
                                #:length-limit (and length-search limit)
 			       #:num-bits num-bits #:inst-pool inst-pool)])
         (cond
-          [(equal? candidate 'timeout) 'timeout]
+          [(equal? candidate 'timeout) (or best-so-far 'timeout)]
           [(and (not candidate) (= slot-min slot-max)) best-so-far]
           [(not candidate)
            (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint 

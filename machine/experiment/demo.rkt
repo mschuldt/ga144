@@ -17,21 +17,24 @@
 
 ;;; x | y
 ;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
-; ("over - and nop +" . 15)
+;("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
-;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) #:num-bits 8 #:inst-pool `no-mem)
+;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) 
+;          #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;          #:constraint constraint-none #:num-bits 9 #:name "comm")
 
-;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
-;          #:f18a #f)
+(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
+          #:f18a #f)
           
-;(optimize "3 b! @b 4 b! @b . + 15 and 3 b! !b" 
-;          #:constraint (constraint t memory) #:f18a #f
-;          #:mem 5 #:num-bits 5)
+;(optimize "65535 and 4 b! !b 5 b! @b 65535" 
+;          #:constraint (constraint s t memory) #:f18a #f
+;          #:mem 6 #:num-bits 18)
+; i want: 65535 dup push . and 4 a! . !+ @ pop
+
 #|
 (optimize 
  "@p a! @ @p 349    
