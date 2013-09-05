@@ -4,7 +4,7 @@
          "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
          "../ArrayForth/compiler.rkt")
 
-(provide optimize program-diff?)
+(provide optimize program-diff? fastest-program)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
@@ -15,7 +15,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 300)
+(define timeout 3000) ;600
 
 (define (initialize)
   (system "mkdir debug")
@@ -60,10 +60,13 @@
 
 (define (z3 file break)
   (define out-port (open-output-file "output.tmp" #:exists 'truncate))
+  (define t0 (current-seconds))
   (define-values (sp o i e) (subprocess out-port 
                                         #f #f 
                                         (find-executable-path "z3") file))
   (sync/timeout timeout sp)
+  (define t1 (current-seconds))
+  (pretty-display (format "z3 time = ~a s." (- t1 t0)))
   
   (if (and break (equal? (subprocess-status sp) 'running))
       (begin
@@ -356,21 +359,31 @@
                          #:length-limit [length-limit #f]
 			 #:num-bits  [num-bits 18]
 			 #:inst-pool [inst-pool `no-fake]
-			 #:start-state [start-state (random-state (expt 2 BIT))])
+			 #:start-state [start-state (random-state (expt 2 BIT))]
+                         #:f18a [f18a #t])
+  (unless f18a
+          (set! program (compile-to-string program)))
+  (unless (or time-limit length-limit)
+          (set! length-limit (length-with-literal program)))
+          
   (define start-time (current-seconds))
   (define program-for-ver (fix-@p program))
   (define candidate (cegis program #:name name
 			   #:mem mem 
                            #:slots slots #:init init #:repeat repeat
                            #:start start 
-			   #:constraint constraint #:time-limit time-limit #:length-limit length-limit
-			   #:num-bits num-bits #:inst-pool inst-pool #:start-state start-state))
+			   #:constraint constraint 
+                           #:time-limit time-limit #:length-limit length-limit
+			   #:num-bits num-bits #:inst-pool inst-pool 
+                           #:start-state start-state))
   (define result (if (and candidate (not (equal? candidate 'timeout)))
                      (fastest-program program candidate #:name name
 				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat
                                       #:start start 
-                                      #:constraint constraint #:time-limit (cdr candidate) #:length-limit (cdr candidate)
+                                      #:constraint constraint 
+                                      #:time-limit (and time-limit (cdr candidate))
+                                      #:length-limit (and length-limit (cdr candidate))
 				      #:num-bits num-bits #:inst-pool inst-pool
 				      #:start-state start-state)
 		     best-so-far))
@@ -398,7 +411,7 @@
            (binary-search (add1 slot-mid) slot-max init repeat program name mem start constraint 
                            (if best-so-far (cdr best-so-far) limit) length-search num-bits inst-pool start-state best-so-far)]
           [else
-           (binary-search slot-min slot-mid init repeat program name mem start constraint 
+           (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint 
                           (cdr candidate) length-search num-bits inst-pool start-state candidate)]))))
 
 (define (fastest-program3 program [best-so-far #f]
@@ -424,25 +437,25 @@
 
   (define start-time (current-seconds))
 
-  ;; (pretty-display "PHASE 1: finding appropriate program length who runtime is less than the original.")
-  (define candidate (binary-search 1 (+ slots 2) init repeat program name 
-				   mem start constraint 
-				   (or length-limit time-limit) length-limit
+  ;; (pretty-display "PHASE 1: binary search on program length to find a program whose runtime is less than the original.")
+  (define candidate (binary-search 1 slots init repeat program name 
+                                   mem start constraint 
+                                   (or length-limit time-limit) length-limit
                                    num-bits inst-pool start-state))
 
+  ;; (pretty-display "PHASE 1: finding a slightly larger program length whose runtime is less than the original.")
+  (if (equal? candidate 'timeout)
+      'timeout
+      (let ([n-slots (program-length-abs (car candidate))])
+        (fastest-program program candidate #:name name #:mem mem #:init init
+                         #:slots (+ n-slots 3) #:repeat repeat #:start start 
+                         #:constraint constraint
+                         #:time-limit (and time-limit (cdr candidate))
+                         #:length-limit (and length-limit (cdr candidate))
+                         #:num-bits num-bits #:inst-pool inst-pool
+                         #:start-state start-state))))
 
-  ;; (pretty-display "PHASE 2: optimizing for runtime.")
-  ;; (set! candidate 
-  ;;   (if candidate
-  ;; 	(fastest-program2 program candidate 
-  ;; 			  #:name name #:mem mem
-  ;; 			  #:slots (min (+ (program-length-abs (car candidate)) 2) slots)
-  ;; 			  #:start start 
-  ;; 			  #:constraint constraint #:time-limit (cdr candidate)
-  ;; 			  #:num-bits num-bits #:inst-pool inst-pool)
-  ;; 	#f))
-
-  candidate)
+  ;candidate)
 
 ;; Optimize for the fastest running program. The runtime is estimated by summing runtime of 
 ;; all instructions in the given program without considering instruction fetching time.
