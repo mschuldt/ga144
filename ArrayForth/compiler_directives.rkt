@@ -17,7 +17,7 @@
 	     (send compiler set 'used-cores
 		   (cons (send compiler get 'state-index)
 			 (send compiler get 'used-cores))))
-     (send compiler set 'memory (make-rvector 100 "."))
+     (send compiler set 'memory (make-rvector 100 '()))
      (send compiler set 'location-counter 1)
      (send compiler set 'i-register 0)))
 
@@ -53,9 +53,12 @@
   (add-directive!
    "start"
    (lambda (compiler)
-     (send compiler set-pc! (sub1 (send compiler get 'location-counter)))
-     (let [(used-cores (send compiler get 'used-cores))
+     (let [(i-register (send compiler get 'i-register))
+	   (used-cores (send compiler get 'used-cores))
 	   (state-index (send compiler get 'state-index))]
+       (unless (= (remainder i-register 4) 0)
+	       (raise "start directive is not at the beginning of a word - consider using .."))
+       (send compiler set-pc! (quotient i-register 4))
        (unless (member state-index used-cores)
 	       (send compiler set 'used-cores (cons state-index used-cores))))))
 

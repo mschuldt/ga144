@@ -24,7 +24,6 @@
     (forth_read 'clear)
     (current-input-port code-port)
     (send compiler compile-loop)
-    (send compiler fill-rest-with-nops)
     (current-input-port old)
     (send compiler get 'interpreter)))
 
@@ -45,29 +44,32 @@
 	 (result (plain-vector (send interpreter get 'memory)))]
     ; Convert bytes to integers if necessary
     (unless use-bytes?
-	    (vector-map! (lambda (code)
-			   (if (bytes? code)
-			       (integer-bytes->integer code #t #t)
-			       code))
-			 result))
+	    (define (safe-bytes-to-int x)
+	      (cond [(bytes? x) (integer-bytes->integer x #t #t)]
+		    [(list? x) (map safe-bytes-to-int x)]
+		    [else x]))
+	    (vector-map! safe-bytes-to-int result))
 
     ; Convert . and ; to nop and ret respectively, if necessary
     (let [(replace-nop (if no-punct? "nop" "."))
 	  (find-nop (if no-punct? "." "nop"))
 	  (replace-ret (if no-punct? "ret" ";"))
 	  (find-ret (if no-punct? ";" "ret"))]
-      (vector-map! (lambda (code)
-		     (cond [(equal? code find-nop) replace-nop]
-			   [(equal? code find-ret) replace-ret]
-			   [else code]))
-		   result))
+      (define (safe-punct-transform x)
+	(cond [(equal? x find-nop) replace-nop]
+	      [(equal? x find-ret) replace-ret]
+	      [(list? x) (map safe-punct-transform x)]
+	      [else x]))
+      (vector-map! safe-punct-transform result))
     result))
 
 (define (compile-to-string code-port #:use-nop-and-ret? [no-punct? #t])
   (define (convert s)
     (cond [(string? s) s]
 	  [(number? s) (number->string s)]
-	  [(not s) ""]
+	  [(list? s)
+	   (foldr (lambda (x y) (string-append x " " y)) ""
+		  (map convert s))]
 	  [else (raise "Unknown memory element")]))
   (foldr (lambda (x y) (string-append (convert x) " " y)) ""
 	 (vector->list (compile-to-vector code-port
