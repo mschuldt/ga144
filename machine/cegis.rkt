@@ -136,7 +136,6 @@
       (let* ([name `total_length]
              [result (assoc name model)])
         (and result (cadr result))))
-  ;(pretty-display (time))
   (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (or (length) (time))))
 
 ;;; Given a model, extract the input/output pair it corresponds
@@ -249,7 +248,6 @@
             (lambda (file)
               (and result (display (car (model->program result)) file)))))
         ;;(when result (pretty-display "\t>> Found a candidate."))
-        
         (and result (model->program result)))
       'timeout))
 
@@ -446,14 +444,17 @@
   ;; (pretty-display "PHASE 1: finding a slightly larger program length whose runtime is less than the original.")
   (if (equal? candidate 'timeout)
       'timeout
-      (let ([n-slots (program-length-abs (car candidate))])
-        (fastest-program program candidate #:name name #:mem mem #:init init
+      (let ([n-slots (if candidate (program-length-abs (car candidate)) slots)]
+            [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
+            [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
+        (or (fastest-program program candidate #:name name #:mem mem #:init init
                          #:slots (+ n-slots 3) #:repeat repeat #:start start 
                          #:constraint constraint
-                         #:time-limit (and time-limit (cdr candidate))
-                         #:length-limit (and length-limit (cdr candidate))
+                         #:time-limit limit-time
+                         #:length-limit limit-length
                          #:num-bits num-bits #:inst-pool inst-pool
-                         #:start-state start-state))))
+                         #:start-state start-state)
+            candidate))))
 
   ;candidate)
 
