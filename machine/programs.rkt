@@ -1,7 +1,8 @@
 #lang racket
 ;;; Some useful functions for working with programs.
 
-(require rackunit)
+(require rackunit
+	 "../ArrayForth/compiler.rkt")
 
 (provide (all-defined-out))
 
@@ -46,7 +47,9 @@
                              (filter (lambda (x) (vector-member x choice-id))
                                      (map string->symbol (program->instructions program)))))))
 
-(define (length-with-literal program)
+(define (length-with-literal program #:f18a [f18a #t])
+  (unless f18a
+	  (set! program (compile-to-string program)))
   (define inst-list (drop-trailing-nops (string-split program)))
   (define total (length inst-list))
   (define count-@p (count (lambda (x) (or (equal? x "@p") (equal? x `@p)))
