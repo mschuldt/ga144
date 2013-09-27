@@ -41,6 +41,7 @@
   ;; (check-and-set commstate-recvp-r)
   ;; (check-and-set commstate-recvp-io)
 
+  (pretty-display (format "comm-length: ~a" (vector-length (commstate-data comm))))
   (set! comm-length (max 1 (vector-length (commstate-data comm))))
 )
 
@@ -193,8 +194,7 @@
                 (and (member 'sat res) (extract-model (cadr res))))))))
 
 ;;; Returns a random input/output pair for the given F18A program.
-(define (random-pair program [memory-start 0]
-		     #:start-state [start-state (random-state (expt 2 BIT))])
+(define (random-pair program memory-start start-state)
   (load-state! start-state)
   (load-program program memory-start)
   (set! start-state (current-state))
@@ -257,17 +257,19 @@
   (define formatted-cand (insert-nops candidate))
   (if (equal? formatted-spec formatted-cand)
       #f
-      (validate formatted-spec formatted-cand
+      (validate formatted-spec formatted-cand (default-state)
                 "eqtest" (if (> mem-size 0) mem-size 1) constraint num-bits inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
-(define (validate spec candidate name mem constraint num-bits [inst-pool `no-fake])
+(define (validate spec candidate name mem constraint num-bits start-state 
+                  [inst-pool `no-fake])
   (set! current-step (add1 current-step))
 
   (define temp-file (temp-file-name name "verify" ".smt2"))
-  (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
+  (greensyn-reset mem comm-length constraint 
+                  #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
-  (greensyn-verify temp-file candidate)
+  (greensyn-verify temp-file candidate start-state)
   (pretty-display `(ver-file ,temp-file))
   (define result (read-model (z3 temp-file #f)))
   
@@ -296,7 +298,7 @@
 	       #:length-limit [length-limit #f]
 	       #:num-bits [num-bits 18]
 	       #:inst-pool [inst-pool `no-fake]
-	       #:start-state [start-state (random-state (expt 2 BIT))]
+	       #:start-state [start-state (default-state)]
 	       #:print-time [print-time #f])
   (define cegis-start (current-seconds))
   (reset! num-bits)
@@ -322,7 +324,7 @@
       (if (equal? candidate 'timeout)
           'timeout
           (and candidate
-               (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits inst-pool)])
+               (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits start-state inst-pool)])
                  (if new-pair
                      (begin
                        (set! all-pairs (cons new-pair all-pairs))
@@ -337,7 +339,7 @@
                        candidate)))))))
   
   (when (empty? all-pairs)
-  	(set! all-pairs (list (random-pair program start #:start-state start-state))))
+  	(set! all-pairs (list (random-pair program start start-state))))
   
   (define result (go))
   
@@ -357,7 +359,7 @@
                          #:length-limit [length-limit #f]
 			 #:num-bits  [num-bits 18]
 			 #:inst-pool [inst-pool `no-fake]
-			 #:start-state [start-state (random-state (expt 2 BIT))]
+			 #:start-state [start-state (default-state)]
                          #:f18a [f18a #t])
   (unless f18a
           (set! program (compile-to-string program)))
@@ -399,6 +401,7 @@
 			       #:mem mem #:slots slot-mid #:init init #:repeat repeat
 			       #:start start 
 			       #:constraint constraint 
+                               #:start-state start-state
                                #:time-limit (and (not length-search) limit) 
                                #:length-limit (and length-search limit)
 			       #:num-bits num-bits #:inst-pool inst-pool)])
@@ -424,7 +427,7 @@
                           #:length-limit [length-limit #f]
 			  #:num-bits  [num-bits 18]
 			  #:inst-pool [inst-pool `no-fake]
-			  #:start-state [start-state (random-state (expt 2 BIT))])
+			  #:start-state [start-state (default-state)])
   (when demo
         (pretty-display (format "original program\t: ~e" program))
         (pretty-display (format "memory\t\t\t: ~a" mem))
@@ -536,6 +539,7 @@
 		  #:constraint [constraint constraint-all]
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
+                  #:start-state [start-state (default-state)]
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
@@ -573,7 +577,7 @@
                         #:length-limit (and (equal? bin-search `length) length-limit)
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
-			#:start-state (random-state (expt 2 BIT)))
+			#:start-state start-state)
       (fastest-program program 
 			#:name       name
 			#:mem        mem
@@ -586,7 +590,7 @@
                         #:length-limit length-limit
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
-			#:start-state (random-state (expt 2 BIT)))))
+			#:start-state start-state)))
   (when demo
     (newline)
     (cond
@@ -630,6 +634,7 @@
 		  #:constraint [constraint constraint-all]
 		  #:num-bits   [num-bits 18]
 		  #:inst-pool  [inst-pool `no-fake]
+                  #:start-state [start-state (default-state)]
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
@@ -646,6 +651,7 @@
 				      #:constraint constraint
 				      #:num-bits   num-bits
 				      #:inst-pool  inst-pool
+                                      #:start-state start-state
 				      #:time-limit time-limit
 				      #:length-limit length-limit
 				      #:bin-search bin-search)])

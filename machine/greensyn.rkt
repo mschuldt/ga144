@@ -792,6 +792,19 @@
   (modulo (arithmetic-shift stack (- 0 (* index SIZE)))
           (arithmetic-shift 1 SIZE)))
 
+(define (assume-start start-state)
+  (unless (equal? (progstate-a start-state) 0)
+        (pretty-display (format "(assert (= a_0_v0 (_ bv~a ~a)))" (progstate-a start-state) SIZE)))
+  (unless (equal? (progstate-b start-state) 0)
+        (pretty-display (format "(assert (= b_0_v0 (_ bv~a ~a)))" (progstate-b start-state) SIZE)))
+  (unless (equal? (progstate-t start-state) 0)
+        (pretty-display (format "(assert (= t_0_v0 (_ bv~a ~a)))" (progstate-t start-state) SIZE)))
+  (unless (equal? (progstate-s start-state) 0)
+        (pretty-display (format "(assert (= s_0_v0 (_ bv~a ~a)))" (progstate-s start-state) SIZE)))
+  (unless (equal? (progstate-r start-state) 0)
+        (pretty-display (format "(assert (= r_0_v0 (_ bv~a ~a)))" (progstate-r start-state) SIZE)))
+  )
+
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
        (pretty-display (format "(assert (= ~a_0_v0 ~a_0_v1))" var var)))
@@ -902,7 +915,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Verifier  ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (verify-prog)
+(define (verify-prog start-state)
   (declare-bitvector)
   (declare-functions)
   (newline)
@@ -923,6 +936,7 @@
   (generate-known-formulas cand (add1 cand-count) 1 `cand #f)
   (newline)
   
+  (assume-start start-state)
   (assert-input-eq)
   (newline)
   (assert-output-neq)
@@ -1051,11 +1065,11 @@
 ;;; (greensyn-verify file string_of_candidate)
 ;;; CAUTION: note that if intruction in the last slot is invalid
 ;;; it will return unsat!!!!!
-(define (greensyn-verify file string)
+(define (greensyn-verify file string start-state)
   (set! cand-count (compile string cand cand-lit))
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (verify-prog))
+    (verify-prog start-state))
   (close-output-port out))
 
 ;;; Generate Z3 file according to the earlier set spec (greensyn-spec)
