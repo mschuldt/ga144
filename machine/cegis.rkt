@@ -8,14 +8,14 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #t)
+(define debug #f)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 3000) ;600
+(define timeout 3000) ;3000
 
 (define (initialize)
   (system "mkdir debug")
