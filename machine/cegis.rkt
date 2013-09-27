@@ -257,8 +257,9 @@
   (define formatted-cand (insert-nops candidate))
   (if (equal? formatted-spec formatted-cand)
       #f
-      (validate formatted-spec formatted-cand (default-state)
-                "eqtest" (if (> mem-size 0) mem-size 1) constraint num-bits inst-pool)))
+      (validate formatted-spec formatted-cand 
+                "eqtest" (if (> mem-size 0) mem-size 1) constraint num-bits (default-state)
+                inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
 (define (validate spec candidate name mem constraint num-bits start-state 

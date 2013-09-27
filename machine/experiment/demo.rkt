@@ -43,6 +43,6 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "nop nop b! !b down b! @b" 
+(optimize "nop nop b! !b down b! @b 1" 
           #:constraint (constraint s t memory) #:f18a #f
           #:mem 4 #:num-bits 18 #:start-state (default-state (t 277)))

@@ -17,6 +17,14 @@
 (define IO #x15d)
 (define MEM-SIZE 1024)
 
+(define (port-number port)
+  (cond
+   [(equal? port "up") UP]
+   [(equal? port "down") DOWN]
+   [(equal? port "left") LEFT]
+   [(equal? port "right") RIGHT]
+   [(equal? port "io") IO]))
+
 (define (set-udlr u d l r)
   (set! UP u)
   (set! DOWN d)
