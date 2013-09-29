@@ -46,9 +46,17 @@
 (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
 (define memory-op '#(@p @+ @b @ !p !+ !b !))
 
+(define (compile-to-string-wrap program)
+  (compile-to-string
+   (string-join
+    (filter (lambda (x) (and (not (equal? x "nop")) (not (equal? x "."))))
+            (string-split program)))))
+
 ;;; Given a string containing a forth program, gives you an estimate
 ;;; of how long it would take to run.
-(define (estimate-time program)
+(define (estimate-time program #:f18a [f18a #t])
+  (unless f18a
+	  (set! program (compile-to-string-wrap program)))
   (define (guess-speed instr)
     (if (member instr (vector->list memory-op)) 10 3))
   (apply + (map guess-speed (drop-trailing-nops
@@ -57,7 +65,7 @@
 
 (define (length-with-literal program #:f18a [f18a #t])
   (unless f18a
-	  (set! program (compile-to-string program)))
+	  (set! program (compile-to-string-wrap program)))
   (define inst-list (drop-trailing-nops (string-split program)))
   (define total (length inst-list))
   (define count-@p (count (lambda (x) (or (equal? x "@p") (equal? x `@p)))

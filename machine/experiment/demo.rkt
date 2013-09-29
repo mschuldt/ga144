@@ -16,13 +16,13 @@
 ;(optimize "over and - @p 1 . + . +" #:slots 4 #:constraint (constraint t))
 
 ;;; x | y
-;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint t) #:num-bits 4)
+(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint s t) #:num-bits 4)
 ;("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
-(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" 
-          #:constraint (constraint t) 
-          #:num-bits 8 #:inst-pool `no-mem)
+;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" 
+;          #:constraint (constraint t) 
+;          #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 

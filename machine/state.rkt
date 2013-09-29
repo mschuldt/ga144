@@ -8,11 +8,6 @@
 (define ENTRIES 4)
 
 (struct progstate (a b p i r s t data return memory) #:mutable #:transparent)
-;; (struct commstate (send-u send-d send-l send-r send-io
-;;                    recv-u recv-d recv-l recv-r recv-io
-;;                    sendp-u sendp-d sendp-l sendp-r sendp-io
-;;                    recvp-u recvp-d recvp-l recvp-r recvp-io
-;;                    order-u order-d order-l order-r order-io) #:transparent #:mutable)
 (struct commstate (data type recv p) #:mutable #:transparent)
 
 ;;; The blank state that the interpreter usually starts in.
@@ -20,22 +15,6 @@
                       (stack 0 (make-vector 8))
                       (stack 0 (make-vector 8))
                       (make-vector MEM-SIZE)))
-
-;;; Generates a state with a randomized data stack and everything else
-;;; empty.
-(define (random-state [max-size #x40000])
-  (struct-copy progstate start-state
-               [a      0]
-               [b      0]
-               [r      0]
-               [s 0]
-               [t 0]
-               [data (stack 0 (make-vector 8))]
-               [return (stack 0 (make-vector 8))]))
-               ;[s      (random max-size)]
-               ;[t      (random max-size)]
-               ;[data   (random-stack max-size)]
-               ;[return (stack 0 (make-vector 8))]))
 
 (define (default-commstate
 	 #:data [data (make-vector ENTRIES 0)]

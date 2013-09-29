@@ -2,6 +2,7 @@
 
 (require racket/system openssl/sha1 
          "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
+         "cache.rkt"
          "../ArrayForth/compiler.rkt")
 
 (provide optimize program-diff? fastest-program)
@@ -27,20 +28,6 @@
   void)
 
 (define (set-comm-length comm)
-  ;; (define (check-and-set entry)
-  ;;   (when (> (entry comm) comm-length)
-  ;; 	  (set! comm-length (entry comm))))
-  ;; (check-and-set commstate-sendp-u)
-  ;; (check-and-set commstate-sendp-d)
-  ;; (check-and-set commstate-sendp-l)
-  ;; (check-and-set commstate-sendp-r)
-  ;; (check-and-set commstate-sendp-io)
-  ;; (check-and-set commstate-recvp-u)
-  ;; (check-and-set commstate-recvp-d)
-  ;; (check-and-set commstate-recvp-l)
-  ;; (check-and-set commstate-recvp-r)
-  ;; (check-and-set commstate-recvp-io)
-
   (pretty-display (format "comm-length: ~a" (vector-length (commstate-data comm))))
   (set! comm-length (max 1 (vector-length (commstate-data comm))))
 )
@@ -196,15 +183,19 @@
 ;;; If the z3 output is sat, reads in the model. If it isn't, returns
 ;;; #f.
 (define (read-model in)
-  (and in
-       (let ([input (read-sexps in)])
-         (close-input-port in)
-         (and (not (member 'unsat input))
-              (member 'sat input)
-              (let ([res (filter
-                          (lambda (x)
-                            (or (equal? x 'sat) (equal? (car x) 'model))) input)])
-                (and (member 'sat res) (extract-model (cadr res))))))))
+  (define (inner in)
+    (and in
+         (let ([input (read-sexps in)])
+           (close-input-port in)
+           (and (not (member 'unsat input))
+                (member 'sat input)
+                (let ([res (filter
+                            (lambda (x)
+                              (or (equal? x 'sat) (equal? (car x) 'model))) input)])
+                  (and (member 'sat res) (extract-model (cadr res))))))))
+  (let ([result (inner in)])
+    (close-input-port in)
+    result))
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program memory-start start-state)
@@ -567,8 +558,6 @@
   
   (initialize)
   (set-udlr-from-constraints mem num-bits)
-
-  (pretty-display orig-program)
   (define program (preprocess (if f18a orig-program (compile-to-string orig-program))))
   (define slots raw-slots)
   (when (and (number? slots) (= slots 0))
@@ -657,10 +646,17 @@
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
-  (if (hash-has-key? cache orig-program)
-      (hash-ref cache orig-program)
+  (unless f18a
+          (set! orig-program (compile-to-string orig-program)))
+  (set! orig-program (preprocess orig-program))
+  (load-cache cache)
+  (define key (cache-get-key orig-program num-bits mem time-limit length-limit
+                             constraint start-state))
+
+  (if (hash-has-key? cache key)
+      (hash-ref cache key)
       (let ([result (optimize-internal orig-program
-				      #:f18a       f18a
+				      #:f18a       #t
 				      #:name       name
 				      #:mem        mem
 				      #:init       init
@@ -674,5 +670,5 @@
 				      #:time-limit time-limit
 				      #:length-limit length-limit
 				      #:bin-search bin-search)])
-	(hash-set! cache orig-program result)
+	(cache-put cache key result)
 	result)))
