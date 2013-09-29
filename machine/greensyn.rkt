@@ -1086,7 +1086,7 @@
 (define (greensyn-gen-formula file has-out)
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])
-    (synthesize-prog spec-count 0 1 #t has-out))
+    (synthesize-prog spec-count 0 1 #t has-out #f #f))
   (close-output-port out))
   
   

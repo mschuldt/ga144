@@ -20,8 +20,9 @@
 ;("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
-;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" #:constraint (constraint t) 
-;          #:num-bits 8 #:inst-pool `no-mem)
+(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" 
+          #:constraint (constraint t) 
+          #:num-bits 8 #:inst-pool `no-mem)
 
 ;; communication
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
@@ -43,6 +44,6 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "nop nop b! !b down b! @b 1" 
-          #:constraint (constraint s t memory) #:f18a #f
-          #:mem 4 #:num-bits 18 #:start-state (default-state (t 277)))
+;(optimize "nop nop b! !b down b! @b 1" 
+;          #:constraint (constraint s t memory) #:f18a #f
+;          #:mem 4 #:num-bits 18 #:start-state (default-state (t 277)))

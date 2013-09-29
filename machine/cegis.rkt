@@ -59,32 +59,45 @@
 
 ;;; Run z3 on the given file, returning all output as a string.
 
-(define (z3 file break)
-  (define out-port (open-output-file "output.tmp" #:exists 'truncate))
+(define (z3 file break temp)
+  (define out-port (open-output-file temp #:exists 'truncate))
   (define t0 (current-seconds))
   (define-values (sp o i e) (subprocess out-port 
                                         #f #f 
                                         (find-executable-path "z3") file))
-  (sync/timeout timeout sp)
-  (define t1 (current-seconds))
-  (pretty-display (format "z3 time = ~a s." (- t1 t0)))
-  
-  (if (and break (equal? (subprocess-status sp) 'running))
-      (begin
-        (pretty-display "\t[timeout]")
-        (subprocess-kill sp #t)
-        (close-output-port i)
-        (close-input-port e)
-        (close-output-port out-port)
-        #f)
-      (begin
-        (when (equal? (subprocess-status sp) 'running)
-          (subprocess-wait sp))
-        
-        (close-output-port i)
-        (close-input-port e)
-        (close-output-port out-port)
-        (open-input-file "output.tmp"))))
+
+  (define (close-ports)
+    (close-output-port i)
+    (close-input-port e)
+    (close-output-port out-port))
+    
+
+  (define (inner)
+    (sync/timeout timeout sp)
+    (define t1 (current-seconds))
+    (pretty-display (format "z3 time = ~a s." (- t1 t0)))
+    
+    (if (and break (equal? (subprocess-status sp) 'running))
+        (begin
+          (pretty-display "\t[timeout]")
+          (subprocess-kill sp #t)
+          (close-ports)
+          #f)
+        (begin
+          (when (equal? (subprocess-status sp) 'running)
+                (subprocess-wait sp))
+          (close-ports)
+          (open-input-file temp))))
+
+  (define (cleanup e)
+    (subprocess-kill sp #t)
+    (close-ports)
+    (raise e)
+    )
+
+  (with-handlers* ([exn:break? cleanup])
+                  (inner)))
+                  
 
 ;;; Return 'lt if x1 < x2, 'eq if x1 = x2 and 'gt if x1 > x2. Compares
 ;;; numbers as numbers; otherwise compares as strings.
@@ -227,8 +240,10 @@
   (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit #:length-limit length-limit)
   
   (pretty-display `(temp-file ,temp-file))
-  (define z3-res (z3 temp-file #t))
-  
+  (define output-temp (format "output~a.tmp" (current-milliseconds)))
+  (define z3-res (z3 temp-file #t output-temp))
+  (delete-file output-temp)
+
   (if z3-res
       ;; not timeout
       (let ([result (read-model z3-res)])
@@ -258,7 +273,8 @@
   (if (equal? formatted-spec formatted-cand)
       #f
       (validate formatted-spec formatted-cand 
-                "eqtest" (if (> mem-size 0) mem-size 1) constraint num-bits (default-state)
+                (format "eqtest~a" (current-milliseconds))
+                (if (> mem-size 0) mem-size 1) constraint num-bits (default-state)
                 inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
@@ -272,7 +288,9 @@
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate start-state)
   (pretty-display `(ver-file ,temp-file))
-  (define result (read-model (z3 temp-file #f)))
+  (define output-temp (format "output~a.tmp" (current-milliseconds)))
+  (define result (read-model (z3 temp-file #f output-temp)))
+  (delete-file output-temp)
   
   (when debug
     (call-with-output-file
