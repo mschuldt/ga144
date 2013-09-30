@@ -16,7 +16,7 @@
 ;(optimize "over and - @p 1 . + . +" #:slots 4 #:constraint (constraint t))
 
 ;;; x | y
-(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint s t) #:num-bits 4)
+;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint s t) #:num-bits 4)
 ;("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
@@ -44,6 +44,6 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-;(optimize "nop nop b! !b down b! @b 1" 
-;          #:constraint (constraint s t memory) #:f18a #f
-;          #:mem 4 #:num-bits 18 #:start-state (default-state (t 277)))
+(optimize "down b! @b" 
+          #:constraint (constraint s t memory) #:f18a #f
+          #:mem 4 #:num-bits 18)

@@ -1,1 +1,1 @@
-over over or nop a! and a nop or nop nop nop,4,1,#f,#f,#(struct:progstate #f #f #f #f #f #t #t #f #f #f),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);over - and nop +;9;5;27;15
+down b! @b,18,4,#f,#f,#(struct:progstate #f #f #f #f #f #t #t #f #f #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);down b! @b;7;7;23;23

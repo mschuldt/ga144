@@ -646,9 +646,9 @@
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
-  (unless f18a
-          (set! orig-program (compile-to-string orig-program)))
-  (set! orig-program (preprocess orig-program))
+  ;; (unless f18a
+  ;;         (set! orig-program (compile-to-string orig-program)))
+  ;; (set! orig-program (preprocess orig-program))
   (load-cache cache)
   (define key (cache-get-key orig-program num-bits mem time-limit length-limit
                              constraint start-state))
@@ -656,7 +656,7 @@
   (if (hash-has-key? cache key)
       (hash-ref cache key)
       (let ([result (optimize-internal orig-program
-				      #:f18a       #t
+				      #:f18a       f18a
 				      #:name       name
 				      #:mem        mem
 				      #:init       init

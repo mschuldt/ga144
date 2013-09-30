@@ -37,8 +37,10 @@
     (define (loop)
       (let ([next (read-line in)])
         (unless (eof-object? next)
-                (let ([content (string-split next ";")])
-                  (hash-set! cache (first content) (second content)))
+                (let* ([content (string-split next ";")]
+                       [key (first content)]
+                       [val (second content)])
+                  (hash-set! cache key (if (equal? val "timeout") 'timeout val)))
                 (loop))))
     (loop)
     (close-input-port in))
@@ -63,14 +65,21 @@
 
 (define (cache-put cache key value)
   (unless (hash-has-key? cache key)
+    (define orig-program (car (string-split key ",")))
+    (define orig-length (length-with-literal orig-program))
+    (define orig-time (estimate-time orig-program))
     (with-handlers* ([exn:break? unlock-exn])
-      (define orig-program (car (string-split key ",")))
       (lock)
       (hash-set! cache key value)
       (with-output-to-file db-file #:exists 'append
-        (lambda () (pretty-display (format "~a;~a;~a;~a;~a;~a" key value
-                                           (length-with-literal orig-program)
-                                           (length-with-literal value #:f18a #f)
-                                           (estimate-time orig-program)
-                                           (estimate-time value #:f18a #f)))))
+        (lambda () 
+          (pretty-display (format "~a;~a;~a;~a;~a;~a" key value
+                                  orig-length
+                                  (if (equal? value 'timeout) 
+                                      orig-length
+                                      (length-with-literal value))
+                                  (estimate-time orig-program)
+                                  (if (equal? value 'timeout) 
+                                      orig-time
+                                      (estimate-time value))))))
       (unlock))))
