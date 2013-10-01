@@ -461,7 +461,7 @@
             [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
             [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
         (or (fastest-program program candidate #:name name #:mem mem #:init init
-                         #:slots (+ n-slots 3) #:repeat repeat #:start start 
+                         #:slots (+ n-slots 0) #:repeat repeat #:start start 
                          #:constraint constraint
                          #:time-limit limit-time
                          #:length-limit limit-length

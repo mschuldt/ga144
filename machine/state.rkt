@@ -34,16 +34,38 @@
 ;;; everything *except* the given fields, start with the except
 ;;; keyword: `(constrain except t)' constrains everything but t. 
 (define-syntax constraint
-  (syntax-rules (except)
+  (syntax-rules (except data return)
+
+    ((constraint (return val1) (data val2) var ...)  
+     (struct-copy progstate constraint-none [return val1] [data val2] [var #t] ...))
+    ((constraint (data val2) (return val1) var ...)  
+     (struct-copy progstate constraint-none [return val1] [data val2] [var #t] ...))
+
+    ((constraint (return val1) (data val2))
+     (struct-copy progstate constraint-none [return val1] [data val2]))
+    ((constraint (data val2) (return val1))
+     (struct-copy progstate constraint-none [return val1] [data val2]))
+
+    ((constraint (data val) var ...)  
+     (struct-copy progstate constraint-none [data val] [var #t] ...))
+    ((constraint (data val))  
+     (struct-copy progstate constraint-none [data val]))
+    ((constraint (return val) var ...)  
+     (struct-copy progstate constraint-none [return val] [var #t] ...))
+    ((constraint (return val))  
+     (struct-copy progstate constraint-none [return val]))
+
     ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
     ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))
-    ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))
-    ((constraint (key val) ...)  (struct-copy progstate constraint-none [key val] ...))
     ))
 
-(define-syntax constraint-data
-  (syntax-rules ()
-    ((constraint-data x var ...) (struct-copy progstate constraint-none [data x] [var #t] ...))))
+;; (define-syntax constraint-data
+;;   (syntax-rules ()
+;;     ((constraint-data x var ...) (struct-copy progstate constraint-none [data x] [var #t] ...))))
+
+;; (define-syntax constraint-data-return
+;;   (syntax-rules ()
+;;     ((constraint-data-return x y var ...) (struct-copy progstate constraint-none [data x] [return y] [var #t] ...))))
 
 (define-syntax default-state
   (syntax-rules ()

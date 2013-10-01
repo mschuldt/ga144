@@ -697,7 +697,6 @@
 
 (define (assert-state-output state n i)
   (when (progstate-data output-constraint)
-        ;; (pretty-display (format "(assert (= dst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-data state)) STACK_SIZE))
         (define stack (progstate-data state))
         (for ([nth (in-range (progstate-data output-constraint))])
              (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
@@ -709,8 +708,16 @@
         ;;                         n i (stack-sp stack) 3))
         )
   (when (progstate-return output-constraint)
-	(pretty-display (format "(assert (= rst_~e_v~e (_ bv~e ~e)))" n i (stack-body (progstate-return state)) STACK_SIZE))
-	(pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" n i (stack-sp (progstate-return state)) 3)))
+        (define stack (progstate-return state))
+        (for ([nth (in-range (progstate-return output-constraint))])
+             (pretty-display (format "(assert (= ~a (_ bv~a ~a)))"
+                                     (nth-rstack n i nth) 
+                                     (data-at (stack-body stack) 
+                                              (modulo (- (stack-sp stack) nth) 8)) 
+                                     SIZE)))
+        ;; (pretty-display (format "(assert (= rp_~e_v~e (_ bv~e ~e)))" 
+        ;;                         n i (stack-sp stack) 3))
+        )
   (when (progstate-memory output-constraint)
 	(pretty-display (format "(assert (= mem_~e_v~e (_ bv~e ~e)))" n i (progstate-memory state) MEM_SIZE)))
   (when (progstate-t output-constraint)
@@ -786,6 +793,10 @@
 
 (define (nth-stack step i n)
   (format "(get-stack dst_~e_v~e (bvsub sp_~e_v~e (_ bv~e 3)))"
+          step i step i n))
+
+(define (nth-rstack step i n)
+  (format "(get-stack rst_~e_v~e (bvsub rp_~e_v~e (_ bv~e 3)))"
           step i step i n))
 
 (define (data-at stack index)
