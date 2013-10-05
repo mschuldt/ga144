@@ -44,9 +44,9 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "pop a! + 0 b! !b" 
+(optimize "pop a!" 
           #:constraint (constraint (return 1) r s t a memory)  #:f18a #f
-          #:mem 5 #:num-bits 18)
+          #:mem 3 #:num-bits 18)
 
 #|
 original program	: "pop a! nop + @p b! !b nop 0    "

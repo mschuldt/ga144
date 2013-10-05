@@ -853,11 +853,6 @@
   (list-add-var `recvp)
 
   (when (progstate-data output-constraint)
-        (define data (progstate-data output-constraint))
-        ;; (set! clauses (cons (format "(not (= ~a ~a))" 
-        ;;                             (top-stack spec-count 0)
-        ;;                             (top-stack cand-count 1))
-        ;;                     clauses))
         (for ([i (in-range (progstate-data output-constraint))])
              (list-add (format "(not (= ~a ~a))"
                                          (nth-stack spec-count 0 i)
@@ -866,8 +861,13 @@
 	;(list-add `sp)
         )
   (when (progstate-return output-constraint)
-	(list-add-var `rst)
-	(list-add-var `rp))
+        (for ([i (in-range (progstate-return output-constraint))])
+             (list-add (format "(not (= ~a ~a))"
+                                         (nth-rstack spec-count 0 i)
+                                         (nth-rstack cand-count 1 i))))
+	;; (list-add-var `rst)
+	;; (list-add-var `rp)
+	)
   (when (progstate-memory output-constraint)
 	(list-add-var `mem))
   (when (progstate-t output-constraint)
