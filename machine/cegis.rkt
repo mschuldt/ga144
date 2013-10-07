@@ -594,8 +594,8 @@
 			#:repeat     repeat
 			#:start      start
 			#:constraint constraint
-			#:time-limit time-limit
-                        #:length-limit length-limit
+			#:time-limit (and (equal? bin-search `time) time-limit)
+                        #:length-limit (and (equal? bin-search `length) length-limit)
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
 			#:start-state start-state)))

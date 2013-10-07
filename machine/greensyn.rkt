@@ -205,12 +205,17 @@
     (pretty-display `(declare-const ,(var-no-v `h step) ,(makeBV HOLE_BIT)))
     (pretty-display `(declare-const ,(var-no-v `hlit step) ,TYPE))))
 
+(define (positive n)
+  (if (negative? n)
+      (+ n (arithmetic-shift 2 SIZE))
+      n))
+
 (define (encode-program prog literal n name)
   (for* ([step (in-range 1 n)])
     (pretty-display `(declare-const ,(var-no-v name step) ,(makeBV HOLE_BIT)))
     (pretty-display `(assert (= ,(var-no-v name step) (_ ,(makebv (vector-ref prog (sub1 step))) ,HOLE_BIT))))
     (pretty-display `(declare-const ,(var-no-v (format "~alit" name) step) ,TYPE))
-    (pretty-display `(assert (= ,(var-no-v (format "~alit" name) step) (_ ,(makebv (vector-ref literal (sub1 step))) ,SIZE))))
+    (pretty-display `(assert (= ,(var-no-v (format "~alit" name) step) (_ ,(makebv (positive (vector-ref literal (sub1 step)))) ,SIZE))))
 ))
 
 (define (declare-vars n from to)
