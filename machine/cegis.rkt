@@ -197,8 +197,31 @@
     (close-input-port in)
     result))
 
+;; Return the corresponding number of the first not-nop @p.
+;; Return #f if the first not-nop instruction is not @p.
+(define (find-@p program)
+  (define (find-lit-inner insts)
+    (cond
+     [(string->number (car insts)) (string->number (car insts))]
+     [else (find-lit-inner (cdr insts))]))
+  
+  (define (find-@p-inner insts)
+    (cond
+     [(empty? insts) #f]
+     [(equal? (car insts) ".") (find-@p-inner (cdr insts))]
+     [(equal? (car insts) "nop") (find-@p-inner (cdr insts))]
+     [(equal? (car insts) "@p") (find-lit-inner (cdr insts))]
+     [else #f]))
+  
+  (find-@p-inner (string-split program)))
+
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program memory-start start-state)
+  ;; Choose legal first instruction.
+  (define first-inst (find-@p program))
+  (when (and first-inst (negative? first-inst))
+        (set! start-state (struct-copy progstate start-state 
+                                       [t (- first-inst)])))
   (load-state! start-state)
   (load-program program memory-start)
   (set! start-state (current-state))
@@ -650,6 +673,14 @@
   ;;         (set! orig-program (compile-to-string orig-program)))
   ;; (set! orig-program (preprocess orig-program))
   (load-cache cache)
+  ;; (let ([insts (string-split orig-program)])
+  ;;   (when (and (not f18a) 
+  ;;              (not (empty? insts)) 
+  ;;              (string->number (car insts))
+  ;;              (negative? (string->number (car insts))))
+  ;;         (set! start-state (struct-copy progstate start-state 
+  ;;                                        [t (- (string->number (car insts)))]))
+  ;;         ))
   (define key (cache-get-key orig-program num-bits mem time-limit length-limit
                              constraint start-state))
 

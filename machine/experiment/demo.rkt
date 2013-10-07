@@ -44,8 +44,8 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "15 -13 +"
-          #:constraint (constraint (return 1) (data 1) r s t a memory)  #:f18a #f
+(optimize "nop nop -13 + b! !b"
+          #:constraint (constraint (return 1) r s t memory)  #:f18a #f
           #:mem 5 #:num-bits 18)
 
 #|
