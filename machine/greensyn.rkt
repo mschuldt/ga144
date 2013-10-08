@@ -1010,7 +1010,7 @@
 
 ;;; Set
 ;;; 1) number of entries of memory
-;;; 2) number of entries of send/recv storage of each 4 neighbors
+;;; 2) number of entries of communication
 (define (greensyn-reset mem-entries comm-entries constraint #:num-bits [num-bits 18] #:inst-pool [support `no-fake] )
   (set! output-constraint constraint)
   (set! SUPPORT support)

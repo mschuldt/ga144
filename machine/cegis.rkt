@@ -197,31 +197,44 @@
     (close-input-port in)
     result))
 
+
+(define (trim-start program)
+  (cond
+   [(empty? program) (list)]
+   [(member (car program) (list "." "nop")) (trim-start (cdr program))]
+   [else program]))
+
 ;; Return the corresponding number of the first not-nop @p.
 ;; Return #f if the first not-nop instruction is not @p.
-(define (find-@p program)
-  (define (find-lit-inner insts)
-    (cond
-     [(string->number (car insts)) (string->number (car insts))]
-     [else (find-lit-inner (cdr insts))]))
-  
-  (define (find-@p-inner insts)
-    (cond
-     [(empty? insts) #f]
-     [(equal? (car insts) ".") (find-@p-inner (cdr insts))]
-     [(equal? (car insts) "nop") (find-@p-inner (cdr insts))]
-     [(equal? (car insts) "@p") (find-lit-inner (cdr insts))]
-     [else #f]))
-  
-  (find-@p-inner (string-split program)))
+(define (first-lit insts)
+  (cond
+   [(string->number (car insts)) (string->number (car insts))]
+   [else (first-lit (cdr insts))]))
+
 
 ;;; Returns a random input/output pair for the given F18A program.
 (define (random-pair program memory-start start-state)
-  ;; Choose legal first instruction.
-  (define first-inst (find-@p program))
-  (when (and first-inst (negative? first-inst))
-        (set! start-state (struct-copy progstate start-state 
-                                       [t (- first-inst)])))
+  ;; Set up legel initial state.
+  (define insts (trim-start (string-split program)))
+  (define first-inst (car insts))
+  (cond
+   [(equal? first-inst "@p")
+    (define lit (first-lit (cdr insts)))
+    (when (negative? lit)
+	  (set! start-state (struct-copy progstate start-state [t (- lit)])))]
+
+   [(member first-inst (list "a!" "b!"))
+    (when (= (progstate-t start-state) 0)
+	  (set! start-state (struct-copy progstate start-state [t UP])))]
+
+   [(member first-inst (list "!" "@"))
+    (when (= (progstate-a start-state) 0)
+	  (set! start-state (struct-copy progstate start-state [a UP])))]
+
+   [(member first-inst (list "!b" "@b"))
+    (when (= (progstate-b start-state) 0)
+	  (set! start-state (struct-copy progstate start-state [b UP])))])
+  
   (load-state! start-state)
   (load-program program memory-start)
   (set! start-state (current-state))
