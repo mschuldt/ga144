@@ -28,7 +28,7 @@
   void)
 
 (define (set-comm-length comm)
-  (pretty-display (format "comm-length: ~a" (vector-length (commstate-data comm))))
+  (pretty-display (format "== comm-length: ~a" (vector-length (commstate-data comm))))
   (set! comm-length (max 1 (vector-length (commstate-data comm))))
 )
 
@@ -62,7 +62,7 @@
   (define (inner)
     (sync/timeout timeout sp)
     (define t1 (current-seconds))
-    (pretty-display (format "z3 time = ~a s." (- t1 t0)))
+    (pretty-display (format "\tz3 time = ~a s." (- t1 t0)))
     
     (if (and break (equal? (subprocess-status sp) 'running))
         (begin
@@ -266,7 +266,7 @@
   
   (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit #:length-limit length-limit)
   
-  (pretty-display `(temp-file ,temp-file))
+  (pretty-display (format "\t(syn: ~a)" temp-file))
   (define output-temp (format "output~a.tmp" (current-milliseconds)))
   (define z3-res (z3 temp-file #t output-temp))
   (delete-file output-temp)
@@ -314,7 +314,7 @@
                   #:num-bits num-bits #:inst-pool inst-pool)
   (greensyn-spec spec)
   (greensyn-verify temp-file candidate start-state)
-  (pretty-display `(ver-file ,temp-file))
+  (pretty-display (format "\t(ver: ~a)" temp-file))
   (define output-temp (format "output~a.tmp" (current-milliseconds)))
   (define result (read-model (z3 temp-file #f output-temp)))
   (delete-file output-temp)

@@ -44,9 +44,9 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "nop nop !b down a!"
+(optimize "nop nop b! !b down a!"
           #:constraint (constraint (return 1) r s t memory b a)  #:f18a #f
-          #:start-state (default-state)
+          #:start-state (default-state (a 469))
           #:mem 5 #:num-bits 18)
 
 #|
