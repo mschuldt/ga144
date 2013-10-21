@@ -60,7 +60,10 @@
     
 
   (define (inner)
-    (sync/timeout timeout sp)
+    (flush-output)
+    (sync/timeout/enable-break timeout sp)
+    (flush-output)
+
     (define t1 (current-seconds))
     (pretty-display (format "\tz3 time = ~a s." (- t1 t0)))
     
@@ -77,12 +80,14 @@
           (open-input-file temp))))
 
   (define (cleanup e)
+    (pretty-display "BREAK!!!")
+    (flush-output)
     (subprocess-kill sp #t)
     (close-ports)
     (raise e)
     )
 
-  (with-handlers* ([exn:break? cleanup])
+  (with-handlers* ([exn? cleanup])
                   (inner)))
                   
 
@@ -268,6 +273,7 @@
   
   (pretty-display (format "\t(syn: ~a)" temp-file))
   (define output-temp (format "output~a.tmp" (current-milliseconds)))
+  (flush-output)
   (define z3-res (z3 temp-file #t output-temp))
   (delete-file output-temp)
 

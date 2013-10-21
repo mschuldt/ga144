@@ -44,16 +44,12 @@
                  #:mem 6 #:num-bits 18)|#
 
 
-(optimize "nop nop b! !b down a!"
+#|(optimize "nop nop b! !b down a!"
           #:constraint (constraint (return 1) r s t memory b a)  #:f18a #f
           #:start-state (default-state (a 469))
+          #:mem 5 #:num-bits 18)|#
+
+(optimize "over 0 b! @b push push push drop pop pop pop"
+          #:constraint (constraint (data 3) (return 2) r s t)  #:f18a #f
           #:mem 5 #:num-bits 18)
 
-#|
-original program	: "pop a! nop + @p b! !b nop 0    "
-memory			: 5
-constraint		: #(struct:progstate #t #f #f #f #t #t #t #f 1 #t)
-length			: 7
-approx. runtime		: 35
-length with literal	: 11
-|#
