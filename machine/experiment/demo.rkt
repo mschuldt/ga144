@@ -49,7 +49,9 @@
           #:start-state (default-state (a 469))
           #:mem 5 #:num-bits 18)|#
 
-(optimize "over 0 b! @b push push push drop pop pop pop"
-          #:constraint (constraint (data 3) (return 2) r s t)  #:f18a #f
+(optimize "4 b! @b 2 + b!"
+          #:constraint (constraint (return 2) r s t a b memory)  #:f18a #f
           #:mem 5 #:num-bits 18)
+
+;(program-diff? "4 b! @b 2 + b!" "4 a! @ nop a +* + b!" 5 (constraint (return 2) r s t b memory) 18)
 
