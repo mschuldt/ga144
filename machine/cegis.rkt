@@ -703,22 +703,25 @@
   (define key (cache-get-key orig-program num-bits mem time-limit length-limit
                              constraint start-state))
 
-  (if (hash-has-key? cache key)
-      (hash-ref cache key)
-      (let ([result (optimize-internal orig-program
-				      #:f18a       f18a
-				      #:name       name
-				      #:mem        mem
-				      #:init       init
-				      #:slots      raw-slots
-				      #:repeat     repeat
-				      #:start      start
-				      #:constraint constraint
-				      #:num-bits   num-bits
-				      #:inst-pool  inst-pool
-                                      #:start-state start-state
-				      #:time-limit time-limit
-				      #:length-limit length-limit
-				      #:bin-search bin-search)])
-	(cache-put cache key result)
-	result)))
+  (cond
+   [(equal? orig-program "") ""]
+   [(hash-has-key? cache key)
+    (hash-ref cache key)]
+   [else
+    (let ([result (optimize-internal orig-program
+                                     #:f18a       f18a
+                                     #:name       name
+                                     #:mem        mem
+                                     #:init       init
+                                     #:slots      raw-slots
+                                     #:repeat     repeat
+                                     #:start      start
+                                     #:constraint constraint
+                                     #:num-bits   num-bits
+                                     #:inst-pool  inst-pool
+                                     #:start-state start-state
+                                     #:time-limit time-limit
+                                     #:length-limit length-limit
+                                     #:bin-search bin-search)])
+      (cache-put cache key result)
+      result)]))
