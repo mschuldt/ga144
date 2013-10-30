@@ -16,7 +16,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 3000) ;3000
+(define timeout 36000) ;3000
 
 (define (initialize)
   (system "mkdir debug")
@@ -688,18 +688,7 @@
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
-  ;; (unless f18a
-  ;;         (set! orig-program (compile-to-string orig-program)))
-  ;; (set! orig-program (preprocess orig-program))
-  (load-cache cache)
-  ;; (let ([insts (string-split orig-program)])
-  ;;   (when (and (not f18a) 
-  ;;              (not (empty? insts)) 
-  ;;              (string->number (car insts))
-  ;;              (negative? (string->number (car insts))))
-  ;;         (set! start-state (struct-copy progstate start-state 
-  ;;                                        [t (- (string->number (car insts)))]))
-  ;;         ))
+  (load-cache cache bin-search)
   (define key (cache-get-key orig-program num-bits mem time-limit length-limit
                              constraint start-state))
 
@@ -723,5 +712,5 @@
                                      #:time-limit time-limit
                                      #:length-limit length-limit
                                      #:bin-search bin-search)])
-      (cache-put cache key result)
+      (cache-put cache bin-search key result)
       result)]))
