@@ -33,7 +33,7 @@
 (define init-cache #f)
 (define (load-cache cache type)
   (define (load-cache-inner)
-    (define in (open-input-file (format "~a-~a" db-file type)))
+    (define in (open-input-file db-file))
     (define (loop)
       (let ([next (read-line in)])
         (unless (eof-object? next)
@@ -45,7 +45,7 @@
     (loop)
     (close-input-port in))
 
-  (when (and (not init-cache) (file-exists? (format "~a-~a" db-file type)))
+  (when (and (not init-cache) (file-exists? db-file))
     (with-handlers* ([exn:break? unlock-exn])
       (lock)
       (load-cache-inner)
@@ -71,7 +71,7 @@
     (with-handlers* ([exn:break? unlock-exn])
       (lock)
       (hash-set! cache key value)
-      (with-output-to-file (format "~a-~a" db-file type) #:exists 'append
+      (with-output-to-file db-file #:exists 'append
         (lambda () 
           (pretty-display (format "~a;~a;~a;~a;~a;~a" key value
                                   orig-length
