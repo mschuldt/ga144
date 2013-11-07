@@ -776,21 +776,25 @@
   s)
 
 (define (generate-assumption step version name)
+  ;(pretty-display `(generate-assumption))
   (define clauses (make-vector 6))
   (define index 0)
   (for* ([choice `(@+ @ @b !+ ! !b)])
 	(vector-set! clauses index 
 		     (generate-choice-assumption choice step version name))
 	(set! index (add1 index)))
+  ;(pretty-display `(conjunct2 ,clauses))
   (conjunct clauses 6 `or))
 
 (define (generate-assumptions n from to name)
+  ;(pretty-display `(generate-assumptions))
   (define clauses (make-vector (* (- to from) (add1 n))))
   (define index 0)
   (for* ([version (in-range from to)]
 	 [step (in-range 1 n)])
 	(vector-set! clauses index (generate-assumption step version name))
 	(set! index (add1 index)))
+  ;(pretty-display `(conjunct ,clauses))
   (conjunct clauses  index `or))
 
 (define (top-stack step i)

@@ -40,7 +40,7 @@
                  #:slots 11
                  ;;"65535 dup push nop and 4 a! nop !+ @ pop"
                  #:length-limit 20
-                 #:constraint (constraint-data 1 s t memory) #:f18a #f
+                 #:constraint (constraint (data 1) s t memory) #:f18a #f
                  #:mem 6 #:num-bits 18)|#
 
 
@@ -49,9 +49,9 @@
           #:start-state (default-state (a 469))
           #:mem 5 #:num-bits 18)|#
 
-(optimize "up b! @b push drop pop up b! @b 0 b! !b dup 0 b! @b or over 0 b! @b and or"
+(optimize "10 -1 + b! @b right b! !b"
           #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
-          #:mem 2 #:num-bits 18)
+          #:mem 3 #:num-bits 18)
 
 ;(program-diff? "4 b! @b 2 + b!" "4 a! @ nop a +* + b!" 5 (constraint (return 2) r s t b memory) 18)
 

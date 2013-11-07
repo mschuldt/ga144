@@ -142,7 +142,8 @@
       (let* ([name `total_length]
              [result (assoc name model)])
         (and result (cadr result))))
-  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") (or (length) (time))))
+  (cons (string-join (map process-instr (filter (compose is-hole car) model)) " ") 
+	(or (length) (time))))
 
 ;;; Given a model, extract the input/output pair it corresponds
 ;;; to. This lets you get new pairs after running the validator.
@@ -218,7 +219,7 @@
 
 
 ;;; Returns a random input/output pair for the given F18A program.
-(define (random-pair program memory-start start-state)
+(define (compute-comm-length program memory-start start-state mem-size)
   ;; Set up legel initial state.
   (define insts (trim-start (string-split program)))
   (define first-inst (car insts))
@@ -240,7 +241,7 @@
     (when (= (progstate-b start-state) 0)
 	  (set! start-state (struct-copy progstate start-state [b UP])))])
   
-  (load-state! start-state)
+  (load-state! start-state mem-size #t)
   (load-program program memory-start)
   (set! start-state (current-state))
   (reset-p! memory-start)
@@ -249,7 +250,8 @@
   (define comm (current-commstate))
   (set-comm-length comm)
 
-  (cons `(,start-state ,(current-state)) comm))
+  ;(cons `(,start-state ,(current-state)) comm))
+  )
 
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair comm)
@@ -371,29 +373,52 @@
   (set! current-run (add1 current-run))
   (set! current-step 0)
 
-  (define (go)
-    (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit length-limit num-bits inst-pool)])
-      (if (equal? candidate 'timeout)
-          'timeout
-          (and candidate
-               (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits start-state inst-pool)])
-                 (if new-pair
-                     (begin
-                       (set! all-pairs (cons new-pair all-pairs))
-                       (go))
-                     (begin 
-                       (when demo
-                         (if length-limit
-                             (pretty-display (format "\tFound ~e.\n\tActual length = ~e." 
-                                                     (car candidate) (cdr candidate)))
-                             (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." 
-                                                     (car candidate) (* (cdr candidate) 0.5)))))
-                       candidate)))))))
+  ;; (define (go)
+  ;;   (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit length-limit num-bits inst-pool)])
+  ;;     (if (equal? candidate 'timeout)
+  ;;         'timeout
+  ;;         (and candidate
+  ;;              (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits start-state inst-pool)])
+  ;;                (if new-pair
+  ;;                    (begin
+  ;;                      (set! all-pairs (cons new-pair all-pairs))
+  ;;                      (go))
+  ;;                    (begin 
+  ;;                      (when demo
+  ;;                        (if length-limit
+  ;;                            (pretty-display (format "\tFound ~e.\n\tActual length = ~e." 
+  ;;                                                    (car candidate) (cdr candidate)))
+  ;;                            (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." 
+  ;;                                                    (car candidate) (* (cdr candidate) 0.5)))))
+  ;;                      candidate)))))))
   
-  (when (empty? all-pairs)
-  	(set! all-pairs (list (random-pair program start start-state))))
+  ;; (when (empty? all-pairs)
+  ;; 	(set! all-pairs (list (random-pair program start start-state mem))))
   
-  (define result (go))
+  (define (go candidate all-pairs)
+    (if (equal? candidate 'timeout)
+	'timeout
+	(and candidate
+	     (let ([new-pair (validate program-for-ver (car candidate) name mem constraint 
+				       num-bits start-state inst-pool)])
+	       (if new-pair
+		   (let* ([new-all-pairs (cons new-pair all-pairs)]
+			  [new-candidate (generate-candidate program new-all-pairs
+							     name mem slots init repeat 
+							     constraint time-limit length-limit 
+							     num-bits inst-pool)])
+		     (go new-candidate new-all-pairs))
+		   (begin 
+		     (when demo
+			   (if length-limit
+			       (pretty-display (format "\tFound ~e.\n\tActual length = ~e." 
+						       (car candidate) (cdr candidate)))
+			       (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." 
+						       (car candidate) (* (cdr candidate) 0.5)))))
+		     candidate))))))
+
+  (compute-comm-length  program start start-state mem)
+  (define result (go (cons "nop" 0) (list)))
   
   (when print-time (newline) 
 	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))
@@ -428,7 +453,7 @@
                            #:time-limit time-limit #:length-limit length-limit
 			   #:num-bits num-bits #:inst-pool inst-pool 
                            #:start-state start-state))
-  (define result (if (and candidate (not (equal? candidate 'timeout)))
+  (define result (if (and candidate (not (equal? candidate 'timeout)) (> (cdr candidate) 0))
                      (fastest-program program candidate #:name name
 				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat

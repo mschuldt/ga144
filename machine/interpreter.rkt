@@ -18,18 +18,19 @@
 (define s 0)
 (define t 0)
 
+(define memory-size MEM-SIZE)
 (define memory (make-vector MEM-SIZE))
+(define memory-wrap #f)
 
 (define comm-data '())
 (define comm-type '())
 (define comm-recv '())
 
 (define instructions (make-vector 35))
-
 (define BIT 18)
 
 ;;; Reset the interpreter to the given state.
-(define (load-state! state)
+(define (load-state! state mem-size [mem-wrap #f])
   (set! a (progstate-a state))
   (set! b (progstate-b state))
   (set! p (progstate-p state))
@@ -42,6 +43,8 @@
   (set! return (copy-stack (progstate-return state)))
 
   (set! memory (vector-copy (progstate-memory state)))
+  (set! memory-size mem-size)
+  (set! memory-wrap mem-wrap)
   )
 
 ;;; Sets the current state to the given values for the registers,
@@ -65,9 +68,7 @@
 
   (set! comm-data '())
   (set! comm-type '())
-  (set! comm-recv '())
-
-  (load-state! start-state))
+  (set! comm-recv '()))
 
 ;;; Resets only p
 (define (reset-p! [start 0])
@@ -220,7 +221,7 @@
                               (set! comm-recv (cons value comm-recv))
                               (set! comm-type (cons 4 comm-type))])
         value)
-      (vector-ref memory addr)))
+      (vector-ref memory (if memory-wrap (modulo addr memory-size) addr))))
 
 ;;; Read from the given memory address or communication port. If it
 ;;; gets a communication port, it just returns a random number (for
@@ -242,7 +243,7 @@
                         (set! comm-type (cons 8 comm-type))]
         [(= addr IO)    (set! comm-data (cons value comm-data))
                         (set! comm-type (cons 9 comm-type))]
-        [else           (vector-set! memory addr value)]))
+        [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
 (define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
