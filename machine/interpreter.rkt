@@ -47,10 +47,6 @@
   (set! memory-wrap mem-wrap)
   )
 
-;;; Sets the current state to the given values for the registers,
-;;; stacks and memory.
-(define set-state! (lambda args (load-state! (apply progstate args))))
-
 ;;; Returns a snapshot of the current state.
 (define (current-state)
   (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
