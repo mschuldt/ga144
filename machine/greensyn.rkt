@@ -1070,8 +1070,8 @@
 ;;; Usage:
 ;;; (greensyn-reset)
 ;;; { (greensyn-input input) (greensyn-output output) (greensyn-send-recv send-recv) (greensyn-commit) }+
-;;; (greensyn-check-sat file number_of_slots)
-(define (greensyn-check-sat #:file [file "prog.smt2"] sketch [init 0] [repeat 1] 
+;;; (greensyn-synthesize file number_of_slots)
+(define (greensyn-synthesize #:file [file "prog.smt2"] sketch [init 0] [repeat 1] 
                             #:time-limit [time-limit #f] #:length-limit [length-limit #f])
   (define out (open-output-file file #:exists 'replace))
   (parameterize ([current-output-port out])

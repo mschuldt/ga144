@@ -5,7 +5,7 @@
          "cache.rkt"
          "../ArrayForth/compiler.rkt")
 
-(provide optimize program-diff? fastest-program)
+(provide optimize program-diff? optimize-linear)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
@@ -218,7 +218,8 @@
    [else (first-lit (cdr insts))]))
 
 
-;;; Returns a random input/output pair for the given F18A program.
+;;; Interpret program spec to determine number of communication.
+;;; Set initial value of a related register to one of the neightbor ports (e.g. UP).
 (define (compute-comm-length program memory-start start-state mem-size)
   ;; Set up legel initial state.
   (define insts (trim-start (string-split program)))
@@ -249,8 +250,6 @@
 
   (define comm (current-commstate))
   (set-comm-length comm)
-
-  ;(cons `(,start-state ,(current-state)) comm))
   )
 
 ;;; Add an input/output pair to greensyn.
@@ -271,7 +270,7 @@
   (greensyn-reset mem comm-length constraint #:num-bits num-bits #:inst-pool inst-pool)
   (map greensyn-add-pair (map car previous-pairs) (map cdr previous-pairs))
   
-  (greensyn-check-sat #:file temp-file slots init repeat #:time-limit time-limit #:length-limit length-limit)
+  (greensyn-synthesize #:file temp-file slots init repeat #:time-limit time-limit #:length-limit length-limit)
   
   (pretty-display (format "\t(syn: ~a)" temp-file))
   (define output-temp (format "output~a.tmp" (current-milliseconds)))
@@ -301,6 +300,8 @@
         (and result (model->program result)))
       'timeout))
 
+;;; Check if spec and candidate program are different or not.
+;;; Return #t if they are different, #f otherwise.
 (define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
   (pretty-display `(program-diff? mem-size ,mem-size))
   (define formatted-spec (insert-nops spec))
@@ -372,28 +373,6 @@
                                     (regexp-replace* #rx"\n" slots " ") (* time-limit 0.5))))))
   (set! current-run (add1 current-run))
   (set! current-step 0)
-
-  ;; (define (go)
-  ;;   (let ([candidate (generate-candidate program all-pairs name mem slots init repeat constraint time-limit length-limit num-bits inst-pool)])
-  ;;     (if (equal? candidate 'timeout)
-  ;;         'timeout
-  ;;         (and candidate
-  ;;              (let ([new-pair (validate program-for-ver (car candidate) name mem constraint num-bits start-state inst-pool)])
-  ;;                (if new-pair
-  ;;                    (begin
-  ;;                      (set! all-pairs (cons new-pair all-pairs))
-  ;;                      (go))
-  ;;                    (begin 
-  ;;                      (when demo
-  ;;                        (if length-limit
-  ;;                            (pretty-display (format "\tFound ~e.\n\tActual length = ~e." 
-  ;;                                                    (car candidate) (cdr candidate)))
-  ;;                            (pretty-display (format "\tFound ~e.\n\tApprox runtime = ~e ns." 
-  ;;                                                    (car candidate) (* (cdr candidate) 0.5)))))
-  ;;                      candidate)))))))
-  
-  ;; (when (empty? all-pairs)
-  ;; 	(set! all-pairs (list (random-pair program start start-state mem))))
   
   (define (go candidate all-pairs)
     (if (equal? candidate 'timeout)
@@ -424,7 +403,8 @@
 	(pretty-display (format "Time to synthesize: ~a seconds." (- (current-seconds) cegis-start))))
   result)
 
-(define (fastest-program program [best-so-far #f]
+;;; Superoptimiation program using the same number of slots.
+(define (optimize-linear program [best-so-far #f]
 			 #:name       [name "prog"]
                          #:mem        [mem 1]
 			 #:init       [init 0]
@@ -454,7 +434,9 @@
 			   #:num-bits num-bits #:inst-pool inst-pool 
                            #:start-state start-state))
   (define result (if (and candidate (not (equal? candidate 'timeout)) (> (cdr candidate) 0))
-                     (fastest-program program candidate #:name name
+                     (optimize-linear program candidate 
+                                      #:f18a #t
+                                      #:name name
 				      #:mem mem
                                       #:slots slots #:init init #:repeat repeat
                                       #:start start 
@@ -492,7 +474,8 @@
            (binary-search slot-min (sub1 slot-mid) init repeat program name mem start constraint 
                           (cdr candidate) length-search num-bits inst-pool start-state candidate)]))))
 
-(define (fastest-program3 program [best-so-far #f]
+;;; Superoptimize program by binary search on number of slots.
+(define (optimize-binary program [best-so-far #f]
 			  #:name       [name "prog"]
 			  #:mem        [mem 1]
 			  #:init       [init 0]
@@ -527,7 +510,7 @@
       (let ([n-slots (if candidate (program-length-abs (car candidate)) slots)]
             [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
             [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
-        (or (fastest-program program candidate #:name name #:mem mem #:init init
+        (or (optimize-linear program candidate #:name name #:mem mem #:init init
                          #:slots (+ n-slots 3) #:repeat repeat #:start start 
                          #:constraint constraint
                          #:time-limit limit-time
@@ -535,75 +518,6 @@
                          #:num-bits num-bits #:inst-pool inst-pool
                          #:start-state start-state)
             candidate))))
-
-  ;candidate)
-
-;; Optimize for the fastest running program. The runtime is estimated by summing runtime of 
-;; all instructions in the given program without considering instruction fetching time.
-;;
-;; Output (on display):
-;; The fasted F18A program that is equivalent to the given input program. 
-;; Programs that we can synthesize do not contain instructions that change 
-;; the control flow of the program, which are ; ex jump call next if -if.
-;; It also cannot synthesize !p instruction.
-;;
-;; Required arguments:
-;; orig-program :: F18A program to be optimized. Literals have to be written in form of @p as in F18A, 
-;;                not arrayForth (e.g. @p @p @p @p 1 2 3 4). up down left right have to be written as 
-;;                UP DOWN LEFT RIGHT (with capitalized letters) and written as they are literal 
-;;                (e.g. @p @p @p @p UP DOWN LEFT RIGHT). Multiport read and write are not supported.
-;; 
-;; Optional arguments:
-;; name  :: description of the program.
-;; mem   :: number of entries of memory. The more it is the longer the synthesizer takes. 
-;;          Therefore, provide just enough for the program. Note that we only support storing data
-;;          from memory 0th entry until mem-1'th entry and the program itself is stored starting at
-;;          mem'th entry. 
-;;          DEFAULT = 1
-;; slots :: maximum length of the synthesized program.
-;;          slots can be string when user want to provide a sketch.
-;;          For example, "_ . + _" means the synthesized program contains 4 instructions.
-;;          The 1st and 4st instructions can be anything. The 2nd instruction is nop, 
-;;          and the 3rd instruction is plus. 
-;;          DEFAULT = original program's length
-;; repeat :: When slots is a sketch in form of string. repeat can be used to indicate how many time 
-;;           the sketch is unrolled. For example, #:slots "dup _ _ ." #:repeat 3 means that
-;;           the actual sketch is "dup _ _ . dup _ _ . dup _ _ ."
-;;           DEFAULT = 1
-;; init   :: Init is the additional header sketch that comes before slots.
-;;           For example, #:init "over push - 2*" #:slots "dup _ _ ." #:repeat 3 means that
-;;           the actual sketch is "over push - 2* dup _ _ . dup _ _ . dup _ _ ."
-;;           DEFAULT = ""
-;; start  :: The entry of the memory where the program is loaded to (starting from that entry).
-;;           DEFAULT = mem
-;; constraint :: The registers and/or stacks that contain the output you are looking for.
-;;               For example, if you want to synthesize x y --> x+y, you might only care that you want
-;;               register t (the top of th stack) to be equal to x+y and don't care that if other registers 
-;;               and stacks are changed or not. The synthesizer always constraints reads and writes to NSWE.
-;;               Use "#:constraint constraint-all" to constraint on everything 
-;;               (a b r s t data-stack return-stack memory).
-;;               Use "#:constraint constraint-none" to constraint on nothing except reads and writes 
-;;               to NSEW.
-;;               Use "#:constraint (constraint <reg> ...) to constraint on <reg>. 
-;;               For example, to constraint on a and t, use "#:constraint (constraint a t)"
-;;               DEFAULT = constraint-all
-;; time-limit :: The maximum runtime in ns that of the synthesized program.
-;;               DEFAULT = the original runtime
-;; num-bits ::   number of bits of a word.
-;;               DEFAULT = 18
-;; inst-pool ::  Instructions available to compose the synthesized program. 
-;;               #:inst-pool `no-fake = {@p @+ @b @ !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a!}
-;;               #:inst-pool `no-fake-no-p = `no-fake - {@p}
-;;               #:inst-pool `no-mem = `no-fake - {@+ @b @ !+ !b !}
-;;               #:inst-pool `no-mem = `no-mem - {@p}
-;;               DEFAULT = `no-fake
-;; bin-search :: When slots is a number. We perform binary search the length of the synthesized program.
-;;               For example, if slots is 8, we will start searching for a program whose length is 4.
-;;               If we find an equivalent program, we will search on length 2. 
-;;               If not, we will search on length 6. The process keeps going like normal binary search.
-;;               If bin-search is set to false, we will always search program whose length is equal
-;;               to slots.
-;;               DEFAULT = true
 
 (define (optimize-internal orig-program 
                   #:f18a       [f18a #t]
@@ -640,7 +554,7 @@
 
   (define result 
     (if (and (number? slots) bin-search)
-      (fastest-program3 program 
+      (optimize-binary program 
 			#:name       name
 			#:mem        mem
 			#:init       init
@@ -653,7 +567,8 @@
 			#:num-bits   num-bits
 			#:inst-pool  inst-pool
 			#:start-state start-state)
-      (fastest-program program 
+      (optimize-linear program 
+                        #:f18a       #t
 			#:name       name
 			#:mem        mem
 			#:init       init
@@ -697,9 +612,20 @@
    [else orig-program])
 )
   
+;; Optimize for program by length or approximate execuationg time. The execution time is estimated by summing time of 
+;; all instructions in the given program without considering instruction fetching time.
+;;
+;; Output (on display):
+;; The optimal F18A program that is equivalent to the given input program. 
+;; Programs that we can synthesize do not contain instructions that change 
+;; the control flow of the program, which are ; ex jump call next if -if.
+;; It also cannot synthesize !p instruction.
+;;
+;; See http://bitbucket.org/rohinmshah/forth-interpreter/wiki/Home for usage.
 (define cache (make-hash))
+
 (define (optimize orig-program 
-                  #:f18a       [f18a #t]
+                  #:f18a       [f18a #f]
 		  #:name       [name "prog"]
 		  #:mem        [mem 1]
 		  #:init       [init 0]

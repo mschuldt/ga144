@@ -16,7 +16,7 @@
 ;(optimize "over and - @p 1 . + . +" #:slots 4 #:constraint (constraint t))
 
 ;;; x | y
-;(optimize "over over or nop a! and a nop or nop nop nop" #:constraint (constraint s t) #:num-bits 4)
+;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
 ;("over - and nop +" . 15)
 
 ;;; round up to multiple of 8 (8-bit)
@@ -49,9 +49,16 @@
           #:start-state (default-state (a 469))
           #:mem 5 #:num-bits 18)|#
 
-(optimize "10 -1 + b! @b right b! !b"
-          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
-          #:mem 3 #:num-bits 18)
+;(optimize "10 -1 + b! @b right b! !b"
+;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
+;          #:mem 3 #:num-bits 18)
 
-;(program-diff? "4 b! @b 2 + b!" "4 a! @ nop a +* + b!" 5 (constraint (return 2) r s t b memory) 18)
+;(program-diff? "over - and or" "over - and" 5 (constraint s t) 18)
+
+;(optimize "2* dup or . . and 2* dup . and 2* dup" 
+;          #:init "_ _ or _" 
+;          #:slots "_ 2* _ _" #:repeat 2 #:constraint (constraint t) #:f18a #t)
+
+(optimize "up b! @b down b! !b left b! @b right b! !b"
+          #:constraint constraint-none)
 
