@@ -2,7 +2,7 @@
 ;;; Some useful functions for working with programs.
 
 (require rackunit
-	 "../ArrayForth/compiler.rkt")
+	 "../ArrayForth/arrayforth.rkt")
 
 (provide (all-defined-out))
 
@@ -50,10 +50,11 @@
   (member "@p" (string-split program)))
 
 (define (compile-to-string-wrap program)
-  (compile-to-string
-   (string-join
-    (filter (lambda (x) (and (not (equal? x "nop")) (not (equal? x "."))))
-            (string-split program)))))
+  (define processed 
+    (string-join
+     (filter (lambda (x) (and (not (equal? x "nop")) (not (equal? x "."))))
+             (string-split program))))
+  (compile-to-string processed))
 
 ;;; Given a string containing a forth program, gives you an estimate
 ;;; of how long it would take to run.

@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../cegis.rkt" "../state.rkt" "../greensyn.rkt" "../programs.rkt")
+(require "../cegis.rkt" "../state.rkt" "../greensyn.rkt" "../programs.rkt"
+         "../../ArrayForth/arrayforth.rkt")
 
 ;; >>> 0x3ffff = 262143
 ;; >>> 0x1ffff = 131071
@@ -10,10 +11,11 @@
 ;; >>> 0x1fff = 8191
 
 ;;; swap only at m is 1 xym -> - y' (first part)
-;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
+;(optimize "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" 
+;          #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p #:f18a #t)
 
 ;;; x - (x & y)
-(optimize "over and - 1 + +" #:slots 4 #:constraint (constraint t) #:bin-search `length)
+;(optimize "over and - 1 + +" #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
@@ -27,16 +29,16 @@
 ;; communication
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;          #:constraint constraint-none #:num-bits 9 #:name "comm")
-;(fastest-program "@p b! !b @p 325 325 b! !b nop nop"
-;                 ;; #:slots "325 b! !b nop !b"
-;                 #:constraint constraint-none #:num-bits 18 #:name "comm")
+(optimize-linear "@p b! !b @p 325 325 b! !b nop nop"
+                 #:slots "325 b! !b nop !b"
+                 #:constraint constraint-none #:num-bits 18 #:name "comm")
 
 ;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
 ;          #:f18a #f)
           
 
 ; i want: 65535 dup push . and 4 a! . !+ @ pop
-#|(fastest-program "65535 and 4 b! !b 5 b! @b 65535" 
+#|(optimize-linear "65535 and 4 b! !b 5 b! @b 65535" 
                  #:slots 11
                  ;;"65535 dup push nop and 4 a! nop !+ @ pop"
                  #:length-limit 20
@@ -53,11 +55,13 @@
 ;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
 ;          #:mem 3 #:num-bits 18)
 
-;(program-diff? "over - and or" "over - and" 5 (constraint s t) 18)
+;(program-diff? "over - and or" "over - and +" 5 (constraint s t) 18)
 
 ;(optimize "2* dup or . . and 2* dup . and 2* dup" 
-;          #:init "_ _ or _" 
-;          #:slots "_ 2* _ _" #:repeat 2 #:constraint (constraint t) #:f18a #t)
+;          #:init "nop + or _" 
+;          #:slots "dup 2* nop nop" #:repeat 2 #:constraint (constraint t) #:f18a #t)
+
+;(compile-to-string "+ or 0 dup 2* dup 2*")
 
 ;(optimize "up b! @b down b! !b left b! @b right b! !b"
 ;          #:constraint constraint-none)

@@ -1,9 +1,13 @@
 #lang racket
 
 (require racket/system openssl/sha1 
-         "programs.rkt" "stack.rkt" "state.rkt" "interpreter.rkt" "greensyn.rkt"
+         "programs.rkt" 
+         "stack.rkt" 
+         "state.rkt" 
+         "interpreter.rkt" 
+         "greensyn.rkt"
          "cache.rkt"
-         "../ArrayForth/compiler.rkt")
+         "../ArrayForth/arrayforth.rkt")
 
 (provide optimize program-diff? optimize-linear)
 (provide estimate-time program-length perf-mode)

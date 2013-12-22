@@ -1010,7 +1010,8 @@
 (define current-output 0)
 (define current-comm 0)
 
-(provide (all-defined-out))
+(provide greensyn-reset greensyn-input greensyn-output greensyn-send-recv greensyn-commit
+         greensyn-spec greensyn-synthesize greensyn-verify greensyn-gen-formula)
 
 ;;; Set
 ;;; 1) number of entries of memory

@@ -3,7 +3,7 @@
 (require racket/system "cegis.rkt" "state.rkt")
 
 ;; Hello World example :)
-(optimize "@p . . + 1" #:bin-search `time)
+(optimize "1 . . +" #:bin-search `time)
 
 ;; Inclusive or, with constraint on everything. Optimize for length as default.
 (optimize "over over or a! and a or")
@@ -32,9 +32,3 @@
 ;; This is how to optimize program with reads and writes to NSEW.
 (optimize "up b! @b down b! !b left b! @b right b! !b" 
           #:constraint constraint-none)
-
-;; This is how to optimize program with reads and writes to NSEW. It also works
-;; with smaller number of bit. 
-;; Run this and see the note at the end about NSWE constants.
-(optimize "up b! @b down b! !b left b! @b right b! !b"
-          #:constraint constraint-none #:num-bits 4)

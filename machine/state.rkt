@@ -26,7 +26,7 @@
 (define constraint-none (progstate #f #f #f #f #f #f #f #f #f #f))
 
 ;;; Constrain everything. We must have perfection!
-(define constraint-all (progstate #t #t #t #t #t #t #t 8 #t #t))
+(define constraint-all (progstate #t #t #t #t #t #t #t 8 8 #t))
 
 ;;; Defines a constraint for some fields. For example, `(constraint
 ;;; t)' is the same as constraint-only-t and evaluates to `(progstate
