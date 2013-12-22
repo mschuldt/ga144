@@ -1,49 +1,84 @@
 #lang racket
 
-(require "forth_state.rkt" "rvector.rkt")
-(provide (all-defined-out))
+(require "classes.rkt" "rvector.rkt")
+(provide add-io-words!)
 
-(define (displaynl arg)
-  (display arg)
-  (newline))
+(define (add-io-words!)
 
-(define (displayspace arg)
-  (display arg)
-  (display " "))
+  (add-instruction!
+   "send"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (pc (send i get 'pc))
+	    (table (send i get 'send-recv-table))
+	    (arg1 (pop-int! dstack #t))
+	    (arg2 (pop-int! dstack #t))]
+       (if (rvector-ref table arg1)
+	   (send i set 'pc (sub1 pc))
+	   (rvector-set! table arg1 arg2)))))
 
-(add-primitive-word! #f "send"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-			 (if (rvector-ref send-recv-table arg1)
-			     (set! pc (sub1 pc))
-			     (rvector-set! send-recv-table arg1 arg2)))))
+  (add-instruction!
+   "recv"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (pc (send i get 'pc))
+	    (table (send i get 'send-recv-table))
+	    (arg1 (pop-int! dstack #t))
+	    (val (rvector-ref table arg1))]
+       (if val
+	   (begin  (push-int! dstack val)
+		   (rvector-set! table arg1 #f))
+	   (begin (push-int! dstack arg1)
+		  (send i set 'pc (sub1 pc)))))))
 
-(add-primitive-word! #f "recv"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-			      (val (rvector-ref send-recv-table arg1))]
-			 (if val
-			     (push-int! dstack val)
-			     (begin (push-int! dstack arg1) (set! pc (sub1 pc)))))))
+  ; Debugging
+  (add-instruction!
+   ".s"
+   (lambda (i)
+     (print-stack (send i get 'dstack))))
 
-; Debugging
-(add-primitive-word! #f ".s" (lambda () (print-stack dstack)))
-(add-primitive-word! #f ".ns" (lambda () (print state-index) (display ": ") (print-stack dstack) (newline)))
-(add-primitive-word! #f ".r" (lambda () (print-stack rstack)))
-(add-primitive-word! #f ".nr" (lambda () (print state-index) (display ": ") (print-stack rstack) (newline)))
+  (add-instruction!
+   ".ns"
+   (lambda (i)
+     (print (send i get 'state-index))
+     (display ": ")
+     (print-stack (send i get 'dstack))
+     (newline)))
 
-(define (print-memory start end)
-  (if (>= start end)
-      (display " |")
-      (begin (display " | ")
-	     (display (rvector-ref memory start))
-	     (print-memory (add1 start) end))))
+  (add-instruction!
+   ".r"
+   (lambda (i)
+     (print-stack (send i get 'rstack))))
 
-(add-primitive-word! #f ".mem"
-		     (lambda ()
-		       (let* ((end (pop-int! dstack #f))
-			      (start (pop-int! dstack #f)))
-			 (printf "Printing memory from ~a to ~a:" start end)
-			 (print-memory start end)
-			 (newline))))
+  (add-instruction!
+   ".nr"
+   (lambda (i)
+     (print (send i get 'state-index))
+     (display ": ")
+     (print-stack (send i get 'rstack))
+     (newline)))
+
+  (define (print-memory memory start end)
+    (if (>= start end)
+	(display " |")
+	(begin (display " |")
+	       (for [(i (in-range 0 4))]
+		    (let [(elmt (rvector-ref memory (+ start i)))]
+		      (cond [(bytes? elmt)
+			     (display " ")
+			     (display (integer-bytes->integer elmt #t #t))]
+			    [elmt
+			     (display " ")
+			     (display elmt)])))
+	       (print-memory memory (+ 4 start) end))))
+
+  (add-instruction!
+   ".mem"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (memory (send i get 'memory))
+	    (end (pop-int! dstack #f))
+	    (start (pop-int! dstack #f))]
+       (printf "Printing memory from ~a to ~a:" start end)
+       (print-memory memory (* 4 start) (* 4 end))
+       (newline)))))

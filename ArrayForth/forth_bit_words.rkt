@@ -1,49 +1,47 @@
 #lang racket
 
-(require "forth_state.rkt")
-(provide (all-defined-out))
+(require "classes.rkt")
+(provide add-bit-words!)
 
 ; Booleans
 
 (define true -1)
 (define false 0)
 
-#|
-;; TODO: there is no ior but i couldn't find where they define ior. i think it should be somewhere
-(add-primitive-word! #f "ior"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (bitwise-ior arg1 arg2))))) ; ior - inclusive or
+(define (add-bit-words!)
+  (add-instruction!
+   "and" ; bitwise and
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (arg1 (pop-int! dstack #t))
+	    (arg2 (pop-int! dstack #t))]
+       (push-int! dstack (bitwise-and arg1 arg2)))))
 
-;; TODO: this is how they define invert : invert begin - ; ???
-(add-primitive-word! #f "invert" (lambda () (push-int! dstack (bitwise-not (pop-int! dstack #t)))))
-|#
+  (add-instruction!
+   "or" ; bitwise exclusive or
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (arg1 (pop-int! dstack #t))
+	    (arg2 (pop-int! dstack #t))]
+       (push-int! dstack (bitwise-xor arg1 arg2)))))
 
-(add-primitive-word! #f "and"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (bitwise-and arg1 arg2)))))
-
-(add-primitive-word! #f "or"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (bitwise-xor arg1 arg2))))) ; xor - exclusive or
+  (add-instruction!
+   "-" ; invert (bitwise negation)
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))]
+       (push-int! dstack (bitwise-not (pop-int! dstack #t))))))
 
 
 ; Math
 
 ; Addition - adds 2 ints, pushes it back onto the stack.  Treated as signed, but works for unsigned as well.
-(add-primitive-word! #f "+"
-                     (lambda ()
-                       (let* [(arg1 (pop-int! dstack #t))
-                              (arg2 (pop-int! dstack #t))]
-                         (push-int! dstack (+ arg1 arg2)))))
-
-; Invert
-(add-primitive-word! #f "-"(lambda () (push-int! dstack (bitwise-not (pop-int! dstack #t)))))
+  (add-instruction!
+   "+"
+   (lambda (i)
+     (let* [(dstack (send i get 'dstack))
+	    (arg1 (pop-int! dstack #t))
+	    (arg2 (pop-int! dstack #t))]
+       (push-int! dstack (+ arg1 arg2)))))
 
 ; Multiply step. 
 ; Signed Multiplicand is in S, unsigned multiplier in A, T=0 at start of a step sequence.
@@ -55,29 +53,32 @@
 ; their signs differ; this can only occur through improper initialization of T.
 ; 2. If bit A0 is zero, shifts the 36-bit register T:A right one bit arithmetically 
 ; (T17 is not changed and is copied into T16. T0 is copied to A17 and A0 is discarded.)
-(define (multiply-step-zero a t)
-  (if (= (bitwise-and t 1) 1)
-      ; if T0 = 1 then A17 = 1 (+ 2^17 = 131072)
-      (set! rega (+ 131072 (quotient a 2)))
-      (set! rega (quotient a 2)))
-  (push-int! dstack (+ (bitwise-and t 131072) (quotient t 2))))
+  (define (multiply-step-proc i)
+    (let* [(a (send i get 'rega))
+	   (dstack (send i get 'dstack))
+	   (arg1 (pop-int! dstack #f))]
+      (when (= (bitwise-and a 1) 1)
+	    (push-int! dstack (+ arg1 (get-int dstack #f))))
+      (let [(t (pop-int! dstack #f))]
+	(if (= (bitwise-and t 1) 1)
+	    (send i set 'rega (+ 131072 (quotient a 2)))
+	    (send i set 'rega (quotient a 2)))
+	(push-int! dstack (+ (bitwise-and t 131072)
+			     (quotient (bitwise-and t 262143) 2))))))
 
-(define (multiply-step-proc)
-  (let* [(a (rega))]
-    (if (= (bitwise-and a 1) 1)
-        (push-int! dstack (+ (pop-int! dstack #f) (get-int dstack #f)))
-        (void))
-    (let* [(t (pop-int! dstack #f))]
-      (if (= (bitwise-and t 1) 1)
-          (set! rega (+ 131072 (quotient a 2)))
-          (set! rega (quotient a 2)))
-      (push-int! dstack (+ (bitwise-and t 131072) (quotient (bitwise-and t 262143) 2))))))
+  (add-instruction! "+*" multiply-step-proc)
 
-(add-primitive-word! #f "+*" multiply-step-proc)
+  (add-instruction!
+   "2*"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))]
+       (push-int! dstack (* (pop-int! dstack #t) 2)))))
 
-(add-primitive-word! #f "2*" (lambda () (push-int! dstack (* (pop-int! dstack #t) 2))))
-(add-primitive-word! #f "2/" (lambda () (push-int! dstack (/ (pop-int! dstack #t) 2))))
+  (add-instruction!
+   "2/"
+   (lambda (i)
+     (let [(dstack (send i get 'dstack))]
+       (push-int! dstack (/ (pop-int! dstack #t) 2)))))
 
-; NOP
-(add-primitive-word! #f "." (lambda () (void)))
-(make-synonym "." "nop")
+  (add-instruction! "." (lambda (i) (void)))
+  (make-instruction-synonym "." "nop"))

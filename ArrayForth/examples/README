@@ -2,7 +2,7 @@ file ext  language                            description
 -----------------------------------------------------------------------------
 .forth    normal "forth"                      normal forth
 .pforth   "p"artitioned "forth"               partitioned forth with send/recv
-.lforth   "forth" with "l"ayout and routing   partitioned forth with send/recv + lyaout + routing
+.lforth   "forth" with "l"ayout and routing   partitioned forth with send/recv + layout + routing
 .aforth   "a"rray "forth"                     simplified arrayforth
 .cfs      actual arrayforth                   use python script to compile to OkadWork.cf
 
