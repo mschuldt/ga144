@@ -622,7 +622,8 @@
 ;; It also cannot synthesize !p instruction.
 ;;
 ;; See http://bitbucket.org/rohinmshah/forth-interpreter/wiki/Home for usage.
-(define cache (make-hash))
+(define cache-length (make-hash))
+(define cache-time   (make-hash))
 
 (define (optimize orig-program 
                   #:f18a       [f18a #f]
@@ -639,14 +640,14 @@
 		  #:time-limit [time-limit #f]
                   #:length-limit [length-limit #f]
 		  #:bin-search [bin-search `length])
-  (load-cache cache bin-search)
+  (load-cache)
   (define key (cache-get-key orig-program num-bits mem time-limit length-limit
                              constraint start-state))
 
   (cond
    [(equal? orig-program "") ""]
-   [(hash-has-key? cache key)
-    (hash-ref cache key)]
+   [(cache-has-key? bin-search key)
+    (cache-ref bin-search key)]
    [else
     (let ([result (optimize-internal orig-program
                                      #:f18a       f18a
@@ -663,5 +664,5 @@
                                      #:time-limit time-limit
                                      #:length-limit length-limit
                                      #:bin-search bin-search)])
-      (cache-put cache bin-search key result)
+      (cache-put bin-search key result)
       result)]))

@@ -13,7 +13,7 @@
 ;; (fastest-program3 "a! over over nop a - and nop push a and nop pop over over nop or push and nop pop or nop nop" #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p)
 
 ;;; x - (x & y)
-;(optimize "over and - @p 1 . + . +" #:slots 4 #:constraint (constraint t))
+(optimize "over and - 1 + +" #:slots 4 #:constraint (constraint t) #:bin-search `length)
 
 ;;; x | y
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
@@ -59,6 +59,6 @@
 ;          #:init "_ _ or _" 
 ;          #:slots "_ 2* _ _" #:repeat 2 #:constraint (constraint t) #:f18a #t)
 
-(optimize "up b! @b down b! !b left b! @b right b! !b"
-          #:constraint constraint-none)
+;(optimize "up b! @b down b! !b left b! @b right b! !b"
+;          #:constraint constraint-none)
 

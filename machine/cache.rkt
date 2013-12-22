@@ -2,11 +2,12 @@
 
 (require "state.rkt" "programs.rkt")
 
-(provide load-cache cache-put cache-get-key)
+(provide load-cache cache-has-key? cache-ref cache-put cache-get-key)
 
 (define data-dir "/home/mangpo/work/forth-interpreter/machine/.db")
 (define lock-file (format "~a/lock" data-dir))
-(define db-file (format "~a/storage" data-dir))
+(define db-file-length (format "~a/storage-length" data-dir))
+(define db-file-time (format "~a/storage-time" data-dir))
 
 (define (read-lock)
   (let* ([in (open-input-file lock-file)]
@@ -31,21 +32,26 @@
 
 ;; Load database from file
 (define init-cache #f)
-(define (load-cache cache type)
-  (define (load-cache-inner)
-    (define in (open-input-file db-file))
-    (define (loop)
-      (let ([next (read-line in)])
-        (unless (eof-object? next)
-                (let* ([content (string-split next ";")]
-                       [key (first content)]
-                       [val (second content)])
-                  (hash-set! cache key (if (equal? val "timeout") 'timeout val)))
-                (loop))))
-    (loop)
-    (close-input-port in))
+(define cache-length (make-hash))
+(define cache-time   (make-hash))
 
-  (when (and (not init-cache) (file-exists? db-file))
+(define (load-cache)
+  (define (load-cache-inner)
+    (define (loop in cache)
+      (let ([next (read-line in)])
+        (if (eof-object? next)
+            (close-input-port in)
+            (let* ([content (string-split next ";")]
+                   [key (first content)]
+                   [val (second content)])
+              (hash-set! cache key (if (equal? val "timeout") 'timeout val))
+              (loop in cache)))))
+    (when (file-exists? db-file-length)
+          (loop (open-input-file db-file-length) cache-length))
+    (when (file-exists? db-file-time)
+          (loop (open-input-file db-file-time)   cache-time)))
+
+  (unless init-cache
     (with-handlers* ([exn:break? unlock-exn])
       (lock)
       (load-cache-inner)
@@ -63,7 +69,25 @@
                  (struct-copy progstate start-state [memory #f])))
   (string-join lst ","))
 
-(define (cache-put cache type key value)
+(define (cache-has-key? type key)
+  (if (equal? type `time)
+      (hash-has-key? cache-time key)
+      (hash-has-key? cache-length key)))
+
+(define (cache-ref type key)
+  (if (equal? type `time)
+      (hash-ref cache-time key)
+      (hash-ref cache-length key)))
+
+(define (cache-put type key value)
+  (define cache
+    (if (equal? type `time)
+        cache-time
+        cache-length)) ;; If type = #f, default to cache-length.
+  (define db-file
+    (if (equal? type `time)
+        db-file-time
+        db-file-length)) ;; If type = #f, default to cache-length.
   (unless (hash-has-key? cache key)
     (define orig-program (car (string-split key ",")))
     (define orig-length (length-with-literal orig-program))
