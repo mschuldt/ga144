@@ -256,6 +256,26 @@
   (set-comm-length comm)
   )
 
+(define (print-input input len time bin-search)
+  (pretty-display (format "input program\t\t: ~a" input))
+  ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
+  (if (equal? bin-search `time)
+      (pretty-display (format "approx. runtime (ns)\t\t: ~a" (* time 0.5)))
+      (pretty-display (format "length (# of slots)\t: ~a" len)))
+  (newline))
+
+;;; Print result
+(define (print-result output len time bin-search)
+  (pretty-display (format "output program\t\t: ~a" output))
+  ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
+  (if (equal? bin-search `time)
+      (pretty-display (format "approx. runtime (ns)\t\t: ~a" (* time 0.5)))
+      (pretty-display (format "length (# of slots)\t: ~a" len)))
+  (newline)
+  (pretty-display "Constants for neighbor ports:")
+  (pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
+  (newline))
+
 ;;; Add an input/output pair to greensyn.
 (define (greensyn-add-pair pair comm)
   (greensyn-input (car pair))
@@ -496,9 +516,9 @@
         (pretty-display (format "original program\t: ~e" program))
         (pretty-display (format "memory\t\t\t: ~a" mem))
         (pretty-display (format "constraint\t\t: ~a" constraint))
-        (pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
+        ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs program)))
         (pretty-display (format "approx. runtime\t\t: ~a" (estimate-time program)))
-        (pretty-display (format "length with literal\t: ~a" (length-with-literal program))))
+        (pretty-display (format "length (# of slots)\t: ~a" (length-with-literal program))))
 
   (define start-time (current-seconds))
 
@@ -592,15 +612,17 @@
       (pretty-display "Timeout.")]
      
      [result
-      (pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
-      (pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
-      (if (equal? bin-search `time)
-          (pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
-          (pretty-display (format "length with literal\t: ~a" (cdr result))))
-      (newline)
-      (pretty-display "Constants for neighbor ports:")
-      (pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
-      (newline)]
+      (print-result (postprocess (car result)) (cdr result) (cdr result) bin-search)
+      ;; (pretty-display (format "output program\t\t: ~e" (postprocess (car result))))
+      ;; ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
+      ;; (if (equal? bin-search `time)
+      ;;     (pretty-display (format "approx. runtime\t\t: ~a" (* (cdr result) 0.5)))
+      ;;     (pretty-display (format "length with literal\t: ~a" (cdr result))))
+      ;; (newline)
+      ;; (pretty-display "Constants for neighbor ports:")
+      ;; (pretty-display (format "UP = ~a, DOWN = ~a, LEFT = ~a, RIGHT = ~a" UP DOWN LEFT RIGHT))
+      ;; (newline)
+      ]
      
      [else
       (pretty-display "No better implementation found.")])
@@ -651,7 +673,13 @@
   (cond
    [(equal? orig-program "") ""]
    [(cache-has-key? bin-search key)
-    (cache-ref bin-search key)]
+    (define val (cache-ref bin-search key))
+    (define output (car val))
+    (define info (cdr val)) ;; orig-len, len, orig-time, time
+    (print-input  orig-program (car info)  (caddr info)  bin-search)
+    (print-result output       (cadr info) (cadddr info) bin-search)
+    (pretty-display "(in cache)")
+    ]
    [else
     (let ([result (optimize-internal orig-program
                                      #:f18a       f18a

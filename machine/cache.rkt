@@ -43,7 +43,7 @@
             (close-input-port in)
             (let* ([content (string-split next ";")]
                    [key (first content)]
-                   [val (second content)])
+                   [val (cdr content)])
               (hash-set! cache key (if (equal? val "timeout") 'timeout val))
               (loop in cache)))))
     
