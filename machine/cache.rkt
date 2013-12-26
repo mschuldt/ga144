@@ -4,7 +4,7 @@
 
 (provide load-cache cache-has-key? cache-ref cache-put cache-get-key)
 
-(define data-dir "/home/mangpo/work/forth-interpreter/machine/.db")
+(define data-dir ".db")
 (define lock-file (format "~a/lock" data-dir))
 (define db-file-length (format "~a/storage-length" data-dir))
 (define db-file-time (format "~a/storage-time" data-dir))
@@ -46,6 +46,7 @@
                    [val (second content)])
               (hash-set! cache key (if (equal? val "timeout") 'timeout val))
               (loop in cache)))))
+    
     (when (file-exists? db-file-length)
           (loop (open-input-file db-file-length) cache-length))
     (when (file-exists? db-file-time)
@@ -53,6 +54,8 @@
 
   (unless init-cache
     (with-handlers* ([exn:break? unlock-exn])
+      (system (format "mkdir ~a" data-dir))
+      (system (format "echo FALSE > ~a/lock" data-dir))
       (lock)
       (load-cache-inner)
       (set! init-cache #t)

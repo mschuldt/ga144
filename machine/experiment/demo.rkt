@@ -15,7 +15,7 @@
 ;          #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p #:f18a #t)
 
 ;;; x - (x & y)
-;(optimize "over and - 1 + +" #:constraint (constraint t))
+(optimize "over and - 1 + +" #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
@@ -29,9 +29,9 @@
 ;; communication
 ;(optimize "@p b! !b . 325 @p b! !b . 325" 
 ;          #:constraint constraint-none #:num-bits 9 #:name "comm")
-(optimize-linear "@p b! !b @p 325 325 b! !b nop nop"
-                 #:slots "325 b! !b nop !b"
-                 #:constraint constraint-none #:num-bits 18 #:name "comm")
+;; (optimize-linear "@p b! !b @p 325 325 b! !b nop nop"
+;;                  #:slots "325 b! !b nop !b"
+;;                  #:constraint constraint-none #:num-bits 18 #:name "comm")
 
 ;(optimize "1 2 3 4 5" #:constraint (constraint-data 1 s t) #:num-bits 4
 ;          #:f18a #f)
