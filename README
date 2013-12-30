@@ -3,9 +3,9 @@ This project contains
 2) ArrayForth interpreter in ArrayForth directory
 3) GreenArrays F18A synthesizer in machine directory
 
-GreenArrays F18A synthesizer or GreenSyn is a synthesizer that synthesizes 
+GreenArrays F18A synthesizer is a synthesizer that synthesizes 
 the optimal F18A code in term of runtime from a given F18A program. 
-GreenSyn is written in Racket and use z3 SMT solver. GreenSyn runs on Linux, 
+The synthesizer uses z3 SMT solver. It runs on Linux, 
 Windows, and Mac.
 
 ==============================================================
