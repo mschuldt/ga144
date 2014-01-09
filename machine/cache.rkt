@@ -4,7 +4,8 @@
 
 (provide load-cache cache-has-key? cache-ref cache-put cache-get-key)
 
-(define data-dir ".db")
+;; (define data-dir ".db")
+(define data-dir "/home/mangpo/work/forth-interpreter/machine/.db")
 (define lock-file (format "~a/lock" data-dir))
 (define db-file-length (format "~a/storage-length" data-dir))
 (define db-file-time (format "~a/storage-time" data-dir))
@@ -82,6 +83,10 @@
       (hash-ref cache-time key)
       (hash-ref cache-length key)))
 
+(define (string-number-join lst delim)
+  (string-join (map (lambda (x) (if (number? x) (number->string x) x)) lst) 
+	       delim))
+
 (define (cache-put type key value)
   (define cache
     (if (equal? type `time)
@@ -97,16 +102,17 @@
     (define orig-time (estimate-time orig-program))
     (with-handlers* ([exn:break? unlock-exn])
       (lock)
-      (hash-set! cache key value)
+      (define val (list value
+			orig-length
+			(if (equal? value 'timeout) 
+			    orig-length
+			    (length-with-literal value))
+			(estimate-time orig-program)
+			(if (equal? value 'timeout) 
+			    orig-time
+			    (estimate-time value))))
+      (hash-set! cache key val)
       (with-output-to-file db-file #:exists 'append
         (lambda () 
-          (pretty-display (format "~a;~a;~a;~a;~a;~a" key value
-                                  orig-length
-                                  (if (equal? value 'timeout) 
-                                      orig-length
-                                      (length-with-literal value))
-                                  (estimate-time orig-program)
-                                  (if (equal? value 'timeout) 
-                                      orig-time
-                                      (estimate-time value))))))
+          (pretty-display (format "~a;~a" key (string-number-join val ";")))))
       (unlock))))

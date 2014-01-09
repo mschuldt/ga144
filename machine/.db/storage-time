@@ -141,3 +141,8 @@ drop up b! @b,18,3,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struc
 0 b! !b,18,3,#f,#f,#(struct:progstate #f #f #f #f #t #t #t #f 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);0 b! !b;7;7;23;23
 15,18,3,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);15;5;5;10;10
 1 b! @b 2 b! @b over - and + push drop pop,18,3,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);timeout;23;23;73;73
+0 b! @b down b! !b,18,2,#f,#f,#(struct:progstate #f #f #f #f #t #t #t #f 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);0 b! @b down b! !b;14;14;46;46
+0 a! 1,18,2,#f,#f,#(struct:progstate #t #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);1 dup 2/ +* a! nop;11;10;23;25
+@+ down b! !b,18,2,#f,#f,#(struct:progstate #t #f #f #f #t #t #t #f 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);@+ down b! !b;9;9;36;36
+3,18,0,#f,#f,#(struct:progstate #t #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);3;5;5;10;10
+up b! @b,18,0,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);up b! @b;7;7;23;23
