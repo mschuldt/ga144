@@ -256,11 +256,17 @@
   (set-comm-length comm)
   )
 
+(define (number x)
+  (if (string? x)
+      (string->number x)
+      x))
+
 (define (print-input input len time bin-search)
   (pretty-display (format "input program\t\t: ~a" input))
   ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
   (if (equal? bin-search `time)
-      (pretty-display (format "approx. runtime (ns)\t\t: ~a" (* time 0.5)))
+      (pretty-display (format "approx. runtime (ns)\t\t: ~a" 
+                              (* (number time) 0.5)))
       (pretty-display (format "length (# of slots)\t: ~a" len)))
   (newline))
 
@@ -269,7 +275,8 @@
   (pretty-display (format "output program\t\t: ~a" output))
   ;;(pretty-display (format "length\t\t\t: ~a" (program-length-abs (car result))))
   (if (equal? bin-search `time)
-      (pretty-display (format "approx. runtime (ns)\t\t: ~a" (* time 0.5)))
+      (pretty-display (format "approx. runtime (ns)\t\t: ~a" 
+                              (* (number time) 0.5)))
       (pretty-display (format "length (# of slots)\t: ~a" len)))
   (newline)
   (pretty-display "Constants for neighbor ports:")
@@ -679,6 +686,7 @@
     (print-input  orig-program (car info)  (caddr info)  bin-search)
     (print-result output       (cadr info) (cadddr info) bin-search)
     (pretty-display "(in cache)")
+    output
     ]
    [else
     (let ([result (optimize-internal orig-program
