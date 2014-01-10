@@ -5,7 +5,7 @@
 	 "forth_state_words.rkt" "rvector.rkt")
 	 
 
-(provide compile compile-and-run compile-to-vector compile-to-string)
+(provide compile compile-and-run compile-to-vector compile-to-string program-size)
 
 (add-directives!)
 (add-bit-words!)
@@ -73,3 +73,8 @@
 	 (vector->list (compile-to-vector code-port
 					  #:bytes? #f
 					  #:use-nop-and-ret? no-punct?))))
+
+(define (program-size code-port)
+  (vector-length (compile-to-vector code-port
+                                    #:bytes? #f
+                                    #:use-nop-and-ret? #f)))
