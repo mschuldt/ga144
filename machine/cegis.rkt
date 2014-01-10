@@ -255,7 +255,7 @@
   (define comm (current-commstate))
   (set-comm-length comm)
   )
-
+ 
 (define (number x)
   (if (string? x)
       (string->number x)
@@ -686,7 +686,7 @@
     (print-input  orig-program (car info)  (caddr info)  bin-search)
     (print-result output       (cadr info) (cadddr info) bin-search)
     (pretty-display "(in cache)")
-    output
+    (if (equal? output "timeout") 'timeout output)
     ]
    [else
     (let ([result (optimize-internal orig-program

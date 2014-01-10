@@ -66,7 +66,7 @@
 (define-syntax-rule (string-list a ...)
   (list (format "~a" a) ...))
 
-(define (cache-get-key program num-bits mem time-limit length-limit
+(define (cache-get-key program num-bits mem time-limit length-limit 
                        constraint start-state)
   (define lst
     (string-list program num-bits mem time-limit length-limit constraint 
@@ -83,8 +83,13 @@
       (hash-ref cache-time key)
       (hash-ref cache-length key)))
 
-(define (string-number-join lst delim)
-  (string-join (map (lambda (x) (if (number? x) (number->string x) x)) lst) 
+(define (join lst delim)
+  (string-join (map (lambda (x) 
+                      (cond
+                       [(number? x) (number->string x)]
+                       [(symbol? x) (symbol->string x)]
+                       [else x]))
+                    lst)
 	       delim))
 
 (define (cache-put type key value)
@@ -114,5 +119,5 @@
       (hash-set! cache key val)
       (with-output-to-file db-file #:exists 'append
         (lambda () 
-          (pretty-display (format "~a;~a" key (string-number-join val ";")))))
+          (pretty-display (format "~a;~a" key (join val ";")))))
       (unlock))))
