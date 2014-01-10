@@ -146,3 +146,4 @@ drop up b! @b,18,3,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struc
 @+ down b! !b,18,2,#f,#f,#(struct:progstate #t #f #f #f #t #t #t #f 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);@+ down b! !b;9;9;36;36
 3,18,0,#f,#f,#(struct:progstate #t #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);3;5;5;10;10
 up b! @b,18,0,#f,#f,#(struct:progstate #f #f #f #f #t #t #t 1 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);up b! @b;7;7;23;23
+4 b! @b 2 + b!,18,5,#f,#f,#(struct:progstate #f #t #f #f #t #t #t #f 2 #t),#(struct:progstate 0 0 0 0 0 0 0 #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #(struct:stack 0 #(0 0 0 0 0 0 0 0)) #f);8 a! a +* 2/ @ nop + b! nop;15;14;42;44
