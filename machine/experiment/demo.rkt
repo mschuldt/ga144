@@ -15,7 +15,7 @@
 ;          #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p #:f18a #t)
 
 ;;; x - (x & y)
-(optimize "over and - 1 + +" #:constraint (constraint t))
+;(optimize "over and - 1 + +" #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
@@ -55,7 +55,7 @@
 ;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
 ;          #:mem 3 #:num-bits 18)
 
-;(program-diff? "over - and or" "over - and +" 5 (constraint s t) 18)
+(program-diff? "1" "1" 5 (constraint s t) 18)
 
 ;(optimize "2* dup or . . and 2* dup . and 2* dup" 
 ;          #:init "nop + or _" 

@@ -78,3 +78,14 @@
   (vector-length (compile-to-vector code-port
                                     #:bytes? #f
                                     #:use-nop-and-ret? #f)))
+
+#|
+(program-size "yellow 2 node
+0 org
+1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 ,
+green
+: sum 1 0 b! !b 2 1 b! !b 0 a! @+ @+ ;")
+
+(define (f a) (display a))
+
+(with-output-to-string (lambda () (f "hello")))|#
