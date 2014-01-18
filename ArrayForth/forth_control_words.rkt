@@ -69,7 +69,22 @@
 	    (r (pop-int! rstack #f))]
        (unless (= r 0)
 	       (push-int! rstack (- r 1))
-	       (send i set-pc! addr))))))
+	       (send i set-pc! addr)))))
+
+  (define (make-conditional-jump pred)
+    (lambda (i addr)
+      (let [(val (pop-int! (send i get 'dstack) #t))]
+        (when (pred val)
+          (send i set-pc! addr)))))
+  
+  (add-instruction!
+   "if"
+   (make-conditional-jump zero?))
+  
+  (add-instruction!
+   "-if"
+   (make-conditional-jump positive?))
+  )
 
 #|
 ; IF - 

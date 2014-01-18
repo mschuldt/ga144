@@ -11,8 +11,7 @@
       (string-ci=? a b)
       (equal-case-sensitive? a b)))
 
-(define address-required-on-dstack '("next" "if" "-if"))
-(define address-required (append '("jump" "call") address-required-on-dstack))
+(define address-required '("jump" "call" "next" "if" "-if"))
 (define last-slot-instructions
   '(";" "ret" "unext" "@p" "!p" "+*" "+" "dup" "." "nop"))
 (define instructions-preceded-by-nops '("+" "+*"))
@@ -194,10 +193,12 @@
 		(hash-ref dict name)))
 
 	 (define/public (get-slot addr)
-	   (let [(lst (rvector-ref (get 'memory) (quotient addr 4)))]
-	     (if (list? lst)
-		 (list-ref lst (remainder addr 4))
-		 lst)))
+           (if (< addr 0)
+               #f
+               (let [(lst (rvector-ref (get 'memory) (quotient addr 4)))]
+                 (if (list? lst)
+                     (list-ref lst (remainder addr 4))
+                     lst))))
 
 	 (define/public (add-to-slot! elmt addr)
 	   (let* [(memory (get 'memory))
@@ -217,6 +218,10 @@
 		 (location-counter (get 'location-counter))]
 	     (rvector-set! memory location-counter data)
 	     (set 'location-counter (add1 location-counter))))
+    
+    (define/public (go-to-next-word)
+      (set 'i-register (* 4 (get 'location-counter)))
+      (set 'location-counter (add1 (get 'location-counter))))
 
 ; Compiles a single instruction or constant.
 ; In the case of a constant, it implicitly adds @p.
@@ -235,9 +240,7 @@
 	     (define (standard-compile! elmt)
 	       (add-to-slot! elmt i-register)
 	       (if (= (remainder i-register 4) 3)
-		   (begin (set 'i-register (* 4 (get 'location-counter)))
-			  (set 'location-counter
-			       (add1 (get 'location-counter))))
+                   (go-to-next-word)
 		   (set 'i-register (add1 i-register))))
 
 	     (cond [(not elmt)
@@ -271,7 +274,12 @@
 
 	 (define/public (compile-address! addr)
 	   (add-compiled-code! addr))
-
+    
+    (define/public (compile-address-to-slot! addr slot)
+      (when (not (member (get-slot (sub1 slot)) address-required))
+        (raise "Tried to compile a number that was not an address --- add-compiled-code!"))
+      (add-to-slot! addr slot))
+    
 	 (define/public (compile-constant! const)
 	   (add-compiled-code! const))
 
