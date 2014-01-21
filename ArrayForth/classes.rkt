@@ -11,8 +11,7 @@
       (string-ci=? a b)
       (equal-case-sensitive? a b)))
 
-(define address-required-on-dstack '("next" "if" "-if"))
-(define address-required (append '("jump" "call") address-required-on-dstack))
+(define address-required '("jump" "call" "next" "if" "-if"))
 (define last-slot-instructions
   '(";" "ret" "unext" "@p" "!p" "+*" "+" "dup" "." "nop"))
 (define instructions-preceded-by-nops '("+" "+*"))
@@ -30,7 +29,8 @@
 		(next-word 1)
 		(rega 0)
 		(regb 0)
-		(memory (make-rvector 100 ".")))))
+		(memory (make-rvector 100 '()))
+		(blocked-instructions #f))))
 
 (define interpreter%
   (class object%
@@ -66,10 +66,8 @@
 	    (dynamic-set-field! name this value)))
 
 	 (define/public (increment-pc!)
-	   (if (= (remainder (get 'pc) 4) 3)
-	       (begin (set 'pc (* 4 (get 'next-word)))
-		      (set 'next-word (add1 (get 'next-word))))
-	       (set 'pc (add1 (get 'pc)))))
+	   (set 'pc (get 'next-word))
+	   (set 'next-word (add1 (get 'next-word))))
 
 	 (define/public (read-and-increment-pc!)
 	   (let [(old-pc (get 'pc))]
@@ -77,22 +75,43 @@
 	     (rvector-ref (get 'memory) old-pc)))
 
 	 (define/public (set-pc! addr)
-	   (set 'pc (* 4 addr))
+	   (set 'pc addr)
 	   (set 'next-word (add1 addr)))
 
+	 (define/public (execute-instructions instructions)
+	   (define (loop lst)
+	     (unless (null? lst)
+		     (let* [(name (if (string? (car lst))
+				      (car lst)
+				      (raise "Not a string")))
+			    (proc (get-instruction-proc name))
+			    (result (if (member name address-required)
+					(proc this (cadr lst))
+					(proc this)))]
+		       (cond [(equal? result 'restart)
+			      (execute-instructions instructions)]
+			     [(equal? result 'block)
+			      (set 'blocked-instructions lst)]
+			     [(member name address-required)
+			      (loop (cddr lst))]
+			     [else
+			      (loop (cdr lst))]))))
+	   (loop instructions))
+
+	 ; Continues any instructions that were forced to block previously.
+	 ; If there are no more instructions to fetch, removes this core from
+	 ; the list of active cores.
+	 ; Otherwise, reads the next instruction word and executes it.
 	 (define/public (single-step core)
 	   (set 'state-index core)
-	   (let [(memory (get 'memory))
-		 (pc (get 'pc))]
-	     (if (or (< pc 0) (>= pc (rvector-length memory)))
-		 (set 'used-cores (remove core (get 'used-cores)))
-		 (let [(name (read-and-increment-pc!))]
-		   (unless (string? name)
-			   (raise "Not a string -- single-step"))
-		   (let [(proc (get-instruction-proc name))]
-		     (if (member name address-required)
-			 (proc this (read-and-increment-pc!))
-			 (proc this)))))))
+	   (let [(pc (get 'pc))
+		 (blocked (get 'blocked-instructions))]
+	     (cond [blocked
+		    (set 'blocked-instructions #f)
+		    (execute-instructions blocked)]
+		   [(or (< pc 0) (>= pc (rvector-length (get 'memory))))
+		    (set 'used-cores (remove core (get 'used-cores)))]
+		   [else (execute-instructions (read-and-increment-pc!))])))
 
 	 (define/public (step)
 	   (for [(core (get 'used-cores))]
@@ -173,14 +192,36 @@
 	   (and (hash-has-key? dict name)
 		(hash-ref dict name)))
 
+	 (define/public (get-slot addr)
+           (if (< addr 0)
+               #f
+               (let [(lst (rvector-ref (get 'memory) (quotient addr 4)))]
+                 (if (list? lst)
+                     (list-ref lst (remainder addr 4))
+                     lst))))
+
+	 (define/public (add-to-slot! elmt addr)
+	   (let* [(memory (get 'memory))
+		  (index (quotient addr 4))
+		  (slot (remainder addr 4))
+		  (existing (rvector-ref memory index))]
+	     (unless (= (length existing) slot)
+		     (raise "Incorrect compilation - not enough or too many existing slots"))
+	     (rvector-set! memory index (append existing (list elmt)))))
+
 	 (define/public (add-compiled-data! data)
+	   (add-to-next-word! data)
+	   (fill-rest-with-nops))
+	   
+	 (define/public (add-to-next-word! data)
 	   (let [(memory (get 'memory))
-		 (i-register (get 'i-register))]
-	     (unless (= (remainder i-register 4) 0)
-		     (fill-rest-with-nops))
-	     (rvector-set! memory (get 'i-register) data)
-	     (set 'i-register (add1 (get 'i-register)))
-	     (fill-rest-with-false)))
+		 (location-counter (get 'location-counter))]
+	     (rvector-set! memory location-counter data)
+	     (set 'location-counter (add1 location-counter))))
+    
+    (define/public (go-to-next-word)
+      (set 'i-register (* 4 (get 'location-counter)))
+      (set 'location-counter (add1 (get 'location-counter))))
 
 ; Compiles a single instruction or constant.
 ; In the case of a constant, it implicitly adds @p.
@@ -196,34 +237,25 @@
 ; Increment i-register if there are still remaining slots in the word.
 ; Otherwise, set i-register to address represented by location-counter, and
 ; increment location-counter.
-	     (define (standard-compile! thing)
-	       (rvector-set! memory i-register elmt)
+	     (define (standard-compile! elmt)
+	       (add-to-slot! elmt i-register)
 	       (if (= (remainder i-register 4) 3)
-		   (begin (set 'i-register (* 4 (get 'location-counter)))
-			  (set 'location-counter
-			       (add1 (get 'location-counter))))
+                   (go-to-next-word)
 		   (set 'i-register (add1 i-register))))
 
 	     (cond [(not elmt)
-; This slot should be taken up by something else, but I don't bother.
-; For example, numbers should take up all 4 slots, but they only take up 1.
-; Rest are #f.
-; Similar thing happens whenever an address is compiled.
-		    (standard-compile! elmt)]
+		    (raise "Got a value of #f in standard-compile!")]
 
 		   [(bytes? elmt)
 ; Number constant.  Need to compile @p and the number.
-		    (rvector-set! memory (* 4 (get 'location-counter)) elmt)
-		    (for [(i (in-range 1 4))]
-			 (rvector-set! memory (+ (* 4 (get 'location-counter)) i) #f))
-		    (set 'location-counter (add1 (get 'location-counter)))
+		    (add-to-next-word! elmt)
 		    (add-compiled-code! "@p")]
 
 		   [(string? elmt)
 ; Standard instruction compilation.  Deals with inserting nops where necessary.
 ; Addresses (for address-required instructions) must be supplied separately.
 		    (when (or (and (member elmt instructions-preceded-by-nops)
-				   (not (equal? (rvector-ref memory (sub1 i-register)) ".")))
+				   (not (equal? (get-slot (sub1 i-register)) ".")))
 			      (and (= (remainder i-register 4) 3)
 				   (not (member elmt last-slot-instructions))))
 			  (add-compiled-code! "."))
@@ -232,15 +264,22 @@
 		   [(number? elmt)
 ; Compilation of an address.
 ; TODO: Check if the address can fit.
-		    (when (not (member (rvector-ref memory (sub1 i-register)) address-required))
+		    (when (not (member (get-slot (sub1 i-register)) address-required))
 			  (raise "Tried to compile a number that was not an address --- add-compiled-code!"))
-		    (standard-compile! elmt)
-		    (fill-rest-with-false)]
+		    (add-to-slot! elmt i-register)
+		    (set 'i-register (* 4 location-counter))
+		    (set 'location-counter (add1 location-counter))]
 	
 		   [else (raise "Unknown thing to compile --- add-compiled-code!")])))
 
 	 (define/public (compile-address! addr)
 	   (add-compiled-code! addr))
+    
+    (define/public (compile-address-to-slot! addr slot)
+      (when (not (member (get-slot (sub1 slot)) address-required))
+        (raise "Tried to compile a number that was not an address --- add-compiled-code!"))
+      (add-to-slot! addr slot))
+    
 	 (define/public (compile-constant! const)
 	   (add-compiled-code! const))
 
@@ -248,11 +287,6 @@
 	   (unless (= (remainder i-register 4) 0)
 		   (add-compiled-code! ".")
 		   (fill-rest-with-nops)))
-
-	 (define/public (fill-rest-with-false)
-	   (unless (= (remainder i-register 4) 0)
-		   (add-compiled-code! #f)
-		   (fill-rest-with-false)))
 
 	 (define/public (port->number str)
 	   (cond
@@ -265,10 +299,11 @@
 
 	 (define/public (compile-loop)
 	   (let [(token (forth_read))]
-	     (unless (eof-object? token)
-		     (unless (eq? token #\newline)
-			     (compile-token token))
-		     (compile-loop))))
+	     (if (eof-object? token)
+		 (fill-rest-with-nops)
+		 (begin (unless (eq? token #\newline)
+				(compile-token token))
+			(compile-loop)))))
 
 	 (define/public (compile-token token)
 	   (let [(directive (get-directive-proc token))
