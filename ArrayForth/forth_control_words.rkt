@@ -43,7 +43,7 @@
    (lambda (i addr)
      (let [(pc (send i get 'pc))
 	   (rstack (send i get 'rstack))]
-       (push-int! rstack (add1 (quotient pc 4)))
+       (push-int! rstack pc)
        (send i set-pc! addr))))
 
 ; unext
@@ -54,11 +54,10 @@
    "unext"
    (lambda (i)
      (let* [(rstack (send i get 'rstack))
-	    (r (pop-int! rstack #f))
-	    (pc (send i get 'pc))]
+	    (r (pop-int! rstack #f))]
        (unless (= r 0)
 	       (push-int! rstack (- r 1))
-	       (send i set-pc! (quotient (- pc 1) 4))))))
+	       'restart))))
 
 ; next
 ; If R is zero, pops the return stack and continues with the next instruction word addressed by P.
@@ -67,12 +66,25 @@
    "next"
    (lambda (i addr)
      (let* [(rstack (send i get 'rstack))
-	    (r (pop-int! rstack #f))
-	    (pc (send i get 'pc))]
-       (if (= r 0)
-	   (send i set-pc! (+ 1 (quotient (- pc 1) 4)))
-	   (begin (push-int! rstack (- r 1))
-		  (send i set-pc! addr)))))))
+	    (r (pop-int! rstack #f))]
+       (unless (= r 0)
+	       (push-int! rstack (- r 1))
+	       (send i set-pc! addr)))))
+
+  (define (make-conditional-jump pred)
+    (lambda (i addr)
+      (let [(val (pop-int! (send i get 'dstack) #t))]
+        (when (pred val)
+          (send i set-pc! addr)))))
+  
+  (add-instruction!
+   "if"
+   (make-conditional-jump zero?))
+  
+  (add-instruction!
+   "-if"
+   (make-conditional-jump positive?))
+  )
 
 #|
 ; IF - 

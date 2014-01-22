@@ -5,6 +5,7 @@
 
 (define (add-io-words!)
 
+  ; TODO: Fix send and recv.
   (add-instruction!
    "send"
    (lambda (i)
@@ -14,7 +15,9 @@
 	    (arg1 (pop-int! dstack #t))
 	    (arg2 (pop-int! dstack #t))]
        (if (rvector-ref table arg1)
-	   (send i set 'pc (sub1 pc))
+	   (begin (push-int! dstack arg2)
+		  (push-int! dstack arg1)
+		  'block)
 	   (rvector-set! table arg1 arg2)))))
 
   (add-instruction!
@@ -29,7 +32,7 @@
 	   (begin  (push-int! dstack val)
 		   (rvector-set! table arg1 #f))
 	   (begin (push-int! dstack arg1)
-		  (send i set 'pc (sub1 pc)))))))
+		  'block)))))
 
   ; Debugging
   (add-instruction!

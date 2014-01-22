@@ -92,26 +92,13 @@
 	   (regb (send i get 'regb))]
      (push-int! dstack (rvector-ref memory regb)))))
 
-  ; @p only works when it is immediately followed by { .. }
-  ; Annoyingly, needs to take into account the pc increment done by interpret.
   (add-instruction!
    "@p" 
    (lambda (i)
-     (let [(dstack (send i get 'dstack))
-	   (memory (send i get 'memory))
-	   (pc (send i get 'pc))
-	   (next-word (send i get 'next-word))]
-       (if (= (remainder pc 4) 0)
-	   (begin (push-cells! dstack
-			       (rvector-ref memory (* 4 (sub1 next-word))))
-		  (send i set-pc! next-word))
-	   (begin (push-cells! dstack
-			       (rvector-ref memory (* 4 next-word)))
-		  (send i set 'next-word (add1 next-word)))))))
+     (push-cells! (send i get 'dstack) (send i read-and-increment-pc!))))
 
   ; store via register
 
-  ; TODO: !p doesn't work if write to memory
   (add-instruction!
    "!p" 
    (lambda (i)
