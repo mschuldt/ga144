@@ -55,9 +55,9 @@
      (filter (lambda (x) (and (not (equal? x "nop")) (not (equal? x "."))))
              (string-split program))))
   ;; TODO: remove condition after rohin fixed '+' issue.
-  (if (equal? (substring processed 0 1) "+")
-      (compile-to-string (string-append ". " processed))
-      (compile-to-string processed)))
+  ;; (if (equal? (substring processed 0 1) "+")
+  ;;     (compile-to-string (string-append ". " processed))
+  (compile-to-string processed))
 
 ;;; Given a string containing a forth program, gives you an estimate
 ;;; of how long it would take to run.

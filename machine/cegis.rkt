@@ -9,7 +9,7 @@
          "cache.rkt"
          "../ArrayForth/arrayforth.rkt")
 
-(provide optimize program-diff? optimize-linear)
+(provide optimize program-diff? optimize-linear cegis)
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
