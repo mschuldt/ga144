@@ -20,7 +20,7 @@
 
 (define comm-length 1)
 (define all-pairs '())
-(define timeout 3000) ;3000
+(define timeout 100000) ;3000
 
 (define (initialize)
   (system "mkdir debug")
