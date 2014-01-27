@@ -21,8 +21,8 @@
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
 ;("over - and nop +" . 15)
 
-(cegis (compile-to-string "over over or a! and a or") 
-       #:constraint (constraint s t) #:slots 5 #:length-limit 100)
+;(cegis (compile-to-string "over over or a! and a or") 
+;       #:constraint (constraint s t) #:slots 5 #:length-limit 100)
 
 ;;; round up to multiple of 8 (8-bit)
 ;(optimize "@p nop + @p 7 8 - @p nop + 1 and nop nop nop" #:name "roundup" 
@@ -58,7 +58,10 @@
 ;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
 ;          #:mem 3 #:num-bits 18)
 
-;(program-diff? "1" "1" 5 (constraint s t) 18)
+(program-diff? "push push 65535 and pop 65535 and pop 65535 and 0 a! !+ !+ push pop dup 1 b! @b and over 65535 or 0 b! @b and over - and + push drop pop" 
+               "push push 65535 and pop 65535 and pop 65535 and push over - push and pop pop and over 65535 or and or" 
+               5 
+               (constraint t) 18)
 
 ;(optimize "2* dup or . . and 2* dup . and 2* dup" 
 ;          #:init "nop + or _" 
