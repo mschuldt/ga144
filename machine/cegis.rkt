@@ -225,6 +225,8 @@
 ;;; Interpret program spec to determine number of communication.
 ;;; Set initial value of a related register to one of the neightbor ports (e.g. UP).
 (define (compute-comm-length program memory-start start-state mem-size)
+  (set! start-state (struct-copy progstate start-state))
+
   ;; Set up legel initial state.
   (define insts (trim-start (string-split program)))
   (define first-inst (car insts))
@@ -232,20 +234,52 @@
    [(equal? first-inst "@p")
     (define lit (first-lit (cdr insts)))
     (when (negative? lit)
-	  (set! start-state (struct-copy progstate start-state [t (- lit)])))]
+	  (set-progstate-t! start-state (- lit)))]
 
    [(member first-inst (list "a!" "b!"))
-    (when (= (progstate-t start-state) 0)
-	  (set! start-state (struct-copy progstate start-state [t UP])))]
+    (when (equal? (progstate-t start-state) 0)
+	  (set-progstate-t! start-state UP))]
 
    [(member first-inst (list "!" "@"))
-    (when (= (progstate-a start-state) 0)
-	  (set! start-state (struct-copy progstate start-state [a UP])))]
+    (when (equal? (progstate-a start-state) 0)
+	  (set-progstate-a! start-state UP))]
 
    [(member first-inst (list "!b" "@b"))
-    (when (= (progstate-b start-state) 0)
-	  (set! start-state (struct-copy progstate start-state [b UP])))])
-  
+    (when (equal? (progstate-b start-state) 0)
+	  (set-progstate-b! start-state UP))])
+
+  ;; Conditional constraints only work with < on s, t, and data stack.
+  (when (pair? (progstate-t start-state))
+	(define op (car (progstate-t start-state)))
+	(define num (cdr (progstate-t start-state)))
+	(cond
+	 [(and (equal? op "<") (positive? num))
+	  (set-progstate-t! start-state 0)]
+	 [else
+	  (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+
+  (when (pair? (progstate-s start-state))
+	(define op (car (progstate-s start-state)))
+	(define num (cdr (progstate-s start-state)))
+	(cond
+	 [(and (equal? op "<") (positive? num))
+	  (set-progstate-s! start-state 0)]
+	 [else
+	  (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+
+  (define data (vector-copy (progstate-data start-state)))
+  (for ([i (in-range (vector-length data))])
+       (let ([entry (vector-ref data i)])
+	 (when (pair? entry)
+	       (let ([op (car entry)]
+		     [num (cdr entry)])
+		 (cond
+		  [(and (equal? op "<") (positive? num))
+		   (vector-set! data i 0)]
+		  [else
+		   (raise (format "Illegal start-state constraint ~a ~a" op num))])))))
+  (set-progstate-data! start-state data)
+	 
   (load-state! start-state mem-size #t)
   (load-program program memory-start)
   (set! start-state (current-state))
@@ -427,7 +461,7 @@
 						       (car candidate) (* (cdr candidate) 0.5)))))
 		     candidate))))))
 
-  (compute-comm-length  program start start-state mem)
+  (compute-comm-length program start start-state mem)
   (define result (go (cons "nop" 0) (list)))
   
   (when print-time (newline) 
