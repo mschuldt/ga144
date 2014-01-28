@@ -249,36 +249,38 @@
 	  (set-progstate-b! start-state UP))])
 
   ;; Conditional constraints only work with < on s, t, and data stack.
-  (when (pair? (progstate-t start-state))
-	(define op (car (progstate-t start-state)))
-	(define num (cdr (progstate-t start-state)))
-	(cond
-	 [(and (equal? op "<") (positive? num))
-	  (set-progstate-t! start-state 0)]
-	 [else
-	  (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+  ;; (when (pair? (progstate-t start-state))
+  ;;       (define op (car (progstate-t start-state)))
+  ;;       (define num (cdr (progstate-t start-state)))
+  ;;       (cond
+  ;;        [(and (equal? op "<") (positive? num))
+  ;;         (set-progstate-t! start-state 0)]
+  ;;        [else
+  ;;         (raise (format "Illegal start-state constraint ~a ~a" op num))]))
 
-  (when (pair? (progstate-s start-state))
-	(define op (car (progstate-s start-state)))
-	(define num (cdr (progstate-s start-state)))
-	(cond
-	 [(and (equal? op "<") (positive? num))
-	  (set-progstate-s! start-state 0)]
-	 [else
-	  (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+  ;; (when (pair? (progstate-s start-state))
+  ;;       (define op (car (progstate-s start-state)))
+  ;;       (define num (cdr (progstate-s start-state)))
+  ;;       (cond
+  ;;        [(and (equal? op "<") (positive? num))
+  ;;         (set-progstate-s! start-state 0)]
+  ;;        [else
+  ;;         (raise (format "Illegal start-state constraint ~a ~a" op num))]))
 
-  (define data (vector-copy (progstate-data start-state)))
-  (for ([i (in-range (vector-length data))])
-       (let ([entry (vector-ref data i)])
-	 (when (pair? entry)
-	       (let ([op (car entry)]
-		     [num (cdr entry)])
-		 (cond
-		  [(and (equal? op "<") (positive? num))
-		   (vector-set! data i 0)]
-		  [else
-		   (raise (format "Illegal start-state constraint ~a ~a" op num))])))))
-  (set-progstate-data! start-state data)
+  ;; (define data (vector-copy (stack-body (progstate-data start-state))))
+  ;; (define sp (stack-sp (progstate-data start-state)))
+  ;; (for ([i (in-range (vector-length data))])
+  ;;      (let* ([index (modulo (- sp i) 8)] ;; TODO: check this
+  ;;             [entry (vector-ref data index)])
+  ;;        (when (pair? entry)
+  ;;              (let ([op (car entry)]
+  ;;       	     [num (cdr entry)])
+  ;;       	 (cond
+  ;;       	  [(and (equal? op "<") (positive? num))
+  ;;       	   (vector-set! data index 0)]
+  ;;       	  [else
+  ;;       	   (raise (format "Illegal start-state constraint ~a ~a" op num))])))))
+  ;; (set-progstate-data! start-state (stack sp data))
 	 
   (load-state! start-state mem-size #t)
   (load-program program memory-start)
