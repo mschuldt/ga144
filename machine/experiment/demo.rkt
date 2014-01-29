@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../cegis.rkt" "../state.rkt" "../greensyn.rkt" "../programs.rkt"
+(require "../cegis.rkt" "../state.rkt" "../stack.rkt" "../greensyn.rkt" "../programs.rkt"
          "../../ArrayForth/arrayforth.rkt")
 
 ;; >>> 0x3ffff = 262143
@@ -15,7 +15,7 @@
 ;          #:name "swap" #:num-bits 4 #:inst-pool `no-mem-no-p #:f18a #t)
 
 ;;; x - (x & y)
-(optimize "over and - 1 + +" #:constraint (constraint t))
+;(optimize "over and - 1 + +" #:constraint (constraint t))
 
 ;;; x | y
 ;(optimize "over over or a! and a or" #:constraint (constraint s t) #:bin-search `time)
@@ -58,17 +58,19 @@
 ;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
 ;          #:mem 3 #:num-bits 18)
 
-;(program-diff? "push push 65535 and pop 65535 and pop 65535 and 0 a! !+ !+ push pop dup 1 b! @b and over 65535 or 0 b! @b and over - and + push drop pop" 
-;               "push push 65535 and pop 65535 and pop 65535 and push over - push and pop pop and over 65535 or and or" 
-;               5 
-;               (constraint t) 18)
+#|
+(program-diff? "0 a! !+ !+ push pop dup 1 b! @b and over 65535 or 0 b! @b and over - and + push drop pop" 
+               "push over - push and pop pop and over 65535 or and or" 
+               5 
+               (constraint t) 18
+               #:start-state (default-state 
+                               [data-pair (0 (cons "<=" 65535))]
+                               [t (cons "<=" 65535)] 
+                               [s (cons "<=" 65535)]))|#
 
-;(optimize "2* dup or . . and 2* dup . and 2* dup" 
-;          #:init "nop + or _" 
-;          #:slots "dup 2* nop nop" #:repeat 2 #:constraint (constraint t) #:f18a #t)
 
-;(compile-to-string "+ or 0 dup 2* dup 2*")
-
-;(optimize "up b! @b down b! !b left b! @b right b! !b"
-;          #:constraint constraint-none)
-
+(program-diff? "1 1 1 1" "nop" 1 (constraint (data 2) s t) 18 
+               #:start-state (default-state 
+                               [data-pair (0 (cons "=" 1)) (1 (cons "=" 1))]
+                               [t (cons "=" 1)] 
+                               [s (cons "=" 1)]))

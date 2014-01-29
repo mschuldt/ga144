@@ -248,39 +248,31 @@
     (when (equal? (progstate-b start-state) 0)
 	  (set-progstate-b! start-state UP))])
 
-  ;; Conditional constraints only work with < on s, t, and data stack.
-  ;; (when (pair? (progstate-t start-state))
-  ;;       (define op (car (progstate-t start-state)))
-  ;;       (define num (cdr (progstate-t start-state)))
-  ;;       (cond
-  ;;        [(and (equal? op "<") (positive? num))
-  ;;         (set-progstate-t! start-state 0)]
-  ;;        [else
-  ;;         (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+  (define (assume-input setter x)
+    (when (pair? x)
+        (cond
+         [(and (equal? (car x) "=") (>= (cdr x) 0))
+          (setter start-state (cdr x))]
+         [(and (equal? (car x) "<=") (>= (cdr x) 0))
+          (setter start-state 0)]
+         [(pair? x)
+          (raise (format "Illegal start-state constraint ~a ~a" (car x) (cdr x)))])))
+          
 
-  ;; (when (pair? (progstate-s start-state))
-  ;;       (define op (car (progstate-s start-state)))
-  ;;       (define num (cdr (progstate-s start-state)))
-  ;;       (cond
-  ;;        [(and (equal? op "<") (positive? num))
-  ;;         (set-progstate-s! start-state 0)]
-  ;;        [else
-  ;;         (raise (format "Illegal start-state constraint ~a ~a" op num))]))
+  ;; Conditional constraints only work with < on registers, and data stack.
+  (assume-input set-progstate-a! (progstate-a start-state))
+  (assume-input set-progstate-b! (progstate-b start-state))
+  (assume-input set-progstate-r! (progstate-r start-state))
+  (assume-input set-progstate-s! (progstate-s start-state))
+  (assume-input set-progstate-t! (progstate-t start-state))
 
-  ;; (define data (vector-copy (stack-body (progstate-data start-state))))
-  ;; (define sp (stack-sp (progstate-data start-state)))
-  ;; (for ([i (in-range (vector-length data))])
-  ;;      (let* ([index (modulo (- sp i) 8)] ;; TODO: check this
-  ;;             [entry (vector-ref data index)])
-  ;;        (when (pair? entry)
-  ;;              (let ([op (car entry)]
-  ;;       	     [num (cdr entry)])
-  ;;       	 (cond
-  ;;       	  [(and (equal? op "<") (positive? num))
-  ;;       	   (vector-set! data index 0)]
-  ;;       	  [else
-  ;;       	   (raise (format "Illegal start-state constraint ~a ~a" op num))])))))
-  ;; (set-progstate-data! start-state (stack sp data))
+  (define data (vector-copy (stack-body (progstate-data start-state))))
+  (define sp (stack-sp (progstate-data start-state)))
+  (for ([i (in-range 8)])
+       (let* ([index (modulo (- sp i) 8)] ;; TODO: check this
+              [entry (vector-ref data index)])
+         (assume-input (lambda (val) (vector-set! data index val)) entry)))
+  (set-progstate-data! start-state (stack sp data))
 	 
   (load-state! start-state mem-size #t)
   (load-program program memory-start)
@@ -369,7 +361,8 @@
 
 ;;; Check if spec and candidate program are different or not.
 ;;; Return #t if they are different, #f otherwise.
-(define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake])
+(define (program-diff? spec candidate mem-size constraint num-bits [inst-pool `no-fake]
+                       #:start-state [start-state (default-state)])
   (pretty-display `(program-diff? mem-size ,mem-size))
   (define formatted-spec (insert-nops spec))
   (define formatted-cand (insert-nops candidate))
@@ -377,7 +370,7 @@
       #f
       (validate formatted-spec formatted-cand 
                 (format "eqtest~a" (current-milliseconds))
-                (if (> mem-size 0) mem-size 1) constraint num-bits (default-state)
+                (if (> mem-size 0) mem-size 1) constraint num-bits start-state
                 inst-pool)))
 
 ;;; Generate a counter-example or #f if the program is valid.
