@@ -59,6 +59,20 @@
     ((constraint var ...)        (struct-copy progstate constraint-none [var #t] ...))
     ))
 
+
+
+(define-syntax copy-state
+  (syntax-rules (data-pair)
+    ((copy-state x [data-pair (i i-val) ...] [key val] ...)
+     (let ([body (make-vector 8)]
+           [pairs (list (cons i i-val) ...)])
+       (for ([p pairs])
+            (vector-set! body (modulo (- (car p)) 8) (cdr p)))
+       (struct-copy progstate x [data (stack 0 body)] [key val] ...)))
+
+    ((copy-state x [key val] ...)
+     (struct-copy progstate x [key val] ...))))
+
 (define-syntax default-state
   (syntax-rules (data-pair)
     ((default-state) 
@@ -72,5 +86,17 @@
        (struct-copy progstate start-state [data (stack 0 body)] [key val] ...)))
 
     ((default-state [key val] ...)
-     (struct-copy progstate start-state [key val] ...))
-    ))
+     (struct-copy progstate start-state [key val] ...))))
+   
+
+(define (constrain-stack state precond)
+  (when (list? precond)
+    (for ([assume precond]
+          [i (reverse (range (length precond)))])
+      (cond
+       [(= i 0) (set-progstate-t! state assume)]
+       [(= i 1) (set-progstate-s! state assume)]
+       [else
+        (let ([body (stack-body (progstate-data state))])
+          (vector-set! body (modulo (- 2 i) 8) assume))])))
+  state)

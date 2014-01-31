@@ -13,7 +13,7 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #f)
+(define debug #t)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
@@ -251,9 +251,9 @@
   (define (assume-input setter x)
     (when (pair? x)
         (cond
-         [(and (equal? (car x) "=") (>= (cdr x) 0))
+         [(and (equal? (car x) '=) (>= (cdr x) 0))
           (setter start-state (cdr x))]
-         [(and (equal? (car x) "<=") (>= (cdr x) 0))
+         [(and (equal? (car x) '<=) (>= (cdr x) 0))
           (setter start-state 0)]
          [(pair? x)
           (raise (format "Illegal start-state constraint ~a ~a" (car x) (cdr x)))])))
@@ -271,7 +271,7 @@
   (for ([i (in-range 8)])
        (let* ([index (modulo (- sp i) 8)] ;; TODO: check this
               [entry (vector-ref data index)])
-         (assume-input (lambda (val) (vector-set! data index val)) entry)))
+         (assume-input (lambda (state val) (vector-set! data index val)) entry)))
   (set-progstate-data! start-state (stack sp data))
 	 
   (load-state! start-state mem-size #t)

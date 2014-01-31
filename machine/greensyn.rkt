@@ -1,4 +1,4 @@
- #lang racket
+#lang racket
 
 (require "programs.rkt" "state.rkt" "stack.rkt")
 
@@ -815,9 +815,9 @@
 (define (assume-start start-state)
   (define (assume-print eqtn x)
     (cond
-     [(and (pair? x) (equal? (car x) "=") (>= (cdr x) 0))
+     [(and (pair? x) (member (car x) (list "=" '=)) (>= (cdr x) 0))
       (pretty-display (format "(assert (= ~a (_ bv~a ~a)))" eqtn (cdr x) SIZE))]
-     [(and (pair? x) (equal? (car x) "<=") (>= (cdr x) 0))
+     [(and (pair? x) (member (car x) (list "<=" '<=)) (>= (cdr x) 0))
       (pretty-display (format "(assert (= ~a (bvand ~a (_ bv~a ~a))))" 
                               eqtn eqtn (cdr x) SIZE))]
      [(pair? x)
