@@ -1,4 +1,4 @@
- #lang racket
+#lang racket
 
 (require "programs.rkt" "state.rkt" "stack.rkt")
 
@@ -813,17 +813,28 @@
           (arithmetic-shift 1 SIZE)))
 
 (define (assume-start start-state)
-  (unless (equal? (progstate-a start-state) 0)
-        (pretty-display (format "(assert (= a_0_v0 (_ bv~a ~a)))" (progstate-a start-state) SIZE)))
-  (unless (equal? (progstate-b start-state) 0)
-        (pretty-display (format "(assert (= b_0_v0 (_ bv~a ~a)))" (progstate-b start-state) SIZE)))
-  (unless (equal? (progstate-t start-state) 0)
-        (pretty-display (format "(assert (= t_0_v0 (_ bv~a ~a)))" (progstate-t start-state) SIZE)))
-  (unless (equal? (progstate-s start-state) 0)
-        (pretty-display (format "(assert (= s_0_v0 (_ bv~a ~a)))" (progstate-s start-state) SIZE)))
-  (unless (equal? (progstate-r start-state) 0)
-        (pretty-display (format "(assert (= r_0_v0 (_ bv~a ~a)))" (progstate-r start-state) SIZE)))
-  )
+  (define (assume-print eqtn x)
+    (cond
+     [(and (pair? x) (member (car x) (list "=" '=)) (>= (cdr x) 0))
+      (pretty-display (format "(assert (= ~a (_ bv~a ~a)))" eqtn (cdr x) SIZE))]
+     [(and (pair? x) (member (car x) (list "<=" '<=)) (>= (cdr x) 0))
+      (pretty-display (format "(assert (= ~a (bvand ~a (_ bv~a ~a))))" 
+                              eqtn eqtn (cdr x) SIZE))]
+     [(pair? x)
+      (raise (format "Illegal start-state constraint ~a ~a" (car x) (cdr x)))]
+     ))
+
+  (assume-print "a_0_v0" (progstate-a start-state))
+  (assume-print "b_0_v0" (progstate-b start-state))
+  (assume-print "r_0_v0" (progstate-r start-state))
+  (assume-print "s_0_v0" (progstate-s start-state))
+  (assume-print "t_0_v0" (progstate-t start-state))
+  (define data (stack-body (progstate-data start-state)))
+  (define sp (stack-sp (progstate-data start-state)))
+  (for ([i (in-range 8)])
+       (let* ([index (modulo (- sp i) 8)] ;; TODO: check this
+              [entry (vector-ref data index)])
+         (assume-print (nth-stack 0 0 i) entry))))
 
 (define (assert-input-eq)
   (for ([var `(dst rst mem t s r a b sp rp)])
