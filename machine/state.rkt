@@ -79,7 +79,7 @@
      (progstate 0 0 0 0 0 0 0
 		(stack 0 (make-vector 8))
 		(stack 0 (make-vector 8))
-		(make-vector MEM-SIZE))
+		(make-vector MEM-SIZE)))
 
     ((default-state [data-pair (i i-val) ...] [key val] ...)
      (let ([body (make-vector 8)]
