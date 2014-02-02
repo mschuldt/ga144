@@ -36,6 +36,11 @@
 (define cache-length (make-hash))
 (define cache-time   (make-hash))
 
+(define (filter-key key)
+  (define key-split (string-split key ","))
+  ;; Exclude memory size
+  (string-join (append (take key-split 2) (drop key-split 3)) ","))
+
 (define (load-cache)
   (define (load-cache-inner)
     (define (loop in cache)
@@ -45,7 +50,7 @@
             (let* ([content (string-split next ";")]
                    [key (first content)]
                    [val (cdr content)])
-              (hash-set! cache key (if (equal? val "timeout") 'timeout val))
+              (hash-set! cache (filter-key key) (if (equal? val "timeout") 'timeout val))
               (loop in cache)))))
     
     (when (file-exists? db-file-length)
@@ -75,13 +80,13 @@
 
 (define (cache-has-key? type key)
   (if (equal? type `time)
-      (hash-has-key? cache-time key)
-      (hash-has-key? cache-length key)))
+      (hash-has-key? cache-time (filter-key key))
+      (hash-has-key? cache-length (filter-key key))))
 
 (define (cache-ref type key)
   (if (equal? type `time)
-      (hash-ref cache-time key)
-      (hash-ref cache-length key)))
+      (hash-ref cache-time (filter-key key))
+      (hash-ref cache-length (filter-key key))))
 
 (define (join lst delim)
   (string-join (map (lambda (x) 
@@ -101,7 +106,8 @@
     (if (equal? type `time)
         db-file-time
         db-file-length)) ;; If type = #f, default to cache-length.
-  (unless (hash-has-key? cache key)
+  (define key-mod (filter-key key))
+  (unless (hash-has-key? cache key-mod)
     (define orig-program (car (string-split key ",")))
     (define orig-length (length-with-literal orig-program))
     (define orig-time (estimate-time orig-program))
@@ -116,7 +122,7 @@
 			(if (equal? value 'timeout) 
 			    orig-time
 			    (estimate-time value))))
-      (hash-set! cache key val)
+      (hash-set! cache key-mod val)
       (with-output-to-file db-file #:exists 'append
         (lambda () 
           (pretty-display (format "~a;~a" key (join val ";")))))
