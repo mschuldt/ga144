@@ -54,16 +54,18 @@
           #:start-state (default-state (a 469))
           #:mem 5 #:num-bits 18)|#
 
-;(optimize "10 -1 + b! @b right b! !b"
-;          #:constraint (constraint (return 2) (data 1) r s t memory)  #:f18a #f
-;          #:mem 3 #:num-bits 18)
+(optimize "0 a! !+ !+ push pop dup 1 b! @b and over 65535 or 0 b! @b and over - and + push drop pop" 
+          #:constraint (constraint (return 2) (data 1) r s t)  #:f18a #f
+          #:mem 3 #:num-bits 18
+          #:start-state (constrain-stack (default-state) '((<= . 65535) (<= . 65535) (<= . 65535))))
 
+#|
 (program-diff? "0 a! !+ !+ push pop dup 1 b! @b and over 65535 or 0 b! @b and over - and + push drop pop" 
                ;"push over - push and pop pop and over 65535 or and or"
                "dup push or and pop or"
                5 
                (constraint [return 2] [data 1] r s t) 18
-               #:start-state (constrain-stack (default-state) '((<= . 65535) (<= . 65535) (<= . 65535))))
+               #:start-state (constrain-stack (default-state) '((<= . 65535) (<= . 65535) (<= . 65535))))|#
 
 
 ;(program-diff? "1 1 1 1" "nop" 1 (constraint (data 2) s t) 18 
