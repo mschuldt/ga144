@@ -151,6 +151,8 @@
 (define program-length (compose length program->instructions))
 
 ;;; Gets the length of the program, ignoring trailing nops.
+;;; input: f18a or aforth with nops
+;;; output: number of slots without counting literals
 (define (program-length-abs prog) 
   (length (drop-trailing-nops (map string->symbol (program->instructions (fix-@p prog))))))
 

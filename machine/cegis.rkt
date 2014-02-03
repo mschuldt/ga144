@@ -567,7 +567,15 @@
   ;; (pretty-display "PHASE 1: finding a slightly larger program length whose runtime is less than the original.")
   (if (equal? candidate 'timeout)
       'timeout
-      (let ([n-slots (if candidate (program-length-abs (car candidate)) slots)]
+      (let ([n-slots (if candidate 
+                         (if (string? init)
+                             (- (program-length-abs (car candidate)) 
+                                (program-length init))
+                             (- (program-length-abs (car candidate))
+                                init))
+                         (if (string? init)
+                             (- slots (program-length init))
+                             (- slots init)))]
             [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
             [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
         (or (optimize-linear program candidate #:name name #:mem mem #:init init
