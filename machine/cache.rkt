@@ -6,35 +6,40 @@
 
 ;; (define data-dir ".db")
 (define data-dir "/home/mangpo/work/forth-interpreter/machine/.db")
-(define lock-file (format "~a/lock" data-dir))
+;; (define lock-file (format "~a/lock" data-dir))
 (define db-file-length (format "~a/storage-length" data-dir))
 (define db-file-time (format "~a/storage-time" data-dir))
 
-(define (read-lock)
-  (let* ([in (open-input-file lock-file)]
-         [content (read in)])
-    (close-input-port in)
-    content))
+;; (define (read-lock)
+;;   (let* ([in (open-input-file lock-file)]
+;;          [content (read in)])
+;;     (close-input-port in)
+;;     content))
 
-(define (lock)
-  (if (equal? (read-lock) "TRUE")
-      (lock)
-      (with-output-to-file lock-file #:exists 'truncate
-        (lambda () (display "TRUE")))))
+;; (define (lock)
+;;   (if (equal? (read-lock) "TRUE")
+;;       (lock)
+;;       (with-output-to-file lock-file #:exists 'truncate
+;;         (lambda () (display "TRUE")))))
 
-(define (unlock)
-  (with-output-to-file lock-file #:exists 'truncate
-    (lambda () (display "FALSE"))))
+;; (define (unlock)
+;;   (with-output-to-file lock-file #:exists 'truncate
+;;     (lambda () (display "FALSE"))))
 
-(define (unlock-exn e)
-  (with-output-to-file lock-file #:exists 'truncate
-    (lambda () (display "FALSE")))
-  (raise e))
+;; (define (unlock-exn e)
+;;   (with-output-to-file lock-file #:exists 'truncate
+;;     (lambda () (display "FALSE")))
+;;   (raise e))
 
 ;; Load database from file
 (define init-cache #f)
 (define cache-length (make-hash))
 (define cache-time   (make-hash))
+
+(define (filter-key key)
+  (define key-split (string-split key ","))
+  ;; Exclude memory size
+  (string-join (append (take key-split 2) (drop key-split 3)) ","))
 
 (define (load-cache)
   (define (load-cache-inner)
@@ -45,7 +50,7 @@
             (let* ([content (string-split next ";")]
                    [key (first content)]
                    [val (cdr content)])
-              (hash-set! cache key (if (equal? val "timeout") 'timeout val))
+              (hash-set! cache (filter-key key) (if (equal? val "timeout") 'timeout val))
               (loop in cache)))))
     
     (when (file-exists? db-file-length)
@@ -54,14 +59,15 @@
           (loop (open-input-file db-file-time)   cache-time)))
 
   (unless init-cache
-    (with-handlers* ([exn:break? unlock-exn])
+    ;; (with-handlers* ([exn:break? unlock-exn])
+    ;;   (lock)
+    ;;   (system (format "echo FALSE > ~a/lock" data-dir))
       (system (format "mkdir ~a" data-dir))
-      (system (format "echo FALSE > ~a/lock" data-dir))
-      (lock)
       (load-cache-inner)
       (set! init-cache #t)
-      (unlock)
-      )))
+      ;; (unlock)
+      ;; )
+    ))
 
 (define-syntax-rule (string-list a ...)
   (list (format "~a" a) ...))
@@ -75,13 +81,13 @@
 
 (define (cache-has-key? type key)
   (if (equal? type `time)
-      (hash-has-key? cache-time key)
-      (hash-has-key? cache-length key)))
+      (hash-has-key? cache-time (filter-key key))
+      (hash-has-key? cache-length (filter-key key))))
 
 (define (cache-ref type key)
   (if (equal? type `time)
-      (hash-ref cache-time key)
-      (hash-ref cache-length key)))
+      (hash-ref cache-time (filter-key key))
+      (hash-ref cache-length (filter-key key))))
 
 (define (join lst delim)
   (string-join (map (lambda (x) 
@@ -101,12 +107,13 @@
     (if (equal? type `time)
         db-file-time
         db-file-length)) ;; If type = #f, default to cache-length.
-  (unless (hash-has-key? cache key)
+  (define key-mod (filter-key key))
+  (unless (hash-has-key? cache key-mod)
     (define orig-program (car (string-split key ",")))
     (define orig-length (length-with-literal orig-program))
     (define orig-time (estimate-time orig-program))
-    (with-handlers* ([exn:break? unlock-exn])
-      (lock)
+    ;; (with-handlers* ([exn:break? unlock-exn])
+    ;;   (lock)
       (define val (list value
 			orig-length
 			(if (equal? value 'timeout) 
@@ -116,8 +123,9 @@
 			(if (equal? value 'timeout) 
 			    orig-time
 			    (estimate-time value))))
-      (hash-set! cache key val)
+      (hash-set! cache key-mod val)
       (with-output-to-file db-file #:exists 'append
         (lambda () 
           (pretty-display (format "~a;~a" key (join val ";")))))
-      (unlock))))
+      ;; (unlock))
+  ))
