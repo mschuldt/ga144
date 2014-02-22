@@ -407,7 +407,7 @@
 	       #:slots [slots 30] 
 	       #:init [init 0] 
 	       #:repeat [repeat 1] 
-	       #:start [start 0] 
+	       #:start [start mem] 
                #:constraint [constraint constraint-all] 
 	       #:time-limit [time-limit #f]
 	       #:length-limit [length-limit #f]
