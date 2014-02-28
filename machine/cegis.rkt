@@ -13,7 +13,7 @@
 (provide estimate-time program-length perf-mode)
 (provide z3 read-sexps)
 
-(define debug #t)
+(define debug #f)
 (define demo #t)
 (define current-step 0) ; the number of the current cegis step
 (define current-run 0)  ; the number of the current call to cegis.
