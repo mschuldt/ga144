@@ -55,7 +55,8 @@
   (define t0 (current-seconds))
   (define-values (sp o i e) (subprocess out-port 
                                         #f #f 
-                                        (find-executable-path "z3") file))
+                                        (find-executable-path "z3") ;; "z3.exe" for Windows
+                                        file))
 
   (define (close-ports)
     (close-output-port i)

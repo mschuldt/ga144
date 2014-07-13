@@ -4,8 +4,12 @@
 
 (provide load-cache cache-has-key? cache-ref cache-put cache-get-key)
 
-;; (define data-dir ".db")
-(define data-dir "/home/mangpo/work/forth-interpreter/machine/.db")
+(define data-dir ".db")
+;; Linux
+;; (define data-dir "/home/username/path/to/database")
+;; Windows
+;;(define data-dir "C:\\Users\\mangpo\\work\\forth-interpreter\\machine\\.db")
+
 ;; (define lock-file (format "~a/lock" data-dir))
 (define db-file-length (format "~a/storage-length" data-dir))
 (define db-file-time (format "~a/storage-time" data-dir))
