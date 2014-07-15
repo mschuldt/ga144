@@ -4,8 +4,6 @@ This project contains
 2. ArrayForth interpreter in ArrayForth directory
 3. GreenSyn, GreenArrays F18A synthesizer in machine directory 
 
-
-
 GreenSyn
 ========
 
@@ -21,32 +19,32 @@ Setting Up
 Running GreenSyn
 ----------------
 
-1. Create a racket file in machine directory.
-2. Declare the language and import the necessary files.
+* Create a racket file in machine directory.
+* Declare the language and import the necessary files.
 
-    ```
-    #lang racket
-    (require "cegis.rkt" "state.rkt")
-    ```
+```
+#lang racket
+(require "cegis.rkt" "state.rkt")
+```
 
-3. Simply call function "optimize" to optimize your program.
+* Simply call function "optimize" to optimize your program.
 
-    ```
-    (optimize "1 . . +" #:bin-search `time)
-    ```
+```
+(optimize "1 . . +" #:bin-search `time)
+```
 
-4. Click "Run" button in DrRacket or run ``racket your_file.rkt`` in the command line. You will see 
+* Click "Run" button in DrRacket or run ``racket your_file.rkt`` in the command line. You will see 
 
-    ```
-    output program  : "1 . +"
-    length          : 3
-    approx. runtime : 8.0
+```
+output program  : "1 . +"
+length          : 3
+approx. runtime : 8.0
 
-    Constants for neighbor ports:
-    UP = 325, DOWN = 277, LEFT = 373, RIGHT = 469
-    
-    Time to synthesize: 1 seconds.
-    ```
+Constants for neighbor ports:
+UP = 325, DOWN = 277, LEFT = 373, RIGHT = 469
+
+Time to synthesize: 1 seconds.
+```
 
 Approximated runtime is in nanosecond. The synthesizer removes one nop between ``@p`` and ``+``, which reduces the runtime of the program. 
 
@@ -162,3 +160,7 @@ Many examples can be found in examples.rkt.
 
 ## Bug Reports and Questions
 Please contact mangpo [at] eecs.berkeley.edu
+
+[DrRacket]:http://racket-lang.org/download/
+[z3]:http://z3.codeplex.com/releases
+
