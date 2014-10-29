@@ -579,15 +579,14 @@
                              (- slots init)))]
             [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
             [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
-        ;; (or (optimize-linear program candidate #:name name #:mem mem #:init init
-        ;;                  #:slots (+ n-slots 3) #:repeat repeat #:start start 
-        ;;                  #:constraint constraint
-        ;;                  #:time-limit limit-time
-        ;;                  #:length-limit limit-length
-        ;;                  #:num-bits num-bits #:inst-pool inst-pool
-        ;;                  #:start-state start-state)
-        ;;     candidate))))
-        candidate)))
+        (or (optimize-linear program candidate #:name name #:mem mem #:init init
+                         #:slots n-slots #:repeat repeat #:start start 
+                         #:constraint constraint
+                         #:time-limit limit-time
+                         #:length-limit limit-length
+                         #:num-bits num-bits #:inst-pool inst-pool
+                         #:start-state start-state)
+            candidate))))
 
 (define (optimize-internal orig-program 
                   #:f18a       [f18a #t]
