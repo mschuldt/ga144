@@ -579,14 +579,15 @@
                              (- slots init)))]
             [limit-time (and time-limit (if candidate (cdr candidate) time-limit))]
             [limit-length (and length-limit (if candidate (cdr candidate) length-limit))])
-        (or (optimize-linear program candidate #:name name #:mem mem #:init init
-                         #:slots (+ n-slots 3) #:repeat repeat #:start start 
-                         #:constraint constraint
-                         #:time-limit limit-time
-                         #:length-limit limit-length
-                         #:num-bits num-bits #:inst-pool inst-pool
-                         #:start-state start-state)
-            candidate))))
+        ;; (or (optimize-linear program candidate #:name name #:mem mem #:init init
+        ;;                  #:slots (+ n-slots 3) #:repeat repeat #:start start 
+        ;;                  #:constraint constraint
+        ;;                  #:time-limit limit-time
+        ;;                  #:length-limit limit-length
+        ;;                  #:num-bits num-bits #:inst-pool inst-pool
+        ;;                  #:start-state start-state)
+        ;;     candidate))))
+        candidate)))
 
 (define (optimize-internal orig-program 
                   #:f18a       [f18a #t]
@@ -717,15 +718,15 @@
 
   (cond
    [(equal? orig-program "") ""]
-   [(cache-has-key? bin-search key)
-    (define val (cache-ref bin-search key))
-    (define output (car val))
-    (define info (cdr val)) ;; orig-len, len, orig-time, time
-    (print-input  orig-program (car info)  (caddr info)  bin-search)
-    (print-result output       (cadr info) (cadddr info) bin-search)
-    (pretty-display "(in cache)")
-    (if (equal? output "timeout") 'timeout output)
-    ]
+   ;; [(cache-has-key? bin-search key)
+   ;;  (define val (cache-ref bin-search key))
+   ;;  (define output (car val))
+   ;;  (define info (cdr val)) ;; orig-len, len, orig-time, time
+   ;;  (print-input  orig-program (car info)  (caddr info)  bin-search)
+   ;;  (print-result output       (cadr info) (cadddr info) bin-search)
+   ;;  (pretty-display "(in cache)")
+   ;;  (if (equal? output "timeout") 'timeout output)
+   ;;  ]
    [else
     (let ([result (optimize-internal orig-program
                                      #:f18a       f18a
@@ -742,5 +743,5 @@
                                      #:time-limit time-limit
                                      #:length-limit length-limit
                                      #:bin-search bin-search)])
-      (cache-put bin-search key result)
+      ;; (cache-put bin-search key result)
       result)]))
