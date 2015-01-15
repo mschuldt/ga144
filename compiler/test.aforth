@@ -1,0 +1,10 @@
+
+yellow 2 node
+green 1  3 send
+green 1 2 + 1 .ns send 2 recv .ns
+
+yellow 3 node
+green 1 2 + up a!
+
+yellow 44 node
+green 1 recv .ns - .ns 2 send .ns

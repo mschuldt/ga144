@@ -5,7 +5,8 @@
 	 "forth_state_words.rkt" "rvector.rkt")
 
 
-(provide compile compile-and-run compile-to-vector compile-to-string program-size)
+(provide compile compile-and-run compile-to-vector
+         compile-to-string program-size compile-all-to-list)
 
 (add-directives!)
 (add-bit-words!)
@@ -62,6 +63,42 @@
 	      [else x]))
       (vector-map! safe-punct-transform result))
     result))
+
+(define (compile-all-to-list code-port
+                             #:bytes? [use-bytes? #f]
+                             #:use-nop-and-ret? [no-punct? #t])
+  (define (convert mem)
+    (unless use-bytes?
+      (define (safe-bytes-to-int x)
+        (cond [(bytes? x) (integer-bytes->integer x #t #t)]
+              [(list? x) (map safe-bytes-to-int x)]
+              [else x]))
+      (vector-map! safe-bytes-to-int mem))
+
+    ;; Convert . and ; to nop and ret respectively, if necessary
+    (let [(replace-nop (if no-punct? "nop" "."))
+	  (find-nop (if no-punct? "." "nop"))
+	  (replace-ret (if no-punct? "ret" ";"))
+	  (find-ret (if no-punct? ";" "ret"))]
+      (define (safe-punct-transform x)
+	(cond [(equal? x find-nop) replace-nop]
+	      [(equal? x find-ret) replace-ret]
+	      [(list? x) (map safe-punct-transform x)]
+	      [else x]))
+      (vector-map! safe-punct-transform mem))
+    mem)
+
+  (let* [(interpreter (compile code-port))
+         (result '())
+         (empty (vector))
+         (mem 0)]
+
+    (for [(core (send interpreter get 'cores))]
+      (set! mem (convert (plain-vector (get-field memory core))))
+
+      (set! result (cons mem result)))
+
+    (reverse result)))
 
 (define (compile-to-string code-port #:use-nop-and-ret? [no-punct? #t])
   (define (convert s)
