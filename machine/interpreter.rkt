@@ -53,7 +53,7 @@
 
 ;;; Returns the current commstate.
 (define (current-commstate)
-  (commstate (list->vector (reverse comm-data)) 
+  (commstate (list->vector (reverse comm-data))
              (list->vector (reverse comm-type))
              (list->vector (reverse comm-recv))
              (length comm-data)))
@@ -98,10 +98,10 @@
 
 (define (display-vector vec n name)
   (when (> n 0)
-	(display name)
-	(for ([i (in-range 0 n)])
-	     (display (format "~x " (vector-ref vec i))))
-	(newline)))
+    (display name)
+    (for ([i (in-range 0 n)])
+      (display (format "~x " (vector-ref vec i))))
+    (newline)))
 
 (define (display-comm)
   (define comm (current-commstate))
@@ -202,20 +202,20 @@
   (if (member addr (list UP DOWN LEFT RIGHT IO))
       (let ([value 12]);(random (arithmetic-shift 1 BIT))])
         (cond [(= addr UP)    (set! comm-data (cons value comm-data))
-                              (set! comm-recv (cons value comm-recv))
-                              (set! comm-type (cons 0 comm-type))]
+               (set! comm-recv (cons value comm-recv))
+               (set! comm-type (cons 0 comm-type))]
               [(= addr DOWN)  (set! comm-data (cons value comm-data))
-                              (set! comm-recv (cons value comm-recv))
-                              (set! comm-type (cons 1 comm-type))]
+               (set! comm-recv (cons value comm-recv))
+               (set! comm-type (cons 1 comm-type))]
               [(= addr LEFT)  (set! comm-data (cons value comm-data))
-                              (set! comm-recv (cons value comm-recv))
-                              (set! comm-type (cons 2 comm-type))]
+               (set! comm-recv (cons value comm-recv))
+               (set! comm-type (cons 2 comm-type))]
               [(= addr RIGHT) (set! comm-data (cons value comm-data))
-                              (set! comm-recv (cons value comm-recv))
-                              (set! comm-type (cons 3 comm-type))]
+               (set! comm-recv (cons value comm-recv))
+               (set! comm-type (cons 3 comm-type))]
               [(= addr IO)    (set! comm-data (cons value comm-data))
-                              (set! comm-recv (cons value comm-recv))
-                              (set! comm-type (cons 4 comm-type))])
+               (set! comm-recv (cons value comm-recv))
+               (set! comm-type (cons 4 comm-type))])
         value)
       (vector-ref memory (if memory-wrap (modulo addr memory-size) addr))))
 
@@ -230,15 +230,15 @@
 ;;; aggregated into a list.
 (define (set-memory! addr value)
   (cond [(= addr UP)    (set! comm-data (cons value comm-data))
-                        (set! comm-type (cons 5 comm-type))]
+         (set! comm-type (cons 5 comm-type))]
         [(= addr DOWN)  (set! comm-data (cons value comm-data))
-                        (set! comm-type (cons 6 comm-type))]
+         (set! comm-type (cons 6 comm-type))]
         [(= addr LEFT)  (set! comm-data (cons value comm-data))
-                        (set! comm-type (cons 7 comm-type))]
+         (set! comm-type (cons 7 comm-type))]
         [(= addr RIGHT) (set! comm-data (cons value comm-data))
-                        (set! comm-type (cons 8 comm-type))]
+         (set! comm-type (cons 8 comm-type))]
         [(= addr IO)    (set! comm-data (cons value comm-data))
-                        (set! comm-type (cons 9 comm-type))]
+         (set! comm-type (cons 9 comm-type))]
         [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
@@ -246,9 +246,9 @@
 (define-instruction! (lambda (a) (set! p a) #f))                                     ; jump (name ;)
 (define-instruction! (lambda (a) (r-push! p) (set! p a) #f))                         ; call (name)
 (define-instruction! (lambda (_) (if (= r 0) (r-pop!)                                ; micronext (unext) -- hacky!
-                           (begin (set! r (sub1 r)) (set! p (sub1 p)) #f))))
+                                     (begin (set! r (sub1 r)) (set! p (sub1 p)) #f))))
 (define-instruction! (lambda (a) (if (= r 0) (begin (r-pop!) #f)                     ; next (next)
-                           (begin (set! r (sub1 r)) (set! p a) #f))))
+                                     (begin (set! r (sub1 r)) (set! p a) #f))))
 (define-instruction! (lambda (a) (and (not (= t 0)) (set! p a) #f)))                 ; if (if)
 (define-instruction! (lambda (a) (and (not (bitwise-bit-set? t (sub1 BIT))) (set! p a) #f))) ; minus if (-if)
 (define-instruction! (lambda (_) (push! (read-memory-@p p)) (set! p (incr p))))   ; fetch-p (@p) TODO: this is a HACK!!!
@@ -261,21 +261,21 @@
 (define-instruction! (lambda (_) (set-memory! a (pop!))))                     ; store (!)
 (define-instruction! (lambda (_) (if (even? a)                                       ; multiply-step (+*)
                                      (multiply-step-even!)
-                                     (multiply-step-odd!)))) 
+                                     (multiply-step-odd!))))
 (define-instruction! (lambda (_) (set! t (18bit (arithmetic-shift t 1)))))           ; 2*
 (define-instruction! (lambda (_) (set! t (arithmetic-shift t -1))))                  ; 2/
 (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
 (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; TODO: extended arithmetic mode
 (define-instruction! (lambda (_) (push! (bitwise-and (pop!) (pop!)))))               ; and
-(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or 
-(define-instruction! (lambda (_) (pop!)))                                            ; drop 
+(define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or
+(define-instruction! (lambda (_) (pop!)))                                            ; drop
 (define-instruction! (lambda (_) (push! t)))                                         ; dup
 (define-instruction! (lambda (_) (push! (r-pop!))))                                  ; pop
 (define-instruction! (lambda (_) (push! s)))                                         ; over
 (define-instruction! (lambda (_) (push! a)))                                         ; read a (a)
 (define-instruction! (lambda (_) (void)))                                            ; nop (.)
 (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
-(define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!) 
+(define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!)
 (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
 
 ;;; Fake instructions

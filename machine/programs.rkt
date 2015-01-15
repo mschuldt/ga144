@@ -38,10 +38,10 @@
   (set! RIGHT (port-r default-port))
   (define bound (arithmetic-shift 1 num-bits))
   (when (or (< DOWN mem) (>= RIGHT bound))
-	(begin (when (< (- bound mem) 8)
-		     (begin (pretty-display "num-bits is too small!") (exit)))
-	       (set-udlr (- bound 8) (- bound 11) (- bound 5) (- bound 2))))
-)
+    (begin (when (< (- bound mem) 8)
+             (begin (pretty-display "num-bits is too small!") (exit)))
+           (set-udlr (- bound 8) (- bound 11) (- bound 5) (- bound 2))))
+  )
 
 (define choice-id '#(@p @+ @b @ !p !+ !b ! +* 2* 2/ - + and or drop dup pop over a nop push b! a! lshift rshift /))
 (define memory-op '#(@p @+ @b @ !p !+ !b !))
@@ -50,7 +50,7 @@
   (member "@p" (string-split program)))
 
 (define (compile-to-string-wrap program)
-  (define processed 
+  (define processed
     (string-join
      (filter (lambda (x) (and (not (equal? x "nop")) (not (equal? x "."))))
              (string-split program))))
@@ -63,7 +63,7 @@
 ;;; of how long it would take to run.
 (define (estimate-time program)
   (unless (is-f18a? program)
-	  (set! program (compile-to-string-wrap program)))
+    (set! program (compile-to-string-wrap program)))
   (define (guess-speed instr)
     (if (member instr (vector->list memory-op)) 10 3))
   (apply + (map guess-speed (drop-trailing-nops
@@ -72,7 +72,7 @@
 
 (define (length-with-literal program)
   (unless (is-f18a? program)
-	  (set! program (compile-to-string-wrap program)))
+    (set! program (compile-to-string-wrap program)))
   (define inst-list (drop-trailing-nops (string-split program)))
   (define total (length inst-list))
   (define count-@p (count (lambda (x) (or (equal? x "@p") (equal? x `@p)))
@@ -88,8 +88,8 @@
 
 ;;; Given a list of instructions, drops all the nops at the end of the
 ;;; list.
-;(define drop-trailing-nops
-;  (compose reverse (curry drop-while (lambda (x) (or (equal? x 'nop) (equal? x "nop")))) reverse))
+                                        ;(define drop-trailing-nops
+                                        ;  (compose reverse (curry drop-while (lambda (x) (or (equal? x 'nop) (equal? x "nop")))) reverse))
 
 (define (drop-trailing-nops program)
   (define rm #t)
@@ -100,13 +100,13 @@
                [ele (car insts)]
                [x (if (string? ele) (string->symbol ele) ele)])
           (cond
-            [(and rm (equal? x 'nop))
-             rest]
-            [(vector-member x choice-id)
-             (set! rm #f)
-             (cons ele rest)]
-            [else
-             (cons ele rest)]))))
+           [(and rm (equal? x 'nop))
+            rest]
+           [(vector-member x choice-id)
+            (set! rm #f)
+            (cons ele rest)]
+           [else
+            (cons ele rest)]))))
   (inner program))
 
 ;;; Trim leading and trailing whitespace.
@@ -153,7 +153,7 @@
 ;;; Gets the length of the program, ignoring trailing nops.
 ;;; input: f18a or aforth with nops
 ;;; output: number of slots without counting literals
-(define (program-length-abs prog) 
+(define (program-length-abs prog)
   (length (drop-trailing-nops (map string->symbol (program->instructions (fix-@p prog))))))
 
 ;;; Returns #t if every + except the first is precedeed by a nop.
@@ -191,6 +191,5 @@
       (cons (car program) (nop-last-slot (cdr program) (add1 count)))]))
 
   (when (string? program)
-        (set! program (string-split program)))
+    (set! program (string-split program)))
   (string-join (nop-last-slot (nop-before-plus program) 0)))
-      

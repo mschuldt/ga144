@@ -5,7 +5,7 @@
 
 (define (add-io-words!)
 
-  ; TODO: Fix send and recv.
+  ;; TODO: Fix send and recv.
   (add-instruction!
    "send"
    (lambda (i)
@@ -34,7 +34,7 @@
 	   (begin (push-int! dstack arg1)
 		  'block)))))
 
-  ; Debugging
+  ;; Debugging
   (add-instruction!
    ".s"
    (lambda (i)
@@ -66,13 +66,13 @@
 	(display " |")
 	(begin (display " |")
 	       (for [(i (in-range 0 4))]
-		    (let [(elmt (rvector-ref memory (+ start i)))]
-		      (cond [(bytes? elmt)
-			     (display " ")
-			     (display (integer-bytes->integer elmt #t #t))]
-			    [elmt
-			     (display " ")
-			     (display elmt)])))
+                 (let [(elmt (rvector-ref memory (+ start i)))]
+                   (cond [(bytes? elmt)
+                          (display " ")
+                          (display (integer-bytes->integer elmt #t #t))]
+                         [elmt
+                          (display " ")
+                          (display elmt)])))
 	       (print-memory memory (+ 4 start) end))))
 
   (add-instruction!

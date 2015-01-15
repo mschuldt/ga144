@@ -17,13 +17,13 @@
 
 (define (int->bytes num)
   (integer->integer-bytes
-         (modulo num single_cell_limit) cell_bytes #f #t))
+   (modulo num single_cell_limit) cell_bytes #f #t))
 (define (double->bytes num)
   (integer->integer-bytes
-         (modulo num double_cell_limit) (* 2 cell_bytes) #f #t))
+   (modulo num double_cell_limit) (* 2 cell_bytes) #f #t))
 
-; Converts the string representation of a number to its bytes.
-; Assumes (> (string-length str) 0)
+;; Converts the string representation of a number to its bytes.
+;; Assumes (> (string-length str) 0)
 (define (string->bytes str)
   (define (create-bytes num punct)
     (if punct

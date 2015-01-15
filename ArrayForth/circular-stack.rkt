@@ -37,7 +37,7 @@
 (define (pop! old-stack)
   (if (infinite-stack? old-stack)
       (begin0 (car (infinite-stack-lst old-stack))
-	      (set-infinite-stack-lst! old-stack (cdr (infinite-stack-lst old-stack))))
+        (set-infinite-stack-lst! old-stack (cdr (infinite-stack-lst old-stack))))
       (let-values ([(ret new-registers)
 		    (vector-split-at (stack-registers old-stack) 1)])
 	(let ([element (vector-ref (stack-rest old-stack) (stack-sp old-stack))])
@@ -56,4 +56,3 @@
 			(modulo (- (stack-sp old-stack)
 				   (- modpos (stack-numregs old-stack)))
 				(stack-numrest old-stack)))))))
-

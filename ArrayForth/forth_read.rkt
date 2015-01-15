@@ -37,19 +37,19 @@
 (define (make-reader func)
   (let [(stack '())]
     (case-lambda
-     [()
-      (if (null? stack)
-	  (func)
-	  (begin0 (car stack)
-		  (set! stack (cdr stack))))]
-     [(msg)
-      (when (not (equal? msg 'clear))
-	    (raise (string-append "Unknown message to reader: " msg)))
-      (set! stack '())]
-     [(msg token)
-      (when (not (equal? msg 'put-back))
-	    (raise (string-append "Unknown message to reader: " msg)))
-      (set! stack (cons token stack))] )))
+      [()
+       (if (null? stack)
+           (func)
+           (begin0 (car stack)
+             (set! stack (cdr stack))))]
+      [(msg)
+       (when (not (equal? msg 'clear))
+         (raise (string-append "Unknown message to reader: " msg)))
+       (set! stack '())]
+      [(msg token)
+       (when (not (equal? msg 'put-back))
+         (raise (string-append "Unknown message to reader: " msg)))
+       (set! stack (cons token stack))] )))
 
 (define forth_read
   (make-reader (lambda () (read-basic (current-input-port)))))
@@ -59,4 +59,3 @@
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))
-

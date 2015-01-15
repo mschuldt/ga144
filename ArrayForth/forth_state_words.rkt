@@ -6,16 +6,16 @@
 
 (define (add-state-words!)
 
-  ; Stack manipulation words
+  ;; Stack manipulation words
 
-  ; Get the first cell and push it back on
+  ;; Get the first cell and push it back on
   (add-instruction!
    "dup"
    (lambda (i)
      (let [(dstack (send i get 'dstack))]
        (push-cells! dstack (get-cells dstack)))))
 
-  ; Get the second cell and push it back on
+  ;; Get the second cell and push it back on
   (add-instruction!
    "over"
    (lambda (i)
@@ -27,29 +27,29 @@
    (lambda (i)
      (pop-cells! (send i get 'dstack))))
 
-#|
+  #|
   (add-instruction!
-   "swap"
-   (lambda (i)
-     (let* [(dstack (send i get 'dstack))
-	    (arg1 (pop-cells! dstack))
-	    (arg2 (pop-cells! dstack))]
-       (push-cells! dstack arg1)
-       (push-cells! dstack arg2))))
+  "swap"
+  (lambda (i)
+  (let* [(dstack (send i get 'dstack))
+  (arg1 (pop-cells! dstack))
+  (arg2 (pop-cells! dstack))]
+  (push-cells! dstack arg1)
+  (push-cells! dstack arg2))))
 
   (add-instruction!
-   "rot"
-   (lambda (i)
-     (let* [(dstack (send i get 'dstack))
-	    (arg1 (pop-cells! dstack))
-	    (arg2 (pop-cells! dstack))
-	    (arg3 (pop-cells! dstack))]
-       (push-cells! dstack arg2)
-       (push-cells! dstack arg1)
-       (push-cells! dstack arg3))))
-|#
+  "rot"
+  (lambda (i)
+  (let* [(dstack (send i get 'dstack))
+  (arg1 (pop-cells! dstack))
+  (arg2 (pop-cells! dstack))
+  (arg3 (pop-cells! dstack))]
+  (push-cells! dstack arg2)
+  (push-cells! dstack arg1)
+  (push-cells! dstack arg3))))
+  |#
 
-  ; rstack manipulation words
+  ;; rstack manipulation words
 
   (add-instruction!
    "push"
@@ -63,9 +63,9 @@
      (push-cells! (send i get 'dstack)
 		  (pop-cells! (send i get 'rstack)))))
 
-  ; register manipulation
+  ;; register manipulation
 
-  ; fetch via register
+  ;; fetch via register
 
   (add-instruction!
    "@+"
@@ -90,17 +90,17 @@
      (let [(dstack (send i get 'dstack))
 	   (memory (send i get 'memory))
 	   (regb (send i get 'regb))]
-     (push-int! dstack (rvector-ref memory regb)))))
+       (push-int! dstack (rvector-ref memory regb)))))
 
   (add-instruction!
-   "@p" 
+   "@p"
    (lambda (i)
      (push-cells! (send i get 'dstack) (send i read-and-increment-pc!))))
 
-  ; store via register
+  ;; store via register
 
   (add-instruction!
-   "!p" 
+   "!p"
    (lambda (i)
      (let [(dstack (send i get 'dstack))
 	   (memory (send i get 'memory))
@@ -109,7 +109,7 @@
        (send i increment-pc!))))
 
   (add-instruction!
-   "!+" 
+   "!+"
    (lambda (i)
      (let [(dstack (send i get 'dstack))
 	   (memory (send i get 'memory))
@@ -131,15 +131,15 @@
      (let [(dstack (send i get 'dstack))
 	   (memory (send i get 'memory))
 	   (regb (send i get 'regb))]
-     (rvector-set! memory regb (pop-int! dstack #t)))))
+       (rvector-set! memory regb (pop-int! dstack #t)))))
 
-  ; fetch from register
+  ;; fetch from register
   (add-instruction!
    "a"
    (lambda (i)
      (push-int! (send i get 'dstack) (send i get 'rega))))
 
-  ; store to register
+  ;; store to register
   (add-instruction!
    "a!"
    (lambda (i)

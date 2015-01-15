@@ -12,14 +12,14 @@
 
 ;;; The blank state that the interpreter usually starts in.
 (define start-state (progstate 0 0 0 0 0 0 0
-                      (stack 0 (make-vector 8))
-                      (stack 0 (make-vector 8))
-                      (make-vector MEM-SIZE)))
+                               (stack 0 (make-vector 8))
+                               (stack 0 (make-vector 8))
+                               (make-vector MEM-SIZE)))
 
 (define (default-commstate
-	 #:data [data (make-vector ENTRIES 0)]
-	 #:type [type (make-vector ENTRIES 0)]
-         #:recv [recv (make-vector ENTRIES 0)])
+          #:data [data (make-vector ENTRIES 0)]
+          #:type [type (make-vector ENTRIES 0)]
+          #:recv [recv (make-vector ENTRIES 0)])
   (commstate data type recv 0))
 
 ;;; The empty constraint. Pretty useless.
@@ -32,13 +32,13 @@
 ;;; t)' is the same as constraint-only-t and evaluates to `(progstate
 ;;; #f #f #f #f #f #f #t #f #f #f)'. If you want to constrain
 ;;; everything *except* the given fields, start with the except
-;;; keyword: `(constrain except t)' constrains everything but t. 
+;;; keyword: `(constrain except t)' constrains everything but t.
 (define-syntax constraint
   (syntax-rules (except data return)
 
-    ((constraint (return val1) (data val2) var ...)  
+    ((constraint (return val1) (data val2) var ...)
      (struct-copy progstate constraint-none [return val1] [data val2] [var #t] ...))
-    ((constraint (data val2) (return val1) var ...)  
+    ((constraint (data val2) (return val1) var ...)
      (struct-copy progstate constraint-none [return val1] [data val2] [var #t] ...))
 
     ((constraint (return val1) (data val2))
@@ -46,13 +46,13 @@
     ((constraint (data val2) (return val1))
      (struct-copy progstate constraint-none [return val1] [data val2]))
 
-    ((constraint (data val) var ...)  
+    ((constraint (data val) var ...)
      (struct-copy progstate constraint-none [data val] [var #t] ...))
-    ((constraint (data val))  
+    ((constraint (data val))
      (struct-copy progstate constraint-none [data val]))
-    ((constraint (return val) var ...)  
+    ((constraint (return val) var ...)
      (struct-copy progstate constraint-none [return val] [var #t] ...))
-    ((constraint (return val))  
+    ((constraint (return val))
      (struct-copy progstate constraint-none [return val]))
 
     ((constraint except var ...) (struct-copy progstate constraint-all  [var #f] ...))
@@ -67,7 +67,7 @@
      (let ([body (make-vector 8)]
            [pairs (list (cons i i-val) ...)])
        (for ([p pairs])
-            (vector-set! body (modulo (- (car p)) 8) (cdr p)))
+         (vector-set! body (modulo (- (car p)) 8) (cdr p)))
        (struct-copy progstate x [data (stack 0 body)] [key val] ...)))
 
     ((copy-state x [key val] ...)
@@ -75,7 +75,7 @@
 
 (define-syntax default-state
   (syntax-rules (data-pair)
-    ((default-state) 
+    ((default-state)
      (progstate 0 0 0 0 0 0 0
 		(stack 0 (make-vector 8))
 		(stack 0 (make-vector 8))
@@ -85,12 +85,12 @@
      (let ([body (make-vector 8)]
            [pairs (list (cons i i-val) ...)])
        (for ([p pairs])
-            (vector-set! body (modulo (- (car p)) 8) (cdr p)))
+         (vector-set! body (modulo (- (car p)) 8) (cdr p)))
        (struct-copy progstate (default-state) [data (stack 0 body)] [key val] ...)))
 
     ((default-state [key val] ...)
      (struct-copy progstate (default-state) [key val] ...))))
-   
+
 
 (define (constrain-stack state precond)
   (when (list? precond)

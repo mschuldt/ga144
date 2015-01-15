@@ -4,7 +4,7 @@
 
 ;;; ; and . are ret and nop respectively so I can reuse the Racket lexer.
 (define names '#(ret ex jump call unext next if -if @p @+ @b @ !p !+ !b ! +*
-                    2* 2/ - + and or drop dup pop over a nop push b! a!))
+                     2* 2/ - + and or drop dup pop over a nop push b! a!))
 
 ;;; Returns the op-code corresponding to the given name. #<eof> is
 ;;; read as a nop. If the name is not valid, raises an error.
@@ -32,17 +32,17 @@
         (bitwise-ior (arithmetic-shift (to-opcode instr) size)
                      (apply pack (cons (- size 5) rest)))))
   (let/cc end
-    (define a (read in))
-    (cond [(eof-object? a)  (end #f)]
-          [(number? a)      (end a)]
-          [(member a jumps) (end (pack 13 a (read in)))])
-    (define b (read in))
-    (when (member b jumps) (end (pack 13 a b (read in))))
-    (define c (read in))
-    (when (member c jumps) (end (pack 13 a b c (read in))))
-    (define d (read in))
-    (when (not (member d slot-3)) (raise (format "~s cannot go in the last slot!" d)))
-    (end (pack 13 a b c (bitwise-bit-field (to-opcode d) 2 5)))))
+          (define a (read in))
+          (cond [(eof-object? a)  (end #f)]
+                [(number? a)      (end a)]
+                [(member a jumps) (end (pack 13 a (read in)))])
+          (define b (read in))
+          (when (member b jumps) (end (pack 13 a b (read in))))
+          (define c (read in))
+          (when (member c jumps) (end (pack 13 a b c (read in))))
+          (define d (read in))
+          (when (not (member d slot-3)) (raise (format "~s cannot go in the last slot!" d)))
+          (end (pack 13 a b c (bitwise-bit-field (to-opcode d) 2 5)))))
 
 ;;; Read a whole program in from the given port or string, stopping at
 ;;; eof. Returns a list of 18-bit words.

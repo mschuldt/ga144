@@ -38,7 +38,7 @@
   (define (go line blocks)
     (let ([num (regexp-match block-syntax line)])
       (if num (cons (block (string->number (cadr num)) '()) blocks)
-              (cons (add-line (car blocks) line) (cdr blocks)))))
+          (cons (add-line (car blocks) line) (cdr blocks)))))
   (map (compose rewrite-block block-to-port)
        (reverse (foldl go '() (drop-while (negate is-block?) lines)))))
 
@@ -63,4 +63,4 @@
        [(eof-object? c) (cons line lines)]
        [(char=? c #\newline) (go "" (cons line lines))]
        [else (go (string-append line (string c)) lines)])))
- (reverse (go "" '())))
+  (reverse (go "" '())))
