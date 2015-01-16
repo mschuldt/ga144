@@ -67,6 +67,9 @@
 (define (compile-all-to-list code-port
                              #:bytes? [use-bytes? #f]
                              #:use-nop-and-ret? [no-punct? #t])
+  "return compiled code for all nodes in the format:
+ ((node-num . code-string) ...)"
+
   (define (convert mem)
     (unless use-bytes?
       (define (safe-bytes-to-int x)
@@ -94,10 +97,10 @@
          (mem 0)]
 
     (for [(core (send interpreter get 'cores))]
-      (set! mem (convert (plain-vector (get-field memory core))))
-
-      (set! result (cons mem result)))
-
+      (set! mem (plain-vector (get-field memory core)))
+      (unless (equal? mem empty)
+        (set! mem (code-vector-to-string (convert mem)))
+        (set! result (cons mem result))))
     (reverse result)))
 
 (define (code-vector-to-string v)
