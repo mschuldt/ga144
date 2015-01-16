@@ -4,6 +4,7 @@
 
 (provide (all-defined-out))
 
+(define MEM-SIZE 1024)
 ;;; Number of entries for the default communication vectors.
 (define ENTRIES 4)
 

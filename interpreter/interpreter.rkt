@@ -5,6 +5,14 @@
 
 (provide (all-defined-out))
 
+(define UP #x145) ;325
+(define DOWN #x115) ;277
+(define LEFT #x175) ;373
+(define RIGHT #x1d5) ;469
+(define IO #x15d)
+;;(define MEM-SIZE 1024)
+
+
 ;;; stacks:
 (define data   (stack 0 (make-vector 8)))
 (define return (stack 0 (make-vector 8)))
