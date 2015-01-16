@@ -1,7 +1,10 @@
 ;;; A bit-level arrayForth interpreter.
 #lang racket
 
-(require "assembler.rkt" "stack.rkt" "state.rkt" "programs.rkt")
+(require "../compiler/assembler.rkt"
+         "../compiler/compile.rkt"
+         "state.rkt"
+         "stack.rkt")
 
 (provide (all-defined-out))
 
