@@ -99,7 +99,8 @@
     (for [(core (send interpreter get 'cores))]
       (set! mem (plain-vector (get-field memory core)))
       (unless (equal? mem empty)
-        (set! mem (code-vector-to-string (convert mem)))
+        ;;(set! mem (code-vector-to-string (convert mem)))
+        (set! mem (convert mem))
         (set! result (cons mem result))))
     (reverse result)))
 

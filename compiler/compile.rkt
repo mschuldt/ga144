@@ -3,8 +3,10 @@
 (require "arrayforth.rkt")
 (require "assembler.rkt")
 (require racket/cmdline)
-
 (require profile)
+
+(provide compile-to-list assemble-all)
+
 
 (define file "test.aforth")
 
@@ -28,6 +30,15 @@ return format: ((node-number . code-array) ...)"
       (unless (equal? core empty)
         (set! ret (cons (cons i core) ret)))
       (set! i (add1 i)))
+    ret))
+
+(define (assemble-all code-list)
+  (let ([ret '()])
+    (for [(core code-list)]
+      (set! ret (cons (cons (car core)
+                            (assemble (vector->list (cdr core))))
+                      ret))
+      (set code-list (cdr code-list)))
     ret))
 
 (define (print-mem-list cores)

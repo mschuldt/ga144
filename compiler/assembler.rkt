@@ -1,6 +1,6 @@
 #lang racket
 
-(provide read-program)
+(provide read-program assemble)
 
 ;; ; and . are ret and nop respectively so I can reuse the Racket lexer.
 (define names '#(ret ex jump call unext next if -if @p @+ @b @ !p !+ !b ! +*
@@ -55,3 +55,25 @@
     (let ([next (read-18bit-word in)])
       (if next (cons next (go)) '())))
   (go))
+
+
+(define (assemble-word word)
+  "WORD is a list of opcodes (string)"
+  (define (pack word shift)
+    (if (null? word)
+        0
+        (bitwise-ior (arithmetic-shift (to-opcode (string->symbol (car word)))
+                                       shift)
+                     (pack (cdr word) (- shift 5)))))
+  (if (list? word)
+      (pack word 13)
+      word))
+
+(define (assemble words)
+  "WORDS is a list of instruction words (lists) and constants (integers)
+output: list of integers"
+  (if (null? words)
+      '()
+      (cons (assemble-word (car words))
+            (assemble (cdr words)))))
+
