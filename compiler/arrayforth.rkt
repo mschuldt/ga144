@@ -100,7 +100,7 @@
 
     (reverse result)))
 
-(define (compile-to-string code-port #:use-nop-and-ret? [no-punct? #t])
+(define (code-vector-to-string v)
   (define (convert s)
     (cond [(string? s) s]
 	  [(number? s) (number->string s)]
@@ -109,9 +109,14 @@
 		  (map convert s))]
 	  [else (raise "Unknown memory element")]))
   (foldr (lambda (x y) (string-append (convert x) " " y)) ""
-	 (vector->list (compile-to-vector code-port
-					  #:bytes? #f
-					  #:use-nop-and-ret? no-punct?))))
+	 (vector->list v)))
+
+(define (compile-to-string code-port #:use-nop-and-ret? [no-punct? #t])
+  (code-vector-to-string (compile-to-vector code-port
+                                            #:bytes? #f
+                                            #:use-nop-and-ret? no-punct?)))
+
+
 
 (define (program-size code-port)
   (vector-length (compile-to-vector code-port
