@@ -126,6 +126,11 @@
   (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
          start (read-program in)))
 
+(define (load-file file [start 0])
+  (let ([program (cdar (assemble-all (compile-to-list file)))])
+    (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
+           start program)))
+
 ;;; Extracts the bottom 18 bits of n:
 (define (18bit n)
   (bitwise-bit-field n 0 BIT))
