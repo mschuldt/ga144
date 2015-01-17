@@ -5,7 +5,7 @@
 (require racket/cmdline)
 (require profile)
 
-(provide compile-to-list assemble-all)
+(provide compile-string compile-file assemble-all)
 
 
 (define file "test.aforth")
@@ -13,16 +13,14 @@
 (define (run-file file)
   (call-with-input-file file compile-and-run))
 
-(define (to-list file [as-array #f])
-  (call-with-input-file file compile-all-to-list))
 
 ;;TODO: this will all need to be fixed after the incorrect node numbering
 ;;      in the compiler is fixed
 
-(define (compile-to-list file)
-  "compile FILE to f18 assembly
+(define (compile-string str)
+  "compile STR to f18 assembly
 return format: ((node-number . code-array) ...)"
-  (let [(cores (to-list file))
+  (let [(cores (compile-all-to-list str))
         (i 0)
         (empty (vector))
         (ret '())]
@@ -31,6 +29,10 @@ return format: ((node-number . code-array) ...)"
         (set! ret (cons (cons i core) ret)))
       (set! i (add1 i)))
     ret))
+
+(define (compile-file file)
+  (call-with-input-file file compile-string))
+
 
 (define (assemble-all code-list)
   (let ([ret '()])
@@ -71,6 +73,12 @@ return format: ((node-number . code-array) ...)"
 
 ;;(print (call-with-input-file file compile-to-string)) (newline)
 
-(print (compile-to-list file)) (newline)
+;;(define x (compile-to-list file))
+;;(print x) (newline)
+;;(define xx (assemble-all x))
+;;(print "__________assembled____________")(newline)
+;;(print xx) (newline)
+
+
 ;(newline)
 ;(print "-----------------------------------------")
