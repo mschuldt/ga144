@@ -32,49 +32,28 @@
 (define memory (make-vector MEM-SIZE))
 (define memory-wrap #f)
 
-(define comm-data '())
-(define comm-type '())
-(define comm-recv '())
+;; (define comm-data '())
+;; (define comm-type '())
+;; (define comm-recv '())
 
 (define instructions (make-vector 35))
 (define BIT 18)
-
-;;; Reset the interpreter to the given state.
-(define (load-state! state mem-size [mem-wrap #f])
-  (set! a (progstate-a state))
-  (set! b (progstate-b state))
-  (set! p (progstate-p state))
-  (set! i (progstate-i state))
-  (set! r (progstate-r state))
-  (set! s (progstate-s state))
-  (set! t (progstate-t state))
-
-  (set! data   (copy-stack (progstate-data state)))
-  (set! return (copy-stack (progstate-return state)))
-
-  (set! memory (vector-copy (progstate-memory state)))
-  (set! memory-size mem-size)
-  (set! memory-wrap mem-wrap)
-  )
 
 ;;; Returns a snapshot of the current state.
 (define (current-state)
   (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
 
-;;; Returns the current commstate.
-(define (current-commstate)
-  (commstate (list->vector (reverse comm-data))
-             (list->vector (reverse comm-type))
-             (list->vector (reverse comm-recv))
-             (length comm-data)))
-
 ;;; Resets the state of the interpreter:
 (define (reset! [bit 18])
   (set! BIT bit)
-
-  (set! comm-data '())
-  (set! comm-type '())
-  (set! comm-recv '()))
+  (set! a 0)
+  (set! b 0)
+  (set! p 0)
+  (set! i 0)
+  (set! r 0)
+  (set! s 0)
+  (set! t 0)
+  (set! memory (make-vector MEM-SIZE)))
 
 ;;; Resets only p
 (define (reset-p! [start 0])
@@ -103,11 +82,10 @@
 
 ;;; Displays some state, useful for debugging. Currently this just
 ;;; shows the pc and data stack.
-(define (display-state [state (current-state)])
-  (pretty-display (format "p:~a a:~a b:~a r:~a"
-                          (progstate-p state) (progstate-a state)
-                          (progstate-b state) (progstate-r state)))
-  (display-data state))
+(define (display-state)
+  (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
+  (display-data)
+  (display-return))
 
 (define (display-vector vec n name)
   (when (> n 0)
@@ -116,23 +94,15 @@
       (display (format "~x " (vector-ref vec i))))
     (newline)))
 
-(define (display-comm)
-  (define comm (current-commstate))
-  (pretty-display (format "comm-data: ~a" (commstate-data comm)))
-  (pretty-display (format "comm-type: ~a" (commstate-type comm)))
-  (pretty-display (format "comm-recv: ~a" (commstate-type comm))))
-
-;;; Loads the given program into memory at the given start
-;;; address. The program is run through the assembler before being
-;;; loaded.
+;;; Loads the given program into memory at the given start address.
+;;; The program is compiled and assembled before being loaded.
 (define (load-program in [start 0])
-  (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
-         start (read-program in)))
+  (let ([program (cdar (assemble-all (compile-string in)))])
+    (foldl (lambda (word pos) (print pos)(newline) (vector-set! memory pos word) (add1 pos))
+           start program)))
 
 (define (load-file file [start 0])
-  (let ([program (cdar (assemble-all (compile-to-list file)))])
-    (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
-           start program)))
+  (call-with-input-file file load-program))
 
 ;;; Extracts the bottom 18 bits of n:
 (define (18bit n)
@@ -219,21 +189,21 @@
 (define (read-memory addr)
   (if (member addr (list UP DOWN LEFT RIGHT IO))
       (let ([value 12]);(random (arithmetic-shift 1 BIT))])
-        (cond [(= addr UP)    (set! comm-data (cons value comm-data))
-               (set! comm-recv (cons value comm-recv))
-               (set! comm-type (cons 0 comm-type))]
-              [(= addr DOWN)  (set! comm-data (cons value comm-data))
-               (set! comm-recv (cons value comm-recv))
-               (set! comm-type (cons 1 comm-type))]
-              [(= addr LEFT)  (set! comm-data (cons value comm-data))
-               (set! comm-recv (cons value comm-recv))
-               (set! comm-type (cons 2 comm-type))]
-              [(= addr RIGHT) (set! comm-data (cons value comm-data))
-               (set! comm-recv (cons value comm-recv))
-               (set! comm-type (cons 3 comm-type))]
-              [(= addr IO)    (set! comm-data (cons value comm-data))
-               (set! comm-recv (cons value comm-recv))
-               (set! comm-type (cons 4 comm-type))])
+        ;; (cond [(= addr UP)    (set! comm-data (cons value comm-data))
+        ;;        (set! comm-recv (cons value comm-recv))
+        ;;        (set! comm-type (cons 0 comm-type))]
+        ;;       [(= addr DOWN)  (set! comm-data (cons value comm-data))
+        ;;        (set! comm-recv (cons value comm-recv))
+        ;;        (set! comm-type (cons 1 comm-type))]
+        ;;       [(= addr LEFT)  (set! comm-data (cons value comm-data))
+        ;;        (set! comm-recv (cons value comm-recv))
+        ;;        (set! comm-type (cons 2 comm-type))]
+        ;;       [(= addr RIGHT) (set! comm-data (cons value comm-data))
+        ;;        (set! comm-recv (cons value comm-recv))
+        ;;        (set! comm-type (cons 3 comm-type))]
+        ;;       [(= addr IO)    (set! comm-data (cons value comm-data))
+        ;;        (set! comm-recv (cons value comm-recv))
+        ;;        (set! comm-type (cons 4 comm-type))])
         value)
       (vector-ref memory (if memory-wrap (modulo addr memory-size) addr))))
 
@@ -247,17 +217,17 @@
 ;;; port. Everything written to any communication port is simply
 ;;; aggregated into a list.
 (define (set-memory! addr value)
-  (cond [(= addr UP)    (set! comm-data (cons value comm-data))
-         (set! comm-type (cons 5 comm-type))]
-        [(= addr DOWN)  (set! comm-data (cons value comm-data))
-         (set! comm-type (cons 6 comm-type))]
-        [(= addr LEFT)  (set! comm-data (cons value comm-data))
-         (set! comm-type (cons 7 comm-type))]
-        [(= addr RIGHT) (set! comm-data (cons value comm-data))
-         (set! comm-type (cons 8 comm-type))]
-        [(= addr IO)    (set! comm-data (cons value comm-data))
-         (set! comm-type (cons 9 comm-type))]
-        [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
+  (cond ;; [(= addr UP)    (set! comm-data (cons value comm-data))
+   ;;  (set! comm-type (cons 5 comm-type))]
+   ;; [(= addr DOWN)  (set! comm-data (cons value comm-data))
+   ;;  (set! comm-type (cons 6 comm-type))]
+   ;; [(= addr LEFT)  (set! comm-data (cons value comm-data))
+   ;;  (set! comm-type (cons 7 comm-type))]
+   ;; [(= addr RIGHT) (set! comm-data (cons value comm-data))
+   ;;  (set! comm-type (cons 8 comm-type))]
+   ;; [(= addr IO)    (set! comm-data (cons value comm-data))
+   ;;  (set! comm-type (cons 9 comm-type))]
+   [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
 
 (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
 (define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
