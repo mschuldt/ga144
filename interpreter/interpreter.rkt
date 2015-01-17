@@ -84,9 +84,9 @@
   (cons t (cons s (stack->list data))))
 
 ;;; Print the data stack:
-(define (display-data [state (current-state)])
-  (display (format "|d> ~x ~x" (progstate-t state) (progstate-s state)))
-  (display-stack (progstate-data state))
+(define (display-data)
+  (display (format "|d> ~x ~x" t s))
+  (display-stack data)
   (newline))
 
 ;;; Print the return stack:
