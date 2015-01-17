@@ -80,6 +80,9 @@
 (define (reset-p! [start 0])
   (set! p start))
 
+(define (data-stack->list)
+  (cons t (cons s (stack->list data))))
+
 ;;; Print the data stack:
 (define (display-data [state (current-state)])
   (display (format "|d> ~x ~x" (progstate-t state) (progstate-s state)))

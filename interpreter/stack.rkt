@@ -33,3 +33,13 @@
 ;;; Returns a stack with randomized entries, each less than max-size.
 (define (random-stack [max-size #x40000])
   (stack 0 (vector-map! (lambda (_) (random max-size)) (make-vector 8))))
+
+(define (stack->list stack)
+  (let* ([len (vector-length (stack-body stack))]
+         [stack-v (stack-body stack)]
+         [sp (stack-sp stack)])
+    (for/list ([i len])
+      (vector-ref stack-v (modulo (- sp i) 8)))))
+
+(define (stack->vector stack)
+  (stack->vector (vector->list stack)))
