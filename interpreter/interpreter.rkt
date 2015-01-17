@@ -96,7 +96,7 @@
   (newline))
 
 ;;; Print the memory:
-(define (display-memory n)
+(define (display-memory [n MEM-SIZE])
   (for ([i (in-range 0 n)])
     (display (format "~x " (vector-ref memory i))))
   (newline))
