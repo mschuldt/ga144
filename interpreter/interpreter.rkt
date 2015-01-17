@@ -16,8 +16,8 @@
 
 
 ;;; stacks:
-(define data   (stack 0 (make-vector 8)))
-(define return (stack 0 (make-vector 8)))
+(define data (make-stack 8))
+(define return (make-stack 8))
 
 ;;; registers:
 (define a 0)
