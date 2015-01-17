@@ -6,36 +6,52 @@
 
 ;; Compiler directives
 
+(define (valid-node? n)
+  ;;TODO: fix
+  (and (integer? n)
+       (>= n 0)))
+
 (define (add-directives!)
   (add-directive!
    "node"
    (lambda (compiler)
-     (send compiler set 'state-index
-	   (pop-int! (send compiler get 'dstack) #f))
-     (unless (member (send compiler get 'state-index)
-		     (send compiler get 'used-cores))
-       (send compiler set 'used-cores
-             (cons (send compiler get 'state-index)
-                   (send compiler get 'used-cores))))
-     (send compiler set 'memory (make-rvector 100 '()))
-     (send compiler set 'location-counter 1)
-     (send compiler set 'i-register 0)))
+     (let* ([token (forth_read)]
+            [n (string->number token)])
+       (unless (valid-node? n)
+         (raise (format "Err: invalid node number: ~a" token)))
+       (send compiler set 'state-index n)
+       (unless (member (send compiler get 'state-index)
+                       (send compiler get 'used-cores))
+         (send compiler set 'used-cores
+               (cons (send compiler get 'state-index)
+                     (send compiler get 'used-cores))))
+       (send compiler set 'memory (make-rvector 100 '()))
+       (send compiler set 'location-counter 1)
+       (send compiler set 'i-register 0))))
 
-  (add-directive!
+  (add-directive! ;;TODO: test
    "org"
    (lambda (compiler)
-     (send compiler set 'location-counter
-	   (add1 (pop-int! (send compiler get 'dstack) #f)))
-     (send compiler set 'i-register
-	   (* 4 (sub1 (send compiler get 'location-counter))))))
+     (let* ([token (forth_read)]
+            [n (string->number token)])
+       (unless (and (integer? n)
+                    (>= n 0))
+         ;;TODO: upper bound?
+         (raise (format "Err: invalid argument to 'org' directive: '~a'" n)))
+       (send compiler set 'location-counter (add1 n))
+       (send compiler set 'i-register (* 4 n)))))
 
   (add-directive!
    "yellow"
-   (lambda (compiler) (send compiler set 'execute? #t)))
+   (lambda (compiler)
+                                        ;(send compiler set 'execute? #t)
+     (raise "'yellow' directive is unsupported")))
 
   (add-directive!
    "green"
-   (lambda (compiler) (send compiler set 'execute? #f)))
+   (lambda (compiler)
+     ;;(send compiler set 'execute? #f)
+     (raise "'green' directive is unsupported")))
 
   (add-directive!
    ":"
@@ -69,7 +85,7 @@
   (add-directive! "(" comment)
 
   ;; ,
-  (add-directive!
+  (add-directive! ;;TODO: ?
    ","
    (lambda (compiler)
      (let [(data (pop-cells! (send compiler get 'dstack)))]

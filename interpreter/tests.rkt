@@ -72,11 +72,10 @@
       (and (eq? (car l1) (car l2))
            (same-subset? (cdr l1) (cdr l2)))))
 
-(define-test "yellow 1 node green 1 2 +"
+(define-test "node 1 ( lksdfjl lsdj)  1 2 +"
   (check-var t 3)
   (check-dat 3 0)
   (check-mem 67813 1 2 0))
-
 
 (define (run-tests)
   (set! tests-failed 0)
