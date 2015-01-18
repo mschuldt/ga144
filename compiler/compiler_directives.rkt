@@ -11,7 +11,12 @@
   (and (integer? n)
        (>= n 0)))
 
+
+(define (coord->index n)
+  (+ (* (quotient n 100) 18) (remainder n 100)))
+
 (define (add-directives!)
+
   (add-directive!
    "node"
    (lambda (compiler)
@@ -19,7 +24,8 @@
             [n (string->number token)])
        (unless (valid-node? n)
          (raise (format "Err: invalid node number: ~a" token)))
-       (send compiler set 'state-index n)
+
+       (send compiler set 'state-index (coord->index n))
        (unless (member (send compiler get 'state-index)
                        (send compiler get 'used-cores))
          (send compiler set 'used-cores
