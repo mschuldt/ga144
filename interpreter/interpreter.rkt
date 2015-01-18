@@ -252,13 +252,13 @@
     (set! R temp)
     #f)
 
-  (define-instruction! "jump" (a)
-    (set! P a)
+  (define-instruction! "jump" (addr)
+    (set! P addr)
     #f)
 
-  (define-instruction! "call" (a)
+  (define-instruction! "call" (addr)
     (r-push! P)
-    (set! P a)
+    (set! P addr)
     #f)
 
   (define-instruction! "unext" (_) ;; -- hacky!
@@ -268,22 +268,22 @@
                (set! P (sub1 P))
                #f)))
 
-  (define-instruction! "next" (a)
+  (define-instruction! "next" (addr)
     (if (= R 0)
         (begin (r-pop!)
                #f)
         (begin (set! R (sub1 R))
-               (set! P a)
+               (set! P addr)
                #f)))
 
-  (define-instruction! "if" (a)
+  (define-instruction! "if" (addr)
     (and (not (= T 0))
-         (set! P a)
+         (set! P addr)
          #f))
 
-  (define-instruction! "-if" (a)
+  (define-instruction! "-if" (addr)
     (and (not (bitwise-bit-set? T (sub1 BIT)))
-         (set! P a)
+         (set! P addr)
          #f))
 
   (define-instruction! "@p" (_) ;;TODO: this is a HACK!!!
