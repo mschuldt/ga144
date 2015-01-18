@@ -110,13 +110,13 @@
   (define rstack (make-stack 8))
 
   ;; registers:
-  (define a 0)
-  (define b 0)
-  (define p 0)
-  (define i 0)
-  (define r 0)
-  (define s 0)
-  (define t 0)
+  (define A 0)
+  (define B 0)
+  (define P 0)
+  (define I 0)
+  (define R 0)
+  (define S 0)
+  (define T 0)
 
   (define memory-size MEM-SIZE)
   (define memory (make-vector MEM-SIZE))
@@ -139,37 +139,37 @@
 
   ;; Pushes to the data stack.
   (define (d-push! value)
-    (push-stack! dstack s)
-    (set! s t)
-    (set! t (18bit value)))
+    (push-stack! dstack S)
+    (set! S T)
+    (set! T (18bit value)))
 
   ;; Pushes to the rstack stack.
   (define (r-push! value)
-    (push-stack! rstack r)
-    (set! r value))
+    (push-stack! rstack R)
+    (set! R value))
 
   ;; Pops from the data stack.
   (define (pop!)
-    (let ([ret-val t])
-      (set! t s)
-      (set! s (pop-stack! dstack))
+    (let ([ret-val T])
+      (set! T S)
+      (set! S (pop-stack! dstack))
       ret-val))
 
   ;; Pops from the rstack stack.
   (define (r-pop!)
-    (let ([ret-val r])
-      (set! r (pop-stack! rstack))
+    (let ([ret-val R])
+      (set! R (pop-stack! rstack))
       ret-val))
 
   ;; Executes a single integer, treating it as an 18-bit word.
   (define (execute-word!)
     (define (execute! opcode [jump-addr-pos 0])
-      (let ([jump-addr (bitwise-bit-field i 0 jump-addr-pos)])
+      (let ([jump-addr (bitwise-bit-field I 0 jump-addr-pos)])
         ((vector-ref instructions opcode) jump-addr)))
-    (and (execute! (bitwise-bit-field i 13 18) 10)
-         (execute! (bitwise-bit-field i 8 13)  8)
-         (execute! (bitwise-bit-field i 3 8)   3)
-         (execute! (arithmetic-shift (bitwise-bit-field i 0 3) 2))))
+    (and (execute! (bitwise-bit-field I 13 18) 10)
+         (execute! (bitwise-bit-field I 8 13)  8)
+         (execute! (bitwise-bit-field I 3 8)   3)
+         (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))))
 
   ;; Return the value of p or a incremented as appropriately. If the
   ;; register points to an IO region, does nothing. Otherwise increment
@@ -242,91 +242,91 @@
       (vector-set! instructions n (lambda args body ...))))
 
   (define-instruction! "ret" (_)
-    (set! p r)
+    (set! P R)
     (r-pop!)
     #f)
 
   (define-instruction! "ex" (_)
-    (define temp p)
-    (set! p r)
-    (set! r temp)
+    (define temp P)
+    (set! P R)
+    (set! R temp)
     #f)
 
   (define-instruction! "jump" (a)
-    (set! p a)
+    (set! P a)
     #f)
 
   (define-instruction! "call" (a)
-    (r-push! p)
-    (set! p a)
+    (r-push! P)
+    (set! P a)
     #f)
 
   (define-instruction! "unext" (_) ;; -- hacky!
-    (if (= r 0)
+    (if (= R 0)
         (r-pop!)
-        (begin (set! r (sub1 r))
-               (set! p (sub1 p))
+        (begin (set! R (sub1 R))
+               (set! P (sub1 P))
                #f)))
 
   (define-instruction! "next" (a)
-    (if (= r 0)
+    (if (= R 0)
         (begin (r-pop!)
                #f)
-        (begin (set! r (sub1 r))
-               (set! p a)
+        (begin (set! R (sub1 R))
+               (set! P a)
                #f)))
 
   (define-instruction! "if" (a)
-    (and (not (= t 0))
-         (set! p a)
+    (and (not (= T 0))
+         (set! P a)
          #f))
 
   (define-instruction! "-if" (a)
-    (and (not (bitwise-bit-set? t (sub1 BIT)))
-         (set! p a)
+    (and (not (bitwise-bit-set? T (sub1 BIT)))
+         (set! P a)
          #f))
 
   (define-instruction! "@p" (_) ;;TODO: this is a HACK!!!
-    (d-push! (read-memory-@p p))
-    (set! p (incr p)))
+    (d-push! (read-memory-@p P))
+    (set! P (incr P)))
 
   (define-instruction! "@+" (_) ; fetch-plus
-    (d-push! (read-memory a))
-    (set! a (incr a)))
+    (d-push! (read-memory A))
+    (set! A (incr A)))
 
   (define-instruction! "@b" (_) ;fetch-b
-    (d-push! (read-memory b)))
+    (d-push! (read-memory B)))
 
   (define-instruction! "@" (_); fetch a
-    (d-push! (read-memory a)))
+    (d-push! (read-memory A)))
 
   (define-instruction! "!p" (_) ; store p
-    (set-memory! p (pop!))
-    (set! p (incr p)))
+    (set-memory! P (pop!))
+    (set! P (incr P)))
 
   (define-instruction! "!+" (_) ;store plus
-    (set-memory! a (pop!))
-    (set! a (incr a)))
+    (set-memory! A (pop!))
+    (set! A (incr A)))
 
   (define-instruction! "!b" (_); store-b
-    (set-memory! b (pop!)))
+    (set-memory! B (pop!)))
 
   (define-instruction! "!" (_); store
-    (set-memory! a (pop!)))
+    (set-memory! A (pop!)))
 
   (define-instruction! "+*" (_) ; multiply-step
-    (if (even? a)
+    (if (even? A)
         (multiply-step-even!)
         (multiply-step-odd!)))
 
   (define-instruction! "2*" (_)
-    (set! t (18bit (arithmetic-shift t 1))))
+    (set! T (18bit (arithmetic-shift T 1))))
 
   (define-instruction! "2/" (_)
-    (set! t (arithmetic-shift t -1)))
+    (set! T (arithmetic-shift T -1)))
 
   (define-instruction! "-" (_) ;not
-    (set! t (18bit (bitwise-not t))))
+    (set! T (18bit (bitwise-not T))))
 
   (define-instruction! "+" (_) ;;TODO: extended arithmetic mode
     (d-push! (+ (pop!) (pop!))))
@@ -341,16 +341,16 @@
     (pop!))
 
   (define-instruction! "dup" (_)
-    (d-push! t))
+    (d-push! T))
 
   (define-instruction! "pop" (_)
     (d-push! (r-pop!)))
 
   (define-instruction! "over" (_)
-    (d-push! s))
+    (d-push! S))
 
   (define-instruction! "a" (_)  ; read a
-    (d-push! a));;??
+    (d-push! A));;??
 
   (define-instruction! "nop" (_) ;; .
     (void))
@@ -359,27 +359,29 @@
     (r-push! (pop!)))
 
   (define-instruction! "b!" (_) ;; store into b
-    (set! b (pop!)))
+    (set! B (pop!)))
 
   (define-instruction! "a!" (_) ;store into a
-    (set! a (pop!)))
+    (set! A (pop!)))
 
   ;; Treats T:A as a single 36 bit register and shifts it right by one
   ;; bit. The most signficicant bit (T17) is kept the same.
   (define (multiply-step-even!)
-    (let ([t17 (bitwise-and t #x20000)]
-          [t0  (bitwise-and t #x1)])
-      (set! t (bitwise-ior t17 (arithmetic-shift t -1)))
-      (set! a (bitwise-ior (arithmetic-shift t0 (sub1 BIT)) (arithmetic-shift a -1)))))
+    (let ([t17 (bitwise-and T #x20000)]
+          [t0  (bitwise-and T #x1)])
+      (set! T (bitwise-ior t17 (arithmetic-shift T -1)))
+      (set! A (bitwise-ior (arithmetic-shift t0 (sub1 BIT))
+                           (arithmetic-shift A -1)))))
 
   ;; Sums T and S and concatenates the result with A, shifting
   ;; everything to the right by one bit.
   (define (multiply-step-odd!)
-    (let* ([sum (+ t s)]
+    (let* ([sum (+ T S)]
            [sum17 (bitwise-and sum #x20000)]
-           [result (bitwise-ior (arithmetic-shift sum (sub1 BIT)) (arithmetic-shift a -1))])
-      (set! a (bitwise-bit-field result 0 BIT))
-      (set! t (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
+           [result (bitwise-ior (arithmetic-shift sum (sub1 BIT))
+                                (arithmetic-shift A -1))])
+      (set! A (bitwise-bit-field result 0 BIT))
+      (set! T (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
@@ -404,7 +406,7 @@
   (define (get-dstack) dstack)
   (declare-public get-dstack)
 
-  (define (get-registers) (list a b p i r s t))
+  (define (get-registers) (list A B P I R S T))
   (declare-public get-registers)
 
   (define (load-code code)
@@ -417,32 +419,32 @@
 
   ;; Returns a snapshot of the current state.
   (define (current-state)
-    (state a b p i r s t (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
+    (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
   (declare-public current-state)
 
   ;; Resets the state of the interpreter:
   (define (reset! [bit 18])
     (set! BIT bit)
-    (set! a 0)
-    (set! b 0)
-    (set! p 0)
-    (set! i 0)
-    (set! r 0)
-    (set! s 0)
-    (set! t 0)
+    (set! A 0)
+    (set! B 0)
+    (set! P 0)
+    (set! I 0)
+    (set! R 0)
+    (set! S 0)
+    (set! T 0)
     (set! memory (make-vector MEM-SIZE)))
   (declare-public reset!)
 
   ;; Resets only p
   (define (reset-p! [start 0])
-    (set! p start))
+    (set! P start))
   (declare-public reset-p!)
 
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
   (define (step-program! [debug? #f])
-    (set! i (vector-ref memory p))
-    (set! p (incr p))
+    (set! I (vector-ref memory P))
+    (set! P (incr P))
     (when debug? (display-state))
     (execute-word!))
   (declare-public step-program!)
@@ -455,7 +457,7 @@
   ;; Steps the program until it hits an instructions made up only of
   ;; nops or only of 0s. This should be useful for debugging small programs.
   (define (step-program!* [debug? #f])
-    (let ([next (vector-ref memory p)])
+    (let ([next (vector-ref memory P)])
       (unless (or (= next #x39ce7) (= next 0))
         (step-program! debug?) (step-program!* debug?))))
   (declare-public step-program!*)
