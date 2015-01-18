@@ -11,7 +11,7 @@
 (define (to-opcode name)
   (if (eof-object? name) (to-opcode 'nop)
       (or (vector-member name names)
-          (raise (format "~s is not a valid name!" name)))))
+          (raise (format "'~s' is not a valid name!" name)))))
 
 ;; The list of instructions that can go into slot 3.
 (define slot-3 '(ret +* unext + @p dup !p nop))

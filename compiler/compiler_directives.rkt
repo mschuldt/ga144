@@ -24,7 +24,6 @@
             [n (string->number token)])
        (unless (valid-node? n)
          (raise (format "Err: invalid node number: ~a" token)))
-
        (send compiler set 'state-index (coord->index n))
        (unless (member (send compiler get 'state-index)
                        (send compiler get 'used-cores))

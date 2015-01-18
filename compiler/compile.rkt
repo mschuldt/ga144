@@ -17,16 +17,20 @@
 ;;TODO: this will all need to be fixed after the incorrect node numbering
 ;;      in the compiler is fixed
 
+(define (index->coord n)
+  (+ (* (quotient n 18) 100) (remainder n 18)))
+
 (define (compile-string str)
   "compile STR to f18 assembly
 return format: ((node-number . code-array) ...)"
-  (let [(cores (compile-all-to-list str))
+  (let ((cores (compile-all-to-list str))
         (i 0)
         (empty (vector))
-        (ret '())]
+        (ret '()))
+
     (for [(core cores)]
       (unless (equal? core empty)
-        (set! ret (cons (cons i core) ret)))
+        (set! ret (cons (cons (index->coord i) core) ret)))
       (set! i (add1 i)))
     ret))
 

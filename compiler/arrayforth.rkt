@@ -93,15 +93,11 @@
 
   (let* [(interpreter (compile code-port))
          (result '())
-         (empty (vector))
          (mem 0)]
-
     (for [(core (send interpreter get 'cores))]
-      (set! mem (plain-vector (get-field memory core)))
-      (unless (equal? mem empty)
-        ;;(set! mem (code-vector-to-string (convert mem)))
-        (set! mem (convert mem))
-        (set! result (cons mem result))))
+      (set! mem (convert (plain-vector (get-field memory core))))
+      ;;(set! mem (code-vector-to-string (convert mem)))
+      (set! result (cons mem result)))
     (reverse result)))
 
 (define (code-vector-to-string v)
