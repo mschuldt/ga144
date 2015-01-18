@@ -1,6 +1,9 @@
 #lang racket
 
-(require "interpreter.rkt" "state.rkt" "stack.rkt" )
+(require compatibility/defmacro
+         "interpreter.rkt"
+         "state.rkt"
+         "stack.rkt" )
 
 (define tests '())
 (define tests-passed 0)
@@ -27,36 +30,55 @@
                                    ))))
                     tests)))
 
-(define-syntax-rule (check-mem mem ...)
-  (lambda () (let* ([m (list mem ...)]
-                    [s (length m)])
+(define-syntax-rule (check-mem coord mem ...)
+  (lambda () (let* ((m (list mem ...))
+                    (memory (node:get-memory (coord->node coord)))
+                    (s (length m)))
                (if (same-subset-v? m memory)
                    #f
-                   (format "    Memory does not match
+                   (format "    Memory does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
+                           coord
                            m
                            (take (vector->list memory) s))))))
 
-(define-syntax-rule (check-var var val)
-  (lambda ()  (if (eq? var val)
-                  #f
-                  (format"    Failed assertion:
+
+(defmacro check-reg (coord var val)
+  #`(lambda ()  (let* ((node (coord->node #,coord))
+                       (state (node:current-state node))
+                       (val (#,(string->symbol
+                                (string-append "progstate-"
+                                               (symbol->string var)))
+                             state)))
+                  (if (eq? #,val val)
+                      #f
+                      (format"    Failed assertion (node ~a):
         Expected: (eq ~a ~a)
         Got:      (eq ~a ~a)\n"
-                         (quote var) val
-                         (quote var) var))))
+                             #,coord
+                             (quote #,var) #,val
+                             (quote #,var) val)))))
 
-(define-syntax-rule (check-dat mem ...)
+(define (data-stack->list coord)
+  (let* ((state (node:current-state (coord->node coord)))
+         (data (progstate-data state))
+         (t (progstate-t state))
+         (s (progstate-s state)))
+    (cons t (cons s (stack->list data)))))
+
+(define-syntax-rule (check-dat coord mem ...)
   (lambda () (let* ([m (list mem ...)]
+                    [dstack (data-stack->list coord)]
                     [s (length m)])
-               (if (same-subset? m (data-stack->list))
+               (if (same-subset? m dstack)
                    #f
-                   (format "    Data stack does not match
+                   (format "    Data stack does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
+                           coord
                            m
-                           (take (data-stack->list) s))))))
+                           (take dstack s))))))
 
 (define (same-subset-v? list vector)
   (define (same? i list)
@@ -72,10 +94,14 @@
       (and (eq? (car l1) (car l2))
            (same-subset? (cdr l1) (cdr l2)))))
 
-(define-test "node 1 ( lksdfjl lsdj)  1 2 +"
-  (check-var t 3)
-  (check-dat 3 0)
-  (check-mem 67813 1 2 0))
+(define-test "node 1 1 2 + node 717 1 2 3 4 +"
+  (check-reg 1 t 3)
+  (check-dat 1 3 0)
+  (check-mem 1 67813 1 2 0)
+
+  (check-reg 717 t 7)
+  (check-dat 717 7 2 1 0)
+  )
 
 (define (run-tests)
   (set! tests-failed 0)

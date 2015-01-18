@@ -125,9 +125,6 @@
   (define instructions (make-vector 35))
   (define BIT 18)
 
-  (define (data-stack->list)
-    (cons t (cons s (stack->list data))))
-
 ;;; Print the data stack:
   (define (display-data)
     (display (format "|d> ~x ~x" t s))
@@ -292,7 +289,7 @@
   (define-instruction! (lambda (_) (set! t (18bit (arithmetic-shift t 1)))))           ; 2*
   (define-instruction! (lambda (_) (set! t (arithmetic-shift t -1))))                  ; 2/
   (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
-  (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; TODO: extended arithmetic mode
+  (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; + TODO: extended arithmetic mode
   (define-instruction! (lambda (_) (push! (bitwise-and (pop!) (pop!)))))               ; and
   (define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or
   (define-instruction! (lambda (_) (pop!)))                                            ; drop
@@ -436,7 +433,6 @@
 (define get-registers-i (i))
 (define (get-registers node) ((vector-ref node get-registers-i)))
 
-
 (define load-code-i (i))
 (define (node:load-code node code) ((vector-ref node load-code-i) code))
 
@@ -490,6 +486,8 @@
         (display-stack (progstate-data state))
         (newline)))))
 
+(define (reset!)
+  (map node:reset! active-nodes))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (build-node-matrix)
