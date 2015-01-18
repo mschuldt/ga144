@@ -31,10 +31,10 @@
     (let* ([node (make-node i)]
            [coord (node:get-coord node)])
       (vector-set! nodes i node)
-      ;; (set-ludr-ports node (list (get-create-port coord 'left)
-      ;;                            (get-create-port coord 'up)
-      ;;                            (get-create-port coord 'down)
-      ;;                            (get-create-port coord 'right)))
+      (node:set-ludr-ports node (list (get-create-port (port-id coord 'left))
+                                      (get-create-port (port-id coord 'up))
+                                      (get-create-port (port-id coord 'down))
+                                      (get-create-port (port-id coord 'right))))
       )))
 
 (define (coord->index n)
@@ -77,11 +77,20 @@
         port)))
 
 (define (make-port)
-  null ;;TODO
-  )
-(define (set-ludr-ports ports)
-  null;;TODO
-  )
+  (vector #f))
+
+(define (port-read port)
+  (let ((val (vector-ref port 0)))
+    (if val
+        (begin (vector-set! port 0 #f)
+               val)
+        #f)))
+
+(define (port-write port value)
+  (let ((val (vector-ref port 0)))
+    (if val
+        #f
+        (vector-set! port 0 value))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; program loading
@@ -121,6 +130,11 @@
   (define memory-size MEM-SIZE)
   (define memory (make-vector MEM-SIZE))
   (define memory-wrap #f)
+
+  (define port-left #f)
+  (define port-up #f)
+  (define port-down #f)
+  (define port-right #f)
 
   ;; (define comm-data '())
   ;; (define comm-type '())
@@ -462,6 +476,13 @@
         (step-program! debug?) (step-program!* debug?))))
   (declare-public step-program!*)
 
+  (define (set-ludr-ports ports)
+    (set! port-left (car ports))
+    (set! port-up (cadr ports))
+    (set! port-down (caddr ports))
+    (set! port-right (cadddr ports)))
+  (declare-public set-ludr-ports)
+
   method-vector
   );;end make-node
 
@@ -590,5 +611,8 @@
 (define (node:step-program!* node [debug? #f])
   ((vector-ref node step-program!*-i) debug?))
 
+(define set-ludr-ports-i (i))
+(define (node:set-ludr-ports node ports)
+  ((vector-ref node set-ludr-ports-i) ports))
 
 (build-node-matrix)
