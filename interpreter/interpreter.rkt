@@ -410,12 +410,6 @@
     (display-data)
     (display-return))
 
-  (define (display-vector vec n name)
-    (when (> n 0)
-      (display name)
-      (for ([i (in-range 0 n)])
-        (display (format "~x " (vector-ref vec i))))
-      (newline)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
