@@ -106,8 +106,8 @@
   (define coord (index->coord index))
 
   ;; stacks:
-  (define data (make-stack 8))
-  (define return (make-stack 8))
+  (define dstack (make-stack 8))
+  (define rstack (make-stack 8))
 
   ;; registers:
   (define a 0)
@@ -138,27 +138,27 @@
     (bitwise-bit-field n 0 BIT))
 
   ;; Pushes to the data stack.
-  (define (push! value)
-    (push-stack! data s)
+  (define (d-push! value)
+    (push-stack! dstack s)
     (set! s t)
     (set! t (18bit value)))
 
-  ;; Pushes to the return stack.
+  ;; Pushes to the rstack stack.
   (define (r-push! value)
-    (push-stack! return r)
+    (push-stack! rstack r)
     (set! r value))
 
   ;; Pops from the data stack.
   (define (pop!)
     (let ([ret-val t])
       (set! t s)
-      (set! s (pop-stack! data))
+      (set! s (pop-stack! dstack))
       ret-val))
 
-  ;; Pops from the return stack.
+  ;; Pops from the rstack stack.
   (define (r-pop!)
     (let ([ret-val r])
-      (set! r (pop-stack! return))
+      (set! r (pop-stack! rstack))
       ret-val))
 
   ;; Executes a single integer, treating it as an 18-bit word.
@@ -287,18 +287,18 @@
          #f))
 
   (define-instruction! "@p" (_) ;;TODO: this is a HACK!!!
-    (push! (read-memory-@p p))
+    (d-push! (read-memory-@p p))
     (set! p (incr p)))
 
   (define-instruction! "@+" (_) ; fetch-plus
-    (push! (read-memory a))
+    (d-push! (read-memory a))
     (set! a (incr a)))
 
   (define-instruction! "@b" (_) ;fetch-b
-    (push! (read-memory b)))
+    (d-push! (read-memory b)))
 
   (define-instruction! "@" (_); fetch a
-    (push! (read-memory a)))
+    (d-push! (read-memory a)))
 
   (define-instruction! "!p" (_) ; store p
     (set-memory! p (pop!))
@@ -329,28 +329,28 @@
     (set! t (18bit (bitwise-not t))))
 
   (define-instruction! "+" (_) ;;TODO: extended arithmetic mode
-    (push! (+ (pop!) (pop!))))
+    (d-push! (+ (pop!) (pop!))))
 
   (define-instruction! "and" (_)
-    (push! (bitwise-and (pop!) (pop!))))
+    (d-push! (bitwise-and (pop!) (pop!))))
 
   (define-instruction! "or" (_)
-    (push! (bitwise-xor (pop!) (pop!))))
+    (d-push! (bitwise-xor (pop!) (pop!))))
 
   (define-instruction! "drop" (_)
     (pop!))
 
   (define-instruction! "dup" (_)
-    (push! t))
+    (d-push! t))
 
   (define-instruction! "pop" (_)
-    (push! (r-pop!)))
+    (d-push! (r-pop!)))
 
   (define-instruction! "over" (_)
-    (push! s))
+    (d-push! s))
 
   (define-instruction! "a" (_)  ; read a
-    (push! a));;??
+    (d-push! a));;??
 
   (define-instruction! "nop" (_) ;; .
     (void))
@@ -398,10 +398,10 @@
   (define (get-memory) memory)
   (declare-public get-memory)
 
-  (define (get-rstack) return)
+  (define (get-rstack) rstack)
   (declare-public get-rstack)
 
-  (define (get-dstack) data)
+  (define (get-dstack) dstack)
   (declare-public get-dstack)
 
   (define (get-registers) (list a b p i r s t))
@@ -417,7 +417,7 @@
 
   ;; Returns a snapshot of the current state.
   (define (current-state)
-    (state a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
+    (state a b p i r s t (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
   (declare-public current-state)
 
   ;; Resets the state of the interpreter:
@@ -510,9 +510,9 @@
                 (state-r state))
         (display-dstack (state-t state)
                         (state-s state)
-                        (state-data state))
+                        (state-dstack state))
         (display-rstack (state-r state)
-                        (state-return state))))))
+                        (state-rstack state))))))
 
 (define (display-dstacks [nodes #f])
   (let ((nodes (if nodes
@@ -524,7 +524,7 @@
                          (node:get-coord node)
                          (state-t state)
                          (state-s state)))
-        (display-stack (state-data state))
+        (display-stack (state-dstack state))
         (newline)))))
 
 (define (display-memory coord [n MEM-SIZE])

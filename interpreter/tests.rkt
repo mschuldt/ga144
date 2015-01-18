@@ -62,7 +62,7 @@
 
 (define (data-stack->list coord)
   (let* ((state (node:current-state (coord->node coord)))
-         (data (state-data state))
+         (data (state-dstack state))
          (t (state-t state))
          (s (state-s state)))
     (cons t (cons s (stack->list data)))))
