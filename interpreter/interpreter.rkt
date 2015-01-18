@@ -15,6 +15,10 @@
 (define RIGHT #x1d5) ;469
 (define IO #x15d)
 
+(define opcodes (vector "ret" "ex" "jump" "call" "unext" "next" "if"
+                        "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
+                        "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
+                        "over" "a" "nop" "push" "b!" "a!"))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 8x18 node matrix
 
@@ -210,15 +214,6 @@
           [(= curr #x0FF) #x080]
           [else curr]))
 
-  ;; Defines a new instruction. This implicitly sets the instructions'
-  ;; opcodes based on the order they're defined in. An instruction can
-  ;; abort the rest of the current word by returning #f.
-  (define define-instruction!
-    (let ([current-opcode 0])
-      (lambda (body)
-        (vector-set! instructions current-opcode body)
-        (set! current-opcode (add1 current-opcode)))))
-
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
   ;; now).
@@ -265,45 +260,140 @@
      ;;  (set! comm-type (cons 9 comm-type))]
      [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
 
-  (define-instruction! (lambda (_) (set! p r) (r-pop!) #f))                            ; return (;)
-  (define-instruction! (lambda (_) (define temp p) (set! p r) (set! r temp) #f))       ; execute (ex)
-  (define-instruction! (lambda (a) (set! p a) #f))                                     ; jump (name ;)
-  (define-instruction! (lambda (a) (r-push! p) (set! p a) #f))                         ; call (name)
-  (define-instruction! (lambda (_) (if (= r 0) (r-pop!)                                ; micronext (unext) -- hacky!
-                                       (begin (set! r (sub1 r)) (set! p (sub1 p)) #f))))
-  (define-instruction! (lambda (a) (if (= r 0) (begin (r-pop!) #f)                     ; next (next)
-                                       (begin (set! r (sub1 r)) (set! p a) #f))))
-  (define-instruction! (lambda (a) (and (not (= t 0)) (set! p a) #f)))                 ; if (if)
-  (define-instruction! (lambda (a) (and (not (bitwise-bit-set? t (sub1 BIT))) (set! p a) #f))) ; minus if (-if)
-  (define-instruction! (lambda (_) (push! (read-memory-@p p)) (set! p (incr p))))   ; fetch-p (@p) TODO: this is a HACK!!!
-  (define-instruction! (lambda (_) (push! (read-memory a)) (set! a (incr a))))   ; fetch-plus (@+)
-  (define-instruction! (lambda (_) (push! (read-memory b))))                     ; fetch-b (@b)
-  (define-instruction! (lambda (_) (push! (read-memory a))))                     ; fetch (@)
-  (define-instruction! (lambda (_) (set-memory! p (pop!)) (set! p (incr p))))   ; store-p (!p)
-  (define-instruction! (lambda (_) (set-memory! a (pop!)) (set! a (incr a))))   ; store-plus (!+)
-  (define-instruction! (lambda (_) (set-memory! b (pop!))))                     ; store-b (!b)
-  (define-instruction! (lambda (_) (set-memory! a (pop!))))                     ; store (!)
-  (define-instruction! (lambda (_) (if (even? a)                                       ; multiply-step (+*)
-                                       (multiply-step-even!)
-                                       (multiply-step-odd!))))
-  (define-instruction! (lambda (_) (set! t (18bit (arithmetic-shift t 1)))))           ; 2*
-  (define-instruction! (lambda (_) (set! t (arithmetic-shift t -1))))                  ; 2/
-  (define-instruction! (lambda (_) (set! t (18bit (bitwise-not t)))))                  ; not (-)
-  (define-instruction! (lambda (_) (push! (+ (pop!) (pop!)))))                         ; + TODO: extended arithmetic mode
-  (define-instruction! (lambda (_) (push! (bitwise-and (pop!) (pop!)))))               ; and
-  (define-instruction! (lambda (_) (push! (bitwise-xor (pop!) (pop!)))))               ; or
-  (define-instruction! (lambda (_) (pop!)))                                            ; drop
-  (define-instruction! (lambda (_) (push! t)))                                         ; dup
-  (define-instruction! (lambda (_) (push! (r-pop!))))                                  ; pop
-  (define-instruction! (lambda (_) (push! s)))                                         ; over
-  (define-instruction! (lambda (_) (push! a)))                                         ; read a (a)
-  (define-instruction! (lambda (_) (void)))                                            ; nop (.)
-  (define-instruction! (lambda (_) (r-push! (pop!))))                                  ; push
-  (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!)
-  (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; instructions
 
-  ;; Fake instructions
+  ;; Define a new instruction. An instruction can
+  ;; abort the rest of the current word by returning #f.
+  (define-syntax-rule (define-instruction! opcode args body ...)
+    (let ((n (or (vector-member opcode opcodes)
+                 (raise (format "Err: invalid opcode: '~s'" opcode)))))
+      (vector-set! instructions n (lambda args body ...))))
 
+  (define-instruction! "ret" (_)
+    (set! p r)
+    (r-pop!)
+    #f)
+
+  (define-instruction! "ex" (_)
+    (define temp p)
+    (set! p r)
+    (set! r temp)
+    #f)
+
+  (define-instruction! "jump" (a)
+    (set! p a)
+    #f)
+
+  (define-instruction! "call" (a)
+    (r-push! p)
+    (set! p a)
+    #f)
+
+  (define-instruction! "unext" (_) ;; -- hacky!
+    (if (= r 0)
+        (r-pop!)
+        (begin (set! r (sub1 r))
+               (set! p (sub1 p))
+               #f)))
+
+  (define-instruction! "next" (a)
+    (if (= r 0)
+        (begin (r-pop!)
+               #f)
+        (begin (set! r (sub1 r))
+               (set! p a)
+               #f)))
+
+  (define-instruction! "if" (a)
+    (and (not (= t 0))
+         (set! p a)
+         #f))
+
+  (define-instruction! "-if" (a)
+    (and (not (bitwise-bit-set? t (sub1 BIT)))
+         (set! p a)
+         #f))
+
+  (define-instruction! "@p" (_) ;;TODO: this is a HACK!!!
+    (push! (read-memory-@p p))
+    (set! p (incr p)))
+
+  (define-instruction! "@+" (_) ; fetch-plus
+    (push! (read-memory a))
+    (set! a (incr a)))
+
+  (define-instruction! "@b" (_) ;fetch-b
+    (push! (read-memory b)))
+
+  (define-instruction! "@" (_); fetch a
+    (push! (read-memory a)))
+
+  (define-instruction! "!p" (_) ; store p
+    (set-memory! p (pop!))
+    (set! p (incr p)))
+
+  (define-instruction! "!+" (_) ;store plus
+    (set-memory! a (pop!))
+    (set! a (incr a)))
+
+  (define-instruction! "!b" (_); store-b
+    (set-memory! b (pop!)))
+
+  (define-instruction! "!" (_); store
+    (set-memory! a (pop!)))
+
+  (define-instruction! "+*" (_) ; multiply-step
+    (if (even? a)
+        (multiply-step-even!)
+        (multiply-step-odd!)))
+
+  (define-instruction! "2*" (_)
+    (set! t (18bit (arithmetic-shift t 1))))
+
+  (define-instruction! "2/" (_)
+    (set! t (arithmetic-shift t -1)))
+
+  (define-instruction! "-" (_) ;not
+    (set! t (18bit (bitwise-not t))))
+
+  (define-instruction! "+" (_) ;;TODO: extended arithmetic mode
+    (push! (+ (pop!) (pop!))))
+
+  (define-instruction! "and" (_)
+    (push! (bitwise-and (pop!) (pop!))))
+
+  (define-instruction! "or" (_)
+    (push! (bitwise-xor (pop!) (pop!))))
+
+  (define-instruction! "drop" (_)
+    (pop!))
+
+  (define-instruction!  "dup" (_)
+    (push! t))
+
+  (define-instruction! "pop" (_)
+    (push! (r-pop!)))
+
+  (define-instruction! "over" (_)
+    (push! s))
+
+  (define-instruction! "a" (_)  ; read a
+    (push! a));;??
+
+  (define-instruction! "nop" (_) ;; .
+    (void))
+
+  (define-instruction! "push" (_)
+    (r-push! (pop!)))
+
+  (define-instruction! "b!" (_) ;; store into b
+    (set! b (pop!)))
+
+  (define-instruction! "a!" (_) ;store into a
+    (set! a (pop!)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; Treats T:A as a single 36 bit register and shifts it right by one
   ;; bit. The most signficicant bit (T17) is kept the same.
