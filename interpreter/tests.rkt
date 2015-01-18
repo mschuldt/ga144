@@ -48,7 +48,7 @@
   #`(lambda ()  (let* ((node (coord->node #,coord))
                        (state (node:current-state node))
                        (val (#,(string->symbol
-                                (string-append "progstate-"
+                                (string-append "state-"
                                                (symbol->string var)))
                              state)))
                   (if (eq? #,val val)
@@ -62,9 +62,9 @@
 
 (define (data-stack->list coord)
   (let* ((state (node:current-state (coord->node coord)))
-         (data (progstate-data state))
-         (t (progstate-t state))
-         (s (progstate-s state)))
+         (data (state-data state))
+         (t (state-t state))
+         (s (state-s state)))
     (cons t (cons s (stack->list data)))))
 
 (define-syntax-rule (check-dat coord mem ...)

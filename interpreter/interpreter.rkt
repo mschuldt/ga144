@@ -417,7 +417,7 @@
 
   ;; Returns a snapshot of the current state.
   (define (current-state)
-    (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
+    (state a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
   (declare-public current-state)
 
   ;; Resets the state of the interpreter:
@@ -504,15 +504,15 @@
       (printf "_____Node ~a state_____\n" (node:get-coord node))
       (let ((state (node:current-state node)))
         (printf "p:~a a:~a b:~a r:~a\n"
-                (progstate-p state)
-                (progstate-a state)
-                (progstate-b state)
-                (progstate-r state))
-        (display-dstack (progstate-t state)
-                        (progstate-s state)
-                        (progstate-data state))
-        (display-rstack (progstate-r state)
-                        (progstate-return state))))))
+                (state-p state)
+                (state-a state)
+                (state-b state)
+                (state-r state))
+        (display-dstack (state-t state)
+                        (state-s state)
+                        (state-data state))
+        (display-rstack (state-r state)
+                        (state-return state))))))
 
 (define (display-dstacks [nodes #f])
   (let ((nodes (if nodes
@@ -522,14 +522,14 @@
       (let ((state (node:current-state node)))
         (display (format "(~a)|d> ~x ~x"
                          (node:get-coord node)
-                         (progstate-t state)
-                         (progstate-s state)))
-        (display-stack (progstate-data state))
+                         (state-t state)
+                         (state-s state)))
+        (display-stack (state-data state))
         (newline)))))
 
 (define (display-memory coord [n MEM-SIZE])
   (let* ((node (coord->node coord))
-         (mem (progstate-memory (node:current-state node))))
+         (mem (state-memory (node:current-state node))))
     (printf "node ~a memory:\n" coord)
     (for ([i (in-range 0 n)])
       (printf "~x " (vector-ref mem i)))
