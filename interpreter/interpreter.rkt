@@ -129,38 +129,6 @@
   (define instructions (make-vector 35))
   (define BIT 18)
 
-  ;; Print the data stack:
-  (define (display-data)
-    (display (format "|d> ~x ~x" t s))
-    (display-stack data)
-    (newline))
-
-  ;; Print the return stack:
-  (define (display-return)
-    (display (format "|r> ~x" r))
-    (display-stack return)
-    (newline))
-
-  ;; Print the memory:
-  (define (display-memory [n MEM-SIZE])
-    (for ([i (in-range 0 n)])
-      (display (format "~x " (vector-ref memory i))))
-    (newline))
-
-  ;; Displays some state, useful for debugging. Currently this just
-  ;; shows the pc and data stack.
-  (define (display-state)
-    (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
-    (display-data)
-    (display-return))
-
-  (define (display-vector vec n name)
-    (when (> n 0)
-      (display name)
-      (for ([i (in-range 0 n)])
-        (display (format "~x " (vector-ref vec i))))
-      (newline)))
-
   (define (load-program in [start 0])
     (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
            start in))
@@ -213,6 +181,9 @@
           [(< curr #x0FF) (add1 curr)]
           [(= curr #x0FF) #x080]
           [else curr]))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; memory accesses
 
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
@@ -369,7 +340,7 @@
   (define-instruction! "drop" (_)
     (pop!))
 
-  (define-instruction!  "dup" (_)
+  (define-instruction! "dup" (_)
     (push! t))
 
   (define-instruction! "pop" (_)
@@ -393,8 +364,6 @@
   (define-instruction! "a!" (_) ;store into a
     (set! a (pop!)))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
   ;; Treats T:A as a single 36 bit register and shifts it right by one
   ;; bit. The most signficicant bit (T17) is kept the same.
   (define (multiply-step-even!)
@@ -413,15 +382,50 @@
       (set! t (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
 
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;display functions
+
+  ;; Print the data stack:
+  (define (display-data)
+    (display (format "|d> ~x ~x" t s))
+    (display-stack data)
+    (newline))
+
+  ;; Print the return stack:
+  (define (display-return)
+    (display (format "|r> ~x" r))
+    (display-stack return)
+    (newline))
+
+  ;; Print the memory:
+  (define (display-memory [n MEM-SIZE])
+    (for ([i (in-range 0 n)])
+      (display (format "~x " (vector-ref memory i))))
+    (newline))
+
+  ;; Displays some state, useful for debugging. Currently this just
+  ;; shows the pc and data stack.
+  (define (display-state)
+    (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
+    (display-data)
+    (display-return))
+
+  (define (display-vector vec n name)
+    (when (> n 0)
+      (display name)
+      (for ([i (in-range 0 n)])
+        (display (format "~x " (vector-ref vec i))))
+      (newline)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; public methods
+
   (define method-vector (make-vector N-METHODS))
 
   (defmacro declare-public (name)
     #`(vector-set! method-vector
                    #,(string->symbol (string-append (symbol->string name) "-i"))
                    #,name))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; public methods
 
   ;; (define (get-coord) coord)
   ;; (declare-public get-coord)
@@ -497,6 +501,39 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (step-program! [debug? #f])
+  (for ([node active-nodes])
+    (node:step-program! node debug?)))
+
+(define (step-program-n! n [debug? #f])
+  (if (> n 0)
+      (step-program! debug?)
+      (step-program-n! (sub1 n) debug?)))
+
+(define (step-program!* [debug? #f])
+  ;;TODO: fix
+  (for ([node active-nodes])
+    (node:step-program!* node debug?)))
+
+(define (display-dstacks [node #f])
+  (let ((nodes (if node
+                   (list (coord->node node))
+                   active-nodes)))
+    (for ([node nodes])
+      (let ((state (node:current-state node)))
+        (display (format "(~a)|d> ~x ~x"
+                         (node:get-coord node)
+                         (progstate-t state)
+                         (progstate-s state)))
+        (display-stack (progstate-data state))
+        (newline)))))
+
+(define (reset!)
+  (map node:reset! active-nodes))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; methods
+
 ;; (defmacro method (name)
 ;;   #`(define #,(string->symbol (string-append (symbol->string name) "-i"))
 ;;       (begin (set! method-count (add1 method-count))
@@ -547,37 +584,5 @@
 (define (node:step-program!* node [debug? #f])
   ((vector-ref node step-program!*-i) debug?))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (step-program! [debug? #f])
-  (for ([node active-nodes])
-    (node:step-program! node debug?)))
-
-(define (step-program-n! n [debug? #f])
-  (if (> n 0)
-      (step-program! debug?)
-      (step-program-n! (sub1 n) debug?)))
-
-(define (step-program!* [debug? #f])
-  ;;TODO: fix
-  (for ([node active-nodes])
-    (node:step-program!* node debug?)))
-
-(define (display-dstacks [node #f])
-  (let ((nodes (if node
-                   (list (coord->node node))
-                   active-nodes)))
-    (for ([node nodes])
-      (let ((state (node:current-state node)))
-        (display (format "(~a)|d> ~x ~x"
-                         (node:get-coord node)
-                         (progstate-t state)
-                         (progstate-s state)))
-        (display-stack (progstate-data state))
-        (newline)))))
-
-(define (reset!)
-  (map node:reset! active-nodes))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (build-node-matrix)
