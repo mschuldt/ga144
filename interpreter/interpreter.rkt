@@ -1,4 +1,4 @@
-;;; A bit-level arrayForth interpreter.
+;; A bit-level arrayForth interpreter.
 #lang racket
 
 (require compatibility/defmacro
@@ -101,11 +101,11 @@
 (define (make-node index)
   (define coord (index->coord index))
 
-;;; stacks:
+  ;; stacks:
   (define data (make-stack 8))
   (define return (make-stack 8))
 
-;;; registers:
+  ;; registers:
   (define a 0)
   (define b 0)
   (define p 0)
@@ -125,26 +125,26 @@
   (define instructions (make-vector 35))
   (define BIT 18)
 
-;;; Print the data stack:
+  ;; Print the data stack:
   (define (display-data)
     (display (format "|d> ~x ~x" t s))
     (display-stack data)
     (newline))
 
-;;; Print the return stack:
+  ;; Print the return stack:
   (define (display-return)
     (display (format "|r> ~x" r))
     (display-stack return)
     (newline))
 
-;;; Print the memory:
+  ;; Print the memory:
   (define (display-memory [n MEM-SIZE])
     (for ([i (in-range 0 n)])
       (display (format "~x " (vector-ref memory i))))
     (newline))
 
-;;; Displays some state, useful for debugging. Currently this just
-;;; shows the pc and data stack.
+  ;; Displays some state, useful for debugging. Currently this just
+  ;; shows the pc and data stack.
   (define (display-state)
     (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
     (display-data)
@@ -161,35 +161,35 @@
     (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
            start in))
 
-;;; Extracts the bottom 18 bits of n:
+  ;; Extracts the bottom 18 bits of n:
   (define (18bit n)
     (bitwise-bit-field n 0 BIT))
 
-;;; Pushes to the data stack.
+  ;; Pushes to the data stack.
   (define (push! value)
     (push-stack! data s)
     (set! s t)
     (set! t (18bit value)))
 
-;;; Pushes to the return stack.
+  ;; Pushes to the return stack.
   (define (r-push! value)
     (push-stack! return r)
     (set! r value))
 
-;;; Pops from the data stack.
+  ;; Pops from the data stack.
   (define (pop!)
     (let ([ret-val t])
       (set! t s)
       (set! s (pop-stack! data))
       ret-val))
 
-;;; Pops from the return stack.
+  ;; Pops from the return stack.
   (define (r-pop!)
     (let ([ret-val r])
       (set! r (pop-stack! return))
       ret-val))
 
-;;; Executes a single integer, treating it as an 18-bit word.
+  ;; Executes a single integer, treating it as an 18-bit word.
   (define (execute-word!)
     (define (execute! opcode [jump-addr-pos 0])
       (let ([jump-addr (bitwise-bit-field i 0 jump-addr-pos)])
@@ -199,10 +199,10 @@
          (execute! (bitwise-bit-field i 3 8)   3)
          (execute! (arithmetic-shift (bitwise-bit-field i 0 3) 2))))
 
-;;; Return the value of p or a incremented as appropriately. If the
-;;; register points to an IO region, does nothing. Otherwise increment
-;;; the register circularly within the current memory region (RAM or
-;;; ROM).
+  ;; Return the value of p or a incremented as appropriately. If the
+  ;; register points to an IO region, does nothing. Otherwise increment
+  ;; the register circularly within the current memory region (RAM or
+  ;; ROM).
   (define (incr curr)
     (cond [(< curr #x07F) (add1 curr)]
           [(= curr #x07F) #x000]
@@ -210,18 +210,18 @@
           [(= curr #x0FF) #x080]
           [else curr]))
 
-;;; Defines a new instruction. This implicitly sets the instructions'
-;;; opcodes based on the order they're defined in. An instruction can
-;;; abort the rest of the current word by returning #f.
+  ;; Defines a new instruction. This implicitly sets the instructions'
+  ;; opcodes based on the order they're defined in. An instruction can
+  ;; abort the rest of the current word by returning #f.
   (define define-instruction!
     (let ([current-opcode 0])
       (lambda (body)
         (vector-set! instructions current-opcode body)
         (set! current-opcode (add1 current-opcode)))))
 
-;;; Read from the given memory address or communication port. If it
-;;; gets a communication port, it just returns a random number (for
-;;; now).
+  ;; Read from the given memory address or communication port. If it
+  ;; gets a communication port, it just returns a random number (for
+  ;; now).
   (define (read-memory addr)
     (if (member addr (list UP DOWN LEFT RIGHT IO))
         (let ([value 12]);(random (arithmetic-shift 1 BIT))])
@@ -243,15 +243,15 @@
           value)
         (vector-ref memory (if memory-wrap (modulo addr memory-size) addr))))
 
-;;; Read from the given memory address or communication port. If it
-;;; gets a communication port, it just returns a random number (for
-;;; now).
+  ;; Read from the given memory address or communication port. If it
+  ;; gets a communication port, it just returns a random number (for
+  ;; now).
   (define (read-memory-@p addr)
     (vector-ref memory addr))
 
-;;; Write to the given memeory address or communication
-;;; port. Everything written to any communication port is simply
-;;; aggregated into a list.
+  ;; Write to the given memeory address or communication
+  ;; port. Everything written to any communication port is simply
+  ;; aggregated into a list.
   (define (set-memory! addr value)
     (cond ;; [(= addr UP)    (set! comm-data (cons value comm-data))
      ;;  (set! comm-type (cons 5 comm-type))]
@@ -302,19 +302,19 @@
   (define-instruction! (lambda (_) (set! b (pop!))))                                   ; store into b (b!)
   (define-instruction! (lambda (_) (set! a (pop!))))                                   ; store into a (a!)
 
-;;; Fake instructions
+  ;; Fake instructions
 
 
-;;; Treats T:A as a single 36 bit register and shifts it right by one
-;;; bit. The most signficicant bit (T17) is kept the same.
+  ;; Treats T:A as a single 36 bit register and shifts it right by one
+  ;; bit. The most signficicant bit (T17) is kept the same.
   (define (multiply-step-even!)
     (let ([t17 (bitwise-and t #x20000)]
           [t0  (bitwise-and t #x1)])
       (set! t (bitwise-ior t17 (arithmetic-shift t -1)))
       (set! a (bitwise-ior (arithmetic-shift t0 (sub1 BIT)) (arithmetic-shift a -1)))))
 
-;;; Sums T and S and concatenates the result with A, shifting
-;;; everything to the right by one bit.
+  ;; Sums T and S and concatenates the result with A, shifting
+  ;; everything to the right by one bit.
   (define (multiply-step-odd!)
     (let* ([sum (+ t s)]
            [sum17 (bitwise-and sum #x20000)]
@@ -357,7 +357,7 @@
     (load code 0))
   (declare-public load-code)
 
-  ;;; Returns a snapshot of the current state.
+  ;; Returns a snapshot of the current state.
   (define (current-state)
     (progstate a b p i r s t (copy-stack data) (copy-stack return) (vector-copy memory 0 MEM-SIZE)))
   (declare-public current-state)
