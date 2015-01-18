@@ -381,36 +381,6 @@
       (set! a (bitwise-bit-field result 0 BIT))
       (set! t (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
 
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;display functions
-
-  ;; Print the data stack:
-  (define (display-data)
-    (display (format "|d> ~x ~x" t s))
-    (display-stack data)
-    (newline))
-
-  ;; Print the return stack:
-  (define (display-return)
-    (display (format "|r> ~x" r))
-    (display-stack return)
-    (newline))
-
-  ;; Print the memory:
-  (define (display-memory [n MEM-SIZE])
-    (for ([i (in-range 0 n)])
-      (display (format "~x " (vector-ref memory i))))
-    (newline))
-
-  ;; Displays some state, useful for debugging. Currently this just
-  ;; shows the pc and data stack.
-  (define (display-state)
-    (pretty-display (format "p:~a a:~a b:~a r:~a" p a b r))
-    (display-data)
-    (display-return))
-
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
 
@@ -494,6 +464,7 @@
   );;end make-node
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; execution control
 
 (define (step-program! [debug? #f])
   (for ([node active-nodes])
@@ -509,9 +480,43 @@
   (for ([node active-nodes])
     (node:step-program!* node debug?)))
 
-(define (display-dstacks [node #f])
-  (let ((nodes (if node
-                   (list (coord->node node))
+(define (reset!)
+  (map node:reset! active-nodes))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; state display functions
+
+(define (display-dstack t s dstack)
+  (printf "|d> ~x ~x" t s)
+  (display-stack dstack)
+  (newline))
+
+(define (display-rstack r rstack)
+  (printf "|r> ~x" r)
+  (display-stack rstack)
+  (newline))
+
+(define (display-state [nodes #f])
+  (let ((nodes (if nodes
+                   (map coord->node nodes)
+                   active-nodes)))
+    (for ([node nodes])
+      (printf "_____Node ~a state_____\n" (node:get-coord node))
+      (let ((state (node:current-state node)))
+        (printf "p:~a a:~a b:~a r:~a\n"
+                (progstate-p state)
+                (progstate-a state)
+                (progstate-b state)
+                (progstate-r state))
+        (display-dstack (progstate-t state)
+                        (progstate-s state)
+                        (progstate-data state))
+        (display-rstack (progstate-r state)
+                        (progstate-return state))))))
+
+(define (display-dstacks [nodes #f])
+  (let ((nodes (if nodes
+                   (map coord->node nodes)
                    active-nodes)))
     (for ([node nodes])
       (let ((state (node:current-state node)))
@@ -522,8 +527,13 @@
         (display-stack (progstate-data state))
         (newline)))))
 
-(define (reset!)
-  (map node:reset! active-nodes))
+(define (display-memory coord [n MEM-SIZE])
+  (let* ((node (coord->node coord))
+         (mem (progstate-memory (node:current-state node))))
+    (printf "node ~a memory:\n" coord)
+    (for ([i (in-range 0 n)])
+      (printf "~x " (vector-ref mem i)))
+    (newline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; methods
