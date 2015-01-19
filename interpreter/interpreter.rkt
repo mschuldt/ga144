@@ -130,6 +130,9 @@
   (define port-down #f)
   (define port-right #f)
 
+  (define blocking-read #f)
+  (define blocking-write #f)
+
   ;; (define comm-data '())
   ;; (define comm-type '())
   ;; (define comm-recv '())
@@ -199,24 +202,19 @@
   ;; now).
   (define (read-memory addr)
     (if (member addr (list UP DOWN LEFT RIGHT IO))
-        (let ([value 12]);(random (arithmetic-shift 1 BIT))])
-          ;; (cond [(= addr UP)    (set! comm-data (cons value comm-data))
-          ;;        (set! comm-recv (cons value comm-recv))
-          ;;        (set! comm-type (cons 0 comm-type))]
-          ;;       [(= addr DOWN)  (set! comm-data (cons value comm-data))
-          ;;        (set! comm-recv (cons value comm-recv))
-          ;;        (set! comm-type (cons 1 comm-type))]
-          ;;       [(= addr LEFT)  (set! comm-data (cons value comm-data))
-          ;;        (set! comm-recv (cons value comm-recv))
-          ;;        (set! comm-type (cons 2 comm-type))]
-          ;;       [(= addr RIGHT) (set! comm-data (cons value comm-data))
-          ;;        (set! comm-recv (cons value comm-recv))
-          ;;        (set! comm-type (cons 3 comm-type))]
-          ;;       [(= addr IO)    (set! comm-data (cons value comm-data))
-          ;;        (set! comm-recv (cons value comm-recv))
-          ;;        (set! comm-type (cons 4 comm-type))])
-          value)
-        (vector-ref memory (if memory-wrap (modulo addr memory-size) addr))))
+        (let* ((fn (cond [(= addr LEFT)  (port-read port-left)]
+                         [(= addr UP)    (port-read port-up)]
+                         [(= addr DOWN)  (port-read port-down)]
+                         [(= addr RIGHT) (port-read port-right)]
+                         ;;TODO:
+                         [(= addr IO) (raise "unimplemented: reading from IO")]))
+               (value (fn)))
+          (if value
+              value
+              (set! blocking-read fn)))
+        (vector-ref memory (if memory-wrap
+                               (modulo addr memory-size)
+                               addr))))
 
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
@@ -228,17 +226,41 @@
   ;; port. Everything written to any communication port is simply
   ;; aggregated into a list.
   (define (set-memory! addr value)
-    (cond ;; [(= addr UP)    (set! comm-data (cons value comm-data))
-     ;;  (set! comm-type (cons 5 comm-type))]
-     ;; [(= addr DOWN)  (set! comm-data (cons value comm-data))
-     ;;  (set! comm-type (cons 6 comm-type))]
-     ;; [(= addr LEFT)  (set! comm-data (cons value comm-data))
-     ;;  (set! comm-type (cons 7 comm-type))]
-     ;; [(= addr RIGHT) (set! comm-data (cons value comm-data))
-     ;;  (set! comm-type (cons 8 comm-type))]
-     ;; [(= addr IO)    (set! comm-data (cons value comm-data))
-     ;;  (set! comm-type (cons 9 comm-type))]
-     [else           (vector-set! memory (if memory-wrap (modulo addr memory-size) addr) value)]))
+    (if (member addr (list UP DOWN LEFT RIGHT IO))
+        (set! blocking-write
+              (cond [(= addr LEFT)  (port-write port-left value)]
+                    [(= addr UP)    (port-write port-up value)]
+                    [(= addr DOWN)  (port-write port-down value)]
+                    [(= addr RIGHT) (port-write port-right value)]
+                    ;;TODO:
+                    [(= addr IO) (raise "unimplemented: writing to IO")]))
+        (vector-set! memory
+                     (if memory-wrap
+                         (modulo addr memory-size)
+                         addr)
+                     value)))
+
+  ;;attempts to complete a read, returns #t if read is completed
+  ;;and #f if still blocking
+  (define (complete-read)
+    (if blocking-read
+        (let ((val (blocking-read)))
+          (if val
+              (begin (d-push! val)
+                     (set! blocking-read #f)
+                     #t)
+              #f))
+        #t))
+
+  ;;attempts to complete a write, returns #t if read is completed
+  ;;and #f if still blocking
+  (define (complete-write)
+    (if blocking-write
+        (if (blocking-write)
+            #f
+            (begin (set! blocking-write #f)
+                   #t))
+        #t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; instructions
