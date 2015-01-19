@@ -80,17 +80,11 @@
   (vector #f))
 
 (define (port-read port)
-  (let ((val (vector-ref port 0)))
-    (if val
-        (begin (vector-set! port 0 #f)
-               val)
-        #f)))
+  (lambda () (vector-ref port 0)))
 
 (define (port-write port value)
-  (let ((val (vector-ref port 0)))
-    (if val
-        #f
-        (vector-set! port 0 value))))
+  (vector-set! port 0 value)
+  (lambda () (vector-ref port 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; program loading
