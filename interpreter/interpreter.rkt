@@ -172,8 +172,9 @@
   ;; Executes a single integer, treating it as an 18-bit word.
   (define (execute-word!)
     (define (execute! opcode [jump-addr-pos 0])
-      (let ([jump-addr (bitwise-bit-field I 0 jump-addr-pos)])
-        ((vector-ref instructions opcode) jump-addr)))
+      (if (< opcode 8)
+          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+          ((vector-ref instructions opcode))))
     (and (execute! (bitwise-bit-field I 13 18) 10)
          (execute! (bitwise-bit-field I 8 13)  8)
          (execute! (bitwise-bit-field I 3 8)   3)
@@ -294,82 +295,82 @@
          (set! P addr)
          #f))
 
-  (define-instruction! "@p" (_) ;;TODO: this is a HACK!!!
+  (define-instruction! "@p" () ;;TODO: this is a HACK!!!
     (d-push! (read-memory-@p P))
     (set! P (incr P)))
 
-  (define-instruction! "@+" (_) ; fetch-plus
+  (define-instruction! "@+" () ; fetch-plus
     (d-push! (read-memory A))
     (set! A (incr A)))
 
-  (define-instruction! "@b" (_) ;fetch-b
+  (define-instruction! "@b" () ;fetch-b
     (d-push! (read-memory B)))
 
-  (define-instruction! "@" (_); fetch a
+  (define-instruction! "@" (); fetch a
     (d-push! (read-memory A)))
 
-  (define-instruction! "!p" (_) ; store p
+  (define-instruction! "!p" () ; store p
     (set-memory! P (pop!))
     (set! P (incr P)))
 
-  (define-instruction! "!+" (_) ;store plus
+  (define-instruction! "!+" () ;store plus
     (set-memory! A (pop!))
     (set! A (incr A)))
 
-  (define-instruction! "!b" (_); store-b
+  (define-instruction! "!b" (); store-b
     (set-memory! B (pop!)))
 
-  (define-instruction! "!" (_); store
+  (define-instruction! "!" (); store
     (set-memory! A (pop!)))
 
-  (define-instruction! "+*" (_) ; multiply-step
+  (define-instruction! "+*" () ; multiply-step
     (if (even? A)
         (multiply-step-even!)
         (multiply-step-odd!)))
 
-  (define-instruction! "2*" (_)
+  (define-instruction! "2*" ()
     (set! T (18bit (arithmetic-shift T 1))))
 
-  (define-instruction! "2/" (_)
+  (define-instruction! "2/" ()
     (set! T (arithmetic-shift T -1)))
 
-  (define-instruction! "-" (_) ;not
+  (define-instruction! "-" () ;not
     (set! T (18bit (bitwise-not T))))
 
-  (define-instruction! "+" (_) ;;TODO: extended arithmetic mode
+  (define-instruction! "+" () ;;TODO: extended arithmetic mode
     (d-push! (+ (pop!) (pop!))))
 
-  (define-instruction! "and" (_)
+  (define-instruction! "and" ()
     (d-push! (bitwise-and (pop!) (pop!))))
 
-  (define-instruction! "or" (_)
+  (define-instruction! "or" ()
     (d-push! (bitwise-xor (pop!) (pop!))))
 
-  (define-instruction! "drop" (_)
+  (define-instruction! "drop" ()
     (pop!))
 
-  (define-instruction! "dup" (_)
+  (define-instruction! "dup" ()
     (d-push! T))
 
-  (define-instruction! "pop" (_)
+  (define-instruction! "pop" ()
     (d-push! (r-pop!)))
 
-  (define-instruction! "over" (_)
+  (define-instruction! "over" ()
     (d-push! S))
 
-  (define-instruction! "a" (_)  ; read a
+  (define-instruction! "a" ()  ; read a
     (d-push! A));;??
 
-  (define-instruction! "nop" (_) ;; .
+  (define-instruction! "nop" () ;; .
     (void))
 
-  (define-instruction! "push" (_)
+  (define-instruction! "push" ()
     (r-push! (pop!)))
 
-  (define-instruction! "b!" (_) ;; store into b
+  (define-instruction! "b!" () ;; store into b
     (set! B (pop!)))
 
-  (define-instruction! "a!" (_) ;store into a
+  (define-instruction! "a!" () ;store into a
     (set! A (pop!)))
 
   ;; Treats T:A as a single 36 bit register and shifts it right by one
