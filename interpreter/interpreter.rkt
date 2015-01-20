@@ -438,8 +438,10 @@
         (vector-set! memory index (car code))
         (load (cdr code) (add1 index))))
     (if include-end-token?
-        (load (append code '(end)) 0)
-        (load code 0)))
+        (begin (load (append code '(end)) 0)
+               (set! step0 step0*))
+        (begin (load code 0)
+               (set! step0 step0-))))
   (declare-public load-code)
 
   ;; Returns a snapshot of the current state.
@@ -516,23 +518,6 @@
     (when debug? (display-state (list self)))
     (step-fn))
   (declare-public step-program!)
-
-  ;;this alternative version of 'step-program!' will remove this node
-  ;;from the active list when the 'end token is encountered
-  ;;If this is called, the code must have been loaded with
-  ;;the include-end-token? parameter = #t
-  (define (step-program!* [debug? #f])
-    (if next-field
-        (step-instruction)
-        (begin
-          ;;start executing next word
-          (set! I (vector-ref memory P))
-          (set! P (incr P))
-          (set! next-field 0)
-          (if (eq? I 'end)
-              (make-non-active)
-              (step-instruction)))))
-  (declare-public step-program!*)
 
   ;; Steps the program n times.
   (define (step-program-n! n [debug? #f])
@@ -671,10 +656,6 @@
 (define step-program-n!-i (i))
 (define (node:step-program-n! node n [debug? #f])
   ((vector-ref node step-program-n!-i) n debug?))
-
-(define step-program!*-i (i))
-(define (node:step-program!* node [debug? #f])
-  ((vector-ref node step-program!*-i) debug?))
 
 (define set-ludr-ports-i (i))
 (define (node:set-ludr-ports node ports)
