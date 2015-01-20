@@ -90,13 +90,13 @@
 ;; program loading
 
 ;;compiles, assembles, and loads code into nodes
-(define (load-program in)
+(define (load-program in [include-end-token? #f])
   (let ([n 0]
         [code 0]
         [node 0])
     (for ([code (assemble-all (compile-string in))])
       (set! node (coord->node (car code)))
-      (node:load-code node (cdr code))
+      (node:load-code node (cdr code) include-end-token?)
       (set! active-nodes (cons node active-nodes)))))
 
 (define (load-file file)
@@ -440,12 +440,14 @@
   (define (get-registers) (list A B P I R S T))
   (declare-public get-registers)
 
-  (define (load-code code)
+  (define (load-code code [include-end-token? #f])
     (define (load code index)
       (unless (null? code)
         (vector-set! memory index (car code))
         (load (cdr code) (add1 index))))
-    (load code 0))
+    (if include-end-token?
+        (load (append code '(end)) 0)
+        (load code 0)))
   (declare-public load-code)
 
   ;; Returns a snapshot of the current state.
@@ -474,21 +476,16 @@
   ;;when not #f, value is the next field to to execute
   (define next-field #f)
 
-  ;; Executes one step of the program by fetching a word, incrementing
-  ;; p and executing the word.
-  (define (step-program! [debug? #f])
-    (define (execute! opcode [jump-addr-pos 0])
-      (if (< opcode 8)
-          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
-          ((vector-ref instructions opcode))))
+  ;;Q: when waiting to complete a read or write, is the node active?
+  (define (make-non-active)
+    (set! active-nodes (remove (coord->node coord) active-nodes)))
 
-    (when debug? (display-state))
+  (define (execute! opcode [jump-addr-pos 0])
+    (if (< opcode 8)
+        ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+        ((vector-ref instructions opcode))))
 
-    (unless next-field
-      (set! I (vector-ref memory P))
-      (set! P (incr P))
-      (set! next-field 0))
-
+  (define (step-instruction)
     (set! next-field
           (and
            (cond [(= next-field 0)
@@ -502,21 +499,38 @@
            (< next-field 3)
            (add1 next-field))))
 
+  ;; Executes one step of the program by fetching a word, incrementing
+  ;; p and executing the word.
+  ;; returns #f when P = 0, else #t
+  (define (step-program! [debug? #f])
+    (unless next-field
+      (set! I (vector-ref memory P))
+      (set! P (incr P))
+      (set! next-field 0))
+    (step-instruction))
   (declare-public step-program!)
+
+  ;;this alternative version of 'step-program!' will remove this node
+  ;;from the active list when the 'end token is encountered
+  ;;If this is called, the code must have been loaded with
+  ;;the include-end-token? parameter = #t
+  (define (step-program!* [debug? #f])
+    (if next-field
+        (step-instruction)
+        (begin
+          ;;start executing next word
+          (set! I (vector-ref memory P))
+          (set! P (incr P))
+          (set! next-field 0)
+          (if (eq? I 'end)
+              (make-non-active)
+              (step-instruction)))))
+  (declare-public step-program!*)
 
   ;; Steps the program n times.
   (define (step-program-n! n [debug? #f])
     (for ([i (in-range 0 n)]) (step-program! debug?)))
   (declare-public step-program-n!)
-
-  ;; Steps the program until it hits an instructions made up only of
-  ;; nops or only of 0s. This should be useful for debugging small programs.
-  (define (step-program!* [debug? #f])
-    ;;(let ([next (vector-ref memory P)])
-    ;;(unless (or (= next #x39ce7) (= next 0))
-    (unless (or (= I #x39ce7) (= I 0))
-      (step-program! debug?) (step-program!* debug?)))
-  (declare-public step-program!*)
 
   (define (set-ludr-ports ports)
     (set! port-left (car ports))
@@ -540,10 +554,12 @@
       (step-program! debug?)
       (step-program-n! (sub1 n) debug?)))
 
+;;step program until all nodes are non-active
 (define (step-program!* [debug? #f])
-  ;;TODO: fix
-  (for ([node active-nodes])
-    (node:step-program!* node debug?)))
+  (unless (null? active-nodes)
+    (for ([node active-nodes])
+      (node:step-program!* node debug?))
+    (step-program!* debug?)))
 
 (define (reset!)
   (map node:reset! active-nodes))
@@ -630,7 +646,8 @@
 (define (get-registers node) ((vector-ref node get-registers-i)))
 
 (define load-code-i (i))
-(define (node:load-code node code) ((vector-ref node load-code-i) code))
+(define (node:load-code node code [end-token? #f])
+  ((vector-ref node load-code-i) code end-token?))
 
 (define current-state-i (i))
 (define (node:current-state node) ((vector-ref node current-state-i)))

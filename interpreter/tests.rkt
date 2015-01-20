@@ -14,7 +14,7 @@
                             [result #f]
                             [failed '()])
                         (reset!)
-                        (load-program program)
+                        (load-program program #t)
                         (step-program!*)
                         (for ([x tests])
                           (set! result (x))
