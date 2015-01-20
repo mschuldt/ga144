@@ -552,9 +552,9 @@
     (node:step-program! node debug?)))
 
 (define (step-program-n! n [debug? #f])
-  (if (> n 0)
-      (step-program! debug?)
-      (step-program-n! (sub1 n) debug?)))
+  (when (> n 0)
+    (step-program! debug?)
+    (step-program-n! (sub1 n) debug?)))
 
 ;;step program until all nodes are non-active
 (define (step-program!* [debug? #f])
