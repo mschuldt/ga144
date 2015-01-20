@@ -671,7 +671,7 @@
 
 (define step-program!-i (i))
 (define (node:step-program! node [debug? #f])
-  ((vector-ref node step-program!-i) [debug? #f]))
+  ((vector-ref node step-program!-i) debug?))
 
 (define step-program-n!-i (i))
 (define (node:step-program-n! node n [debug? #f])
