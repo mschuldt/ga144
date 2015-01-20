@@ -133,16 +133,8 @@
   (define blocking-read #f)
   (define blocking-write #f)
 
-  ;; (define comm-data '())
-  ;; (define comm-type '())
-  ;; (define comm-recv '())
-
   (define instructions (make-vector 35))
   (define BIT 18)
-
-  (define (load-program in [start 0])
-    (foldl (lambda (word pos) (vector-set! memory pos word) (add1 pos))
-           start in))
 
   ;; Extracts the bottom 18 bits of n:
   (define (18bit n)
