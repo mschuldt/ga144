@@ -19,6 +19,8 @@
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                         "over" "a" "nop" "push" "b!" "a!"))
+
+(define time 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 8x18 node matrix
 
@@ -545,6 +547,7 @@
 ;; execution control
 
 (define (step-program! [debug? #f])
+  (set! time (add1 time))
   (for ([node active-nodes])
     (node:step-program! node debug?)))
 
@@ -556,11 +559,13 @@
 ;;step program until all nodes are non-active
 (define (step-program!* [debug? #f])
   (unless (null? active-nodes)
+    (set! time (add1 time))
     (for ([node active-nodes])
       (node:step-program! node debug?))
     (step-program!* debug?)))
 
 (define (reset!)
+  (set! time 0)
   (map node:reset! active-nodes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
