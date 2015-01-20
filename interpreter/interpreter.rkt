@@ -474,40 +474,47 @@
   (define (make-non-active)
     (set! active-nodes (remove self active-nodes)))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; single instruction stepping
+
   (define (execute! opcode [jump-addr-pos 0])
     (if (< opcode 8)
         ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
         ((vector-ref instructions opcode))))
 
+  (define (block-maybe next-step-fn)
+    (lambda () (when (and (complete-read) (complete-read))
+                 (next-step-fn))))
+
   (define (step0-)
     (set! I (vector-ref memory P))
     (set! P (incr P))
-    (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
-                      step1
-                      step0-)))
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
+                                   step1
+                                   step0-))))
   (define (step0*)
     (set! I (vector-ref memory P))
     (set! P (incr P))
     (if (eq? I 'end)
         (make-non-active)
-        (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
-                          step1
-                          step0*))))
+        (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
+                                       step1
+                                       step0*)))))
   (define step0 step0-)
 
   (define (step1)
-    (set! step-fn (if (execute! (bitwise-bit-field I 8 13) 8)
-                      step2
-                      step0)))
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 8 13) 8)
+                                   step2
+                                   step0))))
 
   (define (step2)
-    (set! step-fn (if (execute! (bitwise-bit-field I 3 8) 3)
-                      step3
-                      step0)))
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 3 8) 3)
+                                   step3
+                                   step0))))
 
   (define (step3)
     (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))
-    (set! step-fn step0))
+    (set! step-fn (block-maybe step0)))
 
   (define step-fn step0)
 
@@ -523,6 +530,7 @@
   (define (step-program-n! n [debug? #f])
     (for ([i (in-range 0 n)]) (step-program! debug?)))
   (declare-public step-program-n!)
+
 
   (define (set-ludr-ports ports)
     (set! port-left (car ports))
