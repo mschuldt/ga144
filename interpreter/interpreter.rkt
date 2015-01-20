@@ -477,49 +477,44 @@
         ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
         ((vector-ref instructions opcode))))
 
-
   (define (step0-)
-    (printf "~a: step0-\n" coord)
     (set! I (vector-ref memory P))
     (set! P (incr P))
-    (set! step-instruction (if (execute! (bitwise-bit-field I 13 18) 10)
-                               step1
-                               step0)))
+    (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
+                      step1
+                      step0-)))
   (define (step0*)
-    (printf "~a: step0*\n" coord)
     (set! I (vector-ref memory P))
     (set! P (incr P))
     (if (eq? I 'end)
         (make-non-active)
-        (set! step-instruction (if (execute! (bitwise-bit-field I 13 18) 10)
-                                   step1
-                                   step0*))))
-  (define step0 step0*)
+        (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
+                          step1
+                          step0*))))
+  (define step0 step0-)
 
   (define (step1)
-    (printf "~a: step1\n" coord)
-    (set! step-instruction (if (execute! (bitwise-bit-field I 8 13) 8)
-                               step2
-                               step0)))
+    (set! step-fn (if (execute! (bitwise-bit-field I 8 13) 8)
+                      step2
+                      step0)))
 
   (define (step2)
-    (printf "~a: step2\n" coord)
-    (set! step-instruction (if (execute! (bitwise-bit-field I 3 8) 3)
-                               step3
-                               step0)))
+    (set! step-fn (if (execute! (bitwise-bit-field I 3 8) 3)
+                      step3
+                      step0)))
 
   (define (step3)
-    (printf "~a: step3\n" coord)
     (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))
-    (set! step-instruction step0))
+    (set! step-fn step0))
 
-  (define step-instruction step0)
+  (define step-fn step0)
 
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
   ;; returns #f when P = 0, else #t
   (define (step-program! [debug? #f])
-    (step-instruction))
+    (when debug? (display-state (list self)))
+    (step-fn))
   (declare-public step-program!)
 
   ;;this alternative version of 'step-program!' will remove this node
@@ -569,7 +564,7 @@
 (define (step-program!* [debug? #f])
   (unless (null? active-nodes)
     (for ([node active-nodes])
-      (node:step-program!* node debug?))
+      (node:step-program! node debug?))
     (step-program!* debug?)))
 
 (define (reset!)
