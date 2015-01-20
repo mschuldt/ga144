@@ -90,7 +90,7 @@
 ;; program loading
 
 ;;compiles, assembles, and loads code into nodes
-(define (load-program in [include-end-token? #f])
+(define (compile-and-load in [include-end-token? #f])
   (let ([n 0]
         [code 0]
         [node 0])
@@ -100,7 +100,7 @@
       (set! active-nodes (cons node active-nodes)))))
 
 (define (load-file file)
-  (call-with-input-file file load-program))
+  (call-with-input-file file compile-and-load))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; node object
