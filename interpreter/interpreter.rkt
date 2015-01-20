@@ -136,6 +136,7 @@
 
   (define blocking-read #f)
   (define blocking-write #f)
+  (define blocking #f)
 
   (define instructions (make-vector 35))
   (define BIT 18)
@@ -207,7 +208,8 @@
                (value (fn)))
           (if value
               value
-              (set! blocking-read fn)))
+              (begin (set! blocking-read fn)
+                     (set! blocking #t))))
         (vector-ref memory (if memory-wrap
                                (modulo addr memory-size)
                                addr))))
@@ -223,13 +225,15 @@
   ;; aggregated into a list.
   (define (set-memory! addr value)
     (if (member addr (list UP DOWN LEFT RIGHT IO))
-        (set! blocking-write
-              (cond [(= addr LEFT)  (port-write port-left value)]
-                    [(= addr UP)    (port-write port-up value)]
-                    [(= addr DOWN)  (port-write port-down value)]
-                    [(= addr RIGHT) (port-write port-right value)]
-                    ;;TODO:
-                    [(= addr IO) (raise "unimplemented: writing to IO")]))
+        (begin (set! blocking-write
+                     (cond [(= addr LEFT)  (port-write port-left value)]
+                           [(= addr UP)    (port-write port-up value)]
+                           [(= addr DOWN)  (port-write port-down value)]
+                           [(= addr RIGHT) (port-write port-right value)]
+                           ;;TODO:
+                           [(= addr IO) (raise "unimplemented: writing to IO")]))
+               (when blocking-write
+                 (set! blocking #t)))
         (vector-set! memory
                      (if memory-wrap
                          (modulo addr memory-size)
@@ -244,6 +248,7 @@
           (if val
               (begin (d-push! val)
                      (set! blocking-read #f)
+                     (set! blocking #f)
                      #t)
               #f))
         #t))
@@ -255,6 +260,7 @@
         (if (blocking-write)
             #f
             (begin (set! blocking-write #f)
+                   (set! blocking #f)
                    #t))
         #t))
 
@@ -485,8 +491,14 @@
         ((vector-ref instructions opcode))))
 
   (define (block-maybe next-step-fn)
-    (lambda () (when (and (complete-read) (complete-read))
-                 (next-step-fn))))
+    ;;cond does not work here. Error: "else: not allowed as an expression"
+    (if blocking
+        (if blocking-read
+            (lambda () (when (complete-read)
+                         (next-step-fn)))
+            (lambda () (when (complete-write)
+                         (next-step-fn))))
+        next-step-fn))
 
   (define (step0-)
     (set! I (vector-ref memory P))
@@ -540,6 +552,7 @@
     (set! port-down (caddr ports))
     (set! port-right (cadddr ports)))
   (declare-public set-ludr-ports)
+
   self
   );;end make-node
 
