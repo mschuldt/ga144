@@ -559,9 +559,7 @@
 ;;step program until all nodes are non-active
 (define (step-program!* [debug? #f])
   (unless (null? active-nodes)
-    (set! time (add1 time))
-    (for ([node active-nodes])
-      (node:step-program! node debug?))
+    (step-program! debug?)
     (step-program!* debug?)))
 
 (define (reset!)
