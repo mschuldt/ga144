@@ -97,7 +97,7 @@
 (define-test "node 1 1 2 + node 717 1 2 3 4 +"
   (check-reg 1 t 3)
   (check-dat 1 3 0)
-  (check-mem 1 67813 1 2 0)
+  (check-mem 1 67813 1 2 'end 0)
 
   (check-reg 717 t 7)
   (check-dat 717 7 2 1 0)
