@@ -106,6 +106,8 @@
 ;; node object
 
 (define (make-node index)
+  (define self (make-vector N-METHODS))
+
   (define coord (index->coord index))
 
   ;; stacks:
@@ -409,16 +411,14 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
 
-  (define method-vector (make-vector N-METHODS))
-
   (defmacro declare-public (name)
-    #`(vector-set! method-vector
+    #`(vector-set! self
                    #,(string->symbol (string-append (symbol->string name) "-i"))
                    #,name))
 
   ;; (define (get-coord) coord)
   ;; (declare-public get-coord)
-  (vector-set! method-vector get-coord-i coord)
+  (vector-set! self get-coord-i coord)
 
   (define (get-memory) memory)
   (declare-public get-memory)
@@ -470,7 +470,7 @@
 
   ;;Q: when waiting to complete a read or write, is the node active?
   (define (make-non-active)
-    (set! active-nodes (remove (coord->node coord) active-nodes)))
+    (set! active-nodes (remove self active-nodes)))
 
   (define (execute! opcode [jump-addr-pos 0])
     (if (< opcode 8)
@@ -530,8 +530,7 @@
     (set! port-down (caddr ports))
     (set! port-right (cadddr ports)))
   (declare-public set-ludr-ports)
-
-  method-vector
+  self
   );;end make-node
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
