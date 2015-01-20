@@ -116,7 +116,7 @@
   (define A 0)
   (define B 0)
   (define P 0)
-  (define I 0)
+  (define I -1)
   (define R 0)
   (define S 0)
   (define T 0)
@@ -471,13 +471,37 @@
     (set! P start))
   (declare-public reset-p!)
 
+  ;;when not #f, value is the next field to to execute
+  (define next-field #f)
+
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
   (define (step-program! [debug? #f])
-    (set! I (vector-ref memory P))
-    (set! P (incr P))
+    (define (execute! opcode [jump-addr-pos 0])
+      (if (< opcode 8)
+          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+          ((vector-ref instructions opcode))))
+
     (when debug? (display-state))
-    (execute-word!))
+
+    (unless next-field
+      (set! I (vector-ref memory P))
+      (set! P (incr P))
+      (set! next-field 0))
+
+    (set! next-field
+          (and
+           (cond [(= next-field 0)
+                  (execute! (bitwise-bit-field I 13 18) 10)]
+                 [(= next-field 1)
+                  (execute! (bitwise-bit-field I 8 13)  8)]
+                 [(= next-field 2)
+                  (execute! (bitwise-bit-field I 3 8)   3)]
+                 [(= next-field 3)
+                  (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))])
+           (< next-field 3)
+           (add1 next-field))))
+
   (declare-public step-program!)
 
   ;; Steps the program n times.
@@ -488,9 +512,10 @@
   ;; Steps the program until it hits an instructions made up only of
   ;; nops or only of 0s. This should be useful for debugging small programs.
   (define (step-program!* [debug? #f])
-    (let ([next (vector-ref memory P)])
-      (unless (or (= next #x39ce7) (= next 0))
-        (step-program! debug?) (step-program!* debug?))))
+    ;;(let ([next (vector-ref memory P)])
+    ;;(unless (or (= next #x39ce7) (= next 0))
+    (unless (or (= I #x39ce7) (= I 0))
+      (step-program! debug?) (step-program!* debug?)))
   (declare-public step-program!*)
 
   (define (set-ludr-ports ports)
