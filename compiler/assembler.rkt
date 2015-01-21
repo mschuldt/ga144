@@ -62,9 +62,14 @@
   (define (pack word shift)
     (if (null? word)
         0
-        (bitwise-ior (arithmetic-shift (to-opcode (string->symbol (car word)))
-                                       shift)
-                     (pack (cdr word) (- shift 5)))))
+        (if (string? (car word))
+            (bitwise-ior (arithmetic-shift (to-opcode (string->symbol (car word)))
+                                           shift)
+                         (pack (cdr word) (- shift 5)))
+            ;;else: adding an address
+            (if (> (length word) 1)
+                (raise (format "word contains opcodes after address: ~a" word))
+                (car word)))))
   (if (list? word)
       (pack word 13)
       word))
