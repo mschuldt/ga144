@@ -128,14 +128,80 @@
       (and (eq? (car l1) (car l2))
            (same-subset? (cdr l1) (cdr l2)))))
 
-(define-test "basic1" "node 1 1 2 + node 717 1 2 3 4 +"
+(define-test "basic1"
+  "node 1 1 2 + node 717 1 2 3 4 +"
   (check-reg 1 t 3)
   (check-dat 1 3 0)
   (check-mem 1 67813 1 2 'end 0)
 
   (check-reg 717 t 7)
-  (check-dat 717 7 2 1 0)
+  (check-dat 717 7 2 1 0))
+
+(define-test "basic2"
+  "node 2 3 3 + 1"
+  (check-reg 2 t 1)
+  (check-reg 2 s 6)
+  (check-dat 2 1 6 0))
+
+(define-test "negate"
+  "node 505 3 - 1 + dup 5 +"
+  (check-reg 505 t 2)
+  (check-reg 505 s -3))
+
+(define-test "over"
+  "node 500 1 2 3 over node 2 2 3 over over"
+  (check-reg 500 t 2)
+  (check-reg 500 s 3)
+  (check-dat 500 2 3 2 1 0)
+  ;;(check-dat 2 2 3 2 3)
   )
+
+(define-test "if"
+  "node 100 1 if 3 + then 1 +
+   node 200 0 if 3 + then 1 +
+   node 300 1 if 1 if 4 + then 3 + then 1 +
+   node 301 0 if 0 if 4 + then 3 + then 1 +
+   node 302 1 if 0 if 4 + then 3 + then 2 +
+   node 303 0 if 1 if 4 + then 3 + then 3 +"
+  (check-reg 100 t 5)
+  (check-reg 100 s 0)
+  (check-reg 200 t 1)
+  (check-reg 200 s 0)
+  (check-reg 300 t 9)
+  (check-reg 300 s 1)
+  (check-reg 301 t 1)
+  (check-reg 301 s 0)
+  (check-reg 302 t 5)
+  (check-reg 302 s 1)
+  (check-reg 303 t 3)
+  (check-reg 303 s 0))
+
+(define-test "-if"
+  "node 100 2 -if 3 + then 5 +
+   node 200 0 -if 3 + then 5 +
+   node 300 2 - 1 +  -if 3 + then 5 +"
+  (check-reg 100 t 7)
+  (check-reg 100 s 0)
+  (check-reg 200 t 5)
+  (check-reg 200 s 0)
+  (check-reg 300 t 6)
+  (check-reg 300 s 0))
+
+(define-test "and"
+  "node 1 1 1 and
+          0 0 and
+          5 6 and
+         -4 8 and
+   node 5 2 dup dup -1 . + and
+          4 dup dup -1 . + and
+          7 dup dup -1 . + and"
+  (check-dat 1 8 4 0 1 0)
+  (check-dat 5 6 7 0 4 0 2 0))
+
+(define-test "push&pop"
+  "node 1 2 4 push 3 push 5 pop"
+  (check-dat 1 3 5 2 0)
+  (check-ret 1 4 0))
 
 (define (run-tests)
   (set! tests-failed 0)
