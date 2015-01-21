@@ -267,7 +267,60 @@
                    #t))
         #t))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (make-non-active)
+    (set! active-nodes (remove self active-nodes)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; instruction execution
+
+  (define (execute! opcode [jump-addr-pos 0])
+    (if (< opcode 8)
+        ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+        ((vector-ref instructions opcode))))
+
+  (define (block-maybe next-step-fn)
+    ;;cond does not work here. Error: "else: not allowed as an expression"
+    (if blocking
+        (if blocking-read
+            (lambda () (when (complete-read)
+                         (next-step-fn)))
+            (lambda () (when (complete-write)
+                         (next-step-fn))))
+        next-step-fn))
+
+  (define (step0-)
+    (set! I (vector-ref memory P))
+    (set! P (incr P))
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
+                                   step1
+                                   step0-))))
+  (define (step0*)
+    (set! I (vector-ref memory P))
+    (set! P (incr P))
+    (if (eq? I 'end)
+        (make-non-active)
+        (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
+                                       step1
+                                       step0*)))))
+  (define step0 step0-)
+
+  (define (step1)
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 8 13) 8)
+                                   step2
+                                   step0))))
+
+  (define (step2)
+    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 3 8) 3)
+                                   step3
+                                   step0))))
+
+  (define (step3)
+    (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))
+    (set! step-fn (block-maybe step0)))
+
+  (define step-fn step0)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; instructions
 
   ;; Define a new instruction. An instruction can
@@ -481,60 +534,6 @@
   (define (reset-p! [start 0])
     (set! P start))
   (declare-public reset-p!)
-
-  ;;Q: when waiting to complete a read or write, is the node active?
-  (define (make-non-active)
-    (set! active-nodes (remove self active-nodes)))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; single instruction stepping
-
-  (define (execute! opcode [jump-addr-pos 0])
-    (if (< opcode 8)
-        ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
-        ((vector-ref instructions opcode))))
-
-  (define (block-maybe next-step-fn)
-    ;;cond does not work here. Error: "else: not allowed as an expression"
-    (if blocking
-        (if blocking-read
-            (lambda () (when (complete-read)
-                         (next-step-fn)))
-            (lambda () (when (complete-write)
-                         (next-step-fn))))
-        next-step-fn))
-
-  (define (step0-)
-    (set! I (vector-ref memory P))
-    (set! P (incr P))
-    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
-                                   step1
-                                   step0-))))
-  (define (step0*)
-    (set! I (vector-ref memory P))
-    (set! P (incr P))
-    (if (eq? I 'end)
-        (make-non-active)
-        (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 13 18) 10)
-                                       step1
-                                       step0*)))))
-  (define step0 step0-)
-
-  (define (step1)
-    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 8 13) 8)
-                                   step2
-                                   step0))))
-
-  (define (step2)
-    (set! step-fn (block-maybe (if (execute! (bitwise-bit-field I 3 8) 3)
-                                   step3
-                                   step0))))
-
-  (define (step3)
-    (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))
-    (set! step-fn (block-maybe step0)))
-
-  (define step-fn step0)
 
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
