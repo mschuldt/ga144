@@ -82,6 +82,12 @@
          (s (state-s state)))
     (cons t (cons s (stack->list data)))))
 
+(define (return-stack->list coord)
+  (let* ((state (node:current-state (coord->node coord)))
+         (rstack (state-rstack state))
+         (r (state-r state)))
+    (cons r (stack->list rstack))))
+
 (define-syntax-rule (check-dat coord mem ...)
   (lambda () (let* ([m (map 18bit (list mem ...))]
                     [dstack (data-stack->list coord)]
@@ -94,6 +100,19 @@
                            coord
                            m
                            (take dstack s))))))
+
+(define-syntax-rule (check-ret coord mem ...)
+  (lambda () (let* ([m (map 18bit (list mem ...))]
+                    [rstack (return-stack->list coord)]
+                    [s (length m)])
+               (if (same-subset? m rstack)
+                   #f
+                   (format "    Return stack does not match (node ~a)
+        Expected: ~a...
+        Got:      ~a...\n"
+                           coord
+                           m
+                           (take rstack s))))))
 
 (define (same-subset-v? list vector)
   (define (same? i list)
