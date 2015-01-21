@@ -3,7 +3,7 @@
 (require compatibility/defmacro
          "interpreter.rkt"
          "state.rkt"
-         "stack.rkt" )
+         "stack.rkt")
 
 (define (18bit n)
   (if (number? n)
@@ -13,6 +13,7 @@
 (define tests '())
 (define tests-passed 0)
 (define tests-failed 0)
+
 (define-syntax-rule (define-test name program checks ...)
   (set! tests (cons (lambda ()
                       (let ([tests (list checks ...)]
@@ -61,9 +62,11 @@
 (defmacro check-reg (coord var val)
   #`(lambda ()  (let* ((node (coord->node #,coord))
                        (state (node:current-state node))
-                       (val (#,(string->symbol
-                                (string-append "state-"
-                                               (symbol->string var)))
+                       (val (#,(begin (unless (member var '(a b p i r s t))
+                                        (raise "check-reg: invalid register"))
+                                      (string->symbol
+                                       (string-append "state-"
+                                                      (symbol->string var))))
                              state))
                        (expect (18bit #,val)))
                   (if (eq? expect val)
