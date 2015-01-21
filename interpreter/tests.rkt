@@ -5,6 +5,11 @@
          "state.rkt"
          "stack.rkt" )
 
+(define (18bit n)
+  (if (number? n)
+      (bitwise-and n #x3ffff)
+      n))
+
 (define tests '())
 (define tests-passed 0)
 (define tests-failed 0)
@@ -40,7 +45,7 @@
                     tests)))
 
 (define-syntax-rule (check-mem coord mem ...)
-  (lambda () (let* ((m (list mem ...))
+  (lambda () (let* ((m (map 18bit (list mem ...)))
                     (memory (node:get-memory (coord->node coord)))
                     (s (length m)))
                (if (same-subset-v? m memory)
@@ -59,14 +64,15 @@
                        (val (#,(string->symbol
                                 (string-append "state-"
                                                (symbol->string var)))
-                             state)))
-                  (if (eq? #,val val)
+                             state))
+                       (expect (18bit #,val)))
+                  (if (eq? expect val)
                       #f
                       (format"    Failed assertion (node ~a):
         Expected: (eq ~a ~a)
         Got:      (eq ~a ~a)\n"
                              #,coord
-                             (quote #,var) #,val
+                             (quote #,var) expect
                              (quote #,var) val)))))
 
 (define (data-stack->list coord)
@@ -77,7 +83,7 @@
     (cons t (cons s (stack->list data)))))
 
 (define-syntax-rule (check-dat coord mem ...)
-  (lambda () (let* ([m (list mem ...)]
+  (lambda () (let* ([m (map 18bit (list mem ...))]
                     [dstack (data-stack->list coord)]
                     [s (length m)])
                (if (same-subset? m dstack)
