@@ -8,7 +8,7 @@
 (define tests '())
 (define tests-passed 0)
 (define tests-failed 0)
-(define-syntax-rule (define-test program checks ...)
+(define-syntax-rule (define-test name program checks ...)
   (set! tests (cons (lambda ()
                       (let ([tests (list checks ...)]
                             [result #f]
@@ -22,7 +22,9 @@
                             (set! failed (cons result failed))))
                         (if (null? failed)
                             (set! tests-passed (add1 tests-passed))
-                            (begin (display (format "FAILED: '~a'\n" program))
+                            (begin (display (format "FAILED: ~a: '~a'\n"
+                                                    name
+                                                    program))
                                    (for ([f failed])
                                      (display f))
                                    (newline)
@@ -94,7 +96,7 @@
       (and (eq? (car l1) (car l2))
            (same-subset? (cdr l1) (cdr l2)))))
 
-(define-test "node 1 1 2 + node 717 1 2 3 4 +"
+(define-test "basic1" "node 1 1 2 + node 717 1 2 3 4 +"
   (check-reg 1 t 3)
   (check-dat 1 3 0)
   (check-mem 1 67813 1 2 'end 0)
