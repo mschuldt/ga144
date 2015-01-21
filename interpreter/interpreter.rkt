@@ -324,7 +324,7 @@
                #f)))
 
   (define-instruction! "if" (addr)
-    (and (not (= T 0))
+    (and (= T 0)
          (set! P addr)
          #f))
 
