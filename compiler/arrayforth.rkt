@@ -93,14 +93,23 @@
     mem)
 
   (define (fill-with-nops mem)
+    ;;fill words with nops if they do not contain an address
+    ;;this is needed when the interpreter is using the 'end token
+    ;;to terminate execution
+    ;;TODO: The compiler sometimes pads words with nops and
+    ;;sometimes does not. why?
     (define (fill word)
-      ;;TODO: only need to fill the last word
       (if (and (list? word)
                (< (length word) 4))
           (fill (append word '("nop")))
           word))
-    (for ((i (in-range 0 (vector-length mem))))
-      (vector-set! mem i (fill (vector-ref mem i)))))
+    (let ((word #f))
+      (for ((i (in-range 0 (vector-length mem))))
+        (set! word (vector-ref mem i))
+        (when (and (list? word)
+                   (positive? (length word))
+                   (string? (last word)))
+          (vector-set! mem i (fill word))))))
 
   (let* [(interpreter (compile code-port))
          (result '())
