@@ -7,6 +7,9 @@
          "state.rkt"
          "stack.rkt")
 
+(define DEBUG? #f)
+(define DISPLAY_STATE? #f)
+
 (provide (all-defined-out))
 
 (define UP #x145) ;325
@@ -328,7 +331,14 @@
   (define-syntax-rule (define-instruction! opcode args body ...)
     (let ((n (or (vector-member opcode opcodes)
                  (raise (format "Err: invalid opcode: '~s'" opcode)))))
-      (vector-set! instructions n (lambda args body ...))))
+      (vector-set! instructions
+                   n
+                   (if DEBUG?
+                       (lambda args
+                         (printf (format "OPCODE: '~a'\n" opcode))
+                         body ...)
+                       (lambda args
+                         body ...)))))
 
   (define-instruction! "ret" (_)
     (set! P R)
@@ -538,14 +548,16 @@
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
   ;; returns #f when P = 0, else #t
-  (define (step-program! [debug? #f])
-    (when debug? (display-state (list coord)))
-    (step-fn))
+  (define (step-program!)
+    (when DEBUG? (printf "\nstep-program! node ~a\n" coord))
+    (step-fn)
+    (when (and DEBUG? DISPLAY_STATE?) (display-state (list coord))))
+
   (declare-public step-program!)
 
   ;; Steps the program n times.
-  (define (step-program-n! n [debug? #f])
-    (for ([i (in-range 0 n)]) (step-program! debug?)))
+  (define (step-program-n! n)
+    (for ([i (in-range 0 n)]) (step-program!)))
   (declare-public step-program-n!)
 
 
@@ -562,21 +574,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; execution control
 
-(define (step-program! [debug? #f])
+(define (step-program!)
   (set! time (add1 time))
   (for ([node active-nodes])
-    (node:step-program! node debug?)))
+    (node:step-program! node)))
 
-(define (step-program-n! n [debug? #f])
+(define (step-program-n! n)
   (when (> n 0)
-    (step-program! debug?)
-    (step-program-n! (sub1 n) debug?)))
+    (step-program!)
+    (step-program-n! (sub1 n))))
 
 ;;step program until all nodes are non-active
-(define (step-program!* [debug? #f])
+(define (step-program!*)
   (unless (null? active-nodes)
-    (step-program! debug?)
-    (step-program!* debug?)))
+    (step-program!)
+    (step-program!*)))
 
 (define (reset!)
   (set! time 0)
@@ -683,12 +695,12 @@
 (define (node:reset-p! node) ((vector-ref node reset-p!-i)))
 
 (define step-program!-i (i))
-(define (node:step-program! node [debug? #f])
-  ((vector-ref node step-program!-i) debug?))
+(define (node:step-program! node)
+  ((vector-ref node step-program!-i)))
 
 (define step-program-n!-i (i))
-(define (node:step-program-n! node n [debug? #f])
-  ((vector-ref node step-program-n!-i) n debug?))
+(define (node:step-program-n! node n)
+  ((vector-ref node step-program-n!-i) n))
 
 (define set-ludr-ports-i (i))
 (define (node:set-ludr-ports node ports)
