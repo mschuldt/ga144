@@ -85,7 +85,12 @@
   (vector #f))
 
 (define (port-read port)
-  (lambda () (vector-ref port 0)))
+  (lambda ()
+    (let ((val (vector-ref port 0)))
+      (if val
+          (begin (vector-set! port 0 #f)
+                 val)
+          #f))))
 
 (define (port-write port value)
   (vector-set! port 0 value)
@@ -215,7 +220,8 @@
           (if value
               value
               (begin (set! blocking-read fn)
-                     (set! blocking #t))))
+                     (set! blocking #t)
+                     #f)))
         (vector-ref memory (if memory-wrap
                                (modulo addr memory-size)
                                addr))))
@@ -386,18 +392,21 @@
          #f))
 
   (define-instruction! "@p" () ;;TODO: this is a HACK!!!
-    (d-push! (read-memory-@p P))
+    (d-push! (read-memory-@p P));;?
     (set! P (incr P)))
 
-  (define-instruction! "@+" () ; fetch-plus
-    (d-push! (read-memory A))
-    (set! A (incr A)))
+  (let ((d-push-if-not-false (lambda (val)
+                               (when val (d-push! val)))))
 
-  (define-instruction! "@b" () ;fetch-b
-    (d-push! (read-memory B)))
+    (define-instruction! "@+" () ; fetch-plus
+      (d-push! (d-push-if-not-false A))
+      (set! A (incr A)))
 
-  (define-instruction! "@" (); fetch a
-    (d-push! (read-memory A)))
+    (define-instruction! "@b" () ;fetch-b
+      (d-push-if-not-false (read-memory B)))
+
+    (define-instruction! "@" (); fetch a
+      (d-push-if-not-false (read-memory A))))
 
   (define-instruction! "!p" () ; store p
     (set-memory! P (d-pop!))
