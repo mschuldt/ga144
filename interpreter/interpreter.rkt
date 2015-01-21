@@ -554,7 +554,7 @@
   ;; p and executing the word.
   ;; returns #f when P = 0, else #t
   (define (step-program! [debug? #f])
-    (when debug? (display-state (list self)))
+    (when debug? (display-state (list coord)))
     (step-fn))
   (declare-public step-program!)
 
