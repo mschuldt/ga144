@@ -20,10 +20,10 @@
 (define (index->coord n)
   (+ (* (quotient n 18) 100) (remainder n 18)))
 
-(define (compile-string str)
+(define (compile-string str [fill-with-nops? #f])
   "compile STR to f18 assembly
 return format: ((node-number . code-array) ...)"
-  (let ((cores (compile-all-to-list str))
+  (let ((cores (compile-all-to-list str fill-with-nops?))
         (i 0)
         (empty (vector))
         (ret '()))

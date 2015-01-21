@@ -65,6 +65,7 @@
     result))
 
 (define (compile-all-to-list code-port
+                             [fill-with-nops? #f]
                              #:bytes? [use-bytes? #f]
                              #:use-nop-and-ret? [no-punct? #t])
   "return compiled code for all nodes in the format:
@@ -91,11 +92,23 @@
       (vector-map! safe-punct-transform mem))
     mem)
 
+  (define (fill-with-nops mem)
+    (define (fill word)
+      ;;TODO: only need to fill the last word
+      (if (and (list? word)
+               (< (length word) 4))
+          (fill (append word '("nop")))
+          word))
+    (for ((i (in-range 0 (vector-length mem))))
+      (vector-set! mem i (fill (vector-ref mem i)))))
+
   (let* [(interpreter (compile code-port))
          (result '())
          (mem 0)]
     (for [(core (send interpreter get 'cores))]
       (set! mem (convert (plain-vector (get-field memory core))))
+      (when fill-with-nops?
+        (fill-with-nops mem))
       ;;(set! mem (code-vector-to-string (convert mem)))
       (set! result (cons mem result)))
     (reverse result)))
