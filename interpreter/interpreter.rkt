@@ -457,7 +457,6 @@
     (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
   (declare-public current-state)
 
-  ;; Resets the state of the interpreter:
   (define (reset! [bit 18])
     (set! BIT bit)
     (set! A 0)
@@ -467,7 +466,12 @@
     (set! R 0)
     (set! S 0)
     (set! T 0)
-    (set! memory (make-vector MEM-SIZE)))
+    (set! memory (make-vector MEM-SIZE))
+    (set! dstack (make-stack 8))
+    (set! rstack (make-stack 8))
+    (set! blocking-read #f)
+    (set! blocking-write #f)
+    (set! blocking #f))
   (declare-public reset!)
 
   ;; Resets only p
@@ -577,7 +581,7 @@
 
 (define (reset!)
   (set! time 0)
-  (map node:reset! active-nodes))
+  (vector-map node:reset! nodes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state display functions
