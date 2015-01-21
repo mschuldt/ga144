@@ -171,7 +171,7 @@
     (set! R value))
 
   ;; Pops from the data stack.
-  (define (pop!)
+  (define (d-pop!)
     (let ([ret-val T])
       (set! T S)
       (set! S (pop-stack! dstack))
@@ -348,18 +348,18 @@
     (d-push! (read-memory A)))
 
   (define-instruction! "!p" () ; store p
-    (set-memory! P (pop!))
+    (set-memory! P (d-pop!))
     (set! P (incr P)))
 
   (define-instruction! "!+" () ;store plus
-    (set-memory! A (pop!))
+    (set-memory! A (d-pop!))
     (set! A (incr A)))
 
   (define-instruction! "!b" (); store-b
-    (set-memory! B (pop!)))
+    (set-memory! B (d-pop!)))
 
   (define-instruction! "!" (); store
-    (set-memory! A (pop!)))
+    (set-memory! A (d-pop!)))
 
   (define-instruction! "+*" () ; multiply-step
     (if (even? A)
@@ -376,16 +376,16 @@
     (set! T (18bit (bitwise-not T))))
 
   (define-instruction! "+" () ;;TODO: extended arithmetic mode
-    (d-push! (+ (pop!) (pop!))))
+    (d-push! (+ (d-pop!) (d-pop!))))
 
   (define-instruction! "and" ()
-    (d-push! (bitwise-and (pop!) (pop!))))
+    (d-push! (bitwise-and (d-pop!) (d-pop!))))
 
   (define-instruction! "or" ()
-    (d-push! (bitwise-xor (pop!) (pop!))))
+    (d-push! (bitwise-xor (d-pop!) (d-pop!))))
 
   (define-instruction! "drop" ()
-    (pop!))
+    (d-pop!))
 
   (define-instruction! "dup" ()
     (d-push! T))
@@ -403,13 +403,13 @@
     (void))
 
   (define-instruction! "push" ()
-    (r-push! (pop!)))
+    (r-push! (d-pop!)))
 
   (define-instruction! "b!" () ;; store into b
-    (set! B (pop!)))
+    (set! B (d-pop!)))
 
   (define-instruction! "a!" () ;store into a
-    (set! A (pop!)))
+    (set! A (d-pop!)))
 
   ;; Treats T:A as a single 36 bit register and shifts it right by one
   ;; bit. The most signficicant bit (T17) is kept the same.
