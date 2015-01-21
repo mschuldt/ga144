@@ -92,11 +92,25 @@
 ;; program loading
 
 ;;compiles, assembles, and loads code into nodes
-(define (compile-and-load in [include-end-token? #f])
-  (let ([n 0]
-        [code 0]
-        [node 0])
-    (for ([code (assemble-all (compile-string in))])
+(define (compile-and-load in
+                          [include-end-token? #f]
+                          #:compiled-file [compiled-file #f]
+                          #:assembled-file [assembled-file #f]
+                          )
+  (let* ([n 0]
+         [code 0]
+         [node 0]
+         [compiled (compile-string in include-end-token?)]
+         [assembled (assemble-all compiled)])
+    (when compiled-file
+      (write-to-file (format "~a\n" compiled)
+                     compiled-file
+                     #:exists 'replace))
+    (when assembled-file
+      (write-to-file (format "~a\n" assembled)
+                     assembled-file
+                     #:exists 'replace))
+    (for ([code assembled])
       (set! node (coord->node (car code)))
       (node:load-code node (cdr code) include-end-token?)
       (set! active-nodes (cons node active-nodes)))))

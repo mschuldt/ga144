@@ -12,9 +12,16 @@
   (set! tests (cons (lambda ()
                       (let ([tests (list checks ...)]
                             [result #f]
-                            [failed '()])
+                            [failed '()]
+                            [compiled-file
+                             (format "test-out/~a-compiled.rkt" name)]
+                            [assembled-file
+                             (format "test-out/~a-assembled.rkt" name)])
                         (reset!)
-                        (compile-and-load program #t)
+                        (compile-and-load program
+                                          #t
+                                          #:compiled-file compiled-file
+                                          #:assembled-file assembled-file)
                         (step-program!*)
                         (for ([x tests])
                           (set! result (x))
