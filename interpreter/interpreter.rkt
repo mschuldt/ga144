@@ -625,10 +625,16 @@
 
 (define (display-memory coord [n MEM-SIZE])
   (let* ((node (coord->node coord))
-         (mem (state-memory (node:current-state node))))
-    (printf "node ~a memory:\n" coord)
-    (for ([i (in-range 0 n)])
-      (printf "~x " (vector-ref mem i)))
+         (mem (state-memory (node:current-state node)))
+         (n (sub1 n)))
+    (define (print i)
+      (let ((v (vector-ref mem i)))
+        (printf "~a " v)
+        (unless (or (eq? v 'end)
+                    (>= i n))
+          (print (add1 i)))))
+    (printf "node ~a memory: " coord)
+    (print 0)
     (newline)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
