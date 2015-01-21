@@ -183,17 +183,6 @@
       (set! R (pop-stack! rstack))
       ret-val))
 
-  ;; Executes a single integer, treating it as an 18-bit word.
-  (define (execute-word!)
-    (define (execute! opcode [jump-addr-pos 0])
-      (if (< opcode 8)
-          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
-          ((vector-ref instructions opcode))))
-    (and (execute! (bitwise-bit-field I 13 18) 10)
-         (execute! (bitwise-bit-field I 8 13)  8)
-         (execute! (bitwise-bit-field I 3 8)   3)
-         (execute! (arithmetic-shift (bitwise-bit-field I 0 3) 2))))
-
   ;; Return the value of p or a incremented as appropriately. If the
   ;; register points to an IO region, does nothing. Otherwise increment
   ;; the register circularly within the current memory region (RAM or
@@ -492,9 +481,6 @@
   (define (reset-p! [start 0])
     (set! P start))
   (declare-public reset-p!)
-
-  ;;when not #f, value is the next field to to execute
-  (define next-field #f)
 
   ;;Q: when waiting to complete a read or write, is the node active?
   (define (make-non-active)
