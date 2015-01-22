@@ -195,9 +195,12 @@
     (define/public (get-slot addr)
       (if (< addr 0)
           #f
-          (let [(lst (rvector-ref (get 'memory) (quotient addr 4)))]
+          (let [(lst (rvector-ref (get 'memory) (quotient addr 4)))
+                (index (remainder addr 4))]
             (if (list? lst)
-                (list-ref lst (remainder addr 4))
+                (if (< index (length lst))
+                    (list-ref lst index)
+                    #f)
                 lst))))
 
     (define (max-address-size word)
