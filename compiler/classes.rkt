@@ -200,6 +200,13 @@
                 (list-ref lst (remainder addr 4))
                 lst))))
 
+    (define (max-address-size word)
+      ;;returns the max address that can fit in the remaining slots of WORD
+      (let ((len (- 4 (length word))))
+        (if (= len 1)
+            8
+            (expt 2 (+ 3 (* 5 (sub1 len)))))))
+
     (define/public (add-to-slot! elmt addr)
       (let* [(memory (get 'memory))
              (index (quotient addr 4))
@@ -262,8 +269,15 @@
                (standard-compile! elmt)]
 
               [(number? elmt)
-               ;; Compilation of an address.
-               ;; TODO: Check if the address can fit.
+               (let ((word (rvector-ref (get 'memory) (quotient i-register 4))))
+                 (when (> elmt (max-address-size word))
+                   (let* ((word (reverse word))
+                          (op (car word))
+                          (word (reverse (cdr word))))
+                     (rvector-set! (get 'memory) (quotient i-register 4) word)
+                     (set! i-register (sub1 i-register))
+                     (fill-rest-with-nops)
+                     (add-compiled-code! op))))
                (when (not (member (get-slot (sub1 i-register)) address-required))
                  (raise "Tried to compile a number that was not an address --- add-compiled-code!"))
                (add-to-slot! elmt i-register)
