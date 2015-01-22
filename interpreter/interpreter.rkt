@@ -142,7 +142,7 @@
   (define A 0)
   (define B 0)
   (define P 0)
-  (define I -1)
+  (define I 0)
   (define R 0)
   (define S 0)
   (define T 0)
@@ -358,10 +358,12 @@
     #f)
 
   (define-instruction! "jump" (addr)
+    (when DEBUG? (printf "jump to ~a\n" addr))
     (set! P addr)
     #f)
 
   (define-instruction! "call" (addr)
+    (when DEBUG? (printf "calling: ~a\n" addr))
     (r-push! P)
     (set! P addr)
     #f)
@@ -383,7 +385,8 @@
 
   (define-instruction! "if" (addr)
     (and (= T 0)
-         (set! P addr)
+         (begin (when DEBUG? (printf "If: jumping to ~a\n" addr))
+                (set! P addr))
          #f))
 
   (define-instruction! "-if" (addr)
@@ -399,7 +402,7 @@
                                (when val (d-push! val)))))
 
     (define-instruction! "@+" () ; fetch-plus
-      (d-push! (d-push-if-not-false A))
+      (d-push-if-not-false (read-memory A))
       (set! A (incr A)))
 
     (define-instruction! "@b" () ;fetch-b
@@ -594,10 +597,19 @@
     (step-program-n! (sub1 n))))
 
 ;;step program until all nodes are non-active
-(define (step-program!*)
-  (unless (null? active-nodes)
-    (step-program!)
-    (step-program!*)))
+(define (step-program!* [max-time #f])
+  (define (step)
+    (unless (null? active-nodes)
+      (step-program!)
+      (step)))
+  (define (step-with-max)
+    (unless (null? active-nodes)
+      (step-program!)
+      (when (< time 1000000)
+        (step-with-max))))
+  (if max-time
+      (step-with-max)
+      (step)))
 
 (define (reset!)
   (set! time 0)
