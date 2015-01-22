@@ -206,6 +206,145 @@
   (check-dat 1 3 5 2 0)
   (check-ret 1 4 0))
 
+(define-test "b"
+  "node 0 right b! @b @b @b +
+   node 1 4 left b! 123 !b 2 !b 3 !b"
+  (check-reg 0 t 5)
+  (check-reg 0 s 123)
+  (check-reg 1 t 4))
+
+(define-test "a"
+  "node 0 right a! @ @ @ +
+   node 1 4 left a! 123 ! 2 ! 3 !
+   node 2 12 a! 2 a"
+  (check-reg 0 t 5)
+  (check-reg 0 s 123)
+  (check-reg 1 t 4)
+  (check-reg 2 t 12)
+  (check-reg 2 s 2))
+
+(define-test "ludr-ports"
+  "node 000 up    a! right b! 1 !b 2 !b 3 !b @ @ @
+   node 001 left  a! right b! @ !b @ !b @ !b
+   node 002 left  a! up    b! @ !b @ !b @ !b
+   node 102 down  a! up    b! @ !b @ !b @ !b
+   node 202 down  a! left  b! @ !b @ !b @ !b
+   node 201 right a! left  b! @ !b @ !b @ !b
+   node 200 right a! down  b! @ !b @ !b @ !b
+   node 100 up    a! down  b! @ 1 + !b @ 1 + !b @ 1 + !b "
+  (check-dat 0 4 3 2 0)
+  (check-dat 1 0 0 0)
+  (check-dat 102 0 0 0)
+  (check-dat 202 0 0 0)
+  (check-dat 201 0 0 0)
+  (check-dat 200 0 0 0)
+  (check-dat 100 0 0 0))
+
+(define-test "blocking-read"
+  "node 0 right a! @
+   node 1 left  a! . . . . . . 234 ! 28"
+  (check-reg 0 t 234)
+  (check-reg 1 t 28))
+
+(define-test "blocking-write"
+  "node 0 right  a! . . . . . . . . . @
+   node 1 left a! 234 ! 28"
+  (check-reg 0 t 234)
+  (check-reg 1 t 28))
+
+(define-test "shift"
+  "node 4 4 2/ 2 2* 8 2* 1 2* 2* 2/ 2/ 0 2/ 0 2*
+   node 3 4 dup 2* . +  ( multiply by 3 )
+   node 5 8 dup 2* 2* . +  ( multiply by 5 )
+   node 6 3 2* dup 2* . +  ( multiply by 6 )
+   node 7 3 dup 2* dup 2* . + . + ( multiply by 7)"
+  (check-dat 4 0 0 1 16 4 2)
+  (check-reg 3 t 12)
+  (check-reg 5 t 40)
+  (check-reg 6 t 18)
+  (check-reg 7 t 21))
+
+(define-test "or"
+  "node 7   23 45 or
+   node 707 1 2 over push over or or pop ( swap)"
+  (check-reg 707 t 1)
+  (check-reg 707 s 2)
+  (check-reg 7 t 58))
+
+(define-test "drop"
+  "node 1 2 4 drop 3
+   node 2 1 2 3 push drop pop ( nip)"
+  (check-dat 1 3 2 0)
+  (check-dat 2 3 1 0))
+
+(define-test "a-fetch-inc"
+  "node 1 6 a! @+ @+ @+ 0 if 2 3 4 5 10 then"
+  (check-dat 1 0 4 3 2 0))
+
+(define-test "a-store-inc"
+  "node 1 1 1 1 10 20 30 0 a! !+ !+ !+"
+  (check-mem 1 30 20 10 1))
+
+(define-test "call+ret"
+  "node 1 0 if
+            : double dup + ;
+            : x4 double double ;
+          then
+          2 double
+          4 x4"
+  (check-reg 1 t 16)
+  (check-reg 1 s 4))
+
+(define-test "computed-goto"
+  "node 1 0 if
+              : case pop + push ;
+              : add10 10 + ;
+              : add20 20 + ;
+              : add30 30 + ;
+              : 10x case add10 ; add20 ; add30 ;
+            then
+           1 1 10x
+           5 0 10x
+           2 2 10x"
+  (check-dat 1 32 15 21))
+
+(define-test "max_min"
+  "node 1 0 if
+           : min - over . + - -if + ; then drop ;
+           : max - over . + - -if drop ; then + ;
+ (         : min2 - over . + - -if begin + ;      )
+ (         : max2 - over . + - -until then drop ; )
+         then
+      1 2 max
+      1 2 min
+      5 6 max
+      5 6 min
+      1 1 max
+ (    5 6 max2 )
+ (    5 6 min2 )
+"
+  (check-dat 1 1 5 6 1 2 0))
+
+(define-test "variables"
+  "node 2
+   0 if
+    : x! @p drop !p ;
+    : x 0 ;
+   then
+    8 x! x push 5 x! pop x"
+  (check-reg 2 t 5)
+  (check-reg 2 s 8))
+
+(define-test "unext"
+  "node 1
+    1 2 for 2* unext
+    1 3 for 2* unext
+    1 4 for 2* unext
+      4 for 2/ unext
+    "
+  (check-dat 1 1 16 8 0))
+
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
