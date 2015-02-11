@@ -23,13 +23,13 @@
      (let* ([token (forth_read)]
             [n (string->number token)])
        (unless (valid-node? n)
-         (raise (format "Err: invalid node number: ~a" token)))
+	       (raise (format "Err: invalid node number: ~a" token)))
        (send compiler set 'state-index (coord->index n))
        (unless (member (send compiler get 'state-index)
                        (send compiler get 'used-cores))
-         (send compiler set 'used-cores
-               (cons (send compiler get 'state-index)
-                     (send compiler get 'used-cores))))
+	       (send compiler set 'used-cores
+		     (cons (send compiler get 'state-index)
+			   (send compiler get 'used-cores))))
        (send compiler set 'memory (make-rvector 100 '()))
        (send compiler set 'location-counter 1)
        (send compiler set 'i-register 0))))
@@ -41,8 +41,8 @@
             [n (string->number token)])
        (unless (and (integer? n)
                     (>= n 0))
-         ;;TODO: upper bound?
-         (raise (format "Err: invalid argument to 'org' directive: '~a'" n)))
+	       ;;TODO: upper bound?
+	       (raise (format "Err: invalid argument to 'org' directive: '~a'" n)))
        (send compiler set 'location-counter (add1 n))
        (send compiler set 'i-register (* 4 n)))))
 
@@ -78,15 +78,15 @@
 	   (used-cores (send compiler get 'used-cores))
 	   (state-index (send compiler get 'state-index))]
        (unless (= (remainder i-register 4) 0)
-         (raise "start directive is not at the beginning of a word - consider using .."))
+	       (raise "start directive is not at the beginning of a word - consider using .."))
        (send compiler set-pc! (quotient i-register 4))
        (unless (member state-index used-cores)
-         (send compiler set 'used-cores (cons state-index used-cores))))))
+	       (send compiler set 'used-cores (cons state-index used-cores))))))
 
   ;; Comments
   (define (comment compiler)
     (unless (equal? (read-char) #\))
-      (comment compiler)))
+	    (comment compiler)))
   (add-directive! "(" comment)
 
   ;; ,
@@ -147,7 +147,7 @@
      (let [(old-ireg (pop-int! (send compiler get 'dstack) #f))
            (curr-ireg (send compiler get 'i-register))]
        (when (not (= (remainder curr-ireg 4) 0))
-         (raise "Internal error:  i-register should be at the start of a word, but is not"))
+	     (raise "Internal error:  i-register should be at the start of a word, but is not"))
        (send compiler compile-address-to-slot! (/ curr-ireg 4) old-ireg))))
 
   )
