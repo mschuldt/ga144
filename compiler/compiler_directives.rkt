@@ -90,10 +90,12 @@
   (add-directive! "(" comment)
 
   ;; ,
-  (add-directive! ;;TODO: ?
+  (add-directive!
    ","
    (lambda (compiler)
-     (let [(data (pop-cells! (send compiler get 'dstack)))]
+     (let* ;; [(data (pop-cells! (send compiler get 'dstack)))]
+	 ([token (forth_read)]
+	  [data (string->number token)])
        (send compiler add-compiled-data! data))))
 
   ;; begin
