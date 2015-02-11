@@ -150,4 +150,16 @@
 	     (raise "Internal error:  i-register should be at the start of a word, but is not"))
        (send compiler compile-address-to-slot! (/ curr-ireg 4) old-ireg))))
 
+  (define (swap compiler)
+    (let* ((dstack (send compiler get 'dstack))
+	   (T (pop-cells! dstack))
+	   (S (pop-cells! dstack)))
+      (push-cells! dstack T)
+      (push-cells! dstack S)))
+
+  (add-directive!
+   "#swap"
+   (lambda (compiler)
+     (swap compiler)))
+
   )
