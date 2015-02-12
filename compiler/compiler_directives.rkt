@@ -96,7 +96,8 @@
      (let* ;; [(data (pop-cells! (send compiler get 'dstack)))]
 	 ([token (forth_read)]
 	  [data (string->number token)])
-       (send compiler add-compiled-data! data))))
+       ;;(send compiler add-compiled-data! data)
+       (send compiler add-to-next-empty-word! data))))
 
   ;; begin
   (define (begin-proc compiler)

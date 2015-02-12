@@ -344,6 +344,12 @@
     "
   (check-dat 1 1 16 8 0))
 
+(define-test ","
+  "node 1
+    @p @p @p
+    , 1 , 22 , 333  "
+  (check-dat 1 333 22 1 0 0))
+
 
 (define (run-tests)
   (set! tests-failed 0)
