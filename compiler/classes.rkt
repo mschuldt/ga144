@@ -223,6 +223,19 @@
       (add-to-next-word! data)
       (fill-rest-with-nops))
 
+    (define/public (add-to-next-empty-word! data)
+      (let* [(memory (get 'memory))
+            (location-counter (get 'location-counter))
+	    (location-counter-1 (sub1 location-counter))]
+	(if (= (remainder i-register 4) 0)
+	    (begin
+	      (unless (null? (rvector-ref memory location-counter-1))
+		      (raise "Expected empty memory cell"))
+	      (rvector-set! memory location-counter-1 data)
+	      (go-to-next-word))
+	    (rvector-set! memory location-counter data))
+	(set 'location-counter (add1 location-counter))))
+
     (define/public (add-to-next-word! data)
       (let [(memory (get 'memory))
             (location-counter (get 'location-counter))]
@@ -352,7 +365,8 @@
                      (if execute?
                          (push-cells! (get 'dstack) num)
                          (compile-constant! num))
-                     (raise (string-append token " ?"))))])))))
+                     (raise (string-append token " ?"))))])))
+
     ;; for debugging
     (define/public (print-state)
       (printf "  i-register = ~a\n" i-register)
