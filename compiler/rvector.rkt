@@ -35,3 +35,6 @@
   ;; First force the dest to be at least as long as necessary
   (rvector-set! dest (+ dest-start (sub1 (- src-end src-start))) 0)
   (vector-copy! (mcar dest) dest-start (mcar src) src-start src-end))
+
+(define (print-rvector rvector)
+  (printf "~a\n" (plain-vector rvector)))

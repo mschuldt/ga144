@@ -353,6 +353,13 @@
                          (push-cells! (get 'dstack) num)
                          (compile-constant! num))
                      (raise (string-append token " ?"))))])))))
+    ;; for debugging
+    (define/public (print-state)
+      (printf "  i-register = ~a\n" i-register)
+      (printf "  location-counter = ~a\n" location-counter)
+      (printf "  memory = ")
+      (print-rvector (get 'memory)))
+    ))
 
 ;; Stacks
 (define push-cells! push!)

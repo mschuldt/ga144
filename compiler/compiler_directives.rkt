@@ -90,7 +90,7 @@
   (add-directive! "(" comment)
 
   ;; ,
-  (add-directive!
+  (add-directive! ;; page 23 of arrayforth users manual DB004
    ","
    (lambda (compiler)
      (let* ;; [(data (pop-cells! (send compiler get 'dstack)))]
