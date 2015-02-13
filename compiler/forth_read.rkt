@@ -21,10 +21,9 @@
               lst
               (iter (append lst (list new_char)))))))
   (let [(first_char (get_first_char_in_list))]
-    (if (or (eof-object? first_char) (eq? first_char #\newline))
-        first_char
-        (let [(lst (iter first_char))]
-          (list->string lst)))))
+    (if (list? first_char)
+	(list->string (iter first_char))
+	first_char)))
 
 ;;; Given a port, returns a list of forth tokens.
 (define (read-to-list port)
