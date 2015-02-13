@@ -33,25 +33,25 @@
 (define (read-syntax src in)
   (read-basic in))
 
-(define (make-reader func)
-  (let [(stack '())]
-    (case-lambda
-      [()
-       (if (null? stack)
-           (func)
-           (begin0 (car stack)
-             (set! stack (cdr stack))))]
-      [(msg)
-       (when (not (equal? msg 'clear))
-         (raise (string-append "Unknown message to reader: " msg)))
-       (set! stack '())]
-      [(msg token)
-       (when (not (equal? msg 'put-back))
-         (raise (string-append "Unknown message to reader: " msg)))
-       (set! stack (cons token stack))] )))
+(define (make-reader)
+  (let ((stack '()))
+    (lambda ([msg #f] [token #f])
+      (if msg
+	  (if token
+	      (begin
+		(when (not (equal? msg 'put-back))
+		      (raise (string-append "Unknown message to reader: " msg)))
+		(set! stack (cons token stack)))
+	      (begin
+		(when (not (equal? msg 'clear))
+		      (raise (string-append "Unknown message to reader: " msg)))
+		(set! stack '())))
+	  (if (null? stack)
+	      (read-basic (current-input-port))
+	      (begin0 (car stack)
+		      (set! stack (cdr stack))))))))
 
-(define forth_read
-  (make-reader (lambda () (read-basic (current-input-port)))))
+(define forth_read (make-reader))
 
 (define (forth_read_no_eof)
   (let [(res (forth_read))]
