@@ -16,6 +16,7 @@
 
 (define-syntax-rule (define-test name program checks ...)
   (set! tests (cons (lambda ()
+		      ;;(printf "running test: '~a'\n" name)
                       (let ([tests (list checks ...)]
                             [result #f]
                             [failed '()]
@@ -349,6 +350,19 @@
     @p @p @p
     , 1 , 22 , 333  "
   (check-dat 1 333 22 1 0 0))
+
+(define-test "fib"
+  "node 1
+0 if
+ : fib dup -2 + -if 1 ; then drop push 1 dup pop -3 + for over over + next ;
+then
+3 fib
+4 fib
+5 fib
+6 fib
+
+"
+  (check-dat 1 8 5 3 2 ))
 
 
 (define (run-tests)
