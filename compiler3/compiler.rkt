@@ -4,10 +4,10 @@
          "read.rkt")
 (provide compile-file compile-string)
 
-(define instructions (vector ";" "ret" "ex" "jump" "call" "unext" "next" "if"
-                             "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
-                             "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
-                             "over" "a" "." "nop" "push" "b!" "a!"))
+(define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
+                                  "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
+                                  "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
+                                  "over" "a" "." "nop" "push" "b!" "a!")))
 
 
 (define address-required '("jump" "call" "next" "if" "-if"))
@@ -47,13 +47,25 @@
 (define (add-word! name code)
   (hash-set! words name code))
 
+(define waiting (make-hash));;word -> list of cells waiting for the word's address
+(define (add-to-waiting word addr-cell)
+  (unless (hash-has-key? waiting word)
+    (hash-set! waiting word (list)))
+  (hash-set! waiting word (cons addr-cell (hash-ref waiting word))))
+(define (get-waiting-list word)
+  (and (hash-has-key? waiting word)
+       (hash-ref waiting word)))
+(define (waiting-clear word)
+  (hash-set! words word #f))
+  
+
+;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
   (and (hash-has-key? words name)
-       (hash-ref words name)))
+      (hash-ref words name)))
 
 (define (instruction? token)
-  ;;TODO
-  )
+  (set-member? instructions token))
 
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
@@ -82,9 +94,8 @@
   (let [(x #f)]
     (cond [(setq x (get-directive tok)) (x tok)]
           [(instruction? tok) (compile-instruction! tok)]
-          [(setq x (get-word-address tok)) (compile-call! x)];;TODO: ROM words
           [(setq x (parse-num tok)) (compile-constant! tok)]
-          [else (raise (string-append "unknown token: " tok))])
+          [else (compile-call! tok)])
     tok))
 
 (define (add-to-next-slot inst)
@@ -107,18 +118,28 @@
   (vector-set! memory next-word const)
   (set! next-word (add1 next-word)))
 
-(define (compile-call! addr)
-  (when (> addr (max-address-size (add1 current-slot)))
-    (fill-rest-with-nops))
-  (when (> addr (max-address-size (add1 current-slot)))
-    (pretty-display (format "WARNING: address '~a' is to large" addr)))
-  (add-to-next-slot "call")
-  (add-to-next-slot addr))
+(define (compile-call! word)
+  (let ([addr (get-word-address word)]);;TODO: ROM words
+    (if addr
+        (begin
+          (when (> addr (max-address-size (add1 current-slot)))
+            (fill-rest-with-nops))
+          (when (> addr (max-address-size (add1 current-slot)))
+            (pretty-display (format "WARNING: address '~a' is to large" addr)))
+          (add-to-next-slot "call")
+          (add-to-next-slot addr))
+        ;;else
+        (begin
+          (add-to-waiting word current-word)
+          (skip-rest-of-word)))))
 
 (define (fill-rest-with-nops)
   (unless (= current-slot 4)
     (add-to-next-slot ".")
     (fill-rest-with-nops)))
+
+(define (skip-rest-of-word)
+  (set! current-slot 4))
 
 (define (max-address-size nslots)
   ;;returns the max address that can fit in NSLOTS number of slots
@@ -138,3 +159,30 @@
   (unless (equal? (read-char) #\))
     (comment compiler)))
 (add-directive! "(" comment)
+
+(define (insert-call cell addr)
+  ;;insert a call to ADDR in word CELL
+  ;;TODO
+  )
+
+(add-directive!
+ ":"
+ (fill-rest-with-nops)
+ (lambda ()
+   (let* ([word (forth-read)]
+          [waiting-list (get-waiting-list word)])
+     (if waiting-list
+         (begin (for [(cell waiting-list)]
+                  (insert-call cell current-addr))
+                (waiting-clear word))
+         (begin
+           (when (hash-has-key? words word)
+             (pretty-display (format "WARNING: redefinition of word '~a'" word)))
+           (hash-set! words word current-addr)))
+     )
+   ))
+
+(add-directive!
+ ".."
+ (lambda () (fill-rest-with-nops)))
+
