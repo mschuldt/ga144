@@ -2,13 +2,13 @@
 (require compatibility/defmacro
          scheme/mpair
          "read.rkt")
+
 (provide compile-file compile-string)
 
 (define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                                   "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                                   "over" "a" "." "nop" "push" "b!" "a!")))
-
 
 (define address-required '("jump" "call" "next" "if" "-if"))
 
@@ -17,29 +17,31 @@
 
 (define instructions-preceded-by-nops '("+" "+*"))
 
-(define instructions-using-entire-word '(";" "ret" "ex" "unext"))
+(define instructions-using-rest-of-word '(";" "ret" "ex" "unext"))
 
-(define num-cores 144)
+(define num-nodes 144)
 (define num-words 64)
-(define cores (make-vector num-cores #f)) ;;core# -> memory vector
+(define nodes (make-vector num-nodes #f)) ;;node# -> memory vector
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-file file)
-  (call-with-input-file file compile-and-run)
-  (current-input-port code-port)
-  (compile-loop))
+  (call-with-input-file file (lambda (code-port)
+                               (current-input-port code-port)
+                               (compile-loop)))
+  (display-memory))
 
 (define (compile-string str)
+  #f;;TODO
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;info about the current target core
 (define memory #f) ;;vector of words
+(define current-addr #f);;index of current word in memory
 (define current-word #f);; tail of current word list
 (define next-word #f) ;;index of next word in memory
 (define current-slot #f);;index into current-word
-
 
 (define words (make-hash)) ;;word definitions -> addresses
 ;;TODO: need to have a seporate mapping for each core
@@ -75,10 +77,12 @@
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
 
+;;
+
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
-  ;;TODO
-  )
+  (string->number tok))
+
 
 (defmacro setq (var val)
   `(let [(__v__ ,val)]
@@ -87,12 +91,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-loop)
-  (unless (eof-object? (compile-token (forth_read)))
+  (pretty-display "compile-loop")
+  (unless (eof-object? (compile-token (forth-read)))
     (compile-loop)))
 
 (define (compile-token tok)
+  (pretty-display (format "compile-token(~a)" tok))
   (let [(x #f)]
-    (cond [(setq x (get-directive tok)) (x tok)]
+    (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
           [(setq x (parse-num tok)) (compile-constant! tok)]
           [else (compile-call! tok)])
@@ -105,7 +111,8 @@
         (set! current-slot 0)
         (set! current-word cw)
         (vector-set! memory next-word cw)
-        (set! next-word (add1 next-word)))
+        (set! next-word (add1 next-word))
+        (set! current-addr 1))
 
       (begin (set-mcdr! current-word (mlist inst))
              (set! current-slot (add1 current-slot)))))
@@ -138,6 +145,11 @@
     (add-to-next-slot ".")
     (fill-rest-with-nops)))
 
+(define (set-next-empty-word! word)
+  #f;;TODO
+  )
+
+
 (define (skip-rest-of-word)
   (set! current-slot 4))
 
@@ -148,7 +160,28 @@
         8;;last slot only has 3 bits
         (expt 2 (+ 3 (* 5 (sub1 len)))))))
 
+(define (display-memory)
+  (define (display-word word)
+    (unless (eq word '())
+      (display (format "~a " word))
+      (display-word (cdr word))))
+
+  (define (display-mem mem [index 0])
+    (let ([word (vector-ref mem index)])
+      (when word
+        (display-word word)
+        (when (< index 64)
+          (display-mem mem (add1 index))))))
+
+  (define node #f)
+  (for ([i 144])
+    (when (setq node (vector-ref memory i))
+      (pretty-display "node ~a" i)
+      (display-mem node))))
+        
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (add-directive!
  eof
@@ -161,14 +194,14 @@
 (add-directive! "(" comment)
 
 (define (insert-call cell addr)
-  ;;insert a call to ADDR in word CELL
+  #f;;insert a call to ADDR in word CELL
   ;;TODO
   )
 
 (add-directive!
  ":"
- (fill-rest-with-nops)
  (lambda ()
+   (fill-rest-with-nops)
    (let* ([word (forth-read)]
           [waiting-list (get-waiting-list word)])
      (if waiting-list
@@ -186,3 +219,32 @@
  ".."
  (lambda () (fill-rest-with-nops)))
 
+(add-directive! ;; page 23 of arrayforth users manual DB004
+ ","
+ (lambda ()
+   (let* ([token (forth-read)]
+          [data (parse-num token)])
+     (if (not data)
+         (raise (format "invalid token: ~a" token))
+         (set-next-empty-word! data)))))
+
+(add-directive!
+ "node"
+ (lambda ()
+   (pretty-print "NODE")
+   (let* ([token (forth-read)]
+          [node (parse-num token)])
+     ;;TODO: validate 'node'
+     (set! memory (vector-ref nodes node))
+     (unless memory
+       (set! memory (make-vector 64 0));;TODO: proper default?
+       (vector-set! nodes node memory))
+     (set! current-addr 0)
+     (set! current-word #f)
+     (set! next-word 1)
+     (set! current-slot 4)
+     )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define file "test.aforth")
+(compile-file file)
