@@ -199,9 +199,9 @@
  (lambda ()
    (fill-rest-with-nops)))
 
-(define (comment compiler)
+(define (comment)
   (unless (equal? (read-char) #\))
-    (comment compiler)))
+    (comment)))
 (add-directive! "(" comment)
 
 (define (insert-call cell addr)
