@@ -23,6 +23,7 @@
 (define num-words 64)
 (define nodes (make-vector num-nodes #f)) ;;node# -> memory vector
 
+(define last-inst #f)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-file file)
@@ -119,7 +120,16 @@
              (set! current-slot (add1 current-slot)))))
 
 (define (compile-instruction! inst)
-  (add-to-next-slot inst))
+  (when (and (member inst instructions-preceded-by-nops)
+             (not (equal? last-inst ".")))
+    (add-to-next-slot "."))
+  (when (and (equal? current-slot 3)
+             (not (member inst last-slot-instructions)))
+    (add-to-next-slot "."))
+  (add-to-next-slot inst)
+  (when (member inst instructions-using-rest-of-word)
+    (fill-rest-with-nops))
+  (set! last-inst inst))
 
 (define (compile-constant! const)
   (add-to-next-slot "@p")
