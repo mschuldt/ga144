@@ -1,6 +1,6 @@
 #lang racket
 
-(provide read-token forth_read forth_read_no_eof)
+(provide read-token forth-read forth-read-no-eof)
 
 (define (read-token in)
   (define (get-first-char-in-list)
@@ -30,13 +30,13 @@
       (if token
           (set! stack (cons token stack))
 	  (if (null? stack)
-	      (read-basic (current-input-port))
+	      (read-token (current-input-port))
 	      (begin0 (car stack)
                 (set! stack (cdr stack))))))))
-(define forth_read (make-reader))
+(define forth-read (make-reader))
 
-(define (forth_read_no_eof)
-  (let [(res (forth_read))]
+(define (forth-read-no-eof)
+  (let [(res (forth-read))]
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))

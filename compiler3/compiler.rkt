@@ -108,13 +108,14 @@
   ;;this assumes that we are not going to be overwriting code
   (if (= current-slot 4)
       (let [(cw (mlist inst))]
-        (set! current-slot 0)
+        (set! current-slot 1)
         (set! current-word cw)
         (vector-set! memory next-word cw)
         (set! next-word (add1 next-word))
         (set! current-addr 1))
 
       (begin (set-mcdr! current-word (mlist inst))
+             (set! current-word (mcdr current-word))
              (set! current-slot (add1 current-slot)))))
 
 (define (compile-instruction! inst)
@@ -241,7 +242,7 @@
        (vector-set! nodes node memory))
      (set! current-addr 0)
      (set! current-word #f)
-     (set! next-word 1)
+     (set! next-word 0)
      (set! current-slot 4)
      )))
 
