@@ -126,7 +126,8 @@
 
       (begin (set-mcdr! current-word (mlist inst))
              (set! current-word (mcdr current-word))
-             (set! current-slot (add1 current-slot)))))
+             (set! current-slot (add1 current-slot))))
+  (set! last-inst inst))
 
 (define (compile-instruction! inst)
   (when (and (member inst instructions-preceded-by-nops)
@@ -137,8 +138,7 @@
     (add-to-next-slot "."))
   (add-to-next-slot inst)
   (when (member inst instructions-using-rest-of-word)
-    (fill-rest-with-nops))
-  (set! last-inst inst))
+    (fill-rest-with-nops)))
 
 (define (compile-constant! const)
   (add-to-next-slot "@p")
