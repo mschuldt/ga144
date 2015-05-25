@@ -266,6 +266,42 @@
      (add-to-next-slot "next")
      (add-to-next-slot addr))))
 
+(define (compile-if-instruction inst)
+  ;;cannot be in last word.
+  (when (and (equal? current-slot 3)
+             (not (member inst last-slot-instructions)))
+    (add-to-next-slot "."))
+  (add-to-next-slot inst)
+  (pretty-display (format "[if]: current-addr = ~a" current-addr))
+  (push-if current-addr)
+  (set! current-slot 4));;force move to next word
+
+(add-directive!
+ "if"
+ (lambda ()
+   (compile-if-instruction "if")))
+
+(add-directive!
+ "-if"
+ (lambda ()
+   (compile-if-instruction "-if")))
+
+(define (add-to-slot slot thing)
+  (pretty-display (format "add-to-slot(~a,  ~a)" slot thing))
+  (define (find-tail word)
+    (if (equal? (mcdr word) '())
+        word
+        (find-tail (mcdr word))))
+  (let ((tail (find-tail (vector-ref memory slot))))
+    (if tail
+        (set-mcdr! tail (mlist thing))
+        (pretty-display "ERROR: add-to-slot -- invalid slot"))))
+
+(add-directive!
+ "then"
+ (lambda ()
+   (fill-rest-with-nops)
+   (add-to-slot (pop-if) next-word)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
