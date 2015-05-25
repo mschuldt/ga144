@@ -29,8 +29,7 @@
 (define (compile-file file)
   (call-with-input-file file (lambda (code-port)
                                (current-input-port code-port)
-                               (compile-loop)))
-  (display-memory))
+                               (compile-loop))))
 
 (define (compile-string str)
   #f;;TODO
@@ -42,7 +41,7 @@
 (define current-addr #f);;index of current word in memory
 (define current-word #f);; tail of current word list
 (define next-word #f) ;;index of next word in memory
-(define current-slot #f);;index into current-word
+(define current-slot #f);;index of the next slot in current-word
 
 (define words (make-hash)) ;;word definitions -> addresses
 ;;TODO: need to have a seporate mapping for each core
@@ -60,7 +59,7 @@
        (hash-ref waiting word)))
 (define (waiting-clear word)
   (hash-set! words word #f))
-  
+
 
 ;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
@@ -84,7 +83,6 @@
 (define (parse-num tok)
   (string->number tok))
 
-
 (defmacro setq (var val)
   `(let [(__v__ ,val)]
      (set! ,var __v__) __v__))
@@ -92,28 +90,31 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-loop)
-  (pretty-display "compile-loop")
+  ;;(pretty-display "compile-loop")
   (unless (eof-object? (compile-token (forth-read)))
     (compile-loop)))
 
 (define (compile-token tok)
-  (pretty-display (format "compile-token(~a)" tok))
+  ;;(pretty-display (format "compile-token(~a)" tok))
   (let [(x #f)]
     (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
-          [(setq x (parse-num tok)) (compile-constant! tok)]
+          [(setq x (parse-num tok)) (compile-constant! x)]
           [else (compile-call! tok)])
     tok))
 
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
+  ;;(pretty-display (format "   add-to-next-slot(~a)" inst))
+  ;;(pretty-display (format "     current-slot = ~a" current-slot))
   (if (= current-slot 4)
       (let [(cw (mlist inst))]
+        ;;(pretty-display "        starting new word")
         (set! current-slot 1)
         (set! current-word cw)
         (vector-set! memory next-word cw)
         (set! next-word (add1 next-word))
-        (set! current-addr 1))
+        (set! current-addr (add1 current-addr)))
 
       (begin (set-mcdr! current-word (mlist inst))
              (set! current-word (mcdr current-word))
@@ -142,8 +143,6 @@
         (begin
           (when (> addr (max-address-size (add1 current-slot)))
             (fill-rest-with-nops))
-          (when (> addr (max-address-size (add1 current-slot)))
-            (pretty-display (format "WARNING: address '~a' is to large" addr)))
           (add-to-next-slot "call")
           (add-to-next-slot addr))
         ;;else
@@ -164,32 +163,12 @@
 (define (skip-rest-of-word)
   (set! current-slot 4))
 
-(define (max-address-size nslots)
-  ;;returns the max address that can fit in NSLOTS number of slots
-  (let ((len (- 4 nslots)))
-    (if (= len 1)
-        8;;last slot only has 3 bits
-        (expt 2 (+ 3 (* 5 (sub1 len)))))))
-
-(define (display-memory)
-  (define (display-word word)
-    (unless (eq word '())
-      (display (format "~a " word))
-      (display-word (cdr word))))
-
-  (define (display-mem mem [index 0])
-    (let ([word (vector-ref mem index)])
-      (when word
-        (display-word word)
-        (when (< index 64)
-          (display-mem mem (add1 index))))))
-
-  (define node #f)
-  (for ([i 144])
-    (when (setq node (vector-ref memory i))
-      (pretty-display "node ~a" i)
-      (display-mem node))))
-        
+(define (max-address-size slot)
+  ;;returns the max address that can fit from SLOT(inclusive)to the end of the word
+  (let ((len (- 4 slot)))
+    (cond ((= len 1) 8);;last slot only has 3 bits
+          ((< len 0) 0)
+          (else (expt 2 (+ 3 (* 5 (sub1 len))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -242,7 +221,6 @@
 (add-directive!
  "node"
  (lambda ()
-   (pretty-print "NODE")
    (let* ([token (forth-read)]
           [node (parse-num token)])
      ;;TODO: validate 'node'
@@ -257,5 +235,30 @@
      )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (display-memory)
+  (define (display-word word)
+    (if (number? word)
+        (display word)
+        (unless (equal? word '())
+          (display (format "~a " (mcar word)))
+          (display-word (mcdr word)))))
+
+  (define (display-mem mem [index 0])
+    (let ([word (vector-ref mem index)])
+      (unless (or (null? word)
+                  (equal? word 0))
+        (display "    ")
+        (display-word word)
+        (newline)
+        (when (< index 64)
+          (display-mem mem (add1 index))))))
+
+  (define node #f)
+  (for ([i num-nodes])
+    (when (setq node (vector-ref nodes i))
+      (pretty-display (format "\nnode ~a" i))
+      (display-mem node))))
+
 (define file "test.aforth")
 (compile-file file)
+(display-memory)
