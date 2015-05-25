@@ -303,6 +303,14 @@
    (fill-rest-with-nops)
    (add-to-slot (pop-if) next-word)))
 
+(add-directive!
+ "org"
+ (lambda ()
+   (let ([n (parse-num (forth-read))])
+     (set! current-addr (sub1 n))
+     (set! next-word n)
+     (set! current-slot 4))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (display-memory)
