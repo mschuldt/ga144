@@ -24,6 +24,14 @@
 (define nodes (make-vector num-nodes #f)) ;;node# -> memory vector
 
 (define last-inst #f)
+
+(define for-stack '())
+(define if-stack '())
+(define (push-for x) (set! for-stack (cons x for-stack)))
+(define (push-if x) (set! if-stack (cons x if-stack)))
+(define (pop-for) (begin0 (car for-stack) (set! for-stack (cdr for-stack))))
+(define (pop-if) (begin0 (car if-stack) (set! if-stack (cdr if-stack))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-file file)
@@ -234,7 +242,33 @@
      (set! current-slot 4)
      )))
 
+(define (begin-proc)
+  (fill-rest-with-nops)
+  (push-for next-word))
+
+(add-directive!
+ "begin"
+ (lambda ()
+   (begin-proc)))
+
+(add-directive!
+ "for"
+ (lambda ()
+   (add-to-next-slot "push")
+   (begin-proc)))
+
+(add-directive!
+ "next"
+ (lambda ()
+   (let ((addr (pop-for)))
+     (when (> addr (max-address-size (add1 current-slot)))
+       (fill-rest-with-nops))
+     (add-to-next-slot "next")
+     (add-to-next-slot addr))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (display-memory)
   (define (display-word word)
     (if (number? word)
