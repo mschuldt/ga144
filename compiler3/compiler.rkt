@@ -281,7 +281,7 @@
     (let ([word (vector-ref mem index)])
       (unless (or (null? word)
                   (equal? word 0))
-        (display "    ")
+        (display (format "~a    " index))
         (display-word word)
         (newline)
         (when (< index 64)
