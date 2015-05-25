@@ -236,7 +236,7 @@
      (unless memory
        (set! memory (make-vector 64 0));;TODO: proper default?
        (vector-set! nodes node memory))
-     (set! current-addr 0)
+     (set! current-addr -1)
      (set! current-word #f)
      (set! next-word 0)
      (set! current-slot 4)
