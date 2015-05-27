@@ -25,12 +25,13 @@
 
 (define last-inst #f)
 
-(define for-stack '())
-(define if-stack '())
-(define (push-for x) (set! for-stack (cons x for-stack)))
-(define (push-if x) (set! if-stack (cons x if-stack)))
-(define (pop-for) (begin0 (car for-stack) (set! for-stack (cdr for-stack))))
-(define (pop-if) (begin0 (car if-stack) (set! if-stack (cdr if-stack))))
+(define stack '())
+(defmacro push (list item)
+  `(set! ,list (cons ,item ,list)))
+(defmacro pop (list)
+  `(if (equal? ,list '())
+       (pretty-display "ERROR: pop -- list is empty")
+       (begin0 (car ,list) (set! ,list (cdr ,list)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -244,7 +245,7 @@
 
 (define (begin-proc)
   (fill-rest-with-nops)
-  (push-for next-word))
+  (push stack next-word))
 
 (add-directive!
  "begin"
@@ -260,7 +261,7 @@
 (add-directive!
  "next"
  (lambda ()
-   (let ((addr (pop-for)))
+   (let ((addr (pop stack)))
      (when (> addr (max-address-size (add1 current-slot)))
        (fill-rest-with-nops))
      (add-to-next-slot "next")
@@ -273,7 +274,7 @@
     (add-to-next-slot "."))
   (add-to-next-slot inst)
   (pretty-display (format "[if]: current-addr = ~a" current-addr))
-  (push-if current-addr)
+  (push stack current-addr)
   (set! current-slot 4));;force move to next word
 
 (add-directive!
@@ -301,7 +302,7 @@
  "then"
  (lambda ()
    (fill-rest-with-nops)
-   (add-to-slot (pop-if) next-word)))
+   (add-to-slot (pop stack) next-word)))
 
 (add-directive!
  "org"
