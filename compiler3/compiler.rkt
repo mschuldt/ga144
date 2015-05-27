@@ -248,20 +248,19 @@
      (set! current-slot 4)
      )))
 
-(define (begin-proc)
+(define (here)
   (fill-rest-with-nops)
   (push stack next-word))
 
-(add-directive!
- "begin"
- (lambda ()
-   (begin-proc)))
+;;forces word alignment and pushes current aligned location onto compiler stack
+(add-directive! "here" here)
+(add-directive! "begin" here)
 
 (add-directive!
  "for"
  (lambda ()
    (add-to-next-slot "push")
-   (begin-proc)))
+   (here)))
 
 (add-directive!
  "next"
@@ -330,13 +329,6 @@
      (set! current-addr (sub1 n))
      (set! next-word n)
      (set! current-slot 4))))
-
-;;forces word alignment and pushes current aligned location onto compiler stack
-(add-directive!
- "here"
- (lambda ()
-   (fill-rest-with-nops)
-   (push stack next-word)))
 
 ;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
 (add-directive!
