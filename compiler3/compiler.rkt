@@ -295,6 +295,12 @@
  (lambda ()
    (compile-if-instruction "jump")))
 
+;;compiles a call to matching 'then'
+(add-directive!
+ "leap"
+ (lambda ()
+   (compile-if-instruction "call")))
+
 (define (add-to-slot slot thing)
   (pretty-display (format "add-to-slot(~a,  ~a)" slot thing))
   (define (find-tail word)
