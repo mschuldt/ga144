@@ -1,4 +1,10 @@
 #lang racket
+
+;;references:
+;; - colorforth blocks 1404-1412
+;; - DB004 arrayForth User's Manual, section 5
+
+
 (require compatibility/defmacro
          scheme/mpair
          "read.rkt")
@@ -219,6 +225,7 @@
      )
    ))
 
+;;forces word alignment
 (add-directive!
  ".."
  (lambda () (fill-rest-with-nops)))
@@ -231,7 +238,8 @@
      (if (not data)
          (raise (format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
-
+;;node (nn)
+;;starts compilation for the given node with number in yyxx notation
 (add-directive!
  "node"
  (lambda ()
@@ -252,10 +260,20 @@
   (fill-rest-with-nops)
   (push stack next-word))
 
+;;here (-n)
 ;;forces word alignment and pushes current aligned location onto compiler stack
 (add-directive! "here" here)
+;;begin (-a)
+;;forces word alignment and saves here to be used as a transfer destination.
 (add-directive! "begin" here)
 
+;;for (-a) (n)
+;;pushes n onto the return stack, forces word alignment and saves 'here' to be
+;;used as a transfer destination by the directive that ends the loop.
+;;There are times when it is useful to decompose this directive's actions so
+;;that the pushing of the loop count and the start of the loop itself may be
+;;separated by such things as initialization code or a word definition. In this
+;;case you may write "push <other things> begin".
 (add-directive!
  "for"
  (lambda ()
@@ -269,11 +287,23 @@
     (add-to-next-slot inst)
     (add-to-next-slot addr)))
 
+;;next (a)
+;;ends a loop with conditional transfer to the address a. If R is zero when next
+;;is executed, the return stack is popped and program flow continues. Otherwise
+;;R is decremented by one and control is transferred to a.
 (add-directive! "next" (lambda () (compile-next-type "next")))
+;; end (a)
+;; unconditionally jumps to a
 (add-directive! "end" (lambda () (compile-next-type "jump")))
+;;until (a)
+;;If T is nonzero, program flow continues; otherwise jumps to a.
+;;Typically used as a conditional exit at the end of a loop.
 (add-directive! "until" (lambda () (compile-next-type "if")))
+;;-until (a)
+;;If T is negative, program flow continues; otherwise jumps to a. Used like until.
 (add-directive! "-until" (lambda () (compile-next-type "-if")))
 
+;;*next (ax-x)
 ;;equivalent to 'swap next'
 (add-directive!
  "*next"
@@ -296,9 +326,11 @@
   (compile-if-instruction "if"))
 (add-directive! "if" if-directive)
 
-;;If T is negative, program flow continues; otherwise jumps to matching 'then'
 (define (-if-directive)
   (compile-if-instruction "-if"))
+
+;;if (-r)
+;;If T is negative, program flow continues; otherwise jumps to matching 'then'
 (add-directive! "-if" -if-directive)
 
 ;;zif (-r)
@@ -309,12 +341,14 @@
  (lambda ()
    (compile-if-instruction "next")))
 
+;;ahead (-r)
 ;;jumps to matching 'then'
 (add-directive!
  "ahead"
  (lambda ()
    (compile-if-instruction "jump")))
 
+;;leap (-r)
 ;;compiles a call to matching 'then'
 (add-directive!
  "leap"
@@ -332,12 +366,15 @@
         (set-mcdr! tail (mlist thing))
         (pretty-display "ERROR: add-to-slot -- invalid slot"))))
 
+;;then (r)
+;;forces word alignment and resolves a forward transfer.
 (add-directive!
  "then"
  (lambda ()
    (fill-rest-with-nops)
    (add-to-slot (pop stack) next-word)))
 
+;;org (n)
 ;;sets the compiler's location counter to a given address at
 ;;which following code will be compiled into
 (add-directive!
@@ -348,6 +385,7 @@
      (set! next-word n)
      (set! current-slot 4))))
 
+;;while (x-rx)
 ;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
 (add-directive!
  "while"
@@ -355,6 +393,7 @@
    (if-directive)
    (swap stack)))
 
+;;-while (x-rx)
 ;;equivalent to '-if swap'. Typically used as a conditional exit from within a loop
 (add-directive!
  "-while"
@@ -391,3 +430,10 @@
 (define file "test.aforth")
 (compile-file file)
 (display-memory)
+
+;;unext (a)
+;;ends a micronext loop. Since the loop occurs entirely within a single
+;;instruction word, the address is superfluous; it is present only so that the
+;;form "<n> for ... unext" may be written. The micronext opcode may be compiled
+;;into any of the four slots.
+
