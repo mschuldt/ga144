@@ -26,12 +26,17 @@
 (define last-inst #f)
 
 (define stack '())
+
 (defmacro push (list item)
   `(set! ,list (cons ,item ,list)))
+
 (defmacro pop (list)
   `(if (equal? ,list '())
        (pretty-display "ERROR: pop -- list is empty")
        (begin0 (car ,list) (set! ,list (cdr ,list)))))
+
+(defmacro swap (list)
+  `(set! ,list (cons (cadr ,list) (cons (car ,list) (cddr ,list)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -278,16 +283,14 @@
   (set! current-slot 4));;force move to next word
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
-(add-directive!
- "if"
- (lambda ()
-   (compile-if-instruction "if")))
+(define (if-directive)
+  (compile-if-instruction "if"))
+(add-directive! "if" if-directive)
 
 ;;If T is negative, program flow continues; otherwise jumps to matching 'then'
-(add-directive!
- "-if"
- (lambda ()
-   (compile-if-instruction "-if")))
+(define (-if-directive)
+  (compile-if-instruction "-if"))
+(add-directive! "-if" -if-directive)
 
 ;;jumps to matching 'then'
 (add-directive!
@@ -335,6 +338,19 @@
    (fill-rest-with-nops)
    (push stack next-word)))
 
+;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
+(add-directive!
+ "while"
+ (lambda ()
+   (if-directive)
+   (swap stack)))
+
+;;equivalent to '-if swap'. Typically used as a conditional exit from within a loop
+(add-directive!
+ "-while"
+ (lambda ()
+   (-if-directive)
+   (swap stack)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
