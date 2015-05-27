@@ -301,6 +301,14 @@
   (compile-if-instruction "-if"))
 (add-directive! "-if" -if-directive)
 
+;;zif (-r)
+;;If R is zero, pops the return stack and program flow continues;
+;;otherwise decrements R and jumps to matching 'then'
+(add-directive!
+ "zif"
+ (lambda ()
+   (compile-if-instruction "next")))
+
 ;;jumps to matching 'then'
 (add-directive!
  "ahead"
