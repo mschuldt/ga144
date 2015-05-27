@@ -262,14 +262,17 @@
    (add-to-next-slot "push")
    (here)))
 
-(add-directive!
- "next"
- (lambda ()
-   (let ((addr (pop stack)))
-     (when (> addr (max-address-size (add1 current-slot)))
-       (fill-rest-with-nops))
-     (add-to-next-slot "next")
-     (add-to-next-slot addr))))
+(define (compile-next-type inst)
+  (let ((addr (pop stack)))
+    (when (> addr (max-address-size (add1 current-slot)))
+      (fill-rest-with-nops))
+    (add-to-next-slot inst)
+    (add-to-next-slot addr)))
+
+(add-directive! "next" (lambda () (compile-next-type "next")))
+(add-directive! "end" (lambda () (compile-next-type "jump")))
+(add-directive! "until" (lambda () (compile-next-type "if")))
+(add-directive! "-until" (lambda () (compile-next-type "-if")))
 
 (define (compile-if-instruction inst)
   ;;cannot be in last word.
