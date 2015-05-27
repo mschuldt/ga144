@@ -274,6 +274,13 @@
 (add-directive! "until" (lambda () (compile-next-type "if")))
 (add-directive! "-until" (lambda () (compile-next-type "-if")))
 
+;;equivalent to 'swap next'
+(add-directive!
+ "*next"
+ (lambda ()
+   (swap stack)
+   (compile-next-type "next")))
+
 (define (compile-if-instruction inst)
   ;;cannot be in last word.
   (when (and (equal? current-slot 3)
