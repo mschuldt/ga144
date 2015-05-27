@@ -277,15 +277,23 @@
   (push stack current-addr)
   (set! current-slot 4));;force move to next word
 
+;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
 (add-directive!
  "if"
  (lambda ()
    (compile-if-instruction "if")))
 
+;;If T is negative, program flow continues; otherwise jumps to matching 'then'
 (add-directive!
  "-if"
  (lambda ()
    (compile-if-instruction "-if")))
+
+;;jumps to matching 'then'
+(add-directive!
+ "ahead"
+ (lambda ()
+   (compile-if-instruction "jump")))
 
 (define (add-to-slot slot thing)
   (pretty-display (format "add-to-slot(~a,  ~a)" slot thing))
@@ -320,6 +328,7 @@
  (lambda ()
    (fill-rest-with-nops)
    (push stack next-word)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
