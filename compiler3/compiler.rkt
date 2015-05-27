@@ -304,6 +304,8 @@
    (fill-rest-with-nops)
    (add-to-slot (pop stack) next-word)))
 
+;;sets the compiler's location counter to a given address at
+;;which following code will be compiled into
 (add-directive!
  "org"
  (lambda ()
@@ -311,6 +313,13 @@
      (set! current-addr (sub1 n))
      (set! next-word n)
      (set! current-slot 4))))
+
+;;forces word alignment and pushes current aligned location onto compiler stack
+(add-directive!
+ "here"
+ (lambda ()
+   (fill-rest-with-nops)
+   (push stack next-word)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
