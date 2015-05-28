@@ -274,7 +274,7 @@
 
 (define (here)
   (fill-rest-with-nops)
-  (push stack (make-addr next-word)))
+  (push stack (make-addr current-addr)))
 
 ;;here (-n)
 ;;forces word alignment and pushes current aligned location onto compiler stack
@@ -394,7 +394,7 @@
  "then"
  (lambda ()
    (fill-rest-with-nops)
-   (add-to-slot (pop stack) next-word)))
+   (add-to-slot (pop stack) current-addr)))
 
 ;;org (n)
 ;;sets the compiler's location counter to a given address at
