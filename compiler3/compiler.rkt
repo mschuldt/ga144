@@ -33,6 +33,8 @@
 
 (define stack '())
 
+(define extended-arith 0);;0x200 if extended arithmetic is enabled, else 0
+
 (defmacro push (list item)
   `(set! ,list (cons ,item ,list)))
 
@@ -96,8 +98,6 @@
 (define (get-directive name)
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
-
-;;
 
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
@@ -221,9 +221,7 @@
          (begin
            (when (hash-has-key? words word)
              (pretty-display (format "WARNING: redefinition of word '~a'" word)))
-           (hash-set! words word current-addr)))
-     )
-   ))
+           (hash-set! words word (make-addr current-addr)))))))
 
 ;;forces word alignment
 (add-directive!
@@ -256,9 +254,31 @@
      (set! current-slot 4)
      )))
 
+(define (make-addr addr)
+  (bitwise-ior addr extended-arith))
+
+;;+cy
+;;forces word alignment then turns P9 on in the location counter. Places in memory
+;;subsequently defined will be run in Extended Arithmetic Mode if reached by
+;;jump, call, execute or return to those places.
+(add-directive!
+ "+cy"
+ (lambda ()
+   (fill-rest-with-nops)
+   (set! extended-arith #x200)))
+
+;;-cy
+;;forces word alignment then turns P9 off in the location counter
+(add-directive!
+ "-cy"
+ (lambda ()
+   (fill-rest-with-nops)
+   (set! extended-arith 0)))
+
+
 (define (here)
   (fill-rest-with-nops)
-  (push stack next-word))
+  (push stack (make-addr next-word)))
 
 ;;here (-n)
 ;;forces word alignment and pushes current aligned location onto compiler stack
@@ -300,7 +320,7 @@
 ;;Typically used as a conditional exit at the end of a loop.
 (add-directive! "until" (lambda () (compile-next-type "if")))
 ;;-until (a)
-;;If T is negative, program flow continues; otherwise jumps to a. Used like until.
+;;If T is negative, program flow continues; otherwise jumps to a. Used like 'until'
 (add-directive! "-until" (lambda () (compile-next-type "-if")))
 
 ;;*next (ax-x)
@@ -318,7 +338,7 @@
     (add-to-next-slot "."))
   (add-to-next-slot inst)
   (pretty-display (format "[if]: current-addr = ~a" current-addr))
-  (push stack current-addr)
+  (push stack (make-addr current-addr))
   (set! current-slot 4));;force move to next word
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
