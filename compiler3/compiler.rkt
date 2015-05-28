@@ -62,12 +62,12 @@
 (define memory #f) ;;vector of words
 (define current-addr #f);;index of current word in memory
 (define current-word #f);; tail of current word list
-(define next-word #f) ;;index of next word in memory
+(define next-addr #f) ;;index of next word in memory
 (define current-slot #f);;index of the next slot in current-word
 
 (define words (make-hash)) ;;word definitions -> addresses
 ;;TODO: need to have a seporate mapping for each core
-;;TOOD: create a struct for each core. memory, current/next-word/slot, words
+;;TOOD: create a struct for each core. memory, current/next-addr/slot, words
 (define (add-word! name code)
   (hash-set! words name code))
 
@@ -125,11 +125,11 @@
 
 (define (org n)
   (set! current-addr n)
-  (set! next-word (add1 n))
+  (set! next-addr (add1 n))
   (set! current-word (vector-ref memory n))
   (set! current-slot 0))
 
-(define (goto-next-word) (org next-word))
+(define (goto-next-word) (org next-addr))
 
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
@@ -155,8 +155,8 @@
 
 (define (compile-constant! const)
   (add-to-next-slot "@p")
-  (vector-set! memory next-word const)
-  (set! next-word (add1 next-word)))
+  (vector-set! memory next-addr const)
+  (set! next-addr (add1 next-addr)))
 
 (define (compile-call! word)
   (let ([addr (get-word-address word)]);;TODO: ROM words
