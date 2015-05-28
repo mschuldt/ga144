@@ -121,11 +121,13 @@
           [else (compile-call! tok)])
     tok))
 
-(define (goto-next-word)
-  (set! current-slot 0)
-  (set! current-addr next-word)
-  (set! current-word (vector-ref memory current-addr))
-  (set! next-word (add1 next-word)))
+(define (org n)
+  (set! current-addr n)
+  (set! next-word (add1 n))
+  (set! current-word (vector-ref memory n))
+  (set! current-slot 0))
+
+(define (goto-next-word) (org next-word))
 
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
@@ -243,11 +245,7 @@
      (unless memory
        (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
        (vector-set! nodes node memory))
-     (set! current-addr 0)
-     (set! current-word (vector-ref memory 0))
-     (set! next-word 1)
-     (set! current-slot 0)
-     )))
+     (org 0))))
 
 (define (make-addr addr)
   (bitwise-ior addr extended-arith))
@@ -402,10 +400,7 @@
  (lambda ()
    (let ([n (parse-num (forth-read))])
      ;;TODO: validate n
-     (set! current-addr n)
-     (set! next-word (add1 n))
-     (set! current-word (vector-ref memory n))
-     (set! current-slot 0))))
+     (org n))))
 
 ;;while (x-rx)
 ;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
