@@ -49,7 +49,9 @@
 (define (compile-file file)
   (call-with-input-file file (lambda (code-port)
                                (current-input-port code-port)
-                               (compile-loop))))
+                               (compile-loop)
+                               (when memory ;;make sure last instruction is full
+                                 (fill-rest-with-nops)))))
 
 (define (compile-string str)
   #f;;TODO
@@ -238,6 +240,8 @@
 (add-directive!
  "node"
  (lambda ()
+   (when memory ;;make sure last instruction is full
+     (fill-rest-with-nops))
    (let* ([token (forth-read)]
           [node (parse-num token)])
      ;;TODO: validate 'node'
