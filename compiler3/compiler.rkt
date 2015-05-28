@@ -4,9 +4,7 @@
 ;; - colorforth blocks 1404-1412
 ;; - DB004 arrayForth User's Manual, section 5
 
-
 (require compatibility/defmacro
-         scheme/mpair
          "read.rkt")
 
 (provide compile-file compile-string)
@@ -86,7 +84,7 @@
 ;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
   (and (hash-has-key? words name)
-      (hash-ref words name)))
+       (hash-ref words name)))
 
 (define (instruction? token)
   (set-member? instructions token))
@@ -123,22 +121,21 @@
           [else (compile-call! tok)])
     tok))
 
+(define (goto-next-word)
+  (set! current-slot 0)
+  (set! current-addr next-word)
+  (set! current-word (vector-ref memory current-addr))
+  (set! next-word (add1 next-word)))
+
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
-  ;;(pretty-display (format "   add-to-next-slot(~a)" inst))
-  ;;(pretty-display (format "     current-slot = ~a" current-slot))
-  (if (= current-slot 4)
-      (let [(cw (mlist inst))]
-        ;;(pretty-display "        starting new word")
-        (set! current-slot 1)
-        (set! current-word cw)
-        (vector-set! memory next-word cw)
-        (set! next-word (add1 next-word))
-        (set! current-addr (add1 current-addr)))
+  (pretty-display (format "   add-to-next-slot(~a)" inst))
+  (pretty-display (format "     current-slot = ~a" current-slot))
 
-      (begin (set-mcdr! current-word (mlist inst))
-             (set! current-word (mcdr current-word))
-             (set! current-slot (add1 current-slot))))
+  (vector-set! current-word current-slot inst)
+  (set! current-slot (add1 current-slot))
+  (when (= current-slot 4)
+    (goto-next-word))
   (set! last-inst inst))
 
 (define (compile-instruction! inst)
@@ -168,20 +165,17 @@
         ;;else
         (begin
           (add-to-waiting word current-word)
-          (skip-rest-of-word)))))
+          (goto-next-word)))))
 
 (define (fill-rest-with-nops)
-  (unless (= current-slot 4)
+  (pretty-display (format "[fill-rest-with-nops]current-word = ~a" current-word))
+  (unless (= current-slot 0)
     (add-to-next-slot ".")
     (fill-rest-with-nops)))
 
 (define (set-next-empty-word! word)
   #f;;TODO
   )
-
-
-(define (skip-rest-of-word)
-  (set! current-slot 4))
 
 (define (max-address-size slot)
   ;;returns the max address that can fit from SLOT(inclusive)to the end of the word
@@ -236,6 +230,7 @@
      (if (not data)
          (raise (format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
+
 ;;node (nn)
 ;;starts compilation for the given node with number in yyxx notation
 (add-directive!
@@ -246,12 +241,12 @@
      ;;TODO: validate 'node'
      (set! memory (vector-ref nodes node))
      (unless memory
-       (set! memory (make-vector 64 0));;TODO: proper default?
+       (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
        (vector-set! nodes node memory))
-     (set! current-addr -1)
-     (set! current-word #f)
-     (set! next-word 0)
-     (set! current-slot 4)
+     (set! current-addr 0)
+     (set! current-word (vector-ref memory 0))
+     (set! next-word 1)
+     (set! current-slot 0)
      )))
 
 (define (make-addr addr)
@@ -274,7 +269,6 @@
  (lambda ()
    (fill-rest-with-nops)
    (set! extended-arith 0)))
-
 
 (define (here)
   (fill-rest-with-nops)
@@ -339,7 +333,7 @@
   (add-to-next-slot inst)
   (pretty-display (format "[if]: current-addr = ~a" current-addr))
   (push stack (make-addr current-addr))
-  (set! current-slot 4));;force move to next word
+  (goto-next-word))
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
 (define (if-directive)
@@ -377,13 +371,19 @@
 
 (define (add-to-slot slot thing)
   (pretty-display (format "add-to-slot(~a,  ~a)" slot thing))
-  (define (find-tail word)
-    (if (equal? (mcdr word) '())
-        word
-        (find-tail (mcdr word))))
-  (let ((tail (find-tail (vector-ref memory slot))))
-    (if tail
-        (set-mcdr! tail (mlist thing))
+  (define (find-last-empty word [n 0])
+    (pretty-display (format "find-last-empty(~a,  ~a)" word n))
+    (if (< n 4)
+        (if (vector-ref word n)
+            (find-last-empty word (add1 n))
+            n)
+        #f))
+
+  (let* ([word (vector-ref memory slot)]
+         [last (and (vector? word) (find-last-empty word))])
+
+    (if last
+        (vector-set! word last thing)
         (pretty-display "ERROR: add-to-slot -- invalid slot"))))
 
 ;;then (r)
@@ -401,9 +401,11 @@
  "org"
  (lambda ()
    (let ([n (parse-num (forth-read))])
-     (set! current-addr (sub1 n))
-     (set! next-word n)
-     (set! current-slot 4))))
+     ;;TODO: validate n
+     (set! current-addr n)
+     (set! next-word (add1 n))
+     (set! current-word (vector-ref memory n))
+     (set! current-slot 0))))
 
 ;;while (x-rx)
 ;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
@@ -424,21 +426,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (display-memory)
-  (define (display-word word)
+  (define (display-word word [n 0])
     (if (number? word)
         (display word)
-        (unless (equal? word '())
-          (display (format "~a " (mcar word)))
-          (display-word (mcdr word)))))
+        (when (< n 4)
+          (display (format "~a " (vector-ref word n)))
+          (display-word word (add1 n)))))
 
   (define (display-mem mem [index 0])
     (let ([word (vector-ref mem index)])
-      (unless (or (null? word)
+      (unless (or (equal? word (vector #f #f #f #f))
                   (equal? word 0))
         (display (format "~a    " index))
         (display-word word)
         (newline)
-        (when (< index 64)
+        (when (< index num-words)
           (display-mem mem (add1 index))))))
 
   (define node #f)
@@ -456,4 +458,3 @@
 ;;instruction word, the address is superfluous; it is present only so that the
 ;;form "<n> for ... unext" may be written. The micronext opcode may be compiled
 ;;into any of the four slots.
-
