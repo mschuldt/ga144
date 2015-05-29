@@ -451,6 +451,26 @@
    (car addr)
    ((lambda (a) (lambda () (compile-constant! a))) (cdr addr))))
 
+(define io-places '(("---u" . #x145)
+                    ("--l-" . #x175)
+                    ("--lu" . #x165)
+                    ("-d--" . #x115)
+                    ("-d-u" . #x105)
+                    ("-dl-" . #x135)
+                    ("-dlu" . #x125)
+                    ("r---" . #x1D5)
+                    ("r--u" . #x1C5)
+                    ("r-l-" . #x1F5)
+                    ("r-lu" . #x1E5)
+                    ("rd--" . #x195)
+                    ("rd-u" . #x185)
+                    ("rdl-" . #x1B5)
+                    ("rdlu" . #x1A5)))
+
+(for ([place io-places])
+  (hash-set! words (car place) (make-addr (cdr place))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (display-memory)
