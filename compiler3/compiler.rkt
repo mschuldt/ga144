@@ -422,6 +422,17 @@
    (-if-directive)
    (swap stack)))
 
+;;' (-a)
+;;(tick) places the address of an F18 red word on the compiler's stack.
+(add-directive!
+ "`"
+ (lambda ()
+   (let* ([word (forth-read)]
+          [addr (get-word-address word)])
+     (if addr
+         (push stack addr)
+         (pretty-display (format "ERROR: ` -- \"~a\" is not defined" word))))))
+
 (define named-addresses '(("right" . #x1D5)
                           ("down" . #x115)
                           ("left" . #x175)
