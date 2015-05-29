@@ -422,6 +422,24 @@
    (-if-directive)
    (swap stack)))
 
+(define named-addresses '(("right" . #x1D5)
+                          ("down" . #x115)
+                          ("left" . #x175)
+                          ("up" . #x145)
+                          ("io" . #x15D)
+                          ("ldata" . #x171)
+                          ("data" . #x141)
+                          ("warp" . #x157)
+                          ("center" . #x1A5)
+                          ("top" . #x1B5)
+                          ("side" . #x185)
+                          ("corner" . #x195)))
+
+(for ([addr named-addresses])
+  (add-directive!
+   (car addr)
+   ((lambda (a) (lambda () (compile-constant! a))) (cdr addr))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (display-memory)
