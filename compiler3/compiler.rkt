@@ -5,7 +5,8 @@
 ;; - DB004 arrayForth User's Manual, section 5
 
 (require compatibility/defmacro
-         "read.rkt")
+         "read.rkt"
+         "assemble.rkt")
 
 (provide compile-file compile-string)
 
@@ -500,10 +501,14 @@
       (pretty-display (format "\nnode ~a" (caar nodes)))
       (display-mem (cdar nodes))
       (display-node (cdr nodes))))
-  (display-node nodes))o
+  (display-node nodes))
 
 (define file "test.aforth")
-(display-memory (compile-file file))
+(define x (compile-file file))
+(display-memory x)
+(assemble x)
+(display-memory x)
+
 
 
 ;;unext (a)
