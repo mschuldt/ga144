@@ -26,6 +26,7 @@
 (define num-nodes 144)
 (define num-words 64)
 (define nodes (make-vector num-nodes #f)) ;;node# -> memory vector
+(define used-nodes '())
 
 (define last-inst #f)
 
@@ -51,7 +52,8 @@
                                (current-input-port code-port)
                                (compile-loop)
                                (when memory ;;make sure last instruction is full
-                                 (fill-rest-with-nops)))))
+                                 (fill-rest-with-nops))
+                               used-nodes)))
 
 (define (compile-string str)
   #f;;TODO
@@ -249,6 +251,7 @@
      (unless memory
        (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
        (vector-set! nodes node memory))
+     (set! used-nodes (cons (cons node memory) used-nodes))
      (org 0))))
 
 (define (make-addr addr)
@@ -473,7 +476,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (display-memory)
+(define (display-memory nodes)
+  ;;NODES is a list with member format: (nodeNum . memoryVector)
   (define (display-word word [n 0])
     (if (number? word)
         (display word)
@@ -491,15 +495,16 @@
         (when (< index num-words)
           (display-mem mem (add1 index))))))
 
-  (define node #f)
-  (for ([i num-nodes])
-    (when (setq node (vector-ref nodes i))
-      (pretty-display (format "\nnode ~a" i))
-      (display-mem node))))
+  (define (display-node nodes)
+    (unless (null? nodes)
+      (pretty-display (format "\nnode ~a" (caar nodes)))
+      (display-mem (cdar nodes))
+      (display-node (cdr nodes))))
+  (display-node nodes))o
 
 (define file "test.aforth")
-(compile-file file)
-(display-memory)
+(display-memory (compile-file file))
+
 
 ;;unext (a)
 ;;ends a micronext loop. Since the loop occurs entirely within a single
