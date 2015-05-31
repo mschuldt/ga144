@@ -8,7 +8,9 @@
 (define (extract word slot shift)
   (let ((x (vector-ref word slot)))
     (if (string? x)
-        (arithmetic-shift (vector-member x names) shift)
+        (arithmetic-shift (floor (/ (vector-member x names)
+                                    (if (= slot 3) 4 1)))
+                          shift)
         (or x 0))))
 
 (define (assemble-word word)
