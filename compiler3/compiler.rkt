@@ -168,7 +168,9 @@
           (when (> addr (max-address-size (add1 current-slot)))
             (fill-rest-with-nops))
           (add-to-next-slot "call")
-          (add-to-next-slot addr))
+          (add-to-next-slot addr)
+          (unless (= current-slot 0)
+            (goto-next-word)))
         ;;else
         (begin
           (add-to-waiting word current-word)
@@ -305,7 +307,9 @@
     (when (> addr (max-address-size (add1 current-slot)))
       (fill-rest-with-nops))
     (add-to-next-slot inst)
-    (add-to-next-slot addr)))
+    (add-to-next-slot addr)
+    (unless (= current-slot 0)
+      (goto-next-word))))
 
 ;;next (a)
 ;;ends a loop with conditional transfer to the address a. If R is zero when next
