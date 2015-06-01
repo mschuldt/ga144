@@ -2,7 +2,7 @@
 (provide assemble)
 
 (define names '#(";" "ex" "jump" "call" "unext" "next" "if" "-if" "@p" "@+" "@b"
-                 "@ !p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
+                 "@" "!p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
                  "dup" "pop" "over" "a" "." "push" "b!" "a!"))
 
 (define (extract word slot shift)
