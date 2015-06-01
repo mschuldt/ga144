@@ -1,12 +1,13 @@
 #lang racket
 
 ;;references:
-;; - colorforth blocks 1404-1412
+;; - colorforth blocks 190-192,1404-1412
 ;; - DB004 arrayForth User's Manual, section 5
 
 (require compatibility/defmacro
          "read.rkt"
-         "assemble.rkt")
+         "assemble.rkt"
+         "disassemble.rkt")
 
 (provide compile-file compile-string)
 
@@ -511,7 +512,8 @@
 (define x (compile-file file))
 (display-memory x)
 (assemble x)
-(display-memory x)
+(display-disassemble x)
+;;(display-memory x)
 
 
 

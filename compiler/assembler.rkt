@@ -56,7 +56,6 @@
       (if next (cons next (go)) '())))
   (go))
 
-
 (define (assemble-word word)
   "WORD is a list of opcodes (string)"
   (define (pack word shift)
@@ -81,4 +80,3 @@ output: list of integers"
       '()
       (cons (assemble-word (car words))
             (assemble (cdr words)))))
-
