@@ -7,7 +7,8 @@
 (require compatibility/defmacro
          "read.rkt"
          "assemble.rkt"
-         "disassemble.rkt")
+         "disassemble.rkt"
+         "util.rkt")
 
 (provide compile-file compile-string)
 
@@ -35,17 +36,6 @@
 (define stack '())
 
 (define extended-arith 0);;0x200 if extended arithmetic is enabled, else 0
-
-(defmacro push (list item)
-  `(set! ,list (cons ,item ,list)))
-
-(defmacro pop (list)
-  `(if (equal? ,list '())
-       (pretty-display "ERROR: pop -- list is empty")
-       (begin0 (car ,list) (set! ,list (cdr ,list)))))
-
-(defmacro swap (list)
-  `(set! ,list (cons (cadr ,list) (cons (car ,list) (cddr ,list)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -106,10 +96,6 @@
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
   (string->number tok))
-
-(defmacro setq (var val)
-  `(let [(__v__ ,val)]
-     (set! ,var __v__) __v__))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
