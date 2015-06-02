@@ -100,12 +100,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-loop)
-  ;;(pretty-display "compile-loop")
   (unless (eof-object? (compile-token (forth-read)))
     (compile-loop)))
 
 (define (compile-token tok)
-  ;;(pretty-display (format "compile-token(~a)" tok))
   (let [(x #f)]
     (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
@@ -123,9 +121,6 @@
 
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
-  (pretty-display (format "   add-to-next-slot(~a)" inst))
-  (pretty-display (format "     current-slot = ~a" current-slot))
-
   (vector-set! current-word current-slot inst)
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
@@ -164,7 +159,6 @@
           (goto-next-word)))))
 
 (define (fill-rest-with-nops)
-  (pretty-display (format "[fill-rest-with-nops]current-word = ~a" current-word))
   (unless (= current-slot 0)
     (add-to-next-slot ".")
     (fill-rest-with-nops)))
@@ -328,7 +322,6 @@
              (not (member inst last-slot-instructions)))
     (add-to-next-slot "."))
   (add-to-next-slot inst)
-  (pretty-display (format "[if]: current-addr = ~a" current-addr))
   (push stack (make-addr current-addr))
   (goto-next-word))
 
@@ -367,9 +360,7 @@
    (compile-if-instruction "call")))
 
 (define (add-to-slot slot thing)
-  (pretty-display (format "add-to-slot(~a,  ~a)" slot thing))
   (define (find-last-empty word [n 0])
-    (pretty-display (format "find-last-empty(~a,  ~a)" word n))
     (if (< n 4)
         (if (vector-ref word n)
             (find-last-empty word (add1 n))
