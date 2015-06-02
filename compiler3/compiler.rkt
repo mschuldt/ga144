@@ -4,8 +4,7 @@
 ;; - colorforth blocks 190-192,1404-1412
 ;; - DB004 arrayForth User's Manual, section 5
 
-(require compatibility/defmacro
-         "read.rkt"
+(require "read.rkt"
          "assemble.rkt"
          "disassemble.rkt"
          "util.rkt")

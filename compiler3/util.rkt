@@ -1,5 +1,7 @@
 #lang racket
 
+(require compatibility/defmacro)
+
 (provide (all-defined-out))
 
 (defmacro setq (var val)
