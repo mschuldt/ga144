@@ -164,8 +164,12 @@
     (fill-rest-with-nops)))
 
 (define (set-next-empty-word! word)
-  #f;;TODO
-  )
+  (if (= current-slot 0)
+      (begin (vector-set! memory current-addr word)
+             (set! current-addr next-addr)
+             (set! next-addr (add1 next-addr)))
+      (begin (vector-set! memory next-addr word)
+             (set! next-addr (add1 next-addr)))))
 
 (define (max-address-size slot)
   ;;returns the max address that can fit from SLOT(inclusive)to the end of the word
