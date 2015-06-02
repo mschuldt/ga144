@@ -9,7 +9,7 @@
          "disassemble.rkt"
          "util.rkt")
 
-(provide compile-file compile-string)
+(provide compile compile-file)
 
 (define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
@@ -38,17 +38,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (compile-file file)
-  (call-with-input-file file (lambda (code-port)
-                               (current-input-port code-port)
-                               (compile-loop)
-                               (when memory ;;make sure last instruction is full
-                                 (fill-rest-with-nops))
-                               used-nodes)))
+(define (compile port)
+  (when (string? port)
+    (set! port (open-input-string port)))
+  (current-input-port port)
+  (compile-loop)
+  (when memory ;;make sure last instruction is full
+    (fill-rest-with-nops))
+  used-nodes)
 
-(define (compile-string str)
-  #f;;TODO
-  )
+(define (compile-file file)
+  (call-with-input-file file compile))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;info about the current target core
