@@ -27,7 +27,7 @@
 
 (define num-nodes 144)
 (define num-words 64)
-(define nodes (make-vector num-nodes #f)) ;;node# -> memory vector
+(define nodes #f)
 (define used-nodes '())
 
 (define last-inst #f)
@@ -39,6 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile port)
+  (set! nodes (make-vector num-nodes #f)) ;;node# -> memory vector
   (when (string? port)
     (set! port (open-input-string port)))
   (current-input-port port)
