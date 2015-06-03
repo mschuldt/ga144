@@ -373,4 +373,7 @@ then
   (display (format "passed: ~a\n" tests-passed))
   (display (format "failed: ~a\n" tests-failed)))
 
+(unless (directory-exists? "test-out")
+  (make-directory "test-out"))
+
 (run-tests)
