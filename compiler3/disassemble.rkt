@@ -56,7 +56,7 @@
       (vector-set! (cdar nodes) i dis))
     (when (and (< i 62)
                (or all?
-                   (not (= (vector-ref mem (add1 i)) 0))))
+                   (vector-ref mem (add1 i))))
       (dis-mem mem (add1 i))))
 
   (define (dis nodes)

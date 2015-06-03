@@ -474,8 +474,7 @@
 
   (define (display-mem mem [index 0])
     (let ([word (vector-ref mem index)])
-      (unless (or (equal? word (vector #f #f #f #f))
-                  (equal? word 0))
+      (unless (equal? word (vector #f #f #f #f))
         (display (format "~a    " index))
         (display-word word)
         (newline)
