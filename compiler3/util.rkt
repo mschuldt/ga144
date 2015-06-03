@@ -18,3 +18,9 @@
 
 (defmacro swap (list)
   `(set! ,list (cons (cadr ,list) (cons (car ,list) (cddr ,list)))))
+
+(define (coord->index n)
+  (+ (* (quotient n 100) 18) (remainder n 100)))
+
+(define (index->coord n)
+  (+ (* (quotient n 18) 100) (remainder n 18)))

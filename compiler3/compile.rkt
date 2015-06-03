@@ -234,7 +234,7 @@
    (when memory ;;make sure last instruction is full
      (fill-rest-with-nops))
    (let* ([token (forth-read)]
-          [node (parse-num token)])
+          [node (coord->index (parse-num token))])
      ;;TODO: validate 'node'
      (set! memory (vector-ref nodes node))
      (unless memory
