@@ -111,19 +111,19 @@
          [node 0]
          [compiled (compile in)])
     (when compiled-file
-      (write-to-file (format "~a\n" compiled)
-                     compiled-file
-                     #:exists 'replace))
+      (with-output-to-file compiled-file
+        (lambda () (display-compiled compiled))
+        #:exists 'replace))
     (assemble compiled)
-    (when assembled-file
-      (write-to-file (format "~a\n" compiled)
-                     assembled-file
-                     #:exists 'replace))
     (for ([code compiled])
       (set! node (coord->node (car code)))
       (node:load-code node (TEMPORARY_CONVERT (cdr code)) include-end-token?)
       (set! active-nodes (cons node active-nodes)))
     (when DEBUG?
+    (when assembled-file
+      (with-output-to-file assembled-file
+        (lambda () (display-disassemble compiled))
+        #:exists 'replace))
       (pretty-display "\n__________Loaded__________")
       (display-disassemble compiled))))
 

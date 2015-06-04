@@ -9,7 +9,8 @@
          "disassemble.rkt"
          "util.rkt")
 
-(provide compile compile-file)
+(provide compile compile-file display-compiled)
+
 
 (define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
