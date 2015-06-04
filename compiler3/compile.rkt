@@ -150,7 +150,11 @@
         (begin
           (when (> addr (max-address-size (add1 current-slot)))
             (fill-rest-with-nops))
-          (add-to-next-slot "call")
+          (let ((next (forth-read)))
+            (if (equal? next ";")
+                (add-to-next-slot "jump")
+                (begin (add-to-next-slot "call")
+                       (forth-read next))))
           (add-to-next-slot addr)
           (unless (= current-slot 0)
             (goto-next-word)))
