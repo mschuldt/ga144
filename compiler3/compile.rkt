@@ -154,8 +154,7 @@
 
 (define (compile-constant! const)
   (add-to-next-slot "@p")
-  (vector-set! memory next-addr const)
-  (set! next-addr (add1 next-addr)))
+  (set-next-empty-word! const))
 
 (define (compile-call! word)
   (let ([addr (get-word-address word)]);;TODO: ROM words
@@ -184,8 +183,7 @@
 (define (set-next-empty-word! word)
   (if (= current-slot 0)
       (begin (vector-set! memory current-addr word)
-             (set! current-addr next-addr)
-             (set! next-addr (add1 next-addr)))
+             (org next-addr))
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
 
