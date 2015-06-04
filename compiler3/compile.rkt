@@ -238,12 +238,13 @@
    (when memory ;;make sure last instruction is full
      (fill-rest-with-nops))
    (let* ([token (forth-read)]
-          [node (coord->index (parse-num token))])
+          [node (parse-num token)]
+          [index (coord->index node)])
      ;;TODO: validate 'node'
-     (set! memory (vector-ref nodes node))
+     (set! memory (vector-ref nodes index))
      (unless memory
        (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
-       (vector-set! nodes node memory))
+       (vector-set! nodes index memory))
      (set! used-nodes (cons (cons node memory) used-nodes))
      (org 0))))
 
