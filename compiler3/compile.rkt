@@ -27,7 +27,7 @@
 
 (define num-nodes 144)
 (define num-words 64)
-(define nodes #f)
+(define nodes #f) ;;node# -> memory vector
 (define used-nodes '())
 
 (define last-inst #f)
@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile port)
-  (set! nodes (make-vector num-nodes #f)) ;;node# -> memory vector
+  (reset!)
   (when (string? port)
     (set! port (open-input-string port)))
   (current-input-port port)
@@ -60,13 +60,13 @@
 (define next-addr #f) ;;index of next word in memory
 (define current-slot #f);;index of the next slot in current-word
 
-(define words (make-hash)) ;;word definitions -> addresses
+(define words #f) ;;word definitions -> addresses
 ;;TODO: need to have a seporate mapping for each core
 ;;TOOD: create a struct for each core. memory, current/next-addr/slot, words
 (define (add-word! name code)
   (hash-set! words name code))
 
-(define waiting (make-hash));;word -> list of cells waiting for the word's address
+(define waiting #f);;word -> list of cells waiting for the word's address
 (define (add-to-waiting word addr-cell)
   (unless (hash-has-key? waiting word)
     (hash-set! waiting word (list)))
@@ -98,6 +98,19 @@
 (define (parse-num tok)
   (string->number tok))
 
+(define (reset!)
+  (set! nodes (make-vector num-nodes #f))
+  (set! used-nodes '())
+  (set! last-inst #f)
+  (set! stack '())
+  (set! memory #f)
+  (set! current-word #f)
+  (set! current-addr #f)
+  (set! next-addr #f)
+  (set! words (make-hash))
+  (set! waiting (make-hash))
+  (define-io-places!)
+  (define-named-addresses!))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-loop)
@@ -442,10 +455,11 @@
                           ("side" . #x185)
                           ("corner" . #x195)))
 
-(for ([addr named-addresses])
-  (add-directive!
-   (car addr)
-   ((lambda (a) (lambda () (compile-constant! a))) (cdr addr))))
+(define (define-named-addresses!)
+  (for ([addr named-addresses])
+    (add-directive!
+     (car addr)
+     ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
 
 (define io-places '(("---u" . #x145)
                     ("--l-" . #x175)
@@ -462,14 +476,14 @@
                     ("rd-u" . #x185)
                     ("rdl-" . #x1B5)
                     ("rdlu" . #x1A5)))
-
-(for ([place io-places])
-  (hash-set! words (car place) (make-addr (cdr place))))
+(define (define-io-places!)
+  (for ([place io-places])
+    (hash-set! words (car place) (make-addr (cdr place)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (display-memory nodes)
+(define (display-compiled nodes)
   ;;NODES is a list with member format: (nodeNum . memoryVector)
   (define (display-word word [n 0])
     (if (number? word)
