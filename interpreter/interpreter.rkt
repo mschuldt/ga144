@@ -2,9 +2,9 @@
 #lang racket
 
 (require compatibility/defmacro
-         "../compiler3/assemble.rkt"
-         "../compiler3/disassemble.rkt"
-         "../compiler3/compile.rkt"
+         "../compiler/assemble.rkt"
+         "../compiler/disassemble.rkt"
+         "../compiler/compile.rkt"
          "state.rkt"
          "stack.rkt")
 
