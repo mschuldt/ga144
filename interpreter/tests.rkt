@@ -360,7 +360,6 @@ then
 4 fib
 5 fib
 6 fib
-
 "
   (check-dat 1 8 5 3 2 ))
 

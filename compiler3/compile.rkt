@@ -11,6 +11,7 @@
 
 (provide compile compile-file display-compiled)
 
+(define DEBUG? #f)
 
 (define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
@@ -119,6 +120,7 @@
     (compile-loop)))
 
 (define (compile-token tok)
+  (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n" tok current-addr current-slot next-addr))
   (let [(x #f)]
     (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
@@ -127,6 +129,7 @@
     tok))
 
 (define (org n)
+  (when DEBUG? (printf "        org(~a)\n" n))
   (set! current-addr n)
   (set! next-addr (add1 n))
   (set! current-word (vector-ref memory n))
@@ -136,6 +139,7 @@
 
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
+  (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
   (vector-set! current-word current-slot inst)
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
@@ -143,6 +147,7 @@
   (set! last-inst inst))
 
 (define (compile-instruction! inst)
+  (when DEBUG? (printf "    compile-instruction!(~a)\n" inst))
   (when (and (member inst instructions-preceded-by-nops)
              (not (equal? last-inst ".")))
     (add-to-next-slot "."))
@@ -154,15 +159,18 @@
     (fill-rest-with-nops)))
 
 (define (compile-constant! const)
+  (when DEBUG? (printf "    compile-constant!(~a)\n" const))
   (add-to-next-slot "@p")
   (set-next-empty-word! const))
 
 (define (compile-call! word)
+  (when DEBUG? (printf "    compile-call!(~a)\n" word))
   (let ([addr (get-word-address word)]);;TODO: ROM words
     (if addr
         (begin
           (when (> addr (max-address-size (add1 current-slot)))
             (fill-rest-with-nops))
+          (when DEBUG? (printf "       address = ~a\n" addr))
           (let ((next (forth-read)))
             (if (equal? next ";")
                 (add-to-next-slot "jump")
@@ -173,6 +181,7 @@
             (goto-next-word)))
         ;;else
         (begin
+          (when DEBUG? (printf "       waiting on address....\n"))
           (add-to-waiting word current-word)
           (goto-next-word)))))
 
@@ -507,11 +516,13 @@
       (display-node (cdr nodes))))
   (display-node nodes))
 
-(define file "test.aforth")
-(define x (compile-file file))
-(display-memory x)
-(assemble x)
-(display-disassemble x)
+(when #f
+  (define file "test.aforth")
+  (define x (compile-file file))
+  (display-compiled x)
+  (assemble x)
+  (display-disassemble x)
+  )
 ;;(display-memory x)
 
 

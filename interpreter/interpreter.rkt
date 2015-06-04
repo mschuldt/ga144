@@ -8,11 +8,10 @@
          "state.rkt"
          "stack.rkt")
 
-(define DEBUG? #t)
-(define DISPLAY_STATE? #t)
+(define DEBUG? #f)
+(define DISPLAY_STATE? #f)
 
 (provide (all-defined-out))
-
 (define UP #x145) ;325
 (define DOWN #x115) ;277
 (define LEFT #x175) ;373
@@ -119,13 +118,10 @@
       (set! node (coord->node (car code)))
       (node:load-code node (TEMPORARY_CONVERT (cdr code)) include-end-token?)
       (set! active-nodes (cons node active-nodes)))
-    (when DEBUG?
     (when assembled-file
       (with-output-to-file assembled-file
         (lambda () (display-disassemble compiled))
-        #:exists 'replace))
-      (pretty-display "\n__________Loaded__________")
-      (display-disassemble compiled))))
+        #:exists 'replace))))
 
 
 (define (TEMPORARY_CONVERT code)
