@@ -178,7 +178,6 @@
   (define blocking #f)
 
   (define instructions (make-vector 35))
-  (define BIT 18)
 
   ;; Extracts the bottom 18 bits of n:
   (define (18bit n)
@@ -407,7 +406,7 @@
          #f))
 
   (define-instruction! "-if" (addr)
-    (and (not (bitwise-bit-set? T (sub1 BIT)))
+    (and (not (bitwise-bit-set? T 17))
          (set! P addr)
          #f))
 
@@ -498,7 +497,7 @@
     (let ([t17 (bitwise-and T #x20000)]
           [t0  (bitwise-and T #x1)])
       (set! T (bitwise-ior t17 (arithmetic-shift T -1)))
-      (set! A (bitwise-ior (arithmetic-shift t0 (sub1 BIT))
+      (set! A (bitwise-ior (arithmetic-shift t0 17)
                            (arithmetic-shift A -1)))))
 
   ;; Sums T and S and concatenates the result with A, shifting
@@ -506,10 +505,10 @@
   (define (multiply-step-odd!)
     (let* ([sum (+ T S)]
            [sum17 (bitwise-and sum #x20000)]
-           [result (bitwise-ior (arithmetic-shift sum (sub1 BIT))
+           [result (bitwise-ior (arithmetic-shift sum 17)
                                 (arithmetic-shift A -1))])
-      (set! A (bitwise-bit-field result 0 BIT))
-      (set! T (bitwise-ior sum17 (bitwise-bit-field result BIT (* 2 BIT))))))
+      (set! A (bitwise-bit-field result 0 18))
+      (set! T (bitwise-ior sum17 (bitwise-bit-field result 18 36)))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
@@ -553,7 +552,6 @@
   (declare-public current-state)
 
   (define (reset! [bit 18])
-    (set! BIT bit)
     (set! A 0)
     (set! B 0)
     (set! P 0)
