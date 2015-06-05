@@ -178,6 +178,8 @@
   (define blocking #f)
 
   (define instructions (make-vector 35))
+  (define carry-bit 0)
+  (define extended-arith? #f)
 
   (define (18bit n)
     (bitwise-and n #x3ffff))
@@ -454,8 +456,12 @@
   (define-instruction! "-" () ;not
     (set! T (18bit (bitwise-not T))))
 
-  (define-instruction! "+" () ;;TODO: extended arithmetic mode
-    (d-push! (+ (d-pop!) (d-pop!))))
+  (define-instruction! "+" ()
+    (if extended-arith?
+        (let ([sum (+ (d-pop!) (d-pop!) carry-bit)])
+          (set! carry-bit (bitwise-and sum #x40000))
+          (d-push! (18bit sum)))
+        (d-push! (18bit (+ (d-pop!) (d-pop!))))))
 
   (define-instruction! "and" ()
     (d-push! (bitwise-and (d-pop!) (d-pop!))))
@@ -500,9 +506,13 @@
                            (arithmetic-shift A -1)))))
 
   ;; Sums T and S and concatenates the result with A, shifting
-  ;; everything to the right by one bit.
+  ;; everything to the right by one bit to replace T:A
   (define (multiply-step-odd!)
-    (let* ([sum (+ T S)]
+    (let* ([sum (if extended-arith?
+                    (let ([sum (+ T S carry-bit)])
+                      (set! carry-bit (bitwise-and sum #x40000))
+                      sum)
+                    (+ T S))]
            [sum17 (bitwise-and sum #x20000)]
            [result (bitwise-ior (arithmetic-shift sum 17)
                                 (arithmetic-shift A -1))])
