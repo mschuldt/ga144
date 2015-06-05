@@ -179,9 +179,8 @@
 
   (define instructions (make-vector 35))
 
-  ;; Extracts the bottom 18 bits of n:
   (define (18bit n)
-    (bitwise-bit-field n 0 BIT))
+    (bitwise-and n #x3ffff))
 
   ;; Pushes to the data stack.
   (define (d-push! value)
@@ -442,9 +441,9 @@
     (set-memory! A (d-pop!)))
 
   (define-instruction! "+*" () ; multiply-step
-    (if (even? A)
-        (multiply-step-even!)
-        (multiply-step-odd!)))
+    (if (bitwise-and A 1)
+        (multiply-step-odd!)
+        (multiply-step-even!)))
 
   (define-instruction! "2*" ()
     (set! T (18bit (arithmetic-shift T 1))))
