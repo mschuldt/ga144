@@ -443,9 +443,30 @@
     (set-memory! A (d-pop!)))
 
   (define-instruction! "+*" () ; multiply-step
+    ;;case 1 - If bit A0 is zero
+    ;;  Treats T:A as a single 36 bit register and shifts it right by one
+    ;;  bit. The most signficicant bit (T17) is kept the same.
+    ;;case 2 - If bit A0 is one
+    ;;  Sums T and S and concatenates the result with A, shifting
+    ;;  everything to the right by one bit to replace T:A
     (if (bitwise-and A 1)
-        (multiply-step-odd!)
-        (multiply-step-even!)))
+        ;;case 2:
+        (let* ([sum (if extended-arith?
+                        (let ([sum (+ T S carry-bit)])
+                          (set! carry-bit (bitwise-and sum #x40000))
+                          sum)
+                        (+ T S))]
+               [sum17 (bitwise-and sum #x20000)]
+               [result (bitwise-ior (arithmetic-shift sum 17)
+                                    (arithmetic-shift A -1))])
+          (set! A (bitwise-bit-field result 0 18))
+          (set! T (bitwise-ior sum17 (bitwise-bit-field result 18 36))))
+        ;;case 2:
+        (let ([t17 (bitwise-and T #x20000)]
+              [t0  (bitwise-and T #x1)])
+          (set! T (bitwise-ior t17 (arithmetic-shift T -1)))
+          (set! A (bitwise-ior (arithmetic-shift t0 17)
+                               (arithmetic-shift A -1))))))
 
   (define-instruction! "2*" ()
     (set! T (18bit (arithmetic-shift T 1))))
@@ -495,29 +516,6 @@
 
   (define-instruction! "a!" () ;store into a
     (set! A (d-pop!)))
-
-  ;; Treats T:A as a single 36 bit register and shifts it right by one
-  ;; bit. The most signficicant bit (T17) is kept the same.
-  (define (multiply-step-even!)
-    (let ([t17 (bitwise-and T #x20000)]
-          [t0  (bitwise-and T #x1)])
-      (set! T (bitwise-ior t17 (arithmetic-shift T -1)))
-      (set! A (bitwise-ior (arithmetic-shift t0 17)
-                           (arithmetic-shift A -1)))))
-
-  ;; Sums T and S and concatenates the result with A, shifting
-  ;; everything to the right by one bit to replace T:A
-  (define (multiply-step-odd!)
-    (let* ([sum (if extended-arith?
-                    (let ([sum (+ T S carry-bit)])
-                      (set! carry-bit (bitwise-and sum #x40000))
-                      sum)
-                    (+ T S))]
-           [sum17 (bitwise-and sum #x20000)]
-           [result (bitwise-ior (arithmetic-shift sum 17)
-                                (arithmetic-shift A -1))])
-      (set! A (bitwise-bit-field result 0 18))
-      (set! T (bitwise-ior sum17 (bitwise-bit-field result 18 36)))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
