@@ -167,7 +167,6 @@
 
   (define memory-size MEM-SIZE)
   (define memory (make-vector MEM-SIZE))
-  (define memory-wrap #f)
 
   (define port-left #f)
   (define port-up #f)
@@ -227,6 +226,17 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; memory accesses
 
+  ;;Determine if we are in RAM or ROM, return the index for that memory location
+  ;;DB001 section 2.2  Top half of RAM and ROM is repeated
+  (define (region-index addr)
+    (if (>= addr #x80);;ROM
+        (if (> addr #x0BF)
+            (- addr #x0BF)
+            addr)
+        (if (> addr #x3F)
+            (- addr #x3F)
+            addr)))
+
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
   ;; now).
@@ -244,9 +254,7 @@
                         (set! blocking #t)
                         #f))))
           ((= addr &IO) IO)
-          (else (vector-ref memory (if memory-wrap
-                                       (modulo addr memory-size)
-                                       addr)))))
+          (else (vector-ref memory (region-index addr)))))
 
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
@@ -269,11 +277,7 @@
           ((= addr &IO)
            (set! IO value)
            (handle-io-change))
-          (else (vector-set! memory
-                             (if memory-wrap
-                                 (modulo addr memory-size)
-                                 addr)
-                             value))))
+          (else (vector-set! memory (region-index addr) value))))
 
   (define (handle-io-change)
     void;;TODO
