@@ -13,11 +13,11 @@
 (define DISPLAY_STATE? #f)
 
 (provide (all-defined-out))
-(define UP #x145) ;325
-(define DOWN #x115) ;277
-(define LEFT #x175) ;373
-(define RIGHT #x1d5) ;469
-(define IO #x15d)
+(define &UP #x145) ;325
+(define &DOWN #x115) ;277
+(define &LEFT #x175) ;373
+(define &RIGHT #x1d5) ;469
+(define &IO #x15d)
 
 (define opcodes (vector "ret" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
@@ -226,13 +226,13 @@
   ;; gets a communication port, it just returns a random number (for
   ;; now).
   (define (read-memory addr)
-    (if (member addr (list UP DOWN LEFT RIGHT IO))
-        (let* ((fn (cond [(= addr LEFT)  (port-read port-left)]
-                         [(= addr UP)    (port-read port-up)]
-                         [(= addr DOWN)  (port-read port-down)]
-                         [(= addr RIGHT) (port-read port-right)]
+    (if (member addr (list &UP &DOWN &LEFT &RIGHT &IO))
+        (let* ((fn (cond [(= addr &LEFT)  (port-read port-left)]
+                         [(= addr &UP)    (port-read port-up)]
+                         [(= addr &DOWN)  (port-read port-down)]
+                         [(= addr &RIGHT) (port-read port-right)]
                          ;;TODO:
-                         [(= addr IO) (raise "unimplemented: reading from IO")]))
+                         [(= addr &IO) (raise "unimplemented: reading from IO")]))
                (value (fn)))
           (if value
               value
@@ -253,14 +253,14 @@
   ;; port. Everything written to any communication port is simply
   ;; aggregated into a list.
   (define (set-memory! addr value)
-    (if (member addr (list UP DOWN LEFT RIGHT IO))
+    (if (member addr (list &UP &DOWN &LEFT &RIGHT &IO))
         (begin (set! blocking-write
-                     (cond [(= addr LEFT)  (port-write port-left value)]
-                           [(= addr UP)    (port-write port-up value)]
-                           [(= addr DOWN)  (port-write port-down value)]
-                           [(= addr RIGHT) (port-write port-right value)]
+                     (cond [(= addr &LEFT)  (port-write port-left value)]
+                           [(= addr &UP)    (port-write port-up value)]
+                           [(= addr &DOWN)  (port-write port-down value)]
+                           [(= addr &RIGHT) (port-write port-right value)]
                            ;;TODO:
-                           [(= addr IO) (raise "unimplemented: writing to IO")]))
+                           [(= addr &IO) (raise "unimplemented: writing to IO")]))
                (when blocking-write
                  (set! blocking #t)))
         (vector-set! memory
