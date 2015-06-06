@@ -163,6 +163,7 @@
   (define R 0)
   (define S 0)
   (define T 0)
+  (define IO #x15555)
 
   (define memory-size MEM-SIZE)
   (define memory (make-vector MEM-SIZE))
@@ -226,22 +227,22 @@
   ;; gets a communication port, it just returns a random number (for
   ;; now).
   (define (read-memory addr)
-    (if (member addr (list &UP &DOWN &LEFT &RIGHT &IO))
-        (let* ((fn (cond [(= addr &LEFT)  (port-read port-left)]
-                         [(= addr &UP)    (port-read port-up)]
-                         [(= addr &DOWN)  (port-read port-down)]
-                         [(= addr &RIGHT) (port-read port-right)]
-                         ;;TODO:
-                         [(= addr &IO) (raise "unimplemented: reading from IO")]))
-               (value (fn)))
-          (if value
-              value
-              (begin (set! blocking-read fn)
-                     (set! blocking #t)
-                     #f)))
-        (vector-ref memory (if memory-wrap
-                               (modulo addr memory-size)
-                               addr))))
+    (cond ((member addr (list &UP &DOWN &LEFT &RIGHT))
+           (let* ((fn (cond [(= addr &LEFT)  (port-read port-left)]
+                            [(= addr &UP)    (port-read port-up)]
+                            [(= addr &DOWN)  (port-read port-down)]
+                            [(= addr &RIGHT) (port-read port-right)]
+                            [(= addr &IO) (lambda () IO)]))
+                  (value (fn)))
+             (if value
+                 value
+                 (begin (set! blocking-read fn)
+                        (set! blocking #t)
+                        #f))))
+          ((= addr &IO) IO)
+          (else (vector-ref memory (if memory-wrap
+                                       (modulo addr memory-size)
+                                       addr)))))
 
   ;; Read from the given memory address or communication port. If it
   ;; gets a communication port, it just returns a random number (for
@@ -253,21 +254,26 @@
   ;; port. Everything written to any communication port is simply
   ;; aggregated into a list.
   (define (set-memory! addr value)
-    (if (member addr (list &UP &DOWN &LEFT &RIGHT &IO))
-        (begin (set! blocking-write
-                     (cond [(= addr &LEFT)  (port-write port-left value)]
-                           [(= addr &UP)    (port-write port-up value)]
-                           [(= addr &DOWN)  (port-write port-down value)]
-                           [(= addr &RIGHT) (port-write port-right value)]
-                           ;;TODO:
-                           [(= addr &IO) (raise "unimplemented: writing to IO")]))
-               (when blocking-write
-                 (set! blocking #t)))
-        (vector-set! memory
-                     (if memory-wrap
-                         (modulo addr memory-size)
-                         addr)
-                     value)))
+    (cond ((member addr (list &UP &DOWN &LEFT &RIGHT))
+           (begin (set! blocking-write
+                    (cond [(= addr &LEFT)  (port-write port-left value)]
+                          [(= addr &UP)    (port-write port-up value)]
+                          [(= addr &DOWN)  (port-write port-down value)]
+                          [(= addr &RIGHT) (port-write port-right value)]))
+                  (when blocking-write
+                    (set! blocking #t))))
+          ((= addr &IO)
+           (set! IO value)
+           (handle-io-change))
+          (else (vector-set! memory
+                             (if memory-wrap
+                                 (modulo addr memory-size)
+                                 addr)
+                             value))))
+
+  (define (handle-io-change)
+    void;;TODO
+    )
 
   ;;attempts to complete a read, returns #t if read is completed
   ;;and #f if still blocking
@@ -566,6 +572,7 @@
     (set! R 0)
     (set! S 0)
     (set! T 0)
+    (set! IO #x15555)
     (set! memory (make-vector MEM-SIZE))
     (set! dstack (make-stack 8))
     (set! rstack (make-stack 8))
