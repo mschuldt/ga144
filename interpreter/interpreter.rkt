@@ -213,12 +213,16 @@
   ;; register points to an IO region, does nothing. Otherwise increment
   ;; the register circularly within the current memory region (RAM or
   ;; ROM).
-  (define (incr curr)
-    (cond [(< curr #x07F) (add1 curr)]
-          [(= curr #x07F) #x000]
-          [(< curr #x0FF) (add1 curr)]
-          [(= curr #x0FF) #x080]
-          [else curr]))
+  (define (incr curr) ;; DB001 section 2.2
+    (if (> (& curr #x100) 0)
+        curr
+        (let ([bit9 (& curr #x200)]
+              [addr (& curr #xff)])
+          (ior (cond [(< addr #x7F) (add1 addr)]
+                     [(= addr #x7F) 0]
+                     [(< addr #xFF) (add1 addr)]
+                     [(= addr #xFF) #x80])
+               bit9))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; memory accesses
