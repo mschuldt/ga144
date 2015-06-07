@@ -33,6 +33,7 @@
 (define used-nodes '())
 
 (define last-inst #f)
+(define current-node #f) ;;coordinate of the current node we are compiling for
 
 (define stack '())
 
@@ -267,6 +268,7 @@
        (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
        (vector-set! nodes index memory))
      (set! used-nodes (cons (cons node memory) used-nodes))
+     (set! current-node node)
      (org 0))))
 
 (define (make-addr addr)
@@ -449,6 +451,13 @@
      (if addr
          (push stack addr)
          (pretty-display (format "ERROR: ` -- \"~a\" is not defined" word))))))
+
+(for [(dir (list "north" "south" "east" "west"))]
+  (add-directive!
+   dir
+   ((lambda (dir)
+      (lambda () ((get-directive (convert-direction current-node dir)))))
+    dir)))
 
 (define named-addresses '(("right" . #x1D5)
                           ("down" . #x115)
