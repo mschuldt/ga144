@@ -208,15 +208,15 @@
   (check-ret 1 4 0))
 
 (define-test "b"
-  "node 0 right b! @b @b @b +
-   node 1 4 left b! 123 !b 2 !b 3 !b"
+  "node 0 east b! @b @b @b +
+   node 1 4 west b! 123 !b 2 !b 3 !b"
   (check-reg 0 t 5)
   (check-reg 0 s 123)
   (check-reg 1 t 4))
 
 (define-test "a"
-  "node 0 right a! @ @ @ +
-   node 1 4 left a! 123 ! 2 ! 3 !
+  "node 0 east a! @ @ @ +
+   node 1 4 west a! 123 ! 2 ! 3 !
    node 2 12 a! 2 a"
   (check-reg 0 t 5)
   (check-reg 0 s 123)
@@ -225,14 +225,14 @@
   (check-reg 2 s 2))
 
 (define-test "ludr-ports"
-  "node 000 up    a! right b! 1 !b 2 !b 3 !b @ @ @
-   node 001 left  a! right b! @ !b @ !b @ !b
-   node 002 left  a! up    b! @ !b @ !b @ !b
-   node 102 down  a! up    b! @ !b @ !b @ !b
-   node 202 down  a! left  b! @ !b @ !b @ !b
-   node 201 right a! left  b! @ !b @ !b @ !b
-   node 200 right a! down  b! @ !b @ !b @ !b
-   node 100 up    a! down  b! @ 1 + !b @ 1 + !b @ 1 + !b "
+  "node 000 north    a! east b! 1 !b 2 !b 3 !b @ @ @
+   node 001 west  a! east b! @ !b @ !b @ !b
+   node 002 west  a! north    b! @ !b @ !b @ !b
+   node 102 south  a! north    b! @ !b @ !b @ !b
+   node 202 south  a! west  b! @ !b @ !b @ !b
+   node 201 east a! west  b! @ !b @ !b @ !b
+   node 200 east a! south  b! @ !b @ !b @ !b
+   node 100 north    a! south  b! @ 1 + !b @ 1 + !b @ 1 + !b "
   (check-dat 0 4 3 2 0)
   (check-dat 1 0 0 0)
   (check-dat 102 0 0 0)
@@ -242,14 +242,14 @@
   (check-dat 100 0 0 0))
 
 (define-test "blocking-read"
-  "node 0 right a! @
-   node 1 left  a! . . . . . . 234 ! 28"
+  "node 0 east a! @
+   node 1 west  a! . . . . . . 234 ! 28"
   (check-reg 0 t 234)
   (check-reg 1 t 28))
 
 (define-test "blocking-write"
-  "node 0 right  a! . . . . . . . . . @
-   node 1 left a! 234 ! 28"
+  "node 0 east  a! . . . . . . . . . @
+   node 1 west a! 234 ! 28"
   (check-reg 0 t 234)
   (check-reg 1 t 28))
 
