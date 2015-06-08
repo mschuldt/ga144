@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(define MEM-SIZE 1024)
+(define MEM-SIZE #x200)
 
 (struct state (a b p i r s t dstack rstack memory) #:mutable #:transparent)
 ;;(struct commstate (data type recv p) #:mutable #:transparent)

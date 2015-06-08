@@ -2,7 +2,9 @@
 
 ;;references:
 ;; - colorforth blocks 190-192,1404-1412
+;; - DB001 F18A Technology Reference
 ;; - DB004 arrayForth User's Manual, section 5
+
 
 (require "read.rkt"
          "assemble.rkt"
