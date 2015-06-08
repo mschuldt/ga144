@@ -136,7 +136,7 @@
   "node 1 1 2 + node 717 1 2 3 4 +"
   (check-reg 1 t 3)
   (check-dat 1 3 0)
-  (check-mem 1 67813 1 2 'end 0)
+  (check-mem 1 67813 1 2 'end)
 
   (check-reg 717 t 7)
   (check-dat 717 7 2 1 0))
@@ -241,17 +241,94 @@
   (check-dat 200 0 0 0)
   (check-dat 100 0 0 0))
 
-(define-test "blocking-read"
+(define-test "blocking-read-right-port1"
   "node 0 east a! @
-   node 1 west  a! . . . . . . 234 ! 28"
+   node 1 28 west a! . . . . . . 234 !"
   (check-reg 0 t 234)
   (check-reg 1 t 28))
+(define-test "blocking-read-right-port2"
+  "node 1 west a! @
+   node 0 28 east a! . . . . . . 234 !"
+  (check-reg 1 t 234)
+  (check-reg 0 t 28))
 
-(define-test "blocking-write"
-  "node 0 east  a! . . . . . . . . . @
+(define-test "blocking-read-left-port1"
+  "node 1 east a! @
+   node 2 28 west a! . . . . . . 234 !"
+  (check-reg 1 t 234)
+  (check-reg 2 t 28))
+(define-test "blocking-read-left-port2"
+  "node 2 west a! @
+   node 1 28 east a! . . . . . . 234 !"
+  (check-reg 2 t 234)
+  (check-reg 1 t 28))
+
+(define-test "blocking-read-down-port1"
+  "node 0 north a! @
+   node 100 28 south a! . . . . . . 234 !"
+  (check-reg 0 t 234)
+  (check-reg 100 t 28))
+(define-test "blocking-read-down-port2"
+  "node 100 south a! @
+   node 0 28 north a! . . . . . . 234 !"
+  (check-reg 100 t 234)
+  (check-reg 0 t 28))
+
+(define-test "blocking-read-up-port1"
+   "node 100 north a! @
+   node 200 28 south a! . . . . . . 234 !"
+   (check-reg 100 t 234)
+   (check-reg 200 t 28))
+(define-test "blocking-read-up-port2"
+  "node 200 south a! @
+   node 100 28 north a! . . . . . . 234 !"
+  (check-reg 200 t 234)
+  (check-reg 100 t 28))
+
+(define-test "blocking-write-up-port1"
+  "node 202 south a! . . . . . . . . . @
+   node 102 north a! 234 ! 28"
+  (check-reg 202 t 234)
+  (check-reg 102 t 28))
+(define-test "blocking-write-up-port2"
+  "node 102 north a! . . . . . . . . . @
+   node 202 south a! 234 ! 28"
+  (check-reg 102 t 234)
+  (check-reg 202 t 28))
+
+(define-test "blocking-write-down-port1"
+  "node 101 south a! . . . . . . . . . @
+   node 1 north a! 234 ! 28"
+  (check-reg 101 t 234)
+  (check-reg 1 t 28))
+(define-test "blocking-write-down-port2"
+  "node 1 north a! . . . . . . . . . @
+   node 101 south a! 234 ! 28"
+  (check-reg 1 t 234)
+  (check-reg 101 t 28))
+
+(define-test "blocking-write-left-port1"
+  "node 2 west a! . . . . . . . . . @
+   node 1 east a! 234 ! 28"
+  (check-reg 2 t 234)
+  (check-reg 1 t 28))
+(define-test "blocking-write-left-port2"
+  "node 1 east a! . . . . . . . . . @
+   node 2 west a! 234 ! 28"
+  (check-reg 1 t 234)
+  (check-reg 2 t 28))
+
+
+(define-test "blocking-write-right-port1"
+  "node 0 east a! . . . . . . . . . @
    node 1 west a! 234 ! 28"
   (check-reg 0 t 234)
   (check-reg 1 t 28))
+(define-test "blocking-write-right-port2"
+  "node 1 west a! . . . . . . . . . @
+   node 0 east a! 234 ! 28"
+  (check-reg 1 t 234)
+  (check-reg 0 t 28))
 
 (define-test "shift"
   "node 4 4 2/ 2 2* 8 2* 1 2* 2* 2/ 2/ 0 2/ 0 2*
