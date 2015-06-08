@@ -526,7 +526,7 @@
   (display-node nodes))
 
 (when #f
-  (define file "test.aforth")
+  (define file "_test.aforth")
   (define x (compile-file file))
   (display-compiled x)
   (assemble x)
