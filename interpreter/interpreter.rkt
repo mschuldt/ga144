@@ -664,6 +664,10 @@
     (set! active-index index))
   (declare-public set-aindex)
 
+  (define (str)
+    (format "<node ~a>" coord))
+  (declare-public str)
+
   self
   );;end make-node
 
@@ -846,6 +850,9 @@
 (define receive-port-write-i (i))
 (define (node:receive-port-write node port value _node)
   ((vector-ref node receive-port-write-i) port value _node))
+
+(define str-i (i))
+(define (node:str node) ((vector-ref node str-i)))
 
 (define (initialize)
   (build-node-matrix)
