@@ -10,6 +10,7 @@
          "stack.rkt")
 
 (define DEBUG? #f)
+(define PORT-DEBUG? #f)
 (define DISPLAY_STATE? #f)
 
 (provide (all-defined-out))
@@ -227,8 +228,10 @@
     (set! suspended #f))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ludr port communication
+
   ;; adjacent nodes that are suspended, waiting for this node to read to a port
   (define writing-nodes (make-vector 4 #f))
+
   ;;values written to a ludr port by a pending write
   ;;each node in the 'writing-nodes' array has a corresponding value here
   (define port-vals (make-vector 4 #f))
@@ -240,6 +243,7 @@
   (define ludr-port-nodes #f)
 
   (define (port-read port)
+    (when PORT-DEBUG? (printf "[~a](port-read ~a)\n" coord port))
     ;;read a value from a ludr port
     (let ((writing-node (vector-ref writing-nodes port)))
       (if writing-node
@@ -254,6 +258,7 @@
             (suspend)))))
 
   (define (port-write port value)
+    (when PORT-DEBUG? (printf "[~a](port-write ~a  ~a)\n" coord port value))
     ;;writes a value to a ludr port
     (let ((reading-node (vector-ref reading-nodes port)))
       (if reading-node
@@ -267,21 +272,28 @@
 
   (define (finish-port-read val)
     ;;called by adjacent node when it writes to a port we are reading from
+    (when PORT-DEBUG? (printf "[~a](finish-port-read  ~a)\n" coord val))
     (d-push! val)
     (wakeup))
   (declare-public finish-port-read)
 
   (define (finish-port-write)
     ;;called by adjacent node when it reads from a port we are writing to
+    (when PORT-DEBUG? (printf "(finish-port-write)\n"))
     (wakeup))
   (declare-public finish-port-write)
 
   (define (receive-port-read port node)
     ;;called by adjacent node when it is reading from one of our ports
+    (when PORT-DEBUG?
+      (printf "[~a](receive-port-read ~a   ~a)\n" coord port (node:str node)))
     (vector-set! reading-nodes port node))
   (declare-public receive-port-read)
 
   (define (receive-port-write port value node)
+    (when PORT-DEBUG?
+      (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
+              coord port value (node:str node)))
     ;;called by adjacent noe when it is writing to one of our ports
     (vector-set! writing-nodes port node)
     (vector-set! port-vals port value))
