@@ -21,9 +21,9 @@
                             [result #f]
                             [failed '()]
                             [compiled-file
-                             (format "test-out/~a-compiled.rkt" name)]
+                             (format "test-out/~a-compiled.txt" name)]
                             [assembled-file
-                             (format "test-out/~a-assembled.rkt" name)])
+                             (format "test-out/~a-assembled.txt" name)])
                         (reset!)
                         (compile-and-load program
                                           #t

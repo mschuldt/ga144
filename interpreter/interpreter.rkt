@@ -251,6 +251,8 @@
     (let ((writing-node (vector-ref writing-nodes port)))
       (if writing-node
           (begin ;;value was ready
+            (when PORT-DEBUG? (printf "       value was ready: ~a\n"
+                                      (vector-ref port-vals port)))
             (d-push! (vector-ref port-vals port))
             ;;clear state from last reading
             (vector-set! writing-nodes port #f)
@@ -258,6 +260,7 @@
             (node:finish-port-write writing-node)
             #t)
           (begin ;;else: suspend while we wait for other node to write
+            (when PORT-DEBUG? (printf "       suspending\n"))
             (node:receive-port-read (vector-ref ludr-port-nodes port) port self)
             (suspend)
             #f))))
@@ -268,10 +271,12 @@
     (let ((reading-node (vector-ref reading-nodes port)))
       (if reading-node
           (begin
+            (when PORT-DEBUG? (printf "       target is ready\n"))
             (vector-set! reading-nodes port #f)
             (node:finish-port-read reading-node value)
             #t)
           (begin
+            (when PORT-DEBUG? (printf "       suspending\n"))
             (node:receive-port-write
              (vector-ref ludr-port-nodes port) port value self)
             (suspend)
@@ -286,7 +291,7 @@
 
   (define (finish-port-write)
     ;;called by adjacent node when it reads from a port we are writing to
-    (when PORT-DEBUG? (printf "(finish-port-write)\n"))
+    (when PORT-DEBUG? (printf "[~a](finish-port-write)\n" coord))
     (wakeup))
   (declare-public finish-port-write)
 
@@ -874,4 +879,3 @@
   (void))
 
 (initialize)
-
