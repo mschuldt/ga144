@@ -94,7 +94,7 @@
     (assemble compiled)
     (for ([code compiled])
       (set! node (coord->node (car code)))
-      (node:load-code node (TEMPORARY_CONVERT (cdr code)) include-end-token?))
+      (node:load-code node (TEMPORARY_CONVERT (cdr code))))
     (when assembled-file
       (with-output-to-file assembled-file
         (lambda () (display-disassemble compiled))
@@ -358,32 +358,21 @@
         ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
         ((vector-ref instructions opcode))))
 
-  (define (step0-helper)
+  (define (step0-helper)    
     (set! I (d-pop!))
     (set! P (incr P))
     (if (eq? I 'end)
         (suspend)
         (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
                           step1
-                          step0-))))
-  (define (step0-)
+                          step0))))
+  (define (step0)
     (if (read-memory P)
         ;;TODO: FIX: this should not use the stack
         ;;           we could loose the last item on the stack this way
         (step0-helper)
         ;;else: we are now suspended waiting for the value
         (set! step-fn step0-helper)))
-
-  (define (step0*)
-    (read-memory P)
-    (set! I (d-pop!))
-    (set! P (incr P))
-    (if (eq? I 'end)
-        (suspend)
-        (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
-                          step1
-                          step0*))))
-  (define step0 step0-)
 
   (define (step1)
     (set! step-fn (if (execute! (bitwise-bit-field I 8 13) 8)
@@ -593,16 +582,12 @@
   (define (get-registers) (list A B P I R S T))
   (declare-public get-registers)
 
-  (define (load-code code [include-end-token? #f])
+  (define (load-code code)
     (define (load code index)
       (unless (null? code)
         (vector-set! memory index (car code))
         (load (cdr code) (add1 index))))
-    (if include-end-token?
-        (begin (load (append code '(end)) 0)
-               (set! step0 step0*))
-        (begin (load code 0)
-               (set! step0 step0-))))
+    (load code 0))
   (declare-public load-code)
 
   ;; Returns a snapshot of the current state.
@@ -831,8 +816,8 @@
 (define (get-registers node) ((vector-ref node get-registers-i)))
 
 (define load-code-i (i))
-(define (node:load-code node code [end-token? #f])
-  ((vector-ref node load-code-i) code end-token?))
+(define (node:load-code node code)
+  ((vector-ref node load-code-i) code))
 
 (define current-state-i (i))
 (define (node:current-state node) ((vector-ref node current-state-i)))
