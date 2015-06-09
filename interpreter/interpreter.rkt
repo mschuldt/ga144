@@ -154,7 +154,9 @@
   (define extended-arith? #f)
 
   (define (18bit n)
-    (& n #x3ffff))
+    (if (number? n);;temp fix
+        (& n #x3ffff)
+        n))
 
   ;; Pushes to the data stack.
   (define (d-push! value)
@@ -245,6 +247,7 @@
   (define (port-read port)
     (when PORT-DEBUG? (printf "[~a](port-read ~a)\n" coord port))
     ;;read a value from a ludr port
+    ;;returns #t if value is one the stack, #f if we are suspended waiting for it
     (let ((writing-node (vector-ref writing-nodes port)))
       (if writing-node
           (begin ;;value was ready
@@ -252,10 +255,12 @@
             ;;clear state from last reading
             (vector-set! writing-nodes port #f)
             ;;let other node know we read the value
-            (node:finish-port-write writing-node))
+            (node:finish-port-write writing-node)
+            #t)
           (begin ;;else: suspend while we wait for other node to write
             (node:receive-port-read (vector-ref ludr-port-nodes port) port self)
-            (suspend)))))
+            (suspend)
+            #f))))
 
   (define (port-write port value)
     (when PORT-DEBUG? (printf "[~a](port-write ~a  ~a)\n" coord port value))
@@ -264,11 +269,13 @@
       (if reading-node
           (begin
             (vector-set! reading-nodes port #f)
-            (node:finish-port-read reading-node value))
+            (node:finish-port-read reading-node value)
+            #t)
           (begin
             (node:receive-port-write
              (vector-ref ludr-port-nodes port) port value self)
-            (suspend)))))
+            (suspend)
+            #f))))
 
   (define (finish-port-read val)
     ;;called by adjacent node when it writes to a port we are reading from
@@ -351,16 +358,25 @@
         ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
         ((vector-ref instructions opcode))))
 
-  (define (step0-)
-    (set! I (vector-ref memory P))
+  (define (step0-helper)
+    (set! I (d-pop!))
     (set! P (incr P))
     (if (eq? I 'end)
         (suspend)
         (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
                           step1
                           step0-))))
+  (define (step0-)
+    (if (read-memory P)
+        ;;TODO: FIX: this should not use the stack
+        ;;           we could loose the last item on the stack this way
+        (step0-helper)
+        ;;else: we are now suspended waiting for the value
+        (set! step-fn step0-helper)))
+
   (define (step0*)
-    (set! I (vector-ref memory P))
+    (read-memory P)
+    (set! I (d-pop!))
     (set! P (incr P))
     (if (eq? I 'end)
         (suspend)
@@ -459,24 +475,24 @@
     (set! A (incr A)))
 
   (define-instruction! "@b" () ;fetch-b
-    (read-memory B))
+    (read-memory B) #t)
 
   (define-instruction! "@" (); fetch a
-    (read-memory A))
+    (read-memory A) #t)
 
   (define-instruction! "!p" () ; store p
     (set-memory! P (d-pop!))
-    (set! P (incr P)))
+    (set! P (incr P)) #t)
 
   (define-instruction! "!+" () ;store plus
     (set-memory! A (d-pop!))
-    (set! A (incr A)))
+    (set! A (incr A)) #t)
 
   (define-instruction! "!b" (); store-b
-    (set-memory! B (d-pop!)))
+    (set-memory! B (d-pop!)) #t)
 
   (define-instruction! "!" (); store
-    (set-memory! A (d-pop!)))
+    (set-memory! A (d-pop!)) #t)
 
   (define-instruction! "+*" () ; multiply-step
     ;;case 1 - If bit A0 is zero
