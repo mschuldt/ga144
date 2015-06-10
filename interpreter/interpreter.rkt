@@ -5,13 +5,17 @@
          "../compiler/assemble.rkt"
          "../compiler/disassemble.rkt"
          "../compiler/compile.rkt"
+         "../compiler/util.rkt"
          "bit-functions.rkt"
          "state.rkt"
          "stack.rkt")
 
 (define DEBUG? #f)
-(define PORT-DEBUG? #f)
+(define _PORT-DEBUG? #t)
 (define DISPLAY_STATE? #f)
+(define port-debug-list '(1 2))
+(define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
+
 
 (provide (all-defined-out))
 (define &UP #x145) ;325
@@ -40,12 +44,6 @@
   (for ([i 144])
     (vector-set! nodes i (make-node i)))
   (vector-map node:init-ludr-port-nodes nodes))
-
-(define (coord->index n)
-  (+ (* (quotient n 100) 18) (remainder n 100)))
-
-(define (index->coord n)
-  (+ (* (quotient n 18) 100) (remainder n 18)))
 
 (define (coord->node coord)
   (let ([index (coord->index coord)])
