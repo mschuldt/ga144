@@ -146,6 +146,7 @@
   (define blocking-read #f)
   (define blocking-write #f)
   (define blocking #f)
+  (define multiport-read-ports #f)
 
   (define instructions (make-vector 35))
   (define carry-bit 0)
@@ -311,6 +312,19 @@
              (vector-ref ludr-port-nodes port) port value self)
             (suspend)
             #f))))
+
+  (define (multiport-write ports value)
+    ;; "every node that intends to read the value written
+    ;;  must already be doing so and suspended"
+    (when (PORT-DEBUG? coord)
+      (printf "[~a](multiport-write ~a  ~a)\n" coord ports value))
+    (let ([reading-node #f])
+      (for ([port ports])
+        (when (setq reading-node (vector-ref reading-nodes port))
+          (when (PORT-DEBUG? coord) (printf "       wrote to port: ~a" port))
+          (vector-set! reading-nodes port #f)
+          (node:finish-port-read reading-node value))))
+    #t)
 
   (define (finish-port-read val)
     ;;called by adjacent node when it writes to a port we are reading from
@@ -665,6 +679,7 @@
     (set! blocking-read #f)
     (set! blocking-write #f)
     (set! blocking #f)
+    (set! multiport-read-ports #f)
     (set! writing-nodes (make-vector 4 #f))
     (set! reading-nodes (make-vector 4 #f))
     (set! port-vals (make-vector 4 #f))
