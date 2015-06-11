@@ -722,7 +722,7 @@
     (set! S 0)
     (set! T 0)
     (set! IO #x15555)
-    (set! memory (make-vector MEM-SIZE 'end))
+    (set! memory (make-vector MEM-SIZE 16805)) ;;16805 => ludr multiport jump
     (set! dstack (make-stack 8))
     (set! rstack (make-stack 8))
     (set! blocking-read #f)
