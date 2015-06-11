@@ -11,7 +11,7 @@
          "stack.rkt")
 
 (define DEBUG? #f)
-(define _PORT-DEBUG? #t)
+(define _PORT-DEBUG? #f)
 (define DISPLAY_STATE? #f)
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
@@ -27,6 +27,8 @@
 (define UP 1)
 (define DOWN 2)
 (define RIGHT 3)
+(define port-names (vector "LEFT" "UP" "DOWN" "RIGHT"))
+
 (define &---U #x145)
 (define &--L- #x175)
 (define &--LU #x165)
@@ -259,14 +261,14 @@
   (define ludr-port-nodes #f)
 
   (define (port-read port)
-    (when PORT-DEBUG? (printf "[~a](port-read ~a)\n" coord port))
+    (when (PORT-DEBUG? coord) (printf "[~a](port-read ~a)\n" coord port))
     ;;read a value from a ludr port
     ;;returns #t if value is one the stack, #f if we are suspended waiting for it
     (let ((writing-node (vector-ref writing-nodes port)))
       (if writing-node
           (begin ;;value was ready
-            (when PORT-DEBUG? (printf "       value was ready: ~a\n"
-                                      (vector-ref port-vals port)))
+            (when (PORT-DEBUG? coord) (printf "       value was ready: ~a\n"
+                                              (vector-ref port-vals port)))
             (d-push! (vector-ref port-vals port))
             ;;clear state from last reading
             (vector-set! writing-nodes port #f)
@@ -274,7 +276,7 @@
             (node:finish-port-write writing-node)
             #t)
           (begin ;;else: suspend while we wait for other node to write
-            (when PORT-DEBUG? (printf "       suspending\n"))
+            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
             (node:receive-port-read (vector-ref ludr-port-nodes port) port self)
             (suspend)
             #f))))
@@ -312,17 +314,18 @@
             #f))))
 
   (define (port-write port value)
-    (when PORT-DEBUG? (printf "[~a](port-write ~a  ~a)\n" coord port value))
+    (when (PORT-DEBUG? coord)
+      (printf "[~a](port-write ~a  ~a)\n" coord port value))
     ;;writes a value to a ludr port
     (let ((reading-node (vector-ref reading-nodes port)))
       (if reading-node
           (begin
-            (when PORT-DEBUG? (printf "       target is ready\n"))
+            (when (PORT-DEBUG? coord) (printf "       target is ready\n"))
             (vector-set! reading-nodes port #f)
             (node:finish-port-read reading-node value)
             #t)
           (begin
-            (when PORT-DEBUG? (printf "       suspending\n"))
+            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
             (node:receive-port-write
              (vector-ref ludr-port-nodes port) port value self)
             (suspend)
@@ -356,19 +359,19 @@
 
   (define (finish-port-write)
     ;;called by adjacent node when it reads from a port we are writing to
-    (when PORT-DEBUG? (printf "[~a](finish-port-write)\n" coord))
+    (when (PORT-DEBUG? coord) (printf "[~a](finish-port-write)\n" coord))
     (wakeup))
   (declare-public finish-port-write)
 
   (define (receive-port-read port node)
     ;;called by adjacent node when it is reading from one of our ports
-    (when PORT-DEBUG?
+    (when (PORT-DEBUG? coord)
       (printf "[~a](receive-port-read ~a   ~a)\n" coord port (node:str node)))
     (vector-set! reading-nodes port node))
   (declare-public receive-port-read)
 
   (define (receive-port-write port value node)
-    (when PORT-DEBUG?
+    (when (PORT-DEBUG? coord)
       (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
               coord port value (node:str node)))
     ;;called by adjacent noe when it is writing to one of our ports
@@ -428,7 +431,7 @@
         ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
         ((vector-ref instructions opcode))))
 
-  (define (step0-helper)    
+  (define (step0-helper)
     (set! I (d-pop!))
     (set! P (incr P))
     (if (eq? I 'end)
@@ -472,7 +475,7 @@
                    n
                    (if DEBUG?
                        (lambda args
-                         (printf (format "OPCODE: '~a'\n" opcode))
+                         (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
                          body ...)
                        (lambda args
                          body ...)))))
