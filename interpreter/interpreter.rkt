@@ -263,6 +263,38 @@
             (suspend)
             #f))))
 
+  (define (multiport-read ports)
+    (when (PORT-DEBUG? coord) (printf "[~a](multiport-read ~a)\n" coord ports))
+    (let ([done #f]
+          [writing-node #f]
+          [other #f])
+      (for ([port ports])
+        (when (setq writing-node (vector-ref writing-nodes port))
+          (if done
+              (printf "Error: multiport-read -- more then one node writing")
+              (begin
+                (when (PORT-DEBUG? coord)
+                  (printf "       value was ready: ~a\n"
+                          (vector-ref port-vals port)))
+                (d-push! (vector-ref port-vals port))
+                (vector-set! writing-nodes port #f)
+                (node:finish-port-write writing-node)
+                (set! done #t)))))
+      (if done ;;successfully read a value from one of the ports
+          (begin (set! multiport-read-ports ports)
+                 #t)
+          (begin ;;else: suspend while we wait for an other node to write
+            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+            (for ([port ports])
+              ;;(unless (vector-ref ludr-port-nodes port)
+              ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
+              ;;                 coord (vector-ref port-names port))))
+              (and (setq other (vector-ref ludr-port-nodes port))
+                   (node:receive-port-read (vector-ref ludr-port-nodes port)
+                                           port self)))
+            (suspend)
+            #f))))
+
   (define (port-write port value)
     (when PORT-DEBUG? (printf "[~a](port-write ~a  ~a)\n" coord port value))
     ;;writes a value to a ludr port
@@ -282,8 +314,14 @@
 
   (define (finish-port-read val)
     ;;called by adjacent node when it writes to a port we are reading from
-    (when PORT-DEBUG? (printf "[~a](finish-port-read  ~a)\n" coord val))
+    (when (PORT-DEBUG? coord) (printf "[~a](finish-port-read  ~a)\n" coord val))
     (d-push! val)
+    (when multiport-read-ports
+      ;;there may be other nodes that still think we are waiting for them to write
+      (for ([port multiport-read-ports])
+        ;;reuse 'receive-port-read' to cancel the read notification
+        (node:receive-port-read (vector-ref ludr-port-nodes port) port #f))
+      (set! multiport-read-ports #f))
     (wakeup))
   (declare-public finish-port-read)
 
