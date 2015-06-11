@@ -27,6 +27,21 @@
 (define UP 1)
 (define DOWN 2)
 (define RIGHT 3)
+(define &---U #x145)
+(define &--L- #x175)
+(define &--LU #x165)
+(define &-D-- #x115)
+(define &-D-U #x105)
+(define &-DL- #x135)
+(define &-DLU #x125)
+(define &R--- #x1D5)
+(define &R--U #x1C5)
+(define &R-L- #x1F5)
+(define &R-LU #x1E5)
+(define &RD-- #x195)
+(define &RD-U #x185)
+(define &RDL- #x1B5)
+(define &RDLU #x1A5)
 
 (define opcodes (vector "ret" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
@@ -662,7 +677,41 @@
     (vector-set! memory &IO (vector (lambda () IO)
                                     (lambda (v)
                                       (set! IO v)
-                                      (handle-io-change)))))
+                                      (handle-io-change))))
+    (vector-set! memory &--LU
+                 (vector (lambda () (multiport-read (list LEFT UP)))
+                         (lambda (v) (multiport-write (list LEFT UP) v))))
+    (vector-set! memory &-D-U
+                 (vector (lambda () (multiport-read (list DOWN UP)))
+                         (lambda (v) (multiport-write (list DOWN UP) v))))
+    (vector-set! memory &-DL-
+                 (vector (lambda () (multiport-read (list DOWN LEFT)))
+                         (lambda (v) (multiport-write (list DOWN LEFT) v))))
+    (vector-set! memory &-DLU
+                 (vector (lambda () (multiport-read (list DOWN LEFT UP)))
+                         (lambda (v) (multiport-write (list DOWN LEFT UP) v))))
+    (vector-set! memory &R--U
+                 (vector (lambda () (multiport-read (list RIGHT UP)))
+                         (lambda (v) (multiport-write (list RIGHT UP) v))))
+    (vector-set! memory &R-L-
+                 (vector (lambda () (multiport-read (list RIGHT LEFT)))
+                         (lambda (v) (multiport-write (list RIGHT LEFT) v))))
+    (vector-set! memory &R-LU
+                 (vector (lambda () (multiport-read (list RIGHT LEFT UP)))
+                         (lambda (v) (multiport-write (list RIGHT LEFT UP) v))))
+    (vector-set! memory &RD--
+                 (vector (lambda () (multiport-read (list RIGHT DOWN)))
+                         (lambda (v) (multiport-write (list RIGHT DOWN) v))))
+    (vector-set! memory &RD-U
+                 (vector (lambda () (multiport-read (list RIGHT DOWN UP)))
+                         (lambda (v) (multiport-write (list RIGHT DOWN UP) v))))
+    (vector-set! memory &RDL-
+                 (vector (lambda () (multiport-read (list RIGHT DOWN LEFT)))
+                         (lambda (v) (multiport-write (list RIGHT DOWN LEFT) v))))
+    (vector-set! memory &RDLU
+                 (vector (lambda () (multiport-read (list RIGHT DOWN LEFT UP)))
+                         (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
+                         )))
 
   (define (reset! [bit 18])
     (set! A 0)
