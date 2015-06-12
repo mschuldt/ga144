@@ -143,6 +143,7 @@
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
   (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
+  (unless current-word (raise "Error. You probably forgot to use 'node' first"))
   (vector-set! current-word current-slot inst)
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
