@@ -299,17 +299,24 @@
                 (node:finish-port-write writing-node)
                 (set! done #t)))))
       (if done ;;successfully read a value from one of the ports
-          (begin (set! multiport-read-ports ports)
-                 #t)
+          #t
           (begin ;;else: suspend while we wait for an other node to write
             (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+            (set! multiport-read-ports '())
             (for ([port ports])
               ;;(unless (vector-ref ludr-port-nodes port)
               ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
               ;;                 coord (vector-ref port-names port))))
-              (and (setq other (vector-ref ludr-port-nodes port))
-                   (node:receive-port-read (vector-ref ludr-port-nodes port)
-                                           port self)))
+              ;;TODO: this is a temp fix:
+              ;;     the current default instruction word is 'jump ludr'
+              ;;     If the node is on the edge this does not work as at least
+              ;;     one of the ports in ludr-port-nodes is #f.
+              ;;     Collect the valid nodes into 'multiport-read-ports'
+              ;;     for use in 'finish-port-read()'
+              (when (setq other (vector-ref ludr-port-nodes port))
+                (node:receive-port-read (vector-ref ludr-port-nodes port)
+                                        port self)
+                (set! multiport-read-ports (cons port multiport-read-ports))))
             (suspend)
             #f))))
 
