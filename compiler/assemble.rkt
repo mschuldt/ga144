@@ -1,5 +1,6 @@
 #lang racket
-(provide assemble)
+(provide assemble-word
+         assemble)
 
 (define names '#(";" "ex" "jump" "call" "unext" "next" "if" "-if" "@p" "@+" "@b"
                  "@" "!p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
