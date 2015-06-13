@@ -440,6 +440,65 @@ then
 "
   (check-dat 1 8 5 3 2 ))
 
+(define-test "comma"
+  "node 0 5 @p .. , 1 +"
+  (check-dat 0 6))
+
+(define-test "port-execution1"
+  "node 1
+east b!
+.. @p !b ..
+dup + dup .
+
+node 2
+3
+west push ;
+"
+  (check-dat 1 0)
+  (check-dat 2 6 6))
+
+(define-test "multiport-execution"
+  "node 101
+east b!
+.. @p !b ..
+dup + dup .
+node 102
+3 rdlu ;"
+  (check-dat 101 0)
+  (check-dat 102 6 6))
+
+(define-test "port-execution2"
+  "node 1
+0 if
+: set @p ! ! ; .. @p . a! ..
+: !next @p ! ! ; .. @p . !+ ..
+then
+east a!
+0 set
+9 !next
+3 !next
+5 !next
+"
+  (check-dat 1 0)
+  (check-mem 2 9 3 5))
+
+;; ;;http://www.greenarraychips.com/home/documents/greg/AB004-141021-PORTEX.pdf
+(define-test "port-execution3"
+  "node 1
+0 if
+: set @p ! ! ; .. @p a! ..
+: @next @p ! @ ; .. @+ !p ..
+: !next @p ! ! ; .. @p !+ ..
+: fetch set @next ;
+: store set !next ;
+then
+east a!
+0 set
+6 !next 3 !next
+0 set
+@next dup @next"
+  (check-dat 1 3 6 6)
+  (check-mem 2 6 3))
 
 (define (run-tests)
   (set! tests-failed 0)
