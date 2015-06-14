@@ -11,8 +11,8 @@
 (define address-ops '("jump" "call" "next" "if" "-if"))
 (define ops-that-end-word '("unext" ";"))
 
-(define (disassemble-inst from to index start end jump)
-  (let ((inst (vector-ref names (* (bitwise-bit-field from start end)
+(define (disassemble-inst from from^ to index start end jump)
+  (let ((inst (vector-ref names (* (bitwise-bit-field from^ start end)
                                    (if jump 1 4)))))
     (vector-set! to index inst)
     (if (and (member inst address-ops)
@@ -22,11 +22,13 @@
         (not (member inst ops-that-end-word)))))
 
 (define (disassemble-word word)
-  (let ((to (make-vector 4 #f)))
-    (and (disassemble-inst word to 0 13 18 10)
-         (disassemble-inst word to 1 8 13 8)
-         (disassemble-inst word to 2 3 8 3)
-         (disassemble-inst word to 3 0 3 #f))
+  (let ((to (make-vector 4 #f))
+        (word^ (and word (bitwise-xor word #x15555))))
+    (and word
+         (disassemble-inst word word^ to 0 13 18 10)
+         (disassemble-inst word word^ to 1 8 13 8)
+         (disassemble-inst word word^ to 2 3 8 3)
+         (disassemble-inst word word^ to 3 0 3 #f))
     to))
 
 (define (disassemble nodes)

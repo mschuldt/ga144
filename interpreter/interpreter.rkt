@@ -153,6 +153,7 @@
   (define B 0)
   (define P 0)
   (define I 0)
+  (define I^ 0)
   (define R 0)
   (define S 0)
   (define T 0)
@@ -440,10 +441,11 @@
 
   (define (step0-helper)
     (set! I (d-pop!))
+    (set! I^ (^ I #x15555))
     (set! P (incr P))
     (if (eq? I 'end)
         (suspend)
-        (set! step-fn (if (execute! (bitwise-bit-field I 13 18) 10)
+        (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
                           step1
                           step0))))
   (define (step0)
@@ -455,17 +457,17 @@
         (set! step-fn step0-helper)))
 
   (define (step1)
-    (set! step-fn (if (execute! (bitwise-bit-field I 8 13) 8)
+    (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8)
                       step2
                       step0)))
 
   (define (step2)
-    (set! step-fn (if (execute! (bitwise-bit-field I 3 8) 3)
+    (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3)
                       step3
                       step0)))
 
   (define (step3)
-    (execute! (<< (bitwise-bit-field I 0 3) 2))
+    (execute! (<< (bitwise-bit-field I^ 0 3) 2))
     (set! step-fn step0))
 
   (define step-fn step0)
@@ -732,7 +734,7 @@
     (set! S 0)
     (set! T 0)
     (set! IO #x15555)
-    (set! memory (make-vector MEM-SIZE 16805)) ;;16805 => ludr multiport jump
+    (set! memory (make-vector MEM-SIZE 65957)) ;;65957 => ludr multiport jump
     (set! dstack (make-stack 8))
     (set! rstack (make-stack 8))
     (set! blocking-read #f)

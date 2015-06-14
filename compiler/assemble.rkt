@@ -6,11 +6,16 @@
                  "@" "!p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
                  "dup" "pop" "over" "a" "." "push" "b!" "a!"))
 
+
+(define masks (vector #b1010 #b10101 #b1010 #b101))
+(define (xor-inst inst slot) (bitwise-xor inst (vector-ref masks slot)))
+
 (define (assemble-inst word slot shift)
   (let ((inst (vector-ref word slot)))
     (if (string? inst)
-        (arithmetic-shift (floor (/ (vector-member inst names)
-                                    (if (= slot 3) 4 1)))
+        (arithmetic-shift (xor-inst (floor (/ (vector-member inst names)
+                                              (if (= slot 3) 4 1)))
+                                    slot)
                           shift)
         (or inst 0))))
 
