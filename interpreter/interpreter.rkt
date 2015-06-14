@@ -742,6 +742,7 @@
     (set! writing-nodes (make-vector 4 #f))
     (set! reading-nodes (make-vector 4 #f))
     (set! port-vals (make-vector 4 #f))
+    (set! step-fn step0)
     (setup-ports))
   (declare-public reset!)
 
