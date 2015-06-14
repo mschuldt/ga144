@@ -59,8 +59,8 @@
 ;;builds matrix of 144 f18 nodes
 (define (build-node-matrix)
   (for ([i 144])
-    (vector-set! nodes i (make-node i)))
-  (vector-map node:init-ludr-port-nodes nodes))
+    (vector-set! nodes i (new node% [index i])))
+  (vector-map (lambda (node) (send node init-ludr-port-nodes)) nodes))
 
 (define (coord->node coord)
   (let ([index (coord->index coord)])
@@ -109,7 +109,7 @@
     (assemble compiled)
     (for ([code compiled])
       (set! node (coord->node (car code)))
-      (node:load-code node (TEMPORARY_CONVERT (cdr code))))
+      (send node load-code (TEMPORARY_CONVERT (cdr code))))
     (when assembled-file
       (with-output-to-file assembled-file
         (lambda () (display-disassemble compiled))
@@ -137,8 +137,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; node object
 
-(define (make-node index)
-  (define self (make-vector N-METHODS))
+(define node%
+  (class object%
+    (super-new)
+    (init-field index)
 
   (define active-index index);;index of this node in teh 'active-nodes' vector
   (define suspended #f)
@@ -221,10 +223,10 @@
     (let ((last-active-node (vector-ref active-nodes last-active-index)))
       ;;swap self with current node in 'active-nodes'
       (vector-set! active-nodes current-node-index last-active-node)
-      (vector-set! active-nodes last-active-index self)
+      (vector-set! active-nodes last-active-index this)
       ;;save the new node indices
       (set! active-index last-active-index)
-      (node:set-aindex last-active-node current-node-index)
+      (send last-active-node set-aindex current-node-index)
       ;;decrement the number of active nodes
       (set! last-active-index (sub1 last-active-index))))
 
@@ -233,9 +235,9 @@
     (let ((first-inactive-node (vector-ref active-nodes last-active-index)))
       ;;swap self with firt inactive node in 'active-nodes'
       (vector-set! active-nodes active-index first-inactive-node)
-      (vector-set! active-nodes last-active-index self)
+      (vector-set! active-nodes last-active-index this)
       ;;save the new node indices
-      (node:set-aindex first-inactive-node active-index)
+      (send first-inactive-node set-aindex active-index)
       (set! active-index last-active-index)))
 
   (define (suspend)
@@ -274,11 +276,11 @@
             ;;clear state from last reading
             (vector-set! writing-nodes port #f)
             ;;let other node know we read the value
-            (node:finish-port-write writing-node)
+            (send writing-node finish-port-write)
             #t)
           (begin ;;else: suspend while we wait for other node to write
             (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-            (node:receive-port-read (vector-ref ludr-port-nodes port) port self)
+            (send (vector-ref ludr-port-nodes port) receive-port-read port this)
             (suspend)
             #f))))
 
@@ -297,7 +299,7 @@
                           (vector-ref port-vals port)))
                 (d-push! (vector-ref port-vals port))
                 (vector-set! writing-nodes port #f)
-                (node:finish-port-write writing-node)
+                (send writing-node finish-port-write)
                 (set! done #t)))))
       (if done ;;successfully read a value from one of the ports
           #t
@@ -315,8 +317,8 @@
               ;;     Collect the valid nodes into 'multiport-read-ports'
               ;;     for use in 'finish-port-read()'
               (when (setq other (vector-ref ludr-port-nodes port))
-                (node:receive-port-read (vector-ref ludr-port-nodes port)
-                                        port self)
+                (send (vector-ref ludr-port-nodes port)
+                      receive-port-read port this)
                 (set! multiport-read-ports (cons port multiport-read-ports))))
             (suspend)
             #f))))
@@ -330,12 +332,12 @@
           (begin
             (when (PORT-DEBUG? coord) (printf "       target is ready\n"))
             (vector-set! reading-nodes port #f)
-            (node:finish-port-read reading-node value)
+            (send reading-node finish-port-read value)
             #t)
           (begin
             (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-            (node:receive-port-write
-             (vector-ref ludr-port-nodes port) port value self)
+            (send (vector-ref ludr-port-nodes port)
+              receive-port-write port value this)
             (suspend)
             #f))))
 
@@ -349,10 +351,10 @@
         (when (setq reading-node (vector-ref reading-nodes port))
           (when (PORT-DEBUG? coord) (printf "       wrote to port: ~a" port))
           (vector-set! reading-nodes port #f)
-          (node:finish-port-read reading-node value))))
+          (send reading-node finish-port-read value))))
     #t)
 
-  (define (finish-port-read val)
+  (define/public (finish-port-read val)
     ;;called by adjacent node when it writes to a port we are reading from
     (when (PORT-DEBUG? coord) (printf "[~a](finish-port-read  ~a)\n" coord val))
     (d-push! val)
@@ -360,33 +362,30 @@
       ;;there may be other nodes that still think we are waiting for them to write
       (for ([port multiport-read-ports])
         ;;reuse 'receive-port-read' to cancel the read notification
-        (node:receive-port-read (vector-ref ludr-port-nodes port) port #f))
+        (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
       (set! multiport-read-ports #f))
     (wakeup))
-  (declare-public finish-port-read)
 
-  (define (finish-port-write)
+  (define/public (finish-port-write)
     ;;called by adjacent node when it reads from a port we are writing to
     (when (PORT-DEBUG? coord) (printf "[~a](finish-port-write)\n" coord))
     (wakeup))
-  (declare-public finish-port-write)
 
-  (define (receive-port-read port node)
+  (define/public (receive-port-read port node)
     ;;called by adjacent node when it is reading from one of our ports
     (when (PORT-DEBUG? coord)
       (printf "[~a](receive-port-read ~a   ~a)\n"
-              coord port (and node (node:str node))))
+              coord port (and node (send node str))))
     (vector-set! reading-nodes port node))
-  (declare-public receive-port-read)
 
-  (define (receive-port-write port value node)
+  (define/public (receive-port-write port value node)
     (when (PORT-DEBUG? coord)
       (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
-              coord port value (node:str node)))
+              coord port value (send node str)))
     ;;called by adjacent noe when it is writing to one of our ports
     (vector-set! writing-nodes port node)
     (vector-set! port-vals port value))
-  (declare-public receive-port-write)
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; memory accesses
 
@@ -644,39 +643,21 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; public methods
 
-  (defmacro declare-public (name)
-    #`(vector-set! self
-                   #,(string->symbol (string-append (symbol->string name) "-i"))
-                   #,name))
+  (define/public (get-memory) memory)
+  (define/public (get-rstack) rstack)
+  (define/public (get-dstack) dstack)
+  (define/public (get-registers) (list A B P I R S T))
 
-  ;; (define (get-coord) coord)
-  ;; (declare-public get-coord)
-  (vector-set! self get-coord-i coord)
-
-  (define (get-memory) memory)
-  (declare-public get-memory)
-
-  (define (get-rstack) rstack)
-  (declare-public get-rstack)
-
-  (define (get-dstack) dstack)
-  (declare-public get-dstack)
-
-  (define (get-registers) (list A B P I R S T))
-  (declare-public get-registers)
-
-  (define (load-code code)
+  (define/public (load-code code)
     (define (load code index)
       (unless (null? code)
         (vector-set! memory index (car code))
         (load (cdr code) (add1 index))))
     (load code 0))
-  (declare-public load-code)
 
   ;; Returns a snapshot of the current state.
-  (define (current-state)
+  (define/public (current-state)
     (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
-  (declare-public current-state)
 
   (define (setup-ports)
     (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
@@ -726,7 +707,7 @@
                          (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
                          )))
 
-  (define (reset! [bit 18])
+  (define/public (reset! [bit 18])
     (set! A 0)
     (set! B 0)
     (set! P 0)
@@ -747,29 +728,24 @@
     (set! port-vals (make-vector 4 #f))
     (set! step-fn step0)
     (setup-ports))
-  (declare-public reset!)
 
   ;; Resets only p
-  (define (reset-p! [start 0])
+  (define/public (reset-p! [start 0])
     (set! P start))
-  (declare-public reset-p!)
 
   ;; Executes one step of the program by fetching a word, incrementing
   ;; p and executing the word.
   ;; returns #f when P = 0, else #t
-  (define (step-program!)
+  (define/public (step-program!)
     (when DEBUG? (printf "\nstep-program! node ~a\n" coord))
     (step-fn)
     (when (and DEBUG? DISPLAY_STATE?) (display-state (list coord))))
 
-  (declare-public step-program!)
-
   ;; Steps the program n times.
-  (define (step-program-n! n)
+  (define/public (step-program-n! n)
     (for ([i (in-range 0 n)]) (step-program!)))
-  (declare-public step-program-n!)
 
-  (define (init-ludr-port-nodes)
+  (define/public (init-ludr-port-nodes)
     (define (convert dir)
       (let ([x (remainder coord 100)]
             [y (quotient coord 100)])
@@ -787,21 +763,15 @@
       (vector-set! ludr-port-nodes (convert "south") south)
       (vector-set! ludr-port-nodes (convert "west") west)))
 
-  (declare-public init-ludr-port-nodes)
+  (define/public (get-ludr-port-nodes) ludr-port-nodes)
 
-  (define (get-ludr-port-nodes) ludr-port-nodes)
-  (declare-public get-ludr-port-nodes)
-
-  (define (set-aindex index)
+  (define/public (set-aindex index)
     (set! active-index index))
-  (declare-public set-aindex)
 
-  (define (str)
+  (define/public (str)
     (format "<node ~a>" coord))
-  (declare-public str)
 
-  self
-  );;end make-node
+  ));;end class node%
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; execution control
@@ -811,7 +781,7 @@
   (when (> current-node-index last-active-index)
     (set! current-node-index 0))
   (set! current-node (vector-ref active-nodes current-node-index))
-  (node:step-program! current-node)
+  (send current-node step-program!)
   (set! current-node-index (add1 current-node-index)))
 
 (define (step-program-n! n)
@@ -840,7 +810,7 @@
   (set! last-active-index 143)
   (set! current-node-index 0)
   (set! current-node (vector-ref active-nodes current-node-index))
-  (vector-map node:reset! nodes))
+  (vector-map (lambda (node) (send node reset!)) nodes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state display functions
@@ -866,8 +836,8 @@
                    (map coord->node nodes)
                    (list-active-nodes))))
     (for ([node nodes])
-      (printf "_____Node ~a state_____\n" (node:get-coord node))
-      (let ((state (node:current-state node)))
+      (printf "_____Node ~a state_____\n" (send node get-coord))
+      (let ((state (send node current-state)))
         (printf "p:~a a:~a b:~a r:~a\n"
                 (state-p state)
                 (state-a state)
@@ -884,9 +854,9 @@
                    (map coord->node nodes)
                    (list-active-nodes))))
     (for ([node nodes])
-      (let ((state (node:current-state node)))
+      (let ((state (send node current-state)))
         (display (format "(~a)|d> ~x ~x"
-                         (node:get-coord node)
+                         (send node get-coord)
                          (state-t state)
                          (state-s state)))
         (display-stack (state-dstack state))
@@ -894,7 +864,7 @@
 
 (define (display-memory coord [n MEM-SIZE])
   (let* ((node (coord->node coord))
-         (mem (state-memory (node:current-state node)))
+         (mem (state-memory (send node current-state)))
          (n (sub1 n)))
     (define (print i)
       (let ((v (vector-ref mem i)))
@@ -905,87 +875,6 @@
     (printf "node ~a memory: " coord)
     (print 0)
     (newline)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; methods
-
-;; (defmacro method (name)
-;;   #`(define #,(string->symbol (string-append (symbol->string name) "-i"))
-;;       (begin (set! method-count (add1 method-count))
-;;              method-count))
-;;   )
-
-(define N-METHODS 0)
-(define (i) (let ([index N-METHODS])
-              (set! N-METHODS (add1 N-METHODS))
-              index))
-
-(define get-coord-i (i))
-(define (node:get-coord node) (vector-ref node get-coord-i))
-
-(define get-memory-i (i))
-(define (node:get-memory node) ((vector-ref node get-memory-i)))
-
-(define get-rstack-i (i))
-(define (node:get-rstack node) ((vector-ref node get-rstack-i)))
-
-(define get-dstack-i (i))
-(define (node:get-dstack node) ((vector-ref node get-dstack-i)))
-
-(define get-registers-i (i))
-(define (get-registers node) ((vector-ref node get-registers-i)))
-
-(define load-code-i (i))
-(define (node:load-code node code)
-  ((vector-ref node load-code-i) code))
-
-(define current-state-i (i))
-(define (node:current-state node) ((vector-ref node current-state-i)))
-
-(define reset!-i (i))
-(define (node:reset! node) ((vector-ref node reset!-i)))
-
-(define reset-p!-i (i))
-(define (node:reset-p! node) ((vector-ref node reset-p!-i)))
-
-(define step-program!-i (i))
-(define (node:step-program! node)
-  ((vector-ref node step-program!-i)))
-
-(define step-program-n!-i (i))
-(define (node:step-program-n! node n)
-  ((vector-ref node step-program-n!-i) n))
-
-(define init-ludr-port-nodes-i (i))
-(define (node:init-ludr-port-nodes node)
-  ((vector-ref node init-ludr-port-nodes-i)))
-
-(define get-ludr-port-nodes-i (i))
-(define (node:get-ludr-port-nodes node)
-  ((vector-ref node get-ludr-port-nodes-i)))
-
-(define set-aindex-i (i))
-(define (node:set-aindex node index)
-  ((vector-ref node set-aindex-i) index))
-
-(define finish-port-read-i (i))
-(define (node:finish-port-read node val)
-  ((vector-ref node finish-port-read-i) val))
-
-(define finish-port-write-i (i))
-(define (node:finish-port-write node)
-  ((vector-ref node finish-port-write-i)))
-
-(define receive-port-read-i (i))
-(define (node:receive-port-read node port _node)
-  ((vector-ref node receive-port-read-i) port _node))
-
-(define receive-port-write-i (i))
-(define (node:receive-port-write node port value _node)
-  ((vector-ref node receive-port-write-i) port value _node))
-
-(define str-i (i))
-(define (node:str node) ((vector-ref node str-i)))
 
 (define (initialize)
   (build-node-matrix)

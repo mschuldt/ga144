@@ -48,7 +48,7 @@
 
 (define-syntax-rule (check-mem coord mem ...)
   (lambda () (let* ((m (map 18bit (list mem ...)))
-                    (memory (node:get-memory (coord->node coord)))
+                    (memory (send (coord->node coord) get-memory))
                     (s (length m)))
                (if (same-subset-v? m memory)
                    #f
@@ -62,7 +62,7 @@
 
 (defmacro check-reg (coord var val)
   #`(lambda ()  (let* ((node (coord->node #,coord))
-                       (state (node:current-state node))
+                       (state (send node current-state))
                        (val (#,(begin (unless (member var '(a b p i r s t))
                                         (raise "check-reg: invalid register"))
                                       (string->symbol
@@ -80,14 +80,14 @@
                              (quote #,var) val)))))
 
 (define (data-stack->list coord)
-  (let* ((state (node:current-state (coord->node coord)))
+  (let* ((state (send (coord->node coord) current-state))
          (data (state-dstack state))
          (t (state-t state))
          (s (state-s state)))
     (cons t (cons s (stack->list data)))))
 
 (define (return-stack->list coord)
-  (let* ((state (node:current-state (coord->node coord)))
+  (let* ((state (send (coord->node coord) current-state))
          (rstack (state-rstack state))
          (r (state-r state)))
     (cons r (stack->list rstack))))
