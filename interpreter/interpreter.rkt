@@ -142,636 +142,636 @@
     (super-new)
     (init-field index)
 
-  (define active-index index);;index of this node in teh 'active-nodes' vector
-  (define suspended #f)
-  (define coord (index->coord index))
+    (define active-index index);;index of this node in teh 'active-nodes' vector
+    (define suspended #f)
+    (define coord (index->coord index))
 
-  ;; stacks:
-  (define dstack (make-stack 8))
-  (define rstack (make-stack 8))
+    ;; stacks:
+    (define dstack (make-stack 8))
+    (define rstack (make-stack 8))
 
-  ;; registers:
-  (define A 0)
-  (define B 0)
-  (define P 0)
-  (define I 0)
-  (define I^ 0)
-  (define R 0)
-  (define S 0)
-  (define T 0)
-  (define IO #x15555)
+    ;; registers:
+    (define A 0)
+    (define B 0)
+    (define P 0)
+    (define I 0)
+    (define I^ 0)
+    (define R 0)
+    (define S 0)
+    (define T 0)
+    (define IO #x15555)
 
-  (define memory #f)
+    (define memory #f)
 
-  (define blocking-read #f)
-  (define blocking-write #f)
-  (define blocking #f)
-  (define multiport-read-ports #f)
+    (define blocking-read #f)
+    (define blocking-write #f)
+    (define blocking #f)
+    (define multiport-read-ports #f)
 
-  (define instructions (make-vector 35))
-  (define carry-bit 0)
-  (define extended-arith? #f)
+    (define instructions (make-vector 35))
+    (define carry-bit 0)
+    (define extended-arith? #f)
 
-  (define (18bit n)
-    (if (number? n);;temp fix
-        (& n #x3ffff)
-        n))
+    (define (18bit n)
+      (if (number? n);;temp fix
+          (& n #x3ffff)
+          n))
 
-  ;; Pushes to the data stack.
-  (define (d-push! value)
-    (push-stack! dstack S)
-    (set! S T)
-    (set! T (18bit value)))
+    ;; Pushes to the data stack.
+    (define (d-push! value)
+      (push-stack! dstack S)
+      (set! S T)
+      (set! T (18bit value)))
 
-  ;; Pushes to the rstack stack.
-  (define (r-push! value)
-    (push-stack! rstack R)
-    (set! R value))
+    ;; Pushes to the rstack stack.
+    (define (r-push! value)
+      (push-stack! rstack R)
+      (set! R value))
 
-  ;; Pops from the data stack.
-  (define (d-pop!)
-    (let ([ret-val T])
-      (set! T S)
-      (set! S (pop-stack! dstack))
-      ret-val))
+    ;; Pops from the data stack.
+    (define (d-pop!)
+      (let ([ret-val T])
+        (set! T S)
+        (set! S (pop-stack! dstack))
+        ret-val))
 
-  ;; Pops from the rstack stack.
-  (define (r-pop!)
-    (let ([ret-val R])
-      (set! R (pop-stack! rstack))
-      ret-val))
+    ;; Pops from the rstack stack.
+    (define (r-pop!)
+      (let ([ret-val R])
+        (set! R (pop-stack! rstack))
+        ret-val))
 
-  ;; Return the value of p or a incremented as appropriately. If the
-  ;; register points to an IO region, does nothing. Otherwise increment
-  ;; the register circularly within the current memory region (RAM or
-  ;; ROM).
-  (define (incr curr) ;; DB001 section 2.2
-    (if (> (& curr #x100) 0)
-        curr
-        (let ([bit9 (& curr #x200)]
-              [addr (& curr #xff)])
-          (ior (cond [(< addr #x7F) (add1 addr)]
-                     [(= addr #x7F) 0]
-                     [(< addr #xFF) (add1 addr)]
-                     [(= addr #xFF) #x80])
-               bit9))))
+    ;; Return the value of p or a incremented as appropriately. If the
+    ;; register points to an IO region, does nothing. Otherwise increment
+    ;; the register circularly within the current memory region (RAM or
+    ;; ROM).
+    (define (incr curr) ;; DB001 section 2.2
+      (if (> (& curr #x100) 0)
+          curr
+          (let ([bit9 (& curr #x200)]
+                [addr (& curr #xff)])
+            (ior (cond [(< addr #x7F) (add1 addr)]
+                       [(= addr #x7F) 0]
+                       [(< addr #xFF) (add1 addr)]
+                       [(= addr #xFF) #x80])
+                 bit9))))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; suspension and wakeup
-  (define (remove-from-active-list)
-    (let ((last-active-node (vector-ref active-nodes last-active-index)))
-      ;;swap self with current node in 'active-nodes'
-      (vector-set! active-nodes current-node-index last-active-node)
-      (vector-set! active-nodes last-active-index this)
-      ;;save the new node indices
-      (set! active-index last-active-index)
-      (send last-active-node set-aindex current-node-index)
-      ;;decrement the number of active nodes
-      (set! last-active-index (sub1 last-active-index))))
+    ;; suspension and wakeup
+    (define (remove-from-active-list)
+      (let ((last-active-node (vector-ref active-nodes last-active-index)))
+        ;;swap self with current node in 'active-nodes'
+        (vector-set! active-nodes current-node-index last-active-node)
+        (vector-set! active-nodes last-active-index this)
+        ;;save the new node indices
+        (set! active-index last-active-index)
+        (send last-active-node set-aindex current-node-index)
+        ;;decrement the number of active nodes
+        (set! last-active-index (sub1 last-active-index))))
 
-  (define (add-to-active-list)
-    (set! last-active-index (add1 last-active-index))
-    (let ((first-inactive-node (vector-ref active-nodes last-active-index)))
-      ;;swap self with firt inactive node in 'active-nodes'
-      (vector-set! active-nodes active-index first-inactive-node)
-      (vector-set! active-nodes last-active-index this)
-      ;;save the new node indices
-      (send first-inactive-node set-aindex active-index)
-      (set! active-index last-active-index)))
+    (define (add-to-active-list)
+      (set! last-active-index (add1 last-active-index))
+      (let ((first-inactive-node (vector-ref active-nodes last-active-index)))
+        ;;swap self with firt inactive node in 'active-nodes'
+        (vector-set! active-nodes active-index first-inactive-node)
+        (vector-set! active-nodes last-active-index this)
+        ;;save the new node indices
+        (send first-inactive-node set-aindex active-index)
+        (set! active-index last-active-index)))
 
-  (define (suspend)
-    (remove-from-active-list)
-    (set! suspended #t))
+    (define (suspend)
+      (remove-from-active-list)
+      (set! suspended #t))
 
-  (define (wakeup)
-    (add-to-active-list)
-    (set! suspended #f))
+    (define (wakeup)
+      (add-to-active-list)
+      (set! suspended #f))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; ludr port communication
+    ;; ludr port communication
 
-  ;; adjacent nodes that are suspended, waiting for this node to read to a port
-  (define writing-nodes (make-vector 4 #f))
+    ;; adjacent nodes that are suspended, waiting for this node to read to a port
+    (define writing-nodes (make-vector 4 #f))
 
-  ;;values written to a ludr port by a pending write
-  ;;each node in the 'writing-nodes' array has a corresponding value here
-  (define port-vals (make-vector 4 #f))
+    ;;values written to a ludr port by a pending write
+    ;;each node in the 'writing-nodes' array has a corresponding value here
+    (define port-vals (make-vector 4 #f))
 
-  ;; adjacent nodes that are suspended, waiting for this node to write to a port
-  (define reading-nodes (make-vector 4 #f))
+    ;; adjacent nodes that are suspended, waiting for this node to write to a port
+    (define reading-nodes (make-vector 4 #f))
 
-  ;;maps ludr ports to adjacent nodes
-  (define ludr-port-nodes #f)
+    ;;maps ludr ports to adjacent nodes
+    (define ludr-port-nodes #f)
 
-  (define (port-read port)
-    (when (PORT-DEBUG? coord) (printf "[~a](port-read ~a)\n" coord port))
-    ;;read a value from a ludr port
-    ;;returns #t if value is one the stack, #f if we are suspended waiting for it
-    (let ((writing-node (vector-ref writing-nodes port)))
-      (if writing-node
-          (begin ;;value was ready
-            (when (PORT-DEBUG? coord) (printf "       value was ready: ~a\n"
-                                              (vector-ref port-vals port)))
-            (d-push! (vector-ref port-vals port))
-            ;;clear state from last reading
-            (vector-set! writing-nodes port #f)
-            ;;let other node know we read the value
-            (send writing-node finish-port-write)
-            #t)
-          (begin ;;else: suspend while we wait for other node to write
-            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-            (send (vector-ref ludr-port-nodes port) receive-port-read port this)
-            (suspend)
-            #f))))
+    (define (port-read port)
+      (when (PORT-DEBUG? coord) (printf "[~a](port-read ~a)\n" coord port))
+      ;;read a value from a ludr port
+      ;;returns #t if value is one the stack, #f if we are suspended waiting for it
+      (let ((writing-node (vector-ref writing-nodes port)))
+        (if writing-node
+            (begin ;;value was ready
+              (when (PORT-DEBUG? coord) (printf "       value was ready: ~a\n"
+                                                (vector-ref port-vals port)))
+              (d-push! (vector-ref port-vals port))
+              ;;clear state from last reading
+              (vector-set! writing-nodes port #f)
+              ;;let other node know we read the value
+              (send writing-node finish-port-write)
+              #t)
+            (begin ;;else: suspend while we wait for other node to write
+              (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+              (send (vector-ref ludr-port-nodes port) receive-port-read port this)
+              (suspend)
+              #f))))
 
-  (define (multiport-read ports)
-    (when (PORT-DEBUG? coord) (printf "[~a](multiport-read ~a)\n" coord ports))
-    (let ([done #f]
-          [writing-node #f]
-          [other #f])
-      (for ([port ports])
-        (when (setq writing-node (vector-ref writing-nodes port))
-          (if done
-              (printf "Error: multiport-read -- more then one node writing")
-              (begin
-                (when (PORT-DEBUG? coord)
-                  (printf "       value was ready: ~a\n"
-                          (vector-ref port-vals port)))
-                (d-push! (vector-ref port-vals port))
-                (vector-set! writing-nodes port #f)
-                (send writing-node finish-port-write)
-                (set! done #t)))))
-      (if done ;;successfully read a value from one of the ports
-          #t
-          (begin ;;else: suspend while we wait for an other node to write
-            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-            (set! multiport-read-ports '())
-            (for ([port ports])
-              ;;(unless (vector-ref ludr-port-nodes port)
-              ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
-              ;;                 coord (vector-ref port-names port))))
-              ;;TODO: this is a temp fix:
-              ;;     the current default instruction word is 'jump ludr'
-              ;;     If the node is on the edge this does not work as at least
-              ;;     one of the ports in ludr-port-nodes is #f.
-              ;;     Collect the valid nodes into 'multiport-read-ports'
-              ;;     for use in 'finish-port-read()'
-              (when (setq other (vector-ref ludr-port-nodes port))
-                (send (vector-ref ludr-port-nodes port)
-                      receive-port-read port this)
-                (set! multiport-read-ports (cons port multiport-read-ports))))
-            (suspend)
-            #f))))
+    (define (multiport-read ports)
+      (when (PORT-DEBUG? coord) (printf "[~a](multiport-read ~a)\n" coord ports))
+      (let ([done #f]
+            [writing-node #f]
+            [other #f])
+        (for ([port ports])
+          (when (setq writing-node (vector-ref writing-nodes port))
+            (if done
+                (printf "Error: multiport-read -- more then one node writing")
+                (begin
+                  (when (PORT-DEBUG? coord)
+                    (printf "       value was ready: ~a\n"
+                            (vector-ref port-vals port)))
+                  (d-push! (vector-ref port-vals port))
+                  (vector-set! writing-nodes port #f)
+                  (send writing-node finish-port-write)
+                  (set! done #t)))))
+        (if done ;;successfully read a value from one of the ports
+            #t
+            (begin ;;else: suspend while we wait for an other node to write
+              (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+              (set! multiport-read-ports '())
+              (for ([port ports])
+                ;;(unless (vector-ref ludr-port-nodes port)
+                ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
+                ;;                 coord (vector-ref port-names port))))
+                ;;TODO: this is a temp fix:
+                ;;     the current default instruction word is 'jump ludr'
+                ;;     If the node is on the edge this does not work as at least
+                ;;     one of the ports in ludr-port-nodes is #f.
+                ;;     Collect the valid nodes into 'multiport-read-ports'
+                ;;     for use in 'finish-port-read()'
+                (when (setq other (vector-ref ludr-port-nodes port))
+                  (send (vector-ref ludr-port-nodes port)
+                        receive-port-read port this)
+                  (set! multiport-read-ports (cons port multiport-read-ports))))
+              (suspend)
+              #f))))
 
-  (define (port-write port value)
-    (when (PORT-DEBUG? coord)
-      (printf "[~a](port-write ~a  ~a)\n" coord port value))
-    ;;writes a value to a ludr port
-    (let ((reading-node (vector-ref reading-nodes port)))
-      (if reading-node
-          (begin
-            (when (PORT-DEBUG? coord) (printf "       target is ready\n"))
+    (define (port-write port value)
+      (when (PORT-DEBUG? coord)
+        (printf "[~a](port-write ~a  ~a)\n" coord port value))
+      ;;writes a value to a ludr port
+      (let ((reading-node (vector-ref reading-nodes port)))
+        (if reading-node
+            (begin
+              (when (PORT-DEBUG? coord) (printf "       target is ready\n"))
+              (vector-set! reading-nodes port #f)
+              (send reading-node finish-port-read value)
+              #t)
+            (begin
+              (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+              (send (vector-ref ludr-port-nodes port)
+                    receive-port-write port value this)
+              (suspend)
+              #f))))
+
+    (define (multiport-write ports value)
+      ;; "every node that intends to read the value written
+      ;;  must already be doing so and suspended"
+      (when (PORT-DEBUG? coord)
+        (printf "[~a](multiport-write ~a  ~a)\n" coord ports value))
+      (let ([reading-node #f])
+        (for ([port ports])
+          (when (setq reading-node (vector-ref reading-nodes port))
+            (when (PORT-DEBUG? coord) (printf "       wrote to port: ~a" port))
             (vector-set! reading-nodes port #f)
-            (send reading-node finish-port-read value)
-            #t)
-          (begin
-            (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-            (send (vector-ref ludr-port-nodes port)
-              receive-port-write port value this)
-            (suspend)
-            #f))))
+            (send reading-node finish-port-read value))))
+      #t)
 
-  (define (multiport-write ports value)
-    ;; "every node that intends to read the value written
-    ;;  must already be doing so and suspended"
-    (when (PORT-DEBUG? coord)
-      (printf "[~a](multiport-write ~a  ~a)\n" coord ports value))
-    (let ([reading-node #f])
-      (for ([port ports])
-        (when (setq reading-node (vector-ref reading-nodes port))
-          (when (PORT-DEBUG? coord) (printf "       wrote to port: ~a" port))
-          (vector-set! reading-nodes port #f)
-          (send reading-node finish-port-read value))))
-    #t)
+    (define/public (finish-port-read val)
+      ;;called by adjacent node when it writes to a port we are reading from
+      (when (PORT-DEBUG? coord) (printf "[~a](finish-port-read  ~a)\n" coord val))
+      (d-push! val)
+      (when multiport-read-ports
+        ;;there may be other nodes that still think we are waiting for them to write
+        (for ([port multiport-read-ports])
+          ;;reuse 'receive-port-read' to cancel the read notification
+          (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
+        (set! multiport-read-ports #f))
+      (wakeup))
 
-  (define/public (finish-port-read val)
-    ;;called by adjacent node when it writes to a port we are reading from
-    (when (PORT-DEBUG? coord) (printf "[~a](finish-port-read  ~a)\n" coord val))
-    (d-push! val)
-    (when multiport-read-ports
-      ;;there may be other nodes that still think we are waiting for them to write
-      (for ([port multiport-read-ports])
-        ;;reuse 'receive-port-read' to cancel the read notification
-        (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
-      (set! multiport-read-ports #f))
-    (wakeup))
+    (define/public (finish-port-write)
+      ;;called by adjacent node when it reads from a port we are writing to
+      (when (PORT-DEBUG? coord) (printf "[~a](finish-port-write)\n" coord))
+      (wakeup))
 
-  (define/public (finish-port-write)
-    ;;called by adjacent node when it reads from a port we are writing to
-    (when (PORT-DEBUG? coord) (printf "[~a](finish-port-write)\n" coord))
-    (wakeup))
+    (define/public (receive-port-read port node)
+      ;;called by adjacent node when it is reading from one of our ports
+      (when (PORT-DEBUG? coord)
+        (printf "[~a](receive-port-read ~a   ~a)\n"
+                coord port (and node (send node str))))
+      (vector-set! reading-nodes port node))
 
-  (define/public (receive-port-read port node)
-    ;;called by adjacent node when it is reading from one of our ports
-    (when (PORT-DEBUG? coord)
-      (printf "[~a](receive-port-read ~a   ~a)\n"
-              coord port (and node (send node str))))
-    (vector-set! reading-nodes port node))
-
-  (define/public (receive-port-write port value node)
-    (when (PORT-DEBUG? coord)
-      (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
-              coord port value (send node str)))
-    ;;called by adjacent noe when it is writing to one of our ports
-    (vector-set! writing-nodes port node)
-    (vector-set! port-vals port value))
+    (define/public (receive-port-write port value node)
+      (when (PORT-DEBUG? coord)
+        (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
+                coord port value (send node str)))
+      ;;called by adjacent noe when it is writing to one of our ports
+      (vector-set! writing-nodes port node)
+      (vector-set! port-vals port value))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; memory accesses
+    ;; memory accesses
 
-  ;;Determine if we are in RAM or ROM, return the index for that memory location
-  ;;DB001 section 2.2  Top half of RAM and ROM is repeated
-  (define (region-index addr)
-    (if (>= addr #x80);;ROM
-        (if (> addr #x0BF)
-            (- addr #x0BF)
-            addr)
-        (if (> addr #x3F)
+    ;;Determine if we are in RAM or ROM, return the index for that memory location
+    ;;DB001 section 2.2  Top half of RAM and ROM is repeated
+    (define (region-index addr)
+      (if (>= addr #x80);;ROM
+          (if (> addr #x0BF)
+              (- addr #x0BF)
+              addr)
+          (if (> addr #x3F)
 
-            (- addr #x3F)
-            addr)))
+              (- addr #x3F)
+              addr)))
 
-  (define (port-addr? addr)
-    ;;True if ADDR is an IO port or register, else False
-    (> (& addr #x100) 0))
+    (define (port-addr? addr)
+      ;;True if ADDR is an IO port or register, else False
+      (> (& addr #x100) 0))
 
-  ;;Port address in the 'memory' vector (0x100 - 0x1ff) contain
-  ;;vectors of functions to call when reading or writing to that port.
-  ;;First element is the read function, second is the write function.
-  ;;Invalid port numbers have the value #f
+    ;;Port address in the 'memory' vector (0x100 - 0x1ff) contain
+    ;;vectors of functions to call when reading or writing to that port.
+    ;;First element is the read function, second is the write function.
+    ;;Invalid port numbers have the value #f
 
-  (define (read-memory addr)
-    ;;pushes the value at memory location ADDR onto the data stack
-    (if (port-addr? addr)
-        (let ((x (vector-ref memory addr)))
-          (if (vector? x)
-              ((vector-ref x 0))
-              (printf "ERROR: read-memory(~a) - invalid port\n" addr)))
-        (d-push! (vector-ref memory (region-index addr)))))
+    (define (read-memory addr)
+      ;;pushes the value at memory location ADDR onto the data stack
+      (if (port-addr? addr)
+          (let ((x (vector-ref memory addr)))
+            (if (vector? x)
+                ((vector-ref x 0))
+                (printf "ERROR: read-memory(~a) - invalid port\n" addr)))
+          (d-push! (vector-ref memory (region-index addr)))))
 
-  (define (set-memory! addr value)
-    (if (port-addr? addr)
-        (let ((x (vector-ref memory addr)))
-          (if x
-              ((vector-ref x 1) value)
-              (printf "ERROR: set-memory!(~a, ~a) - invalid port\n" addr value)))
-        (vector-set! memory (region-index addr) value)))
+    (define (set-memory! addr value)
+      (if (port-addr? addr)
+          (let ((x (vector-ref memory addr)))
+            (if x
+                ((vector-ref x 1) value)
+                (printf "ERROR: set-memory!(~a, ~a) - invalid port\n" addr value)))
+          (vector-set! memory (region-index addr) value)))
 
-  (define (handle-io-change)
-    void;;TODO
-    )
+    (define (handle-io-change)
+      void;;TODO
+      )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; instruction execution
+    ;; instruction execution
 
-  (define (execute! opcode [jump-addr-pos 0])
-    (if (< opcode 8)
-        ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
-        ((vector-ref instructions opcode))))
+    (define (execute! opcode [jump-addr-pos 0])
+      (if (< opcode 8)
+          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+          ((vector-ref instructions opcode))))
 
-  (define (step0-helper)
-    (set! I (d-pop!))
-    (set! I^ (^ I #x15555))
-    (set! P (incr P))
-    (if (eq? I 'end)
-        (suspend)
-        (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
-                          step1
-                          step0))))
-  (define (step0)
-    (if (read-memory P)
-        ;;TODO: FIX: this should not use the stack
-        ;;           we could loose the last item on the stack this way
-        (step0-helper)
-        ;;else: we are now suspended waiting for the value
-        (set! step-fn step0-helper)))
+    (define (step0-helper)
+      (set! I (d-pop!))
+      (set! I^ (^ I #x15555))
+      (set! P (incr P))
+      (if (eq? I 'end)
+          (suspend)
+          (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
+                            step1
+                            step0))))
+    (define (step0)
+      (if (read-memory P)
+          ;;TODO: FIX: this should not use the stack
+          ;;           we could loose the last item on the stack this way
+          (step0-helper)
+          ;;else: we are now suspended waiting for the value
+          (set! step-fn step0-helper)))
 
-  (define (step1)
-    (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8)
-                      step2
-                      step0)))
+    (define (step1)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8)
+                        step2
+                        step0)))
 
-  (define (step2)
-    (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3)
-                      step3
-                      step0)))
+    (define (step2)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3)
+                        step3
+                        step0)))
 
-  (define (step3)
-    (execute! (<< (bitwise-bit-field I^ 0 3) 2))
-    (set! step-fn step0))
+    (define (step3)
+      (execute! (<< (bitwise-bit-field I^ 0 3) 2))
+      (set! step-fn step0))
 
-  (define step-fn step0)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; instructions
-
-  ;; Define a new instruction. An instruction can
-  ;; abort the rest of the current word by returning #f.
-  (define-syntax-rule (define-instruction! opcode args body ...)
-    (let ((n (or (vector-member opcode opcodes)
-                 (raise (format "Err: invalid opcode: '~s'" opcode)))))
-      (vector-set! instructions
-                   n
-                   (if DEBUG?
-                       (lambda args
-                         (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
-                         body ...)
-                       (lambda args
-                         body ...)))))
-
-  (define-instruction! "ret" (_)
-    (set! P R)
-    (r-pop!)
-    #f)
-
-  (define-instruction! "ex" (_)
-    (define temp P)
-    (set! P R)
-    (set! R temp)
-    #f)
-
-  (define-instruction! "jump" (addr)
-    (when DEBUG? (printf "jump to ~a\n" addr))
-    (set! P addr)
-    #f)
-
-  (define-instruction! "call" (addr)
-    (when DEBUG? (printf "calling: ~a\n" addr))
-    (r-push! P)
-    (set! P addr)
-    #f)
-
-  (define-instruction! "unext" (_) ;; -- hacky!
-    (if (= R 0)
-        (r-pop!)
-        (begin (set! R (sub1 R))
-               (set! P (sub1 P))
-               #f)))
-
-  (define-instruction! "next" (addr)
-    (if (= R 0)
-        (begin (r-pop!)
-               #f)
-        (begin (set! R (sub1 R))
-               (set! P addr)
-               #f)))
-
-  (define-instruction! "if" (addr)
-    (and (= T 0)
-         (begin (when DEBUG? (printf "If: jumping to ~a\n" addr))
-                (set! P addr))
-         #f))
-
-  (define-instruction! "-if" (addr)
-    (and (not (bitwise-bit-set? T 17))
-         (set! P addr)
-         #f))
-
-  (define-instruction! "@p" ()
-    (read-memory P)
-    (set! P (incr P)))
-
-  (define-instruction! "@+" () ; fetch-plus
-    (read-memory A)
-    (set! A (incr A)))
-
-  (define-instruction! "@b" () ;fetch-b
-    (read-memory B) #t)
-
-  (define-instruction! "@" (); fetch a
-    (read-memory A) #t)
-
-  (define-instruction! "!p" () ; store p
-    (set-memory! P (d-pop!))
-    (set! P (incr P)) #t)
-
-  (define-instruction! "!+" () ;store plus
-    (set-memory! A (d-pop!))
-    (set! A (incr A)) #t)
-
-  (define-instruction! "!b" (); store-b
-    (set-memory! B (d-pop!)) #t)
-
-  (define-instruction! "!" (); store
-    (set-memory! A (d-pop!)) #t)
-
-  (define-instruction! "+*" () ; multiply-step
-    ;;case 1 - If bit A0 is zero
-    ;;  Treats T:A as a single 36 bit register and shifts it right by one
-    ;;  bit. The most signficicant bit (T17) is kept the same.
-    ;;case 2 - If bit A0 is one
-    ;;  Sums T and S and concatenates the result with A, shifting
-    ;;  everything to the right by one bit to replace T:A
-    (if (& A 1)
-        ;;case 2:
-        (let* ([sum (if extended-arith?
-                        (let ([sum (+ T S carry-bit)])
-                          (set! carry-bit (& sum #x40000))
-                          sum)
-                        (+ T S))]
-               [sum17 (& sum #x20000)]
-               [result (ior (<< sum 17)
-                            (>> A 1))])
-          (set! A (bitwise-bit-field result 0 18))
-          (set! T (ior sum17 (bitwise-bit-field result 18 36))))
-        ;;case 2:
-        (let ([t17 (& T #x20000)]
-              [t0  (& T #x1)])
-          (set! T (ior t17 (>> T 1)))
-          (set! A (ior (<< t0 17)
-                       (>> A 1))))))
-
-  (define-instruction! "2*" ()
-    (set! T (18bit (<< T 1))))
-
-  (define-instruction! "2/" ()
-    (set! T (>> T 1)))
-
-  (define-instruction! "-" () ;not
-    (set! T (18bit (bitwise-not T))))
-
-  (define-instruction! "+" ()
-    (if extended-arith?
-        (let ([sum (+ (d-pop!) (d-pop!) carry-bit)])
-          (set! carry-bit (& sum #x40000))
-          (d-push! (18bit sum)))
-        (d-push! (18bit (+ (d-pop!) (d-pop!))))))
-
-  (define-instruction! "and" ()
-    (d-push! (& (d-pop!) (d-pop!))))
-
-  (define-instruction! "or" ()
-    (d-push! (^ (d-pop!) (d-pop!))))
-
-  (define-instruction! "drop" ()
-    (d-pop!))
-
-  (define-instruction! "dup" ()
-    (d-push! T))
-
-  (define-instruction! "pop" ()
-    (d-push! (r-pop!)))
-
-  (define-instruction! "over" ()
-    (d-push! S))
-
-  (define-instruction! "a" ()  ; read a
-    (d-push! A));;??
-
-  (define-instruction! "nop" () ;; .
-    (void))
-
-  (define-instruction! "push" ()
-    (r-push! (d-pop!)))
-
-  (define-instruction! "b!" () ;; store into b
-    (set! B (d-pop!)))
-
-  (define-instruction! "a!" () ;store into a
-    (set! A (d-pop!)))
+    (define step-fn step0)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; public methods
+    ;; instructions
 
-  (define/public (get-memory) memory)
-  (define/public (get-rstack) rstack)
-  (define/public (get-dstack) dstack)
-  (define/public (get-registers) (list A B P I R S T))
+    ;; Define a new instruction. An instruction can
+    ;; abort the rest of the current word by returning #f.
+    (define-syntax-rule (define-instruction! opcode args body ...)
+      (let ((n (or (vector-member opcode opcodes)
+                   (raise (format "Err: invalid opcode: '~s'" opcode)))))
+        (vector-set! instructions
+                     n
+                     (if DEBUG?
+                         (lambda args
+                           (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
+                           body ...)
+                         (lambda args
+                           body ...)))))
 
-  (define/public (load-code code)
-    (define (load code index)
-      (unless (null? code)
-        (vector-set! memory index (car code))
-        (load (cdr code) (add1 index))))
-    (load code 0))
+    (define-instruction! "ret" (_)
+      (set! P R)
+      (r-pop!)
+      #f)
 
-  ;; Returns a snapshot of the current state.
-  (define/public (current-state)
-    (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
+    (define-instruction! "ex" (_)
+      (define temp P)
+      (set! P R)
+      (set! R temp)
+      #f)
 
-  (define (setup-ports)
-    (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
-                                      (lambda (v) (port-write LEFT v))))
-    (vector-set! memory &RIGHT (vector (lambda () (port-read RIGHT))
-                                       (lambda (v) (port-write RIGHT v))))
-    (vector-set! memory &UP (vector (lambda () (port-read UP))
-                                    (lambda (v) (port-write UP v))))
-    (vector-set! memory &DOWN (vector (lambda () (port-read DOWN))
-                                      (lambda (v) (port-write DOWN v))))
-    (vector-set! memory &IO (vector (lambda () IO)
-                                    (lambda (v)
-                                      (set! IO v)
-                                      (handle-io-change))))
-    (vector-set! memory &--LU
-                 (vector (lambda () (multiport-read (list LEFT UP)))
-                         (lambda (v) (multiport-write (list LEFT UP) v))))
-    (vector-set! memory &-D-U
-                 (vector (lambda () (multiport-read (list DOWN UP)))
-                         (lambda (v) (multiport-write (list DOWN UP) v))))
-    (vector-set! memory &-DL-
-                 (vector (lambda () (multiport-read (list DOWN LEFT)))
-                         (lambda (v) (multiport-write (list DOWN LEFT) v))))
-    (vector-set! memory &-DLU
-                 (vector (lambda () (multiport-read (list DOWN LEFT UP)))
-                         (lambda (v) (multiport-write (list DOWN LEFT UP) v))))
-    (vector-set! memory &R--U
-                 (vector (lambda () (multiport-read (list RIGHT UP)))
-                         (lambda (v) (multiport-write (list RIGHT UP) v))))
-    (vector-set! memory &R-L-
-                 (vector (lambda () (multiport-read (list RIGHT LEFT)))
-                         (lambda (v) (multiport-write (list RIGHT LEFT) v))))
-    (vector-set! memory &R-LU
-                 (vector (lambda () (multiport-read (list RIGHT LEFT UP)))
-                         (lambda (v) (multiport-write (list RIGHT LEFT UP) v))))
-    (vector-set! memory &RD--
-                 (vector (lambda () (multiport-read (list RIGHT DOWN)))
-                         (lambda (v) (multiport-write (list RIGHT DOWN) v))))
-    (vector-set! memory &RD-U
-                 (vector (lambda () (multiport-read (list RIGHT DOWN UP)))
-                         (lambda (v) (multiport-write (list RIGHT DOWN UP) v))))
-    (vector-set! memory &RDL-
-                 (vector (lambda () (multiport-read (list RIGHT DOWN LEFT)))
-                         (lambda (v) (multiport-write (list RIGHT DOWN LEFT) v))))
-    (vector-set! memory &RDLU
-                 (vector (lambda () (multiport-read (list RIGHT DOWN LEFT UP)))
-                         (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
-                         )))
+    (define-instruction! "jump" (addr)
+      (when DEBUG? (printf "jump to ~a\n" addr))
+      (set! P addr)
+      #f)
 
-  (define/public (reset! [bit 18])
-    (set! A 0)
-    (set! B 0)
-    (set! P 0)
-    (set! I 0)
-    (set! R 0)
-    (set! S 0)
-    (set! T 0)
-    (set! IO #x15555)
-    (set! memory (make-vector MEM-SIZE 65957)) ;;65957 => ludr multiport jump
-    (set! dstack (make-stack 8))
-    (set! rstack (make-stack 8))
-    (set! blocking-read #f)
-    (set! blocking-write #f)
-    (set! blocking #f)
-    (set! multiport-read-ports #f)
-    (set! writing-nodes (make-vector 4 #f))
-    (set! reading-nodes (make-vector 4 #f))
-    (set! port-vals (make-vector 4 #f))
-    (set! step-fn step0)
-    (setup-ports))
+    (define-instruction! "call" (addr)
+      (when DEBUG? (printf "calling: ~a\n" addr))
+      (r-push! P)
+      (set! P addr)
+      #f)
 
-  ;; Resets only p
-  (define/public (reset-p! [start 0])
-    (set! P start))
+    (define-instruction! "unext" (_) ;; -- hacky!
+      (if (= R 0)
+          (r-pop!)
+          (begin (set! R (sub1 R))
+                 (set! P (sub1 P))
+                 #f)))
 
-  ;; Executes one step of the program by fetching a word, incrementing
-  ;; p and executing the word.
-  ;; returns #f when P = 0, else #t
-  (define/public (step-program!)
-    (when DEBUG? (printf "\nstep-program! node ~a\n" coord))
-    (step-fn)
-    (when (and DEBUG? DISPLAY_STATE?) (display-state (list coord))))
+    (define-instruction! "next" (addr)
+      (if (= R 0)
+          (begin (r-pop!)
+                 #f)
+          (begin (set! R (sub1 R))
+                 (set! P addr)
+                 #f)))
 
-  ;; Steps the program n times.
-  (define/public (step-program-n! n)
-    (for ([i (in-range 0 n)]) (step-program!)))
+    (define-instruction! "if" (addr)
+      (and (= T 0)
+           (begin (when DEBUG? (printf "If: jumping to ~a\n" addr))
+                  (set! P addr))
+           #f))
 
-  (define/public (init-ludr-port-nodes)
-    (define (convert dir)
-      (let ([x (remainder coord 100)]
-            [y (quotient coord 100)])
-        (cond [(equal? dir "north") (if (= (modulo y 2) 0) DOWN UP)]
-              [(equal? dir "south") (if (= (modulo y 2) 0) UP DOWN)]
-              [(equal? dir "east") (if (= (modulo x 2) 0) RIGHT LEFT)]
-              [(equal? dir "west") (if (= (modulo x 2) 0) LEFT RIGHT)])))
-    (let ([west (coord->node (- coord 1))]
-          [north (coord->node (+ coord 100))]
-          [south (coord->node (- coord 100))]
-          [east (coord->node (+ coord 1))])
-      (set! ludr-port-nodes (make-vector 4))
-      (vector-set! ludr-port-nodes (convert "north") north)
-      (vector-set! ludr-port-nodes (convert "east") east)
-      (vector-set! ludr-port-nodes (convert "south") south)
-      (vector-set! ludr-port-nodes (convert "west") west)))
+    (define-instruction! "-if" (addr)
+      (and (not (bitwise-bit-set? T 17))
+           (set! P addr)
+           #f))
 
-  (define/public (get-ludr-port-nodes) ludr-port-nodes)
+    (define-instruction! "@p" ()
+      (read-memory P)
+      (set! P (incr P)))
 
-  (define/public (set-aindex index)
-    (set! active-index index))
+    (define-instruction! "@+" () ; fetch-plus
+      (read-memory A)
+      (set! A (incr A)))
 
-  (define/public (str)
-    (format "<node ~a>" coord))
+    (define-instruction! "@b" () ;fetch-b
+      (read-memory B) #t)
 
-  ));;end class node%
+    (define-instruction! "@" (); fetch a
+      (read-memory A) #t)
+
+    (define-instruction! "!p" () ; store p
+      (set-memory! P (d-pop!))
+      (set! P (incr P)) #t)
+
+    (define-instruction! "!+" () ;store plus
+      (set-memory! A (d-pop!))
+      (set! A (incr A)) #t)
+
+    (define-instruction! "!b" (); store-b
+      (set-memory! B (d-pop!)) #t)
+
+    (define-instruction! "!" (); store
+      (set-memory! A (d-pop!)) #t)
+
+    (define-instruction! "+*" () ; multiply-step
+      ;;case 1 - If bit A0 is zero
+      ;;  Treats T:A as a single 36 bit register and shifts it right by one
+      ;;  bit. The most signficicant bit (T17) is kept the same.
+      ;;case 2 - If bit A0 is one
+      ;;  Sums T and S and concatenates the result with A, shifting
+      ;;  everything to the right by one bit to replace T:A
+      (if (& A 1)
+          ;;case 2:
+          (let* ([sum (if extended-arith?
+                          (let ([sum (+ T S carry-bit)])
+                            (set! carry-bit (& sum #x40000))
+                            sum)
+                          (+ T S))]
+                 [sum17 (& sum #x20000)]
+                 [result (ior (<< sum 17)
+                              (>> A 1))])
+            (set! A (bitwise-bit-field result 0 18))
+            (set! T (ior sum17 (bitwise-bit-field result 18 36))))
+          ;;case 2:
+          (let ([t17 (& T #x20000)]
+                [t0  (& T #x1)])
+            (set! T (ior t17 (>> T 1)))
+            (set! A (ior (<< t0 17)
+                         (>> A 1))))))
+
+    (define-instruction! "2*" ()
+      (set! T (18bit (<< T 1))))
+
+    (define-instruction! "2/" ()
+      (set! T (>> T 1)))
+
+    (define-instruction! "-" () ;not
+      (set! T (18bit (bitwise-not T))))
+
+    (define-instruction! "+" ()
+      (if extended-arith?
+          (let ([sum (+ (d-pop!) (d-pop!) carry-bit)])
+            (set! carry-bit (& sum #x40000))
+            (d-push! (18bit sum)))
+          (d-push! (18bit (+ (d-pop!) (d-pop!))))))
+
+    (define-instruction! "and" ()
+      (d-push! (& (d-pop!) (d-pop!))))
+
+    (define-instruction! "or" ()
+      (d-push! (^ (d-pop!) (d-pop!))))
+
+    (define-instruction! "drop" ()
+      (d-pop!))
+
+    (define-instruction! "dup" ()
+      (d-push! T))
+
+    (define-instruction! "pop" ()
+      (d-push! (r-pop!)))
+
+    (define-instruction! "over" ()
+      (d-push! S))
+
+    (define-instruction! "a" ()  ; read a
+      (d-push! A));;??
+
+    (define-instruction! "nop" () ;; .
+      (void))
+
+    (define-instruction! "push" ()
+      (r-push! (d-pop!)))
+
+    (define-instruction! "b!" () ;; store into b
+      (set! B (d-pop!)))
+
+    (define-instruction! "a!" () ;store into a
+      (set! A (d-pop!)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; public methods
+
+    (define/public (get-memory) memory)
+    (define/public (get-rstack) rstack)
+    (define/public (get-dstack) dstack)
+    (define/public (get-registers) (list A B P I R S T))
+
+    (define/public (load-code code)
+      (define (load code index)
+        (unless (null? code)
+          (vector-set! memory index (car code))
+          (load (cdr code) (add1 index))))
+      (load code 0))
+
+    ;; Returns a snapshot of the current state.
+    (define/public (current-state)
+      (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
+
+    (define (setup-ports)
+      (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
+                                        (lambda (v) (port-write LEFT v))))
+      (vector-set! memory &RIGHT (vector (lambda () (port-read RIGHT))
+                                         (lambda (v) (port-write RIGHT v))))
+      (vector-set! memory &UP (vector (lambda () (port-read UP))
+                                      (lambda (v) (port-write UP v))))
+      (vector-set! memory &DOWN (vector (lambda () (port-read DOWN))
+                                        (lambda (v) (port-write DOWN v))))
+      (vector-set! memory &IO (vector (lambda () IO)
+                                      (lambda (v)
+                                        (set! IO v)
+                                        (handle-io-change))))
+      (vector-set! memory &--LU
+                   (vector (lambda () (multiport-read (list LEFT UP)))
+                           (lambda (v) (multiport-write (list LEFT UP) v))))
+      (vector-set! memory &-D-U
+                   (vector (lambda () (multiport-read (list DOWN UP)))
+                           (lambda (v) (multiport-write (list DOWN UP) v))))
+      (vector-set! memory &-DL-
+                   (vector (lambda () (multiport-read (list DOWN LEFT)))
+                           (lambda (v) (multiport-write (list DOWN LEFT) v))))
+      (vector-set! memory &-DLU
+                   (vector (lambda () (multiport-read (list DOWN LEFT UP)))
+                           (lambda (v) (multiport-write (list DOWN LEFT UP) v))))
+      (vector-set! memory &R--U
+                   (vector (lambda () (multiport-read (list RIGHT UP)))
+                           (lambda (v) (multiport-write (list RIGHT UP) v))))
+      (vector-set! memory &R-L-
+                   (vector (lambda () (multiport-read (list RIGHT LEFT)))
+                           (lambda (v) (multiport-write (list RIGHT LEFT) v))))
+      (vector-set! memory &R-LU
+                   (vector (lambda () (multiport-read (list RIGHT LEFT UP)))
+                           (lambda (v) (multiport-write (list RIGHT LEFT UP) v))))
+      (vector-set! memory &RD--
+                   (vector (lambda () (multiport-read (list RIGHT DOWN)))
+                           (lambda (v) (multiport-write (list RIGHT DOWN) v))))
+      (vector-set! memory &RD-U
+                   (vector (lambda () (multiport-read (list RIGHT DOWN UP)))
+                           (lambda (v) (multiport-write (list RIGHT DOWN UP) v))))
+      (vector-set! memory &RDL-
+                   (vector (lambda () (multiport-read (list RIGHT DOWN LEFT)))
+                           (lambda (v) (multiport-write (list RIGHT DOWN LEFT) v))))
+      (vector-set! memory &RDLU
+                   (vector (lambda () (multiport-read (list RIGHT DOWN LEFT UP)))
+                           (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
+                           )))
+
+    (define/public (reset! [bit 18])
+      (set! A 0)
+      (set! B 0)
+      (set! P 0)
+      (set! I 0)
+      (set! R 0)
+      (set! S 0)
+      (set! T 0)
+      (set! IO #x15555)
+      (set! memory (make-vector MEM-SIZE 65957)) ;;65957 => ludr multiport jump
+      (set! dstack (make-stack 8))
+      (set! rstack (make-stack 8))
+      (set! blocking-read #f)
+      (set! blocking-write #f)
+      (set! blocking #f)
+      (set! multiport-read-ports #f)
+      (set! writing-nodes (make-vector 4 #f))
+      (set! reading-nodes (make-vector 4 #f))
+      (set! port-vals (make-vector 4 #f))
+      (set! step-fn step0)
+      (setup-ports))
+
+    ;; Resets only p
+    (define/public (reset-p! [start 0])
+      (set! P start))
+
+    ;; Executes one step of the program by fetching a word, incrementing
+    ;; p and executing the word.
+    ;; returns #f when P = 0, else #t
+    (define/public (step-program!)
+      (when DEBUG? (printf "\nstep-program! node ~a\n" coord))
+      (step-fn)
+      (when (and DEBUG? DISPLAY_STATE?) (display-state (list coord))))
+
+    ;; Steps the program n times.
+    (define/public (step-program-n! n)
+      (for ([i (in-range 0 n)]) (step-program!)))
+
+    (define/public (init-ludr-port-nodes)
+      (define (convert dir)
+        (let ([x (remainder coord 100)]
+              [y (quotient coord 100)])
+          (cond [(equal? dir "north") (if (= (modulo y 2) 0) DOWN UP)]
+                [(equal? dir "south") (if (= (modulo y 2) 0) UP DOWN)]
+                [(equal? dir "east") (if (= (modulo x 2) 0) RIGHT LEFT)]
+                [(equal? dir "west") (if (= (modulo x 2) 0) LEFT RIGHT)])))
+      (let ([west (coord->node (- coord 1))]
+            [north (coord->node (+ coord 100))]
+            [south (coord->node (- coord 100))]
+            [east (coord->node (+ coord 1))])
+        (set! ludr-port-nodes (make-vector 4))
+        (vector-set! ludr-port-nodes (convert "north") north)
+        (vector-set! ludr-port-nodes (convert "east") east)
+        (vector-set! ludr-port-nodes (convert "south") south)
+        (vector-set! ludr-port-nodes (convert "west") west)))
+
+    (define/public (get-ludr-port-nodes) ludr-port-nodes)
+
+    (define/public (set-aindex index)
+      (set! active-index index))
+
+    (define/public (str)
+      (format "<node ~a>" coord))
+
+    ));;end class node%
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; execution control
