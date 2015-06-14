@@ -12,6 +12,11 @@
 (define ops-that-end-word '("unext" ";"))
 
 (define (disassemble-inst from from^ to index start end jump)
+  ;;FROM is the integer we are dissembling
+  ;;FROM^ = FROM ^ 0x15555
+  ;;TO is a vector we disassemble into
+  ;;START, END mark the bit positions of the instruction in FROM
+  ;;JUMP is the size of the jump field in FROM, #f if none
   (let ((inst (vector-ref names (* (bitwise-bit-field from^ start end)
                                    (if jump 1 4)))))
     (vector-set! to index inst)

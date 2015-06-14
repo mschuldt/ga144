@@ -374,7 +374,8 @@
   (define (receive-port-read port node)
     ;;called by adjacent node when it is reading from one of our ports
     (when (PORT-DEBUG? coord)
-      (printf "[~a](receive-port-read ~a   ~a)\n" coord port (node:str node)))
+      (printf "[~a](receive-port-read ~a   ~a)\n"
+              coord port (and node (node:str node))))
     (vector-set! reading-nodes port node))
   (declare-public receive-port-read)
 
@@ -835,6 +836,7 @@
 
 (define (reset!)
   (set! time 0)
+  (set! active-nodes (vector-copy nodes))
   (set! last-active-index 143)
   (set! current-node-index 0)
   (set! current-node (vector-ref active-nodes current-node-index))
@@ -987,7 +989,6 @@
 
 (define (initialize)
   (build-node-matrix)
-  (set! active-nodes (vector-copy nodes))
   (reset!)
   (void))
 
