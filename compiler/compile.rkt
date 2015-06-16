@@ -15,7 +15,7 @@
 
 (define DEBUG? #f)
 
-(define instructions (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
+(define opcode-set (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                                   "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                                   "over" "a" "." "nop" "push" "b!" "a!")))
@@ -89,7 +89,7 @@
        (hash-ref words name)))
 
 (define (instruction? token)
-  (set-member? instructions token))
+  (set-member? opcode-set token))
 
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
