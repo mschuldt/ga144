@@ -8,6 +8,15 @@
   `(let [(__v__ ,val)]
      (set! ,var __v__) __v__))
 
+(defmacro enum (syms)
+  (let ((i 0)
+        (code '())
+        (sym #f))
+    (for ([sym syms])
+      (set! code (cons (list 'define sym i) code))
+      (set! i (add1 i)))
+    (cons 'begin code)))
+
 (defmacro push (list item)
   `(set! ,list (cons ,item ,list)))
 
