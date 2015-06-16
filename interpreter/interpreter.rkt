@@ -5,10 +5,9 @@
          "../compiler/assemble.rkt"
          "../compiler/disassemble.rkt"
          "../compiler/compile.rkt"
-         "../compiler/util.rkt"
-         "bit-functions.rkt"
          "state.rkt"
-         "stack.rkt")
+         "stack.rkt"
+         "../common.rkt")
 
 (define DEBUG? #f)
 (define _PORT-DEBUG? #f)
@@ -44,11 +43,6 @@
 (define &RD-U #x185)
 (define &RDL- #x1B5)
 (define &RDLU #x1A5)
-
-(define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
-                        "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
-                        "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
-                        "over" "a" "." "push" "b!" "a!"))
 
 (define time 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

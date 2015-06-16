@@ -1,15 +1,10 @@
 #lang racket
 
+(require "../common.rkt")
+
 (provide disassemble
          display-disassemble
          disassemble-word)
-
-(define names '#(";" "ex" "jump" "call" "unext" "next" "if" "-if" "@p" "@+" "@b"
-                 "@" "!p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
-                 "dup" "pop" "over" "a" "." "push" "b!" "a!"))
-
-(define address-ops '("jump" "call" "next" "if" "-if"))
-(define ops-that-end-word '("unext" ";"))
 
 (define (disassemble-inst from from^ to index start end jump)
   ;;FROM is the integer we are dissembling
@@ -17,10 +12,10 @@
   ;;TO is a vector we disassemble into
   ;;START, END mark the bit positions of the instruction in FROM
   ;;JUMP is the size of the jump field in FROM, #f if none
-  (let ((inst (vector-ref names (* (bitwise-bit-field from^ start end)
+  (let ((inst (vector-ref opcodes (* (bitwise-bit-field from^ start end)
                                    (if jump 1 4)))))
     (vector-set! to index inst)
-    (if (and (member inst address-ops)
+    (if (and (member inst address-required)
              (< index 3))
         (begin (vector-set! to (add1 index) (bitwise-bit-field from 0 jump))
                #f)

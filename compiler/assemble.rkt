@@ -1,10 +1,8 @@
 #lang racket
-(provide assemble-word
-         assemble)
 
-(define names '#(";" "ex" "jump" "call" "unext" "next" "if" "-if" "@p" "@+" "@b"
-                 "@" "!p" "!+" "!b" "!" "+*" "2*" "2/" "-" "+" "and" "or" "drop"
-                 "dup" "pop" "over" "a" "." "push" "b!" "a!"))
+(require  "../common.rkt")
+
+(provide assemble-word assemble)
 
 (define masks (vector #b1010 #b10101 #b1010 #b101))
 (define (xor-inst inst slot) (bitwise-xor inst (vector-ref masks slot)))
@@ -15,7 +13,7 @@
   ;;If the slot contains #f, as unused slots do, return 0
   (let ((inst (vector-ref word slot)))
     (if (string? inst)
-        (arithmetic-shift (xor-inst (floor (/ (vector-member inst names)
+        (arithmetic-shift (xor-inst (floor (/ (vector-member inst opcodes)
                                               (if (= slot 3) 4 1)))
                                     slot)
                           shift)

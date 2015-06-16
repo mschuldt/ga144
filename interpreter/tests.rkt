@@ -504,6 +504,7 @@ east a!
   (set! tests-failed 0)
   (set! tests-passed 0)
   (for ([test tests])
+  ;(for ((test (list (car tests))))
     (test))
   (display (format "passed: ~a\n" tests-passed))
   (display (format "failed: ~a\n" tests-failed)))

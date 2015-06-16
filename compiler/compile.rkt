@@ -9,25 +9,11 @@
 (require "read.rkt"
          "assemble.rkt"
          "disassemble.rkt"
-         "util.rkt")
+         "../common.rkt")
 
 (provide compile compile-file display-compiled)
 
 (define DEBUG? #f)
-
-(define opcode-set (list->set '(";" "ex" "jump" "call" "unext" "next" "if"
-                                  "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
-                                  "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
-                                  "over" "a" "." "push" "b!" "a!")))
-
-(define address-required '("jump" "call" "next" "if" "-if"))
-
-(define last-slot-instructions
-  '(";" "unext" "@p" "!p" "+*" "+" "dup" "." ))
-
-(define instructions-preceded-by-nops '("+" "+*"))
-
-(define instructions-using-rest-of-word '(";" "ex" "unext"))
 
 (define num-nodes 144)
 (define num-words 64)
@@ -462,18 +448,6 @@
       (lambda () ((get-directive (convert-direction current-node dir)))))
     dir)))
 
-(define named-addresses '(("right" . #x1D5)
-                          ("down" . #x115)
-                          ("left" . #x175)
-                          ("up" . #x145)
-                          ("io" . #x15D)
-                          ("ldata" . #x171)
-                          ("data" . #x141)
-                          ("warp" . #x157)
-                          ("center" . #x1A5)
-                          ("top" . #x1B5)
-                          ("side" . #x185)
-                          ("corner" . #x195)))
 
 (define (define-named-addresses!)
   (for ([addr named-addresses])
@@ -481,21 +455,7 @@
      (car addr)
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
 
-(define io-places '(("---u" . #x145)
-                    ("--l-" . #x175)
-                    ("--lu" . #x165)
-                    ("-d--" . #x115)
-                    ("-d-u" . #x105)
-                    ("-dl-" . #x135)
-                    ("-dlu" . #x125)
-                    ("r---" . #x1D5)
-                    ("r--u" . #x1C5)
-                    ("r-l-" . #x1F5)
-                    ("r-lu" . #x1E5)
-                    ("rd--" . #x195)
-                    ("rd-u" . #x185)
-                    ("rdl-" . #x1B5)
-                    ("rdlu" . #x1A5)))
+
 (define (define-io-places!)
   (for ([place io-places])
     (hash-set! words (car place) (make-addr (cdr place)))))

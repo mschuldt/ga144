@@ -1,7 +1,8 @@
 #lang racket
 
 (require "util.rkt"
-         "assemble.rkt")
+         "assemble.rkt"
+         "../common.rkt")
 
 (provide make-bootstream)
 
@@ -84,19 +85,6 @@
                   (or node-code nothing)))
       (set! len (vector-length code)))
     code))
-
-(define named-addresses '(("right" . #x1D5)
-                          ("down" . #x115)
-                          ("left" . #x175)
-                          ("up" . #x145)
-                          ("io" . #x15D)
-                          ("ldata" . #x171)
-                          ("data" . #x141)
-                          ("warp" . #x157)
-                          ("center" . #x1A5)
-                          ("top" . #x1B5)
-                          ("side" . #x185)
-                          ("corner" . #x195)))
 
 (define (get-direction coord dir)
   ;;converts dir={N, E, S, W} into an address for node COORD
