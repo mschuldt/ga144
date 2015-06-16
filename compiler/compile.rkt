@@ -15,19 +15,19 @@
 
 (define DEBUG? #f)
 
-(define opcode-set (list->set '(";" "ret" "ex" "jump" "call" "unext" "next" "if"
+(define opcode-set (list->set '(";" "ex" "jump" "call" "unext" "next" "if"
                                   "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                                   "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
-                                  "over" "a" "." "nop" "push" "b!" "a!")))
+                                  "over" "a" "." "push" "b!" "a!")))
 
 (define address-required '("jump" "call" "next" "if" "-if"))
 
 (define last-slot-instructions
-  '(";" "ret" "unext" "@p" "!p" "+*" "+" "dup" "." "nop"))
+  '(";" "unext" "@p" "!p" "+*" "+" "dup" "." ))
 
 (define instructions-preceded-by-nops '("+" "+*"))
 
-(define instructions-using-rest-of-word '(";" "ret" "ex" "unext"))
+(define instructions-using-rest-of-word '(";" "ex" "unext"))
 
 (define num-nodes 144)
 (define num-words 64)

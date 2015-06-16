@@ -45,10 +45,10 @@
 (define &RDL- #x1B5)
 (define &RDLU #x1A5)
 
-(define opcodes (vector "ret" "ex" "jump" "call" "unext" "next" "if"
+(define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
-                        "over" "a" "nop" "push" "b!" "a!"))
+                        "over" "a" "." "push" "b!" "a!"))
 
 (define time 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -489,7 +489,7 @@
                          (lambda args
                            body ...)))))
 
-    (define-instruction! "ret" (_)
+    (define-instruction! ";" (_)
       (set! P R)
       (r-pop!)
       #f)
@@ -628,7 +628,7 @@
     (define-instruction! "a" ()  ; read a
       (d-push! A));;??
 
-    (define-instruction! "nop" () ;; .
+    (define-instruction! "." ()
       (void))
 
     (define-instruction! "push" ()
