@@ -17,11 +17,14 @@
 
 (define num-nodes 144)
 (define num-words 64)
-(define nodes #f) ;;node# -> memory vector
+(define nodes #f) ;;node# -> code struct
 (define used-nodes '())
 
 (define last-inst #f)
-(define current-node #f) ;;coordinate of the current node we are compiling for
+;;coordinate of the current node we are compiling for
+(define current-node-coord #f)
+;;struct of the current node we are compiling for
+(define current-node #f)
 
 (define stack '())
 
@@ -35,8 +38,9 @@
     (set! port (open-input-string port)))
   (current-input-port port)
   (compile-loop)
-  (when memory ;;make sure last instruction is full
-    (fill-rest-with-nops))
+  (when memory
+    (fill-rest-with-nops) ;;make sure last instruction is full
+    (set-node-len! current-node (sub1 next-addr)))
   used-nodes)
 
 (define (compile-file file)
@@ -89,8 +93,15 @@
 (define (parse-num tok)
   (string->number tok))
 
+
 (define (reset!)
+  (define (make-node coord)
+    (node coord
+          (list->vector (for/list ([_ num-words]) (make-vector 4 #f)))
+          0))
   (set! nodes (make-vector num-nodes #f))
+  (for ([i num-nodes])
+    (vector-set! nodes i (make-node (index->coord i))))
   (set! used-nodes '())
   (set! last-inst #f)
   (set! stack '())
@@ -247,17 +258,19 @@
  "node"
  (lambda ()
    (when memory ;;make sure last instruction is full
-     (fill-rest-with-nops))
+     (fill-rest-with-nops)
+     (set-node-len! current-node (sub1 next-addr)))
    (let* ([token (forth-read)]
-          [node (parse-num token)]
-          [index (coord->index node)])
+          [coord (parse-num token)]
+          [index (coord->index coord)])
      ;;TODO: validate 'node'
-     (set! memory (vector-ref nodes index))
-     (unless memory
-       (set! memory (list->vector (for/list ([_ num-words]) (make-vector 4 #f))))
-       (vector-set! nodes index memory))
-     (set! used-nodes (cons (cons node memory) used-nodes))
-     (set! current-node node)
+     ;;assert (node-coord node) == coord
+     (set! current-node (vector-ref nodes index))
+     (set! memory (node-mem current-node))
+     ;;TODO: should calling 'node' multiple times be ok?
+     ;;      if so, don't add current-node to used-nodes again
+     (set! used-nodes (cons current-node used-nodes))
+     (set! current-node-coord coord)
      (org 0))))
 
 (define (make-addr addr)
@@ -445,7 +458,7 @@
   (add-directive!
    dir
    ((lambda (dir)
-      (lambda () ((get-directive (convert-direction current-node dir)))))
+      (lambda () ((get-directive (convert-direction current-node-coord dir)))))
     dir)))
 
 
@@ -464,7 +477,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (display-compiled nodes)
-  ;;NODES is a list with member format: (nodeNum . memoryVector)
+  ;;NODES is a list of node structs
   (define (display-word word [n 0])
     (if (number? word)
         (display word)
@@ -483,21 +496,10 @@
 
   (define (display-node nodes)
     (unless (null? nodes)
-      (pretty-display (format "\nnode ~a" (caar nodes)))
-      (display-mem (cdar nodes))
+      (pretty-display (format "\nnode ~a" (node-coord (car nodes))))
+      (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
   (display-node nodes))
-
-(when #f
-  (define file "_test.aforth")
-  (define x (compile-file file))
-  (display-compiled x)
-  (assemble x)
-  (display-disassemble x)
-  )
-;;(display-memory x)
-
-
 
 ;;unext (a)
 ;;ends a micronext loop. Since the loop occurs entirely within a single

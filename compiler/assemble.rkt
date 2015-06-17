@@ -32,9 +32,10 @@
                 (bitwise-ior a b c d)))))
 
 (define (assemble nodes)
-  ;;NODES is a list with forms (NODE-NUMBER . MEMORY-VECTOR)
-  ;;mutates the MEMORY-VECTORs in place
+  ;;NODES is a list of 'node' structs
+  ;;This function mutates the node structs, assembling the words in place
   (unless (null? nodes)
-    (for ([i 64])
-      (vector-set! (cdar nodes) i (assemble-word (vector-ref (cdar nodes) i))))
+    (let ((mem (node-mem (car nodes))))
+      (for ([i (vector-length mem)])
+        (vector-set! mem i (assemble-word (vector-ref mem i)))))
     (assemble (cdr nodes))))

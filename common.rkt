@@ -52,6 +52,14 @@
                     ("rdl-" . #x1B5)
                     ("rdlu" . #x1A5)))
 
+;; This is the type that holds compiled code and other node info.
+;; Compiling a program returns a list of these
+(struct node (coord mem len) #:mutable #:transparent)
+;; 'coord' is the node coordinate this code belongs to
+;; 'mem' is the vector of compiled words
+;; 'len' is how many instructions are used in mem. len <= length(mem)
+;;       the remaining words in mem are all #f
+
 (define (coord->index n)
   (+ (* (quotient n 100) 18) (remainder n 100)))
 
