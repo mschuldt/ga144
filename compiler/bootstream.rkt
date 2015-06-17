@@ -1,7 +1,6 @@
 #lang racket
 
-(require "util.rkt"
-         "assemble.rkt"
+(require "assemble.rkt"
          "../common.rkt")
 
 (provide make-bootstream)

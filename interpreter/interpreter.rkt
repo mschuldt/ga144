@@ -5,7 +5,6 @@
          "../compiler/assemble.rkt"
          "../compiler/disassemble.rkt"
          "../compiler/compile.rkt"
-         "state.rkt"
          "stack.rkt"
          "../common.rkt")
 
@@ -45,6 +44,8 @@
 (define &RDLU #x1A5)
 
 (define time 0)
+
+(define MEM-SIZE #x200)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 8x18 node matrix
 
@@ -640,7 +641,11 @@
     (define/public (get-memory) memory)
     (define/public (get-rstack) rstack)
     (define/public (get-dstack) dstack)
-    (define/public (get-registers) (list A B P I R S T))
+    (define/public (get-registers) (vector A B P I R S T))
+    (define/public (get-dstack-as-list)
+      (cons T (cons S (stack->list dstack))))
+    (define/public (get-rstack-as-list)
+      (cons R (stack->list rstack)))
 
     (define/public (load-code code)
       (define (load code index)
@@ -648,10 +653,6 @@
           (vector-set! memory index (car code))
           (load (cdr code) (add1 index))))
       (load code 0))
-
-    ;; Returns a snapshot of the current state.
-    (define/public (current-state)
-      (state A B P I R S T (copy-stack dstack) (copy-stack rstack) (vector-copy memory 0 MEM-SIZE)))
 
     (define (setup-ports)
       (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
@@ -733,7 +734,7 @@
     (define/public (step-program!)
       (when DEBUG? (printf "\nstep-program! node ~a\n" coord))
       (step-fn)
-      (when (and DEBUG? DISPLAY_STATE?) (display-state (list coord))))
+      (when (and DEBUG? DISPLAY_STATE?) (display-node-states (list coord))))
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)
@@ -764,6 +765,36 @@
 
     (define/public (str)
       (format "<node ~a>" coord))
+
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; state display debug functions
+    (define/public (display-state)
+      (printf "_____Node ~a state_____\n" coord)
+      (printf "p:~a a:~a b:~a r:~a\n" P A B R)
+      (display-dstack)
+      (display-rstack))
+
+    (define/public (display-dstack)
+      (printf "|d> ~x ~x" T S)
+      (display-stack dstack)
+      (newline))
+
+    (define (display-rstack)
+      (printf "|r> ~x" R)
+      (display-stack rstack)
+      (newline))
+
+    (define (display-memory [n MEM-SIZE])
+      (let ((n (sub1 n)))
+        (define (print i)
+          (let ((v (vector-ref memory i)))
+            (printf "~a " v)
+            (unless (or (eq? v 'end)
+                        (>= i n))
+              (print (add1 i)))))
+        (printf "node ~a memory: " coord)
+        (print 0)
+        (newline)))
 
     ));;end class node%
 
@@ -809,66 +840,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state display functions
 
-(define (display-dstack t s dstack)
-  (printf "|d> ~x ~x" t s)
-  (display-stack dstack)
-  (newline))
-
-(define (display-rstack r rstack)
-  (printf "|r> ~x" r)
-  (display-stack rstack)
-  (newline))
-
 (define (list-active-nodes)
   (if (>= last-active-index 0)
       (for/list ([i (add1 last-active-index)])
         (vector-ref active-nodes i))
       '()))
 
-(define (display-state [nodes #f])
+(define (display-node-states [nodes #f])
   (let ((nodes (if nodes
                    (map coord->node nodes)
                    (list-active-nodes))))
     (for ([node nodes])
-      (printf "_____Node ~a state_____\n" (send node get-coord))
-      (let ((state (send node current-state)))
-        (printf "p:~a a:~a b:~a r:~a\n"
-                (state-p state)
-                (state-a state)
-                (state-b state)
-                (state-r state))
-        (display-dstack (state-t state)
-                        (state-s state)
-                        (state-dstack state))
-        (display-rstack (state-r state)
-                        (state-rstack state))))))
+      (send node display-state))))
 
 (define (display-dstacks [nodes #f])
   (let ((nodes (if nodes
                    (map coord->node nodes)
                    (list-active-nodes))))
     (for ([node nodes])
-      (let ((state (send node current-state)))
-        (display (format "(~a)|d> ~x ~x"
-                         (send node get-coord)
-                         (state-t state)
-                         (state-s state)))
-        (display-stack (state-dstack state))
-        (newline)))))
+      (send node display-dstack))))
 
 (define (display-memory coord [n MEM-SIZE])
-  (let* ((node (coord->node coord))
-         (mem (state-memory (send node current-state)))
-         (n (sub1 n)))
-    (define (print i)
-      (let ((v (vector-ref mem i)))
-        (printf "~a " v)
-        (unless (or (eq? v 'end)
-                    (>= i n))
-          (print (add1 i)))))
-    (printf "node ~a memory: " coord)
-    (print 0)
-    (newline)))
+  (send (coord->node coord) display-memory n))
 
 (define (initialize)
   (build-node-matrix)

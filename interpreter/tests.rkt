@@ -2,7 +2,7 @@
 
 (require compatibility/defmacro
          "interpreter.rkt"
-         "state.rkt"
+         "../common.rkt"
          "stack.rkt")
 
 (define (18bit n)
@@ -46,55 +46,38 @@
                                    ))))
                     tests)))
 
-(define-syntax-rule (check-mem coord mem ...)
-  (lambda () (let* ((m (map 18bit (list mem ...)))
+(define (check-mem coord . expect)
+  (lambda () (let* ((expect (map 18bit expect))
                     (memory (send (coord->node coord) get-memory))
-                    (s (length m)))
-               (if (same-subset-v? m memory)
+                    (s (length expect)))
+               (if (same-subset-v? expect memory)
                    #f
                    (format "    Memory does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
                            coord
-                           m
+                           expect
                            (take (vector->list memory) s))))))
 
+;;NOTE: dependent on node::get-registers
+(enum (a b p i r s t))
 
-(defmacro check-reg (coord var val)
-  #`(lambda ()  (let* ((node (coord->node #,coord))
-                       (state (send node current-state))
-                       (val (#,(begin (unless (member var '(a b p i r s t))
-                                        (raise "check-reg: invalid register"))
-                                      (string->symbol
-                                       (string-append "state-"
-                                                      (symbol->string var))))
-                             state))
-                       (expect (18bit #,val)))
-                  (if (eq? expect val)
-                      #f
-                      (format"    Failed assertion (node ~a):
+(define (check-reg coord reg-num expect)
+  (lambda () (let ((val (vector-ref (send (coord->node coord) get-registers)
+                                    reg-num))
+                   (var (vector-ref (vector "A" "B" "P" "I" "R" "S" "t") reg-num)))
+               (if (eq? val (18bit expect))
+                   #f
+                   (format "    Failed assertion (node ~a):
         Expected: (eq ~a ~a)
         Got:      (eq ~a ~a)\n"
-                             #,coord
-                             (quote #,var) expect
-                             (quote #,var) val)))))
+                           coord
+                           var expect
+                           var val)))))
 
-(define (data-stack->list coord)
-  (let* ((state (send (coord->node coord) current-state))
-         (data (state-dstack state))
-         (t (state-t state))
-         (s (state-s state)))
-    (cons t (cons s (stack->list data)))))
-
-(define (return-stack->list coord)
-  (let* ((state (send (coord->node coord) current-state))
-         (rstack (state-rstack state))
-         (r (state-r state)))
-    (cons r (stack->list rstack))))
-
-(define-syntax-rule (check-dat coord mem ...)
-  (lambda () (let* ([m (map 18bit (list mem ...))]
-                    [dstack (data-stack->list coord)]
+(define (check-dat coord . expect)
+  (lambda () (let* ([m (map 18bit expect)]
+                    [dstack (send (coord->node coord) get-dstack-as-list)]
                     [s (length m)])
                (if (same-subset? m dstack)
                    #f
@@ -105,9 +88,9 @@
                            m
                            (take dstack s))))))
 
-(define-syntax-rule (check-ret coord mem ...)
-  (lambda () (let* ([m (map 18bit (list mem ...))]
-                    [rstack (return-stack->list coord)]
+(define (check-ret coord . expect)
+  (lambda () (let* ([m (map 18bit expect)]
+                    [rstack (send (coord->node coord) get-rstack-as-list)]
                     [s (length m)])
                (if (same-subset? m rstack)
                    #f
