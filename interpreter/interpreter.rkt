@@ -366,7 +366,56 @@
       (vector-set! writing-nodes port node)
       (vector-set! port-vals port value))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (define prev-IO IO)
+    (define num-gpio-pins 0)
+
+    (define pin1-ctl-mask #x30000)
+    (define pin2-ctl-mask #x3)
+    (define pin3-ctl-mask #x12)
+    (define pin4-ctl-mask #x30)
+
+    (define pin1-handler #f)
+    (define pin2-handler #f)
+    (define pin3-handler #f)
+    (define pin4-handler #f)
+
+    (enum (IMPED PULLDOWN SINK HIGH))
+
+    (define/public (set-gpio-handlers a [b #f] [c #f] [d #f])
+      (set! pin1-handler a)
+      (set! pin2-handler b)
+      (set! pin3-handler c)
+      (set! pin4-handler d))
+
+    (define (read-io-reg)
+      (d-push! IO)
+      #t)
+
+    (define (set-io-reg val)
+      (set! prev-IO IO)
+      (set! IO val)
+      ;;if a digital pin control field changed, notify its handlers
+      (when (> num-gpio-pins 0)
+        (let ((changed (^ prev-IO IO)))
+          (and (& changed pin1-ctl-mask)
+               pin1-handler
+               (pin1-handler (& IO pin1-ctl-mask)))
+          (when (> num-gpio-pins 1)
+            (and (& changed pin2-ctl-mask)
+                 pin2-handler
+                 (pin2-handler (& IO pin2-ctl-mask)))
+            (when (> num-gpio-pins 2)
+              (and (& changed pin3-ctl-mask)
+                   pin3-handler
+                   (pin3-handler (& IO pin3-ctl-mask)))
+              (and (> num-gpio-pins 3)
+                   (& changed pin4-ctl-mask)
+                   pin4-handler
+                   (pin4-handler (& IO pin4-ctl-mask)))))))
+      #t)
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
 
     ;;Determine if we are in RAM or ROM, return the index for that memory location
@@ -406,10 +455,6 @@
                 ((vector-ref x 1) value)
                 (printf "ERROR: set-memory!(~a, ~a) - invalid port\n" addr value)))
           (vector-set! memory (region-index addr) value)))
-
-    (define (handle-io-change)
-      void;;TODO
-      )
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instruction execution
@@ -651,10 +696,8 @@
                                       (lambda (v) (port-write UP v))))
       (vector-set! memory &DOWN (vector (lambda () (port-read DOWN))
                                         (lambda (v) (port-write DOWN v))))
-      (vector-set! memory &IO (vector (lambda () IO)
-                                      (lambda (v)
-                                        (set! IO v)
-                                        (handle-io-change))))
+      (vector-set! memory &IO (vector (lambda () (read-io-reg))
+                                      (lambda (v) (set-io-reg v))))
       (vector-set! memory &--LU
                    (vector (lambda () (multiport-read (list LEFT UP)))
                            (lambda (v) (multiport-write (list LEFT UP) v))))
