@@ -497,22 +497,22 @@
 
     (define step-fn step0)
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instructions
 
     ;; Define a new instruction. An instruction can
     ;; abort the rest of the current word by returning #f.
+    (define _n 0)
     (define-syntax-rule (define-instruction! opcode args body ...)
-      (let ((n (or (vector-member opcode opcodes)
-                   (raise (format "Err: invalid opcode: '~s'" opcode)))))
-        (vector-set! instructions
-                     n
-                     (if DEBUG?
-                         (lambda args
-                           (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
-                           body ...)
-                         (lambda args
-                           body ...)))))
+      (begin (vector-set! instructions
+                          _n
+                          (if DEBUG?
+                              (lambda args
+                                (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
+                                body ...)
+                              (lambda args
+                                body ...)))
+             (set! _n (add1 _n))))
 
     (define-instruction! ";" (_)
       (set! P R)
