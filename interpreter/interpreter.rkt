@@ -671,7 +671,7 @@
     (define/public (get-memory) memory)
     (define/public (get-rstack) rstack)
     (define/public (get-dstack) dstack)
-    (define/public (get-registers) (vector A B P I R S T))
+    (define/public (get-registers) (vector A B P I R S T IO))
     (define/public (get-dstack-as-list)
       (cons T (cons S (stack->list dstack))))
     (define/public (get-rstack-as-list)

@@ -60,7 +60,7 @@
                            (take (vector->list memory) s))))))
 
 ;;NOTE: dependent on node::get-registers
-(enum (a b p i r s t))
+(enum (a b p i r s t io))
 
 (define (check-reg coord reg-num expect)
   (lambda () (let ((val (vector-ref (send (coord->node coord) get-registers)
