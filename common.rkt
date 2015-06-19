@@ -52,6 +52,22 @@
                     ("rdl-" . #x1B5)
                     ("rdlu" . #x1A5)))
 
+(define node-to-gpio-pins '((701 . 2)
+                            (705 . 4)
+                            (708 . 2)
+                            (715 . 1)
+                            (517 . 1)
+                            (417 . 1)
+                            (317 . 1)
+                            (217 . 1)
+                            (008 . 4)
+                            (001 . 2)
+                            (100 . 1)
+                            (200 . 1)
+                            (300 . 2)
+                            (500 . 1)
+                            (600 . 1)))
+
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
 (struct node (coord mem len) #:mutable #:transparent)
