@@ -68,6 +68,30 @@
                             (500 . 1)
                             (600 . 1)))
 
+(define &UP #x145) ;325
+(define &DOWN #x115) ;277
+(define &LEFT #x175) ;373
+(define &RIGHT #x1d5) ;469
+(define &IO #x15d)
+
+(define &---U #x145)
+(define &--L- #x175)
+(define &--LU #x165)
+(define &-D-- #x115)
+(define &-D-U #x105)
+(define &-DL- #x135)
+(define &-DLU #x125)
+(define &R--- #x1D5)
+(define &R--U #x1C5)
+(define &R-L- #x1F5)
+(define &R-LU #x1E5)
+(define &RD-- #x195)
+(define &RD-U #x185)
+(define &RDL- #x1B5)
+(define &RDLU #x1A5)
+
+(define MEM-SIZE #x200)
+
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
 (struct node (coord mem len) #:mutable #:transparent)
@@ -81,6 +105,12 @@
 
 (define (index->coord n)
   (+ (* (quotient n 18) 100) (remainder n 18)))
+
+(define (coord->row coord)
+  (quotient coord 100))
+
+(define (coord->col coord)
+  (remainder coord 100))
 
 (define (convert-direction coord dir)
   ;;converts DIR={North, East, South, West} Into Left, Up, Down, or Right
@@ -127,8 +157,7 @@
 
 (defmacro enum (syms)
   (let ((i 0)
-        (code '())
-        (sym #f))
+        (code '()))
     (for ([sym syms])
       (set! code (cons (list 'define sym i) code))
       (set! i (add1 i)))
@@ -141,3 +170,8 @@
 (define << arithmetic-shift)
 (define (>> x n) (arithmetic-shift x (- n)))
 (define ior bitwise-ior)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(enum (LEFT UP DOWN RIGHT))
+(define port-names (vector "LEFT" "UP" "DOWN" "RIGHT"))

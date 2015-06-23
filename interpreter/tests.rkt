@@ -10,6 +10,7 @@
       (bitwise-and n #x3ffff)
       n))
 
+(define test-chip (new-ga144))
 (define tests '())
 (define tests-passed 0)
 (define tests-failed 0)
@@ -25,11 +26,12 @@
                             [assembled-file
                              (format "test-out/~a-assembled.txt" name)])
                         (reset!)
-                        (compile-and-load program
+                        (compile-and-load test-chip
+                                          program
                                           #t
                                           #:compiled-file compiled-file
                                           #:assembled-file assembled-file)
-                        (step-program!*)
+                        (step*)
                         (for ([x tests])
                           (set! result (x))
                           (when result
@@ -45,6 +47,9 @@
                                    (set! tests-failed (add1 tests-failed))
                                    ))))
                     tests)))
+
+(define (coord->node coord)
+  (send test-chip coord->node coord))
 
 (define (check-mem coord . expect)
   (lambda () (let* ((expect (map 18bit expect))
@@ -487,7 +492,7 @@ east a!
   (set! tests-failed 0)
   (set! tests-passed 0)
   (for ([test tests])
-  ;(for ((test (list (car tests))))
+  ;;(for ((test (list (car tests))))
     (test))
   (display (format "passed: ~a\n" tests-passed))
   (display (format "failed: ~a\n" tests-failed)))
