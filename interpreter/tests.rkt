@@ -25,7 +25,8 @@
                              (format "test-out/~a-compiled.txt" name)]
                             [assembled-file
                              (format "test-out/~a-assembled.txt" name)])
-                        (reset!)
+                        ;(reset!)
+                        (set! test-chip (new-ga144))
                         (compile-and-load test-chip
                                           program
                                           #t
