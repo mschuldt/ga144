@@ -249,7 +249,7 @@
 
     (define prev-IO IO)
     (define num-gpio-pins (let ((pins (assoc coord node-to-gpio-pins)))
-                            (if pins (car pins) 0)))
+                            (if pins (cdr pins) 0)))
     (define pin1-ctl-mask #x30000)
     (define pin2-ctl-mask #x3)
     (define pin3-ctl-mask #x12)
