@@ -27,7 +27,7 @@
     (define (build-node-matrix)
       (for ([i 144])
         (vector-set! nodes i (new f18a% [index i] [ga144 this])))
-      (vector-map (lambda (node) (send node init-ludr-port-nodes)) nodes))
+      (vector-map (lambda (node) (send node init)) nodes))
 
     (define (index->node index)
       (vector-ref nodes index))

@@ -170,6 +170,8 @@
 (define << arithmetic-shift)
 (define (>> x n) (arithmetic-shift x (- n)))
 (define ior bitwise-ior)
+(define ~ bitwise-not)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

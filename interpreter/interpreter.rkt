@@ -1,4 +1,5 @@
 #lang racket
+;; simulates a collection of ga144 chips
 
 (require "../compiler/assemble.rkt"
          "../compiler/disassemble.rkt"

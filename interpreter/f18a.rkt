@@ -34,6 +34,33 @@
     (define S 0)
     (define T 0)
     (define IO #x15555)
+    (define IO-read #x15555)
+
+    ;;value of each gpio pin. 0 or 1
+    (define pin17 #t)
+    (define pin5 #t)
+    (define pin3 #t)
+    (define pin1 #t)
+
+    (define (18bit n)
+      (if (number? n);;temp fix
+          (& n #x3ffff)
+          n))
+
+    ;;bit of each gpio pin in the io register
+    (define pin17-bit (<< 1 17))
+    (define pin5-bit (<< 1 5))
+    (define pin3-bit (<< 1 3))
+    (define pin1-bit 1)
+    ;;bits of each read/write status bit in the io register
+    (define Rr- (18bit (~ (<< 1 16))))
+    (define Rw (<< 1 15))
+    (define Dr- (18bit (~ (<< 1 14))))
+    (define Dw (<< 1 13))
+    (define Lr- (18bit (~ (<< 1 12))))
+    (define Lw (<< 1 11))
+    (define Ur- (18bit (~ (<< 1 10))))
+    (define Uw (<< 1 9))
 
     (define memory #f)
     (define instructions (make-vector 35))
@@ -45,11 +72,6 @@
 
     (define carry-bit 0)
     (define extended-arith? #f)
-
-    (define (18bit n)
-      (if (number? n);;temp fix
-          (& n #x3ffff)
-          n))
 
     ;; Pushes to the data stack.
     (define (d-push! value)
@@ -250,6 +272,36 @@
     (define prev-IO IO)
     (define num-gpio-pins (let ((pins (assoc coord node-to-gpio-pins)))
                             (if pins (cdr pins) 0)))
+    ;;the io read masks are used for isolating the parts of the io register
+    ;;that are in use by a given node's io facilities. Bits that are not in
+    ;;use read the inverse of what was last written to them
+    (define io-read-mask 0)
+    (define ~io-read-mask #f)
+
+    (define (init-io-mask)
+      ;;this must be called after `ludr-port-nodes' is initialized
+      (when (> num-gpio-pins 0)
+        ;;add the gpio bits to the io read mask
+        (set! io-read-mask
+          (vector-ref (vector #f #x20000 #x20002 #x2000a #x2002a)
+                      num-gpio-pins)))
+      ;;add the status bits
+      (when (vector-ref ludr-port-nodes 0)
+        (set! io-read-mask (ior io-read-mask #x1800)))
+      (when (vector-ref ludr-port-nodes 1)
+        (set! io-read-mask (ior io-read-mask #x600)))
+      (when (vector-ref ludr-port-nodes 2)
+        (set! io-read-mask (ior io-read-mask #x6000)))
+      (when (vector-ref ludr-port-nodes 3)
+        (set! io-read-mask (ior io-read-mask #x18000)))
+
+      (set! ~io-read-mask (18bit (~ io-read-mask)))
+      (set! io-read-default (& #x15555 io-read-mask)))
+
+    ;;the default io register read bits excluding those
+    ;;that are used to control io facilities.
+    (define io-read-default #f)
+
     (define pin1-ctl-mask #x30000)
     (define pin2-ctl-mask #x3)
     (define pin3-ctl-mask #x12)
@@ -269,7 +321,45 @@
       (set! pin4-handler d))
 
     (define (read-io-reg)
-      (d-push! IO)
+      ;;sacrifice speed here to keep reads and writes as fast as possible
+
+      (let ((io (ior (& (18bit (~ IO)) ~io-read-mask)
+                     io-read-default)))
+        ;;set node handshake read bits
+        (when (vector-ref reading-nodes LEFT)
+          (set! io (& io Lr-)))
+        (when (vector-ref reading-nodes UP)
+          (set! io (& io Ur-)))
+        (when (vector-ref reading-nodes DOWN)
+          (set! io (& io Dr-)))
+        (when (vector-ref reading-nodes RIGHT)
+          (set! io (& io Rr-)))
+
+        ;;set node handshake write bits
+        (when (vector-ref writing-nodes LEFT)
+          (set! io (ior io Lw)))
+        (when (vector-ref writing-nodes UP)
+          (set! io (ior io Uw)))
+        (when (vector-ref writing-nodes DOWN)
+          (set! io (ior io Dw)))
+        (when (vector-ref writing-nodes RIGHT)
+          (set! io (ior io Rw)))
+
+        ;;set io pin bits
+        (when (> num-gpio-pins 0)
+          (and pin17
+               (set! io (ior io pin17-bit)))
+          (when (> num-gpio-pins 1)
+            (and pin5
+                 (set! io (ior io pin5-bit)))
+            (when (> num-gpio-pins 2)
+              (and pin3
+                   (set! io (ior io pin3-bit)))
+              (and (> num-gpio-pins 3)
+                   pin1
+                   (set! io (ior io pin1-bit))))))
+
+        (d-push! io))
       #t)
 
     (define (set-io-reg val)
@@ -450,7 +540,8 @@
         (set! A (incr A)))
 
       (define-instruction! "@b" () ;fetch-b
-        (read-memory B) #t)
+        (read-memory B)
+        #t)
 
       (define-instruction! "@" (); fetch a
         (read-memory A) #t)
@@ -654,7 +745,11 @@
     (define/public (step-program-n! n)
       (for ([i (in-range 0 n)]) (step-program!)))
 
-    (define/public (init-ludr-port-nodes)
+    (define/public (init)
+      (init-ludr-port-nodes)
+      (init-io-mask))
+
+    (define (init-ludr-port-nodes)
       (define (convert dir)
         (let ([x (remainder coord 100)]
               [y (quotient coord 100)])
