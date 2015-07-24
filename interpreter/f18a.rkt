@@ -311,6 +311,7 @@
     (define pin2-handler #f)
     (define pin3-handler #f)
     (define pin4-handler #f)
+    (define pin-handlers-set-p #f)
 
     (enum (IMPED PULLDOWN SINK HIGH))
 
@@ -318,7 +319,8 @@
       (set! pin1-handler a)
       (set! pin2-handler b)
       (set! pin3-handler c)
-      (set! pin4-handler d))
+      (set! pin4-handler d)
+      (set! pin-handlers-set-p #t))
 
     (define (read-io-reg)
       ;;sacrifice speed here to keep reads and writes as fast as possible
@@ -366,7 +368,8 @@
       (set! prev-IO IO)
       (set! IO val)
       ;;if a digital pin control field changed, notify its handlers
-      (when (> num-gpio-pins 0)
+      (when (and (> num-gpio-pins 0)
+                 pin-handlers-set-p)
         (let ((changed (^ prev-IO IO)))
           (and (& changed pin1-ctl-mask)
                pin1-handler
@@ -725,6 +728,7 @@
       (set! reading-nodes (make-vector 4 #f))
       (set! port-vals (make-vector 4 #f))
       (set! step-fn step0)
+      (set! pin-handlers-set-p #f)
       (setup-ports))
 
     ;; Resets only p
