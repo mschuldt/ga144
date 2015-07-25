@@ -36,11 +36,33 @@
     (define IO #x15555)
     (define IO-read #x15555)
 
-    ;;value of each gpio pin. 0 or 1
+    ;;value of each gpio pin. #t or #f
     (define pin17 #t)
     (define pin5 #t)
     (define pin3 #t)
     (define pin1 #t)
+
+    ;;#t if we are suspended waiting for pin17 to change
+    (define waiting-for-pin #f)
+    ;;state of WD bit in io register
+    (define WD #f)
+    (define ~WD #t)
+
+    (define (set-pin! pin val)
+      ;;val is #f or #t
+      (when (and waiting-for-pin
+                 (= pin 0)
+                 (= val ~WD))
+        ;;The node is suspend waiting for this value,
+        ;;complete the read and wakeup the node
+        (d-push! val)
+        (wakeup))
+      ;;???Racket equivalent of `set'?
+      ;;(set (vector-ref (vector 'pin17 'pin5 'pin3 'pin1) pin) val)
+      (cond ((= pin 0) (set! pin17 val))
+            ((= pin 1) (set! pin1 val))
+            ((= pin 2) (set! pin3 val))
+            ((= pin 3) (set! pin5 val))))
 
     (define (18bit n)
       (if (number? n);;temp fix
@@ -147,23 +169,34 @@
     (define (port-read port)
       (when (PORT-DEBUG? coord) (printf "[~a](port-read ~a)\n" coord port))
       ;;read a value from a ludr port
-      ;;returns #t if value is one the stack, #f if we are suspended waiting for it
-      (let ((writing-node (vector-ref writing-nodes port)))
-        (if writing-node
-            (begin ;;value was ready
-              (when (PORT-DEBUG? coord) (printf "       value was ready: ~a\n"
-                                                (vector-ref port-vals port)))
-              (d-push! (vector-ref port-vals port))
-              ;;clear state from last reading
-              (vector-set! writing-nodes port #f)
-              ;;let other node know we read the value
-              (send writing-node finish-port-write)
-              #t)
-            (begin ;;else: suspend while we wait for other node to write
-              (when (PORT-DEBUG? coord) (printf "       suspending\n"))
-              (send (vector-ref ludr-port-nodes port) receive-port-read port this)
-              (suspend)
-              #f))))
+      ;;returns #t if value is on the stack, #f if we are suspended waiting for it
+      (if (eq? port wake-pin-port)
+          ;;reading from pin17
+          (if (= pin17 ~WD)
+              (begin (d-push! pin17)
+                     #t)
+              (begin ;;else: suspend while waiting for pin to change
+                (set! waiting-for-pin #t)
+                (suspend)
+                #f))
+          ;;else: normal inter-node read
+          (let ((writing-node (vector-ref writing-nodes port)))
+            (if writing-node
+                (begin ;;value was ready
+                  (when (PORT-DEBUG? coord) (printf "       value was ready: ~a\n"
+                                                    (vector-ref port-vals port)))
+                  (d-push! (vector-ref port-vals port))
+                  ;;clear state from last reading
+                  (vector-set! writing-nodes port #f)
+                  ;;let other node know we read the value
+                  (send writing-node finish-port-write)
+                  #t)
+                (begin ;;else: suspend while we wait for other node to write
+                  (when (PORT-DEBUG? coord) (printf "       suspending\n"))
+                  (send (vector-ref ludr-port-nodes port)
+                        receive-port-read port this)
+                  (suspend)
+                  #f)))))
 
     (define (multiport-read ports)
       (when (PORT-DEBUG? coord) (printf "[~a](multiport-read ~a)\n" coord ports))
@@ -272,6 +305,14 @@
     (define prev-IO IO)
     (define num-gpio-pins (let ((pins (assoc coord node-to-gpio-pins)))
                             (if pins (cdr pins) 0)))
+    ;;the wake-pin-port is the port to read from for pin17 wakeup, UP or LEFT
+    (define wake-pin-port #f)
+    (when (> num-gpio-pins 0)
+      (if (or (> coord 700)
+              (< coord 17))
+          (set! wake-pin-port UP)
+          (set! wake-pin-port LEFT)))
+
     ;;the io read masks are used for isolating the parts of the io register
     ;;that are in use by a given node's io facilities. Bits that are not in
     ;;use read the inverse of what was last written to them
@@ -367,6 +408,8 @@
     (define (set-io-reg val)
       (set! prev-IO IO)
       (set! IO val)
+      (set! WD (if (= (& (>> IO 11) 1) 1) #t #f))
+      (set! ~WD (not WD))
       ;;if a digital pin control field changed, notify its handlers
       (when (and (> num-gpio-pins 0)
                  pin-handlers-set-p)
@@ -729,6 +772,8 @@
       (set! port-vals (make-vector 4 #f))
       (set! step-fn step0)
       (set! pin-handlers-set-p #f)
+      (set! WD #f)
+      (set! ~WD #t)
       (setup-ports))
 
     ;; Resets only p
