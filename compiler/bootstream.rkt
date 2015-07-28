@@ -1,9 +1,11 @@
 #lang racket
 
 (require "assemble.rkt"
+         "disassemble.rkt"
          "../common.rkt")
 
-(provide make-bootstream)
+(provide make-bootstream
+         print-bootstream)
 
 (enum (N E S W))
 
@@ -102,3 +104,7 @@
         (get node (add1 index))))
     (get code)
     (list->vector (reverse used))))
+
+(define (print-bootstream bs)
+  (for ((word bs))
+    (printf "~a    ~a\n" word (disassemble-word word))))
