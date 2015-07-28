@@ -474,6 +474,8 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instruction execution
 
+    (define unext-jump-p #f)
+
     (define (execute! opcode [jump-addr-pos 0])
       (if (< opcode 8)
           ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
@@ -485,16 +487,24 @@
       (set! P (incr P))
       (if (eq? I 'end)
           (suspend)
-          (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
-                            step1
-                            step0))))
+          (step-0-execute)))
+
+    (define (step-0-execute)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
+                        step1
+                        step0)))
+
     (define (step0)
-      (if (read-memory P)
-          ;;TODO: FIX: this should not use the stack
-          ;;           we could loose the last item on the stack this way
-          (step0-helper)
-          ;;else: we are now suspended waiting for the value
-          (set! step-fn step0-helper)))
+      (if unext-jump-p
+          (begin
+            (set! unext-jump-p #f)
+            (step-0-execute))
+          (if (read-memory P)
+              ;;TODO: FIX: this should not use the stack
+              ;;           we could loose the last item on the stack this way
+              (step0-helper)
+              ;;else: we are now suspended waiting for the value
+              (set! step-fn step0-helper))))
 
     (define (step1)
       (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8)
@@ -551,11 +561,12 @@
         (set! P addr)
         #f)
 
-      (define-instruction! "unext" (_) ;; -- hacky!
+      (define-instruction! "unext" (_)
         (if (= R 0)
             (r-pop!)
             (begin (set! R (sub1 R))
-                   (set! P (sub1 P))
+                   (set! unext-jump-p #t)
+                   (set step-fn step0)
                    #f)))
 
       (define-instruction! "next" (addr)
@@ -774,6 +785,7 @@
       (set! pin-handlers-set-p #f)
       (set! WD #f)
       (set! ~WD #t)
+      (set! unext-jump-p #f)
       (setup-ports))
 
     ;; Resets only p
