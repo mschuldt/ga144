@@ -676,7 +676,7 @@
         (r-push! (d-pop!)))
 
       (define-instruction! "b!" () ;; store into b
-        (set! B (d-pop!)))
+        (set! B (& (d-pop!) #x1ff)))
 
       (define-instruction! "a!" () ;store into a
         (set! A (d-pop!))))
