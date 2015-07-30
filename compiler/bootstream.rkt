@@ -45,7 +45,7 @@
       (vector (word ";"))))
 
 (define (make-bootstream assembled)
-  ;;ASSEMBLED is a list of (node-coor . assembled-code) pairs
+  ;;ASSEMBLED is a list of 'node' structs
   ;;returns an array of assembled words
   (let ((nodes (make-vector 144 #f))
         (ordered-nodes '())
@@ -59,12 +59,12 @@
     ;;place nodes into 'nodes' array, a mapping of node indexes to nodes
     ;;this allows constant time node code lookup
     (for ([node assembled])
-      (vector-set! nodes (coord->index (car node)) node))
+      (vector-set! nodes (coord->index (node-coord node)) node))
     ;;create list of nodes in order the bootstream will visit them
     ;;If the node is not used then its value will be (coordinate . #f)
     (for ([dir path])
       (set! ordered-nodes (cons (or (vector-ref nodes (coord->index coord))
-                                    (cons coord #f))
+                                    (create-node coord #f 0))
                                 ordered-nodes))
       (set! coord (+ coord (vector-ref coord-changes dir))))
     ;;now generate the actual bootstream
@@ -72,18 +72,20 @@
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
 
-      (set! node-code (and (cdr node) (get-used-portion (cdr node))))
+      (set! node-code (and (node-mem node) (get-used-portion (node-mem node))))
       (and node-code (printf "node-code = ~a\n"  node-code))
       (set! code (vector-append
                   ;;move all the previous code through this node
                   (if (> len 0)
-                      (port-pump (car node) dir len)
+                      (port-pump (node-coord node) dir len)
                       nothing)
                   (or code nothing)
                   ;;then load this nodes code into ram
                   (load-pump (and node-code
                                   (vector-length node-code)))
-                  (or node-code nothing)))
+                  (or node-code nothing)
+                  (vector (word "jump" 0));;TODO
+                  ))
       (set! len (vector-length code)))
     code))
 
