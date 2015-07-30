@@ -716,6 +716,30 @@
           (load (add1 index))))
       (load 0))
 
+    (define/public (execute-array code)
+      ;;Execute an array of words.
+      ;;Make a fake port and port execute the code through it.
+      ;;Used for loading bootstreams through a node.
+      (define len (vector-length code))
+      (printf "execute-array(): len(code)=~a\n" len)
+      (set! P #x300)
+      (define index 0)
+      (vector-set! memory #x300 (vector
+                                 (lambda ()
+                                        ;(printf "YES\n")
+                                   (if (< index len)
+                                       (let ((word (vector-ref code index)))
+                                         (printf "reading bootstream port. index=~a\n" index)
+                                         (set! index (add1 index))
+                                         (d-push! word)
+                                         #t)
+                                       (raise "execute: invalid index")))
+                                 (lambda (x) (raise "execute: invalid port"))))
+
+      (set! step-fn step0)
+      (when suspended
+        (wakeup)))
+
     (define (setup-ports)
       (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
                                         (lambda (v) (port-write LEFT v))))
