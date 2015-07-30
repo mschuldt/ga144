@@ -166,6 +166,23 @@
     ;;maps ludr ports to adjacent nodes
     (define ludr-port-nodes #f)
 
+    ;;port we are currently reading from
+    ;;used for debugging. If not #f, node must be suspended
+    ;;This is a list if doing a multiport read.
+    (define current-reading-port #f)
+    (define/public (get-current-reading-port)
+      (and current-reading-port
+           (if (list? current-reading-port)
+               (length current-reading-port)
+               (vector-ref (vector "l" "u" "d" "r") current-reading-port))))
+
+    ;;port we are currently writing to
+    ;;used for debugging. If not #f, node must be suspended
+    (define current-writing-port #f)
+    (define/public (get-current-writing-port)
+      (and current-writing-port
+           (vector-ref (vector "L" "U" "D" "R") current-writing-port)))
+
     (define (port-read port)
       (when (PORT-DEBUG? coord) (printf "[~a](port-read ~a)\n" coord port))
       ;;read a value from a ludr port
@@ -195,6 +212,7 @@
                   (when (PORT-DEBUG? coord) (printf "       suspending\n"))
                   (send (vector-ref ludr-port-nodes port)
                         receive-port-read port this)
+                  (set current-reading-port port)
                   (suspend)
                   #f)))))
 
@@ -234,6 +252,7 @@
                   (send (vector-ref ludr-port-nodes port)
                         receive-port-read port this)
                   (set! multiport-read-ports (cons port multiport-read-ports))))
+              (set! current-reading-port ports)
               (suspend)
               #f))))
 
@@ -252,6 +271,7 @@
               (when (PORT-DEBUG? coord) (printf "       suspending\n"))
               (send (vector-ref ludr-port-nodes port)
                     receive-port-write port value this)
+              (set! current-writing-port port)
               (suspend)
               #f))))
 
@@ -278,11 +298,13 @@
           ;;reuse 'receive-port-read' to cancel the read notification
           (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
         (set! multiport-read-ports #f))
+      (set! current-reading-port #f)
       (wakeup))
 
     (define/public (finish-port-write)
       ;;called by adjacent node when it reads from a port we are writing to
       (when (PORT-DEBUG? coord) (printf "[~a](finish-port-write)\n" coord))
+      (set! current-writing-port #f)
       (wakeup))
 
     (define/public (receive-port-read port node)
@@ -706,6 +728,8 @@
     (define/public (get-rstack-as-list)
       (cons R (stack->list rstack)))
 
+    (define/public (suspended?) suspended)
+
     (define/public (load code [n #f])
       ;;CODE is a vector of assembled code
       ;;load N words from CODE into memory, default = len(code)
@@ -878,7 +902,7 @@
       (display-stack rstack)
       (newline))
 
-    (define (display-memory [n MEM-SIZE])
+    (define/public (display-memory [n MEM-SIZE])
       (let ((n (sub1 n)))
         (define (print i)
           (let ((v (vector-ref memory i)))

@@ -136,6 +136,9 @@
             (vector-ref active-nodes i))
           '()))
 
+    (define/public (num-active-nodes)
+      (add1 last-active-index))
+
     (define/public (display-node-states [nodes #f])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
@@ -152,6 +155,27 @@
 
     (define/public (display-memory coord [n MEM-SIZE])
       (send (fn:coord->node coord) display-memory n))
+
+
+    (define/public (print-active)
+      ;;print a chip diagram showing the active nodes
+      (define (print-node coord)
+        (let* ((node (coord->node coord))
+               (suspended? (send node suspended?))
+               (reading-port (send node get-current-reading-port))
+               (writing-port (send node get-current-writing-port)))
+          (printf "~a" (if suspended?
+                           (or reading-port writing-port " ")
+                           "*"))))
+
+      (printf "--------------------\n")
+      (for ((row (range 8)))
+        (printf "|")
+        (for ((column (range 18)))
+          (print-node (+ (* (- 7 row) 100) column)))
+        (printf "|\n"))
+      (printf "--------------------\n"))
+
 
     (build-node-matrix)
     (reset!)
