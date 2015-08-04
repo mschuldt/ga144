@@ -498,9 +498,11 @@
 
     (define unext-jump-p #f)
 
-    (define (execute! opcode [jump-addr-pos 0])
+    (define (execute! opcode [jump-addr-pos 0] [addr-mask #f])
       (if (< opcode 8)
-          ((vector-ref instructions opcode) (bitwise-bit-field I 0 jump-addr-pos))
+          ((vector-ref instructions opcode)
+           (bitwise-bit-field I 0 jump-addr-pos)
+           addr-mask)
           ((vector-ref instructions opcode))))
 
     (define (step0-helper)
@@ -512,7 +514,7 @@
           (step-0-execute)))
 
     (define (step-0-execute)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
                         step1
                         step0)))
 
@@ -529,12 +531,12 @@
               (set! step-fn step0-helper))))
 
     (define (step1)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8 #x3ff00)
                         step2
                         step0)))
 
     (define (step2)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3)
+      (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3 #x3fff8)
                         step3
                         step0)))
 
@@ -561,29 +563,29 @@
                                   body ...)))
                (set! _n (add1 _n))))
 
-      (define-instruction! ";" (_)
+      (define-instruction! ";" (_ __)
         (set! P R)
         (r-pop!)
         #f)
 
-      (define-instruction! "ex" (_)
+      (define-instruction! "ex" (_ __)
         (define temp P)
         (set! P R)
         (set! R temp)
         #f)
 
-      (define-instruction! "jump" (addr)
+      (define-instruction! "jump" (addr mask)
         (when DEBUG? (printf "jump to ~a\n" addr))
-        (set! P addr)
+        (set! P (ior addr (& P mask)))
         #f)
 
-      (define-instruction! "call" (addr)
+      (define-instruction! "call" (addr mask)
         (when DEBUG? (printf "calling: ~a\n" addr))
         (r-push! P)
-        (set! P addr)
+        (set! P (ior addr (& P mask)))
         #f)
 
-      (define-instruction! "unext" (_)
+      (define-instruction! "unext" (_ __)
         (if (= R 0)
             (r-pop!)
             (begin (set! R (sub1 R))
@@ -591,23 +593,23 @@
                    (set step-fn step0)
                    #f)))
 
-      (define-instruction! "next" (addr)
+      (define-instruction! "next" (addr mask)
         (if (= R 0)
             (begin (r-pop!)
                    #f)
             (begin (set! R (sub1 R))
-                   (set! P addr)
+                   (set! P (ior addr (& P mask)))
                    #f)))
 
-      (define-instruction! "if" (addr)
+      (define-instruction! "if" (addr mask)
         (and (= T 0)
              (begin (when DEBUG? (printf "If: jumping to ~a\n" addr))
-                    (set! P addr))
+                    (set! P (ior addr (& P mask))))
              #f))
 
-      (define-instruction! "-if" (addr)
+      (define-instruction! "-if" (addr mask)
         (and (not (bitwise-bit-set? T 17))
-             (set! P addr)
+             (set! P (ior addr (& P mask)))
              #f))
 
       (define-instruction! "@p" ()

@@ -169,7 +169,7 @@
   (let ([addr (get-word-address word)]);;TODO: ROM words
     (if addr
         (begin
-          (when (> addr (max-address-size (add1 current-slot)))
+          (unless (address-fits? addr current-slot)
             (fill-rest-with-nops))
           (when DEBUG? (printf "       address = ~a\n" addr))
           (let ((next (forth-read)))
@@ -198,12 +198,21 @@
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
 
-(define (max-address-size slot)
-  ;;returns the max address that can fit from SLOT(inclusive)to the end of the word
-  (let ((len (- 4 slot)))
-    (cond ((= len 1) 8);;last slot only has 3 bits
-          ((< len 0) 0)
-          (else (expt 2 (+ 3 (* 5 (sub1 len))))))))
+;; map jump instruction slots to bit masks for their address fields
+(define address-masks (vector #x3ff #xff #x7))
+
+(define (address-fits? destination-addr jump-slot)
+  ;; returns #t if DESTINATION-ADDR is reachable from the current word
+  ;; JUMP-SLOT is the slot of the jump/call instruction
+  (and jump-slot
+       (>= jump-slot 0)
+       (< jump-slot 3)
+       (let* ([mask (vector-ref address-masks jump-slot)]
+              [~mask (& (~ mask) #x3ffff)]
+              [min-dest (& ~mask next-addr)]
+              [max-dest (ior (& ~mask next-addr) (& mask destination-addr))])
+         (and (>= destination-addr min-dest)
+              (<= destination-addr max-dest)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -320,7 +329,7 @@
 
 (define (compile-next-type inst)
   (let ((addr (pop stack)))
-    (when (> addr (max-address-size (add1 current-slot)))
+    (unless (address-fits? addr current-slot)
       (fill-rest-with-nops))
     (add-to-next-slot inst)
     (add-to-next-slot addr)
