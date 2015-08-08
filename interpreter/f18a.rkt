@@ -145,11 +145,25 @@
 
     (define (suspend)
       (remove-from-active-list)
-      (set! suspended #t))
+      (set! suspended #t)
+
+      (when break-at-io-change
+        (when break-at-io-change-autoreset
+          (set! break-at-wakeup #f))
+        (send ga144 break this)))
 
     (define (wakeup)
       (add-to-active-list)
-      (set! suspended #f))
+      (set! suspended #f)
+      (if break-at-wakeup
+          (begin
+            (when break-at-wakeup-autoreset
+              (set! break-at-wakeup #f))
+            (send ga144 break this))
+          (when break-at-io-change
+            (when break-at-io-change-autoreset
+              (set! break-at-wakeup #f))
+            (send ga144 break this))))
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; ludr port communication
 
@@ -836,6 +850,8 @@
       (set! WD #f)
       (set! ~WD #t)
       (set! unext-jump-p #f)
+      (set! break-at-wakeup #f)
+      (set! break-at-io-change #f)
       (setup-ports))
 
     ;; Resets only p
@@ -886,7 +902,24 @@
     (define/public (str)
       (format "<node ~a>" coord))
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; breakpoints
+
+    (define break-at-wakeup #f)
+    (define break-at-io-change #f)
+    ;; when true, set unset break-at-wakeup everytime it fires
+    (define break-at-wakeup-autoreset #t)
+    (define break-at-io-change-autoreset #f)
+
+    (define/public (break-at-next-wakeup)
+      (set! break-at-wakeup #t))
+    (define/public (break-at-next-io-change)
+      (set! break-at-io-change #t))
+
+    (define/public (reset-breakpoints)
+      (set! break-at-wakeup #f))
+
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display debug functions
     (define/public (display-state)
       (printf "_____Node ~a state_____\n" coord)

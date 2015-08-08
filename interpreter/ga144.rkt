@@ -17,7 +17,7 @@
     (super-new)
 
     (define time 0)
-
+    (define breakpoint #f) ;; set to #t when a breakpoint is reached
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; 8x18 node matrix
 
@@ -77,6 +77,15 @@
         ;;save the new node indices
         (set-field! active-index first-inactive-node (get-field active-index node))
         (set-field! active-index node last-active-index)))
+    ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;; breakpoints
+
+    (define cli-active? #f) ;; if true, we are in a cli session
+
+    (define/public (break [node #f])
+      (printf "[[ Breakpoint at node ~a\n" (send node get-coord))
+      ;; set the breakpoint flag which returns control to the interpreter
+      (set! breakpoint #t))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; program loading
@@ -91,33 +100,43 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; execution control
 
+    ;; step functions return true if a breakpoint has been reached, else false
+
     (define/public (step-program!)
       (set! time (add1 time))
       (when (> current-node-index last-active-index)
-        (set! current-node-index 0))
-      (set! current-node (vector-ref active-nodes current-node-index))
-      (send current-node step-program!)
-      (set! current-node-index (add1 current-node-index)))
+        ;;start from the beginning, or -1 if no nodes are active
+        (set! current-node-index (min 0 last-active-index)))
+      (when (>= current-node-index 0)
+        (set! current-node (vector-ref active-nodes current-node-index))
+        (send current-node step-program!)
+        (set! current-node-index (add1 current-node-index)))
+      breakpoint)
 
     (define/public (step-program-n! n)
-      (when (> n 0)
+      (when (and (> n 0)
+                 (not breakpoint))
         (step-program!)
-        (step-program-n! (sub1 n))))
+        (step-program-n! (sub1 n)))
+      breakpoint)
 
     ;;step program until all nodes are non-active
     (define/public (step-program!* [max-time #f])
       (define (step)
-        (unless (= last-active-index -1)
+        (unless (or (= last-active-index -1)
+                    breakpoint)
           (step-program!)
           (step)))
       (define (step-with-max)
-        (unless (= last-active-index -1)
+        (unless (or (= last-active-index -1)
+                    breakpoint)
           (step-program!)
           (when (< time 1000000)
             (step-with-max))))
       (if max-time
           (step-with-max)
-          (step)))
+          (step))
+      breakpoint)
 
     (define/public (reset!)
       (set! time 0)
@@ -125,6 +144,7 @@
       (set! last-active-index 143)
       (set! current-node-index 0)
       (set! current-node (vector-ref active-nodes current-node-index))
+      (set! breakpoint #f)
       (vector-map (lambda (node) (send node reset!)) nodes))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
