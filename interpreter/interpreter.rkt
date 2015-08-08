@@ -175,12 +175,15 @@
 
   (define again #t)
   (def-command exit () "Exit this cli" (set! again #f))
-
+  (define last-command #f)
   (define (loop)
     (printf ">>> ")
     (let* ((input (read-line stdin)))
-      (when (and input
-                 (not (eof-object? input)))
+      (when (or (eof-object? input)
+                (= (string-length input) 0))
+        (set! input last-command)
+        (pretty-display (format "[~a]" input)))
+      (when input
         (let* ((split (string-split (string-trim input)))
                (len (length split))
                (command (and (> len 0) (car split)))
@@ -194,6 +197,7 @@
                 (if (hash-has-key? _commands command-name)
                     ((hash-ref _commands command-name) args)
                     (printf "unkown command '~a', arity ~a\n"
-                            command (sub1 len))))))))
+                            command (sub1 len))))))
+        (set! last-command input)))
     (and again (loop)))
   (loop))
