@@ -12,6 +12,11 @@
 (define dir-names (vector "north" "east" "south" "west"))
 
 (define start 708);;first node we stream code into
+
+;;paths are lists of N, E, S, and W directions,
+;;which is the direction of the the current node (starting with `start')
+;;that the stream will take. The last direction should be #f.
+
 ;;path1 from DB004 page 31
 (define path1 (let ((NENW (append (cons N (make-list 16 E))
                                   (cons N (make-list 16 W)))))
@@ -19,7 +24,8 @@
                         (make-list 7 S)
                         (make-list 17 W)
                         NENW NENW NENW
-                        (cons N (make-list 7 E)))))
+                        (cons N (make-list 7 E))
+                        (list #f))))
 (define path path1)
 
 ;; we generate the bootstream for the nodes backwards - the
@@ -66,8 +72,12 @@
       (set! ordered-nodes (cons (or (vector-ref nodes (coord->index coord))
                                     (create-node coord #f 0))
                                 ordered-nodes))
-      (set! coord (+ coord (vector-ref coord-changes dir))))
+      (when dir
+        (set! coord (+ coord (vector-ref coord-changes dir)))))
     ;;now generate the actual bootstream
+    (printf "len(path) = ~a\n" (length path))
+    (printf "first: ~a\n" (node-coord (car (reverse ordered-nodes))))
+    (printf "last: ~a\n" (node-coord (car ordered-nodes)))
     (for ([dir (reverse path)])
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
