@@ -22,6 +22,7 @@
 ;; 'step' apply only to this chip. Otherwise they apply to all
 ;; chips in the 'chips' list
 (define selected-chip #f)
+(define selected-node #f)
 
 (define _counter 1)
 (define (new-ga144 [name #f])
@@ -154,10 +155,17 @@
         (printf "\nchip: ~a\n" (get-field name chip))
         (send chip print-active))))
 
-(def-command only (chip-name) "Apply future commands only to CHIP-NAME"
-  (if (hash-has-key? name-to-chip chip-name)
-      (set! selected-chip (hash-ref name-to-chip chip-name))
-      (printf "unknown chip name '~a'\n" chip-name)))
+(def-command only (chip/node) "Apply future commands only to CHIP or NODE"
+  (if (hash-has-key? name-to-chip chip/node)
+      (begin
+        (set! selected-chip (hash-ref name-to-chip chip/node))
+        (set! selected-node #f))
+      (let ((coord (string->number chip/node)))
+        (if coord
+            (if selected-chip
+                (set! selected-node (send selected-chip coord->node coord))
+                (printf "must select a chip before selecting a node\n"))
+            (printf "unknown chip name or node coordinate '~a'\n" chip/node)))))
 
 (def-command all () "Apply future commands to all chips"
   (set! selected-chip #f))
