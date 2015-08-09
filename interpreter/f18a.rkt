@@ -659,7 +659,7 @@
         (set-memory! B (d-pop!)) #t)
 
       (define-instruction! "!" (); store
-        (set-memory! A (d-pop!)) #t)
+        (set-memory! (& A #x1ff)  (d-pop!)) #t)
 
       (define-instruction! "+*" () ; multiply-step
         ;;case 1 - If bit A0 is zero
