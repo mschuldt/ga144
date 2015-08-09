@@ -213,7 +213,18 @@
   (def-command exit () "Exit this cli" (set! again #f))
   (define last-command #f)
   (define (loop)
-    (printf ">>> ")
+    (let* ((selected (if (and selected-chip
+                              (> num-chips 1))
+                         (list (get-field name selected-chip))
+                         '()))
+           (selected (if selected-node
+                         (cons (format "~a" (send selected-node get-coord))
+                               selected)
+                         #f))
+           (selected (if selected
+                         (format "(~a)" (string-join (reverse selected) "."))
+                         "")))
+      (printf "~a>>> " selected))
     (let* ((input (read-line stdin)))
       (when (or (eof-object? input)
                 (= (string-length input) 0))
