@@ -15,6 +15,7 @@
 (define ga144%
   (class object%
     (super-new)
+    (init-field name [interactive #f])
 
     (define time 0)
     (define breakpoint #f) ;; set to #t when a breakpoint is reached

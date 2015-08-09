@@ -29,7 +29,7 @@
   (unless name
     (set! name (format "chip~a" _counter))
     (set! _counter (add1 _counter)))
-  (let ((chip (new ga144% [name name])))
+  (let ((chip (new ga144% [name name] [interactive #t])))
     (push chips chip)
     (hash-set! name-to-chip name chip)
     (set! num-chips (add1 num-chips))
@@ -61,16 +61,20 @@
 
 (define (step* [chip #f])
   (if chip
-      (send chip step-program!*)
+      (and (send chip step-program!*)
+           (enter-cli))
       (for ((c chips))
-        (send c step-program!*))))
+        (and (send c step-program!*)
+             (enter-cli)))))
 
 (define (step [n 1] [chip #f])
   (if chip
-      (send chip step-program-n! n)
+      (and (send chip step-program-n! n)
+           (enter-cli))
       (for ((c chips))
         ;;TODO: stop when everything is suspended
-        (send c step-program-n! n))))
+        (and (send c step-program-n! n)
+             (enter-cli)))))
 
 (define (reset! [chip #f])
   (if chip
@@ -129,11 +133,18 @@
   (for ((chip chips))
     (pretty-display (get-field name chip))))
 
+(define (_step n chip)
+  (if chip
+      (send chip step-program-n! n)
+      (for ((c chips))
+        ;;TODO: stop when everything is suspended
+        (send c step-program-n! n))))
+
 (def-command step () "Step 1 word"
-  (step 1 selected-chip))
+  (_step 1 selected-chip))
 
 (def-command step (n) "Step N words"
-  (step (string->number n) selected-chip))
+  (_step (string->number n) selected-chip))
 
 (def-command break (n) "Set breakpoint at word N"
   (printf "TODO\n"))
@@ -141,19 +152,31 @@
 (def-command unbreak (n) "Remove breakpoint from word N"
   (printf "TODO\n"))
 
+(define (_step* chip)
+  (if chip
+      (send chip step-program!*)
+      (for ((c chips))
+        (send c step-program!*))))
+
 (def-command continue () "Continue execution"
-  (step* selected-chip))
+  (if selected-chip
+      (send selected-chip step-program!*)
+      (for ((c chips))
+        (send c step-program!*)))  )
 
 (def-command reset () "Reset chip"
   (reset! selected-chip))
 
 (def-command show () "Print a representation of the chip"
-  (if selected-chip
-      (begin
-        (send selected-chip print-active))
-      (for ((chip chips))
-        (printf "\nchip: ~a\n" (get-field name chip))
-        (send chip print-active))))
+  (begin
+    (if selected-chip
+        (begin
+          (send selected-chip print-active))
+        (for ((chip chips))
+          (printf "\nchip: ~a\n" (get-field name chip))
+          (send chip print-active)))
+    (when selected-node
+      (send selected-node display-all))))
 
 (def-command show (node) "Print a representation of NODE in selected chip"
   (if selected-chip
@@ -176,6 +199,46 @@
 (def-command all () "Apply future commands to all chips"
   (set! selected-chip #f))
 
+(define (is-yes-string str)
+  (set! str (string-downcase str))
+  (or (equal? str "yes")
+      (equal? str "true")))
+
+(def-command show-io-changes (on) "Print chip at every node suspension/wakeup"
+  (if selected-chip
+      (send selected-chip show-io-changes (is-yes-string on))
+      (for ((c chips))
+        (send c show-io-changes (is-yes-string on)))))
+
+(def-command nactive () "print the number of active nodes"
+  (if selected-chip
+      (pretty-display (send selected-chip num-active-nodes))
+      (for ((c chips))
+        (printf "~a: ~a\n"
+                (get-field name c)
+                (send c num-active-nodes)))))
+
+(define (break-wakeup chip coord)
+  ;;break next time node coord wakes from suspended state
+  ;;TODO: validate coord
+  (let ((node (send chip coord->node coord)))
+    (send node break-at-next-wakeup)))
+
+(def-command break-wakeup (coord) "break next time node coord is awoken"
+  (if selected-chip
+      (break-wakeup selected-chip (string->number coord))
+      (printf "Must select chip\n")))
+
+(define (break-io-change chip coord)
+  ;;break next time node coord wakes from suspended state
+  ;;TODO: validate coord
+  (let ((node (send chip coord->node coord)))
+    (send node break-at-next-wakeup)))
+
+(def-command break-io-change (chip coord)
+  "break next time io changes in CHIP/COORD"
+  (let ((node (send chip coord->node coord)))
+    (send node break-at-next-io-change)))
 
 (define (execute-instruction coord inst)
   (if selected-chip
@@ -197,6 +260,9 @@
 
 (def-command : (coord inst) "execute instruction in the COORD node"
   (execute-instruction coord inst))
+
+(def-command breakpoints () "print active breakpoints"
+  (printf "TODO\n"))
 
 (define (get-help-string command)
   (if (hash-has-key? _help command)
