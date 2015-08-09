@@ -949,4 +949,70 @@
         (print 0)
         (newline)))
 
+    (define/public (display-all)
+      (display-state)
+      (display-memory 10);;TODO
+      (let ((names (vector "Left" "Up" "Down" "Right")))
+        (printf "reading from port(s): ~a\n"
+                (if current-reading-port
+                    (if (list? current-reading-port)
+                        (string-join (for/list ((port current-reading-port))
+                                       (vector-ref names port))
+                                     ", ")
+                        (vector-ref names current-reading-port))
+                    "None"))
+
+        ;;show the multiport read ports if they differ from the reading port list
+        (when (and multiport-read-ports
+                   (list? current-reading-port)
+                   (not (= (length multiport-read-ports)
+                           (length  current-reading-port))))
+          (printf "multiport read ports: ~a\n"
+                  (string-join (for/list ((port multiport-read-ports))
+                                 (vector-ref names port))
+                               ", ")))
+
+        (printf "writing to port(s): ~a\n"
+                (if current-writing-port
+                    (if (list? current-writing-port)
+                        (string-join (for/list ((port current-writing-port))
+                                       (vector-ref names port))
+                                     ", ")
+                        (vector-ref names current-writing-port))
+                    "None"))
+
+        (let ((receiving-reads '())
+              (receiving-writes '()))
+          (for/list ((node reading-nodes))
+            (when node
+              (set! receiving-reads (cons node receiving-reads))))
+          (for/list ((node writing-nodes))
+            (when node
+              (set! receiving-writes (cons node receiving-writes))))
+
+          (printf "receiving reads from: ~a\n"
+                  (if (null? receiving-reads)
+                      "None"
+                      (string-join (for/list ((port receiving-reads))
+                                     (number->string (send port get-coord)))
+                                   ", ")))
+          (printf "receiving writes from: ~a\n"
+                  (if (null? receiving-writes)
+                      "None"
+                      (string-join (for/list ((port receiving-writes))
+                                     (number->string (send port get-coord)))
+                                   ", "))))
+
+        (printf "ludr ports: ~a\n"
+                (string-join (for/list ((node ludr-port-nodes))
+                               (if node
+                                   (number->string (send node get-coord))
+                                   "___"))
+                             ", "))
+
+        (printf "suspended: ~a\n" (if suspended "Yes" "No"))
+
+        (when waiting-for-pin
+          (printf "Waiting for pin 17\n"))
+        ))
     ))

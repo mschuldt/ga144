@@ -155,6 +155,12 @@
         (printf "\nchip: ~a\n" (get-field name chip))
         (send chip print-active))))
 
+(def-command show (node) "Print a representation of NODE in selected chip"
+  (if selected-chip
+      (begin
+        (send selected-chip print-node (string->number node)))
+      (printf "[No selected chip]")))
+
 (def-command only (chip/node) "Apply future commands only to CHIP or NODE"
   (if (hash-has-key? name-to-chip chip/node)
       (begin

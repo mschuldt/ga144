@@ -64,7 +64,9 @@
         (set-field! active-index last-active-node (get-field active-index node))
         (set-field! active-index node last-active-index)
         ;;decrement the number of active nodes
-        (set! last-active-index (sub1 last-active-index))))
+        (set! last-active-index (sub1 last-active-index)))
+      (when show-io-changes?
+        (print-active)))
 
     (define/public (add-to-active-list node)
       (set! last-active-index (add1 last-active-index))
@@ -76,7 +78,10 @@
         (vector-set! active-nodes last-active-index node)
         ;;save the new node indices
         (set-field! active-index first-inactive-node (get-field active-index node))
-        (set-field! active-index node last-active-index)))
+        (set-field! active-index node last-active-index))
+      (when show-io-changes?
+        (print-active)))
+
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; breakpoints
 
@@ -196,7 +201,12 @@
         (printf "|\n"))
       (printf "--------------------\n"))
 
+    (define/public (print-node coord)
+      (send (coord->node coord) display-all))
 
+    (define show-io-changes? #f)
+    (define/public (show-io-changes show)
+      (set! show-io-changes? show))
     (build-node-matrix)
     (reset!)
     ))
