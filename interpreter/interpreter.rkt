@@ -207,8 +207,13 @@
 (define (test)
   (printf "test success!\n"))
 
-(define (enter-cli)
 
+
+(define (enter-cli)
+  (when (and (= num-chips 1)
+             (not selected-chip))
+    (set! selected-chip (car chips)))
+  ;;(set! again #f)
   (define again #t)
   (def-command exit () "Exit this cli" (set! again #f))
   (define last-command #f)
