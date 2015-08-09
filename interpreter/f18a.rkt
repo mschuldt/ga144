@@ -232,7 +232,7 @@
                   (when (PORT-DEBUG) (printf "       suspending\n"))
                   (send (vector-ref ludr-port-nodes port)
                         receive-port-read port this)
-                  (set current-reading-port port)
+                  (set! current-reading-port port)
                   (suspend)
                   #f)))))
 
@@ -610,7 +610,7 @@
             (r-pop!)
             (begin (set! R (sub1 R))
                    (set! unext-jump-p #t)
-                   (set step-fn step0)
+                   (set! step-fn step0)
                    #f)))
 
       (define-instruction! "next" (addr mask)
