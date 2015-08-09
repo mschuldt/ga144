@@ -99,6 +99,7 @@
 ;; 'mem' is the vector of compiled words
 ;; 'len' is how many instructions are used in mem. len <= length(mem)
 ;;       the remaining words in mem are all #f
+(define (create-node coord mem len) (node coord mem len))
 
 (define (coord->index n)
   (+ (* (quotient n 100) 18) (remainder n 100)))

@@ -40,6 +40,7 @@
             (vector-ref nodes index)
             #f ;;TODO: return pseudo node
             )))
+
     (define (fn:coord->node coord)
       (coord->node coord))
 
@@ -97,11 +98,16 @@
     ;; program loading
 
     (define/public (load code)
+      ;; Places code into each node's RAM/ROM
       (for ([n code])
         (send (coord->node (node-coord n))
               load
               (node-mem n)
               (node-len n))))
+
+    (define/public (load-bootstream bs [input-node 708])
+      ;;Load a bootstream through INPUT-NODE
+      (send (coord->node input-node) execute-array bs))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; execution control
@@ -109,6 +115,8 @@
     ;; step functions return true if a breakpoint has been reached, else false
 
     (define/public (step-program!)
+      ;; (when (= (modulo time 100) 0)
+      ;;   (print-active))
       (set! time (add1 time))
       (when (> current-node-index last-active-index)
         ;;start from the beginning, or -1 if no nodes are active
@@ -142,6 +150,12 @@
       (if max-time
           (step-with-max)
           (step))
+
+      ;; (when (= (num-active-nodes) 0)
+      ;;   (when interactive
+      ;;     (printf "[[ All nodes are suspended\n"))
+      ;;   (set! breakpoint #t))
+
       breakpoint)
 
     (define/public (reset!)

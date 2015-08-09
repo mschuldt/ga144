@@ -13,7 +13,7 @@
   ;;START, END mark the bit positions of the instruction in FROM
   ;;JUMP is the size of the jump field in FROM, #f if none
   (let ((inst (vector-ref opcodes (* (bitwise-bit-field from^ start end)
-                                   (if jump 1 4)))))
+                                     (if jump 1 4)))))
     (vector-set! to index inst)
     (if (and (member inst address-required)
              (< index 3))

@@ -243,6 +243,7 @@
             [other #f])
         (for ([port ports])
           (when (setq writing-node (vector-ref writing-nodes port))
+            ;;an ajacent writing node is waiting for us to read its value
             (if done
                 (printf "Error: multiport-read -- more then one node writing")
                 (begin
@@ -269,8 +270,7 @@
                 ;;     Collect the valid nodes into 'multiport-read-ports'
                 ;;     for use in 'finish-port-read()'
                 (when (setq other (vector-ref ludr-port-nodes port))
-                  (send (vector-ref ludr-port-nodes port)
-                        receive-port-read port this)
+                  (send other receive-port-read port this)
                   (set! multiport-read-ports (cons port multiport-read-ports))))
               (set! current-reading-port ports)
               (suspend)
@@ -338,7 +338,7 @@
       (when (PORT-DEBUG)
         (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
                 coord port value (send node str)))
-      ;;called by adjacent noe when it is writing to one of our ports
+      ;;called by adjacent node when it is writing to one of our ports
       (vector-set! writing-nodes port node)
       (vector-set! port-vals port value))
 
@@ -749,6 +749,7 @@
       (cons T (cons S (stack->list dstack))))
     (define/public (get-rstack-as-list)
       (cons R (stack->list rstack)))
+    (define/public (get-coord) coord)
 
     (define/public (suspended?) suspended)
 
@@ -775,7 +776,7 @@
                                         ;(printf "YES\n")
                                    (if (< index len)
                                        (let ((word (vector-ref code index)))
-                                         (printf "reading bootstream port. index=~a\n" index)
+                                         ;;(printf "reading bootstream port. index=~a\n" index)
                                          (set! index (add1 index))
                                          (d-push! word)
                                          #t)
