@@ -90,7 +90,7 @@
 (define &RDL- #x1B5)
 (define &RDLU #x1A5)
 
-(define MEM-SIZE #x200)
+(define MEM-SIZE #x301)
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
