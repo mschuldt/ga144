@@ -512,7 +512,7 @@
 
     (define unext-jump-p #f)
 
-    (define (execute! opcode [jump-addr-pos 0] [addr-mask #f])
+    (define/public (execute! opcode [jump-addr-pos 0] [addr-mask #f])
       (if (< opcode 8)
           ((vector-ref instructions opcode)
            (bitwise-bit-field I 0 jump-addr-pos)

@@ -176,6 +176,28 @@
 (def-command all () "Apply future commands to all chips"
   (set! selected-chip #f))
 
+
+(define (execute-instruction coord inst)
+  (if selected-chip
+      (if (set-member? opcode-set inst)
+          (let ((opcode (vector-member inst opcodes)))
+            (printf "opcode = ~a\n" opcode)
+            (if (< opcode 8)
+                (printf "~a is not supported\n" inst)
+                (send (send selected-chip coord->node coord)
+                      execute!
+                      opcode)))
+          (printf "TODO: push numbers onto node data stack"))
+      (printf "Must select chip\n")))
+
+(def-command : (inst) "execute instruction in the selected node"
+  (if selected-node
+      (execute-instruction (send selected-node get-coord) inst)
+      (printf "[Must select node]\n")))
+
+(def-command : (coord inst) "execute instruction in the COORD node"
+  (execute-instruction coord inst))
+
 (define (get-help-string command)
   (if (hash-has-key? _help command)
       (string-append (format "~a command usage:\n    " command)
