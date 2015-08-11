@@ -896,10 +896,25 @@
             [south (send ga144 coord->node (- coord 100))]
             [east (send ga144 coord->node (+ coord 1))])
         (set! ludr-port-nodes (make-vector 4))
-        (vector-set! ludr-port-nodes (convert "north") north)
-        (vector-set! ludr-port-nodes (convert "east") east)
-        (vector-set! ludr-port-nodes (convert "south") south)
-        (vector-set! ludr-port-nodes (convert "west") west)))
+
+        ;;TEMPORARY FIX: create new dummy nodes around the edges of the chip
+        (vector-set! ludr-port-nodes (convert "north")
+                     (if (< coord 700)
+                         north
+                         (new f18a% [index 145] [ga144 ga144])))
+
+        (vector-set! ludr-port-nodes (convert "east")
+                     (if (< (modulo coord 100) 17)
+                         east
+                         (new f18a% [index 145] [ga144 ga144])))
+        (vector-set! ludr-port-nodes (convert "south")
+                     (if (> coord 17)
+                         south
+                         (new f18a% [index 145] [ga144 ga144])))
+        (vector-set! ludr-port-nodes (convert "west")
+                     (if (> (modulo coord 100) 0)
+                         west
+                         (new f18a% [index 145] [ga144 ga144])))))
 
     (define/public (get-ludr-port-nodes) ludr-port-nodes)
 
