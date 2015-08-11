@@ -222,6 +222,9 @@
     (define show-io-changes? #f)
     (define/public (show-io-changes show)
       (set! show-io-changes? show))
+
+    (define/public (get-time) time)
+
     (build-node-matrix)
     (reset!)
     ))

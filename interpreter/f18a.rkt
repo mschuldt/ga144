@@ -144,10 +144,14 @@
     ;; suspension and wakeup
 
     (define (remove-from-active-list)
-      (send ga144 remove-from-active-list this))
+      (if suspended
+          (raise (format "[~a]cannot remove suspended node from active list" coord))
+          (send ga144 remove-from-active-list this)))
 
     (define (add-to-active-list)
-      (send ga144 add-to-active-list this))
+      (if suspended
+          (send ga144 add-to-active-list this)
+          (raise (format "[~a]cannot add active node to active list" coord))))
 
     (define (suspend)
       (remove-from-active-list)
