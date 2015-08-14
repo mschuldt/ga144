@@ -38,4 +38,5 @@
     (let ((mem (node-mem (car nodes))))
       (for ([i (vector-length mem)])
         (vector-set! mem i (assemble-word (vector-ref mem i)))))
-    (assemble (cdr nodes))))
+    (assemble (cdr nodes)))
+  nodes)

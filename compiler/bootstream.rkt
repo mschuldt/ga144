@@ -75,15 +75,11 @@
       (when dir
         (set! coord (+ coord (vector-ref coord-changes dir)))))
     ;;now generate the actual bootstream
-    (printf "len(path) = ~a\n" (length path))
-    (printf "first: ~a\n" (node-coord (car (reverse ordered-nodes))))
-    (printf "last: ~a\n" (node-coord (car ordered-nodes)))
     (for ([dir (reverse path)])
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
 
       (set! node-code (and (node-mem node) (get-used-portion (node-mem node))))
-      (and node-code (printf "node-code = ~a\n"  node-code))
       (set! code (vector-append
                   ;;move all the previous code through this node
                   (if (> len 0)
