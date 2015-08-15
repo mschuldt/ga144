@@ -54,8 +54,11 @@
 (define current-slot #f);;index of the next slot in current-word
 (define words #f) ;;word definitions -> addresses
 
-(define (add-word! name code)
-  (hash-set! words name code))
+(define (add-word! name addr)
+  (set-node-symbols! current-node
+                     (cons (symbol name addr)
+                           (node-symbols current-node)))
+  (hash-set! words name addr))
 
 (define waiting #f);;word -> list of cells waiting for the word's address
 (define (add-to-waiting word addr-cell)
@@ -97,11 +100,12 @@
 (define (parse-num tok)
   (string->number tok))
 
-
 (define (reset!)
   (set! nodes (make-vector num-nodes #f))
   (for ([i num-nodes])
-    (vector-set! nodes i (create-node (index->coord i))))
+    (vector-set! nodes i (create-node (index->coord i)
+                                      (list->vector (for/list ([_ num-words])
+                                                      (make-vector 4 #f))))))
   (set! used-nodes '())
   (set! last-inst #f)
   (set! stack '())

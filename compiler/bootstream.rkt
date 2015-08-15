@@ -78,7 +78,6 @@
     (for ([dir (reverse path)])
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
-
       (set! node-code (and (node-mem node) (get-used-portion (node-mem node))))
       (set! code (vector-append
                   ;;move all the previous code through this node

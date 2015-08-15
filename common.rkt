@@ -105,12 +105,11 @@
 ;;       the remaining words in mem are all #f
 ;; 'symbols' a list of symbol structs
 
+(struct symbol (name address))
+
 (define (create-node coord [mem #f] [len 0])
   (let ((new (node coord mem len)))
     (set-node-symbols! new (list))
-    (unless mem
-      (set-node-mem! new
-                     (list->vector (for/list ([_ num-words]) (make-vector 4 #f)))))
     (set-node-word-dict! new (make-hash))
     new))
 

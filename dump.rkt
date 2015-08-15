@@ -60,6 +60,20 @@
                                            (format "[~a]"
                                                    (comma-join (node-stack node)))
                                            #f))))))))
+(define (symbols->json compiled)
+  (let ((syms '())
+        (symbols #f))
+    (for/list ((node compiled))
+      (set! symbols (node-symbols node))
+      (unless (null? symbols)
+        (push syms
+              (format "'~a' : {~a}"
+                      (node-coord node)
+                      (comma-join (for/list ((sym (node-symbols node)))
+                                    (format "'~a' : ~a"
+                                            (symbol-name sym)
+                                            (symbol-address sym))))))))
+    (comma-join syms)))
 
 (define (assembled->json assembled)
   (comma-join (for/list ((node assembled))
@@ -72,6 +86,7 @@
 (define compiled (compile (file->string input-file)))
 (define compiled-json (compiled->json compiled))
 (define boot-descriptors-json (boot-descriptors->json compiled))
+(define symbols-json (symbols->json compiled))
 (define assembled (assemble compiled))
 (define assembled-json (assembled->json assembled))
 (define bootstream (make-bootstream assembled))
@@ -81,6 +96,7 @@
          (list (format "'file' : '~a'\n" input-file)
                (format "'compiled': {~a}\n" compiled-json)
                (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
+               (format "'symbols': {~a}\n" symbols-json)
                (format "'assembled': {~a}\n" assembled-json)
                (format "'bootstream' : [~a] " (comma-join bootstream))
                )))
