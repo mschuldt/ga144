@@ -69,10 +69,11 @@
         (push syms
               (format "'~a' : {~a}"
                       (node-coord node)
-                      (comma-join (for/list ((sym (node-symbols node)))
-                                    (format "'~a' : ~a"
-                                            (symbol-name sym)
-                                            (symbol-address sym))))))))
+                      (comma-join
+                       (for/list ((sym (node-symbols node)))
+                         (format "'~a' : {'address' : ~a, 'line' : ~a, 'col' : ~a}"
+                                 (symbol-name sym) (symbol-address sym)
+                                 (symbol-line sym) (symbol-col sym))))))))
     (comma-join syms)))
 
 (define (assembled->json assembled)

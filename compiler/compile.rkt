@@ -28,6 +28,10 @@
 
 (define extended-arith 0);;0x200 if extended arithmetic is enabled, else 0
 
+(define current-tok-line 0)
+(define current-tok-col 0)
+(define prev-current-tok-line 0)
+(define prev-current-tok-col 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile port)
@@ -56,7 +60,7 @@
 
 (define (add-word! name addr)
   (set-node-symbols! current-node
-                     (cons (symbol name addr)
+                     (cons (symbol name addr current-tok-line current-tok-col)
                            (node-symbols current-node)))
   (hash-set! words name addr))
 
@@ -115,16 +119,40 @@
   (set! next-addr #f)
   (set! words (make-hash))
   (set! waiting (make-hash))
+  (set! prev-current-tok-line 0)
+  (set! prev-current-tok-col 0)
   (define-named-addresses!))
+
+(define (read-tok)
+  (let ((token (forth-read)))
+    (when token
+      (set! prev-current-tok-line current-tok-line)
+      (set! prev-current-tok-col current-tok-col)
+      (set! current-tok-line (token-line token))
+      (set! current-tok-col (token-col token)))
+    token))
+
+(define (unread-tok tok)
+  (forth-read tok current-tok-line current-tok-col)
+  (set! current-tok-line prev-current-tok-line)
+  (set! current-tok-col prev-current-tok-col))
+
+(define (read-tok-name)
+  (token-tok (read-tok)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile-loop)
   (unless (eof-object? (compile-token (forth-read)))
     (compile-loop)))
 
-(define (compile-token tok)
-  (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n" tok current-addr current-slot next-addr))
-  (let [(x #f)]
+(define (compile-token token)
+  (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
+                       token current-addr current-slot next-addr))
+  (let ((x #f)
+        (tok (if (token? token)
+                 (token-tok token)
+                 token)))
     (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
           [(setq x (parse-num tok)) (compile-constant! x)]
@@ -175,11 +203,11 @@
           (unless (address-fits? addr current-slot)
             (fill-rest-with-nops))
           (when DEBUG? (printf "       address = ~a\n" addr))
-          (let ((next (forth-read)))
+          (let ((next (read-tok-name)))
             (if (equal? next ";")
                 (add-to-next-slot "jump")
                 (begin (add-to-next-slot "call")
-                       (forth-read next))))
+                       (unread-tok next))))
           (add-to-next-slot addr)
           (unless (= current-slot 0)
             (goto-next-word)))
@@ -239,7 +267,7 @@
  ":"
  (lambda ()
    (fill-rest-with-nops)
-   (let* ([word (forth-read)]
+   (let* ([word (read-tok-name)]
           [waiting-list (get-waiting-list word)])
      (if waiting-list
          (begin (for [(cell waiting-list)]
@@ -258,7 +286,7 @@
 (add-directive! ;; page 23 of arrayforth users manual DB004
  ","
  (lambda ()
-   (let* ([token (forth-read)]
+   (let* ([token (read-tok-name)]
           [data (parse-num token)])
      (if (not data)
          (raise (format "invalid token: ~a" token))
@@ -272,7 +300,7 @@
    (when memory ;;make sure last instruction is full
      (fill-rest-with-nops)
      (set-node-len! current-node (sub1 next-addr)))
-   (let* ([token (forth-read)]
+   (let* ([token (read-tok-name)]
           [coord (parse-num token)]
           [index (coord->index coord)])
      ;;TODO: validate 'node'
@@ -433,7 +461,7 @@
 (add-directive!
  "org"
  (lambda ()
-   (let ([n (parse-num (forth-read))])
+   (let ([n (parse-num (read-tok-name))])
      ;;TODO: validate n
      (org n))))
 
@@ -458,7 +486,7 @@
 (add-directive!
  "`"
  (lambda ()
-   (let* ([word (forth-read)]
+   (let* ([word (read-tok-name)]
           [addr (get-word-address word)])
      (if addr
          (push stack addr)
@@ -469,7 +497,7 @@
 ;; DB004 section 5.5.1
 
 (define (set-register-helper name set-fn)
-  (let* ((n (forth-read))
+  (let* ((n (read-tok-name))
          (addr (and n (string->number n))))
     (when (and (not addr)
                (not (setq addr (get-word-address n))))
@@ -515,7 +543,7 @@
 (add-directive!
  "/stack"
  (lambda ()
-   (let* ((tok (forth-read))
+   (let* ((tok (read-tok-name))
           (len (and tok (string->number tok)))
           (stack '())
           (val #f))
@@ -526,7 +554,7 @@
 
      (while (> len 0)
        (begin
-         (set! tok (forth-read))
+         (set! tok (read-tok-name))
          (set! val (and tok (string->number tok)))
          (when (and (not val)
                     (not (setq val (get-word-address tok))))

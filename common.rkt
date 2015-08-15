@@ -105,7 +105,9 @@
 ;;       the remaining words in mem are all #f
 ;; 'symbols' a list of symbol structs
 
-(struct symbol (name address))
+(struct symbol (name address line col))
+
+(struct token (tok line col))
 
 (define (create-node coord [mem #f] [len 0])
   (let ((new (node coord mem len)))
