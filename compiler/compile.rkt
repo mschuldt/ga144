@@ -463,6 +463,79 @@
          (push stack addr)
          (pretty-display (format "ERROR: ` -- \"~a\" is not defined" word))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Boot descriptors
+;; DB004 section 5.5.1
+
+(define (set-register-helper name set-fn)
+  (let* ((n (forth-read))
+         (addr (and n (string->number n))))
+    (when (and (not addr)
+               (not (setq addr (get-word-address n))))
+      (raise (format "unknown address for compiler directive '~a': ~a" name n)))
+    (unless current-node
+      (raise (format "must select node before '~a'" name)))
+    (set-fn current-node addr)))
+
+;; /b (a)
+;; Specifies an initial value for register B.
+;; Default value is the address of the IO register, as at reset.
+(add-directive!
+ "/b"
+ (lambda ()
+   (set-register-helper "/b" set-node-b!)))
+;; /a (n)
+;; Specifies an initial value for register A.
+;; Default value is unspecified, as at reset.
+(add-directive!
+ "/a"
+ (lambda ()
+   (set-register-helper "/a" set-node-a!)))
+
+;;/io (n)
+;;Specifies a value to be loaded into the IO register.
+(add-directive!
+ "/io"
+ (lambda ()
+   (set-register-helper "/io" set-node-io!)))
+
+;;/p (a)
+;;Specifies an initial value for register P. Default value is xA9 which is
+;;the routine warm in every node's ROM.
+(add-directive!
+ "/p"
+ (lambda ()
+   (set-register-helper "/p" set-node-p!)))
+
+;; /stack n <n values>
+;; Specifies up to ten values to be pushed onto the data stack, with the
+;; rightmost value on top. For example 30 20 10 3 /stack produces the same
+;; effect as though a program had executed code 30 20 10
+(add-directive!
+ "/stack"
+ (lambda ()
+   (let* ((tok (forth-read))
+          (len (and tok (string->number tok)))
+          (stack '())
+          (val #f))
+     (when (or (not len)
+               (< len 0)
+               (> len 10))
+       (raise (format "invalid number for /stack item count: '~a'" len)))
+
+     (while (> len 0)
+       (begin
+         (set! tok (forth-read))
+         (set! val (and tok (string->number tok)))
+         (when (and (not val)
+                    (not (setq val (get-word-address tok))))
+           (raise (format "invalid stack value: ~a" tok)))
+         (push stack val)
+         (set! len (sub1 len))))
+     (set-node-stack! current-node (reverse stack)))))
+
+;;NOTE: +node, /ram, and /part are note supported
+
 (for [(dir (list "north" "south" "east" "west"))]
   (add-directive!
    dir

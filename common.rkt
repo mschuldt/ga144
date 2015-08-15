@@ -94,7 +94,9 @@
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
-(struct node (coord mem len) #:mutable #:transparent)
+(struct node (coord mem len
+                    [a #:auto] [b #:auto] [io #:auto] [stack #:auto] [p #:auto])
+        #:mutable #:transparent)
 ;; 'coord' is the node coordinate this code belongs to
 ;; 'mem' is the vector of compiled words
 ;; 'len' is how many instructions are used in mem. len <= length(mem)
