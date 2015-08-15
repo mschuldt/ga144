@@ -4,6 +4,9 @@
 
 (provide (all-defined-out))
 
+(define num-words 64)
+(define num-nodes 144)
+
 (define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
@@ -21,7 +24,6 @@
 (define instructions-using-rest-of-word '(";" "ex" "unext"))
 
 (define ops-that-end-word '("unext" ";"))
-
 
 (define named-addresses '(("right" . #x1D5)
                           ("down" . #x115)
@@ -94,14 +96,23 @@
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
-(struct node (coord mem len
+(struct node (coord mem len [symbols #:auto] [word-dict #:auto]
                     [a #:auto] [b #:auto] [io #:auto] [stack #:auto] [p #:auto])
         #:mutable #:transparent)
 ;; 'coord' is the node coordinate this code belongs to
 ;; 'mem' is the vector of compiled words
 ;; 'len' is how many instructions are used in mem. len <= length(mem)
 ;;       the remaining words in mem are all #f
-(define (create-node coord mem len) (node coord mem len))
+;; 'symbols' a list of symbol structs
+
+(define (create-node coord [mem #f] [len 0])
+  (let ((new (node coord mem len)))
+    (set-node-symbols! new (list))
+    (unless mem
+      (set-node-mem! new
+                     (list->vector (for/list ([_ num-words]) (make-vector 4 #f)))))
+    (set-node-word-dict! new (make-hash))
+    new))
 
 (define (coord->index n)
   (+ (* (quotient n 100) 18) (remainder n 100)))

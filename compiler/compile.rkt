@@ -15,8 +15,6 @@
 
 (define DEBUG? #f)
 
-(define num-nodes 144)
-(define num-words 64)
 (define nodes #f) ;;node# -> code struct
 (define used-nodes '())
 
@@ -54,10 +52,8 @@
 (define current-word #f);; tail of current word list
 (define next-addr #f) ;;index of next word in memory
 (define current-slot #f);;index of the next slot in current-word
-
 (define words #f) ;;word definitions -> addresses
-;;TODO: need to have a seporate mapping for each core
-;;TOOD: create a struct for each core. memory, current/next-addr/slot, words
+
 (define (add-word! name code)
   (hash-set! words name code))
 
@@ -72,11 +68,19 @@
 (define (waiting-clear word)
   (hash-set! words word #f))
 
+(define (make-addr addr)
+  (bitwise-ior addr extended-arith))
+
+(define io-places-hash (make-hash))
+(for ([place io-places])
+  (hash-set! io-places-hash (car place) (make-addr (cdr place))))
 
 ;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
-  (and (hash-has-key? words name)
-       (hash-ref words name)))
+  (or (and (hash-has-key? words name)
+           (hash-ref words name))
+      (and (hash-has-key? io-places-hash name)
+           (hash-ref io-places-hash name))))
 
 (define (instruction? token)
   (set-member? opcode-set token))
@@ -95,13 +99,9 @@
 
 
 (define (reset!)
-  (define (make-node coord)
-    (node coord
-          (list->vector (for/list ([_ num-words]) (make-vector 4 #f)))
-          0))
   (set! nodes (make-vector num-nodes #f))
   (for ([i num-nodes])
-    (vector-set! nodes i (make-node (index->coord i))))
+    (vector-set! nodes i (create-node (index->coord i))))
   (set! used-nodes '())
   (set! last-inst #f)
   (set! stack '())
@@ -111,7 +111,6 @@
   (set! next-addr #f)
   (set! words (make-hash))
   (set! waiting (make-hash))
-  (define-io-places!)
   (define-named-addresses!))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -245,7 +244,7 @@
          (begin
            (when (hash-has-key? words word)
              (pretty-display (format "WARNING: redefinition of word '~a'" word)))
-           (hash-set! words word (make-addr current-addr)))))))
+           (add-word! word (make-addr current-addr)))))))
 
 ;;forces word alignment
 (add-directive!
@@ -276,14 +275,12 @@
      ;;assert (node-coord node) == coord
      (set! current-node (vector-ref nodes index))
      (set! memory (node-mem current-node))
+     (set! words (node-word-dict current-node))
      ;;TODO: should calling 'node' multiple times be ok?
      ;;      if so, don't add current-node to used-nodes again
      (set! used-nodes (cons current-node used-nodes))
      (set! current-node-coord coord)
      (org 0))))
-
-(define (make-addr addr)
-  (bitwise-ior addr extended-arith))
 
 ;;+cy
 ;;forces word alignment then turns P9 on in the location counter. Places in memory
@@ -549,12 +546,6 @@
     (add-directive!
      (car addr)
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
-
-
-(define (define-io-places!)
-  (for ([place io-places])
-    (hash-set! words (car place) (make-addr (cdr place)))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
