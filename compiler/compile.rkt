@@ -92,6 +92,11 @@
 (define (instruction? token)
   (set-member? opcode-set token))
 
+(define (word-ref? token)
+  (and (string? token)
+       (> (string-length token) 1)
+       (eq? (string-ref token 0) #\&)))
+
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
 (define (add-directive! name code)
@@ -156,6 +161,7 @@
     (cond [(setq x (get-directive tok)) (x)]
           [(instruction? tok) (compile-instruction! tok)]
           [(setq x (parse-num tok)) (compile-constant! x)]
+          [(word-ref? tok) (compile-word-ref! (substring tok 1))]
           [else (compile-call! tok)])
     tok))
 
@@ -216,6 +222,12 @@
           (when DEBUG? (printf "       waiting on address....\n"))
           (add-to-waiting word current-word)
           (goto-next-word)))))
+
+(define (compile-word-ref! word)
+  (let ((addr (get-word-address word)))
+    (unless addr
+      (raise (format "[TODO] reference to undefined word: ~a" word)))
+    (compile-constant! addr)))
 
 (define (fill-rest-with-nops)
   (unless (= current-slot 0)

@@ -489,6 +489,17 @@ east a!
   (check-dat 1 3 6 6)
   (check-mem 2 6 3))
 
+(define-test "word-references"
+  "node 400
+0 if
+: A + ;
+: B dup ;
+: C 2/ ;
+then
+&A &B &C
+"
+  (check-dat 400 4 3 2))
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
