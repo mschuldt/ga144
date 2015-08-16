@@ -288,6 +288,10 @@
          (begin
            (when (hash-has-key? words word)
              (pretty-display (format "WARNING: redefinition of word '~a'" word)))
+           (when (equal? word "main")
+             (if (node-p current-node)
+                 (printf "warning: use of /p overrides 'main'\n")
+                 (set-node-p! current-node (make-addr current-addr))))
            (add-word! word (make-addr current-addr)))))))
 
 ;;forces word alignment
