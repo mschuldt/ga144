@@ -1,4 +1,5 @@
-interpreter/test-out
+test-out/
+
 compiled/
 TAGS
 _*
