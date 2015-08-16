@@ -106,6 +106,41 @@
     table)
   "Syntax table in use in aforth buffers")
 
+;; imenu support
+
+(defvar aforth-defining-words
+  '(":")
+  "List of words, that define the following word.
+Used for imenu index generation.")
+
+(defvar aforth-defining-words-regexp nil
+  "Regexp that's generated for matching `aforth-defining-words'")
+
+(defun aforth-next-definition-starter ()
+  (progn
+    (let* ((pos (re-search-forward aforth-defining-words-regexp (point-max) t)))
+      (if pos
+	  (if (or (text-property-not-all (match-beginning 0) (match-end 0)
+					 'aforth-parsed nil)
+		  (text-property-not-all (match-beginning 0) (match-end 0)
+					 'aforth-state nil)
+                  nil)
+	      (aforth-next-definition-starter)
+	    t)
+	nil))))
+
+(defun aforth-create-index ()
+  (let* ((aforth-defining-words-regexp
+	  ;;(concat "\\<\\(" (regexp-opt aforth-defining-words) "\\)\\>")
+          (concat "\\(" (regexp-opt aforth-defining-words) "\\)")
+          )
+	 (index nil))
+    (goto-char (point-min))
+    (while (aforth-next-definition-starter)
+      (if (looking-at "[ \t]*\\([^ \t\n]+\\)")
+	  (setq index (cons (cons (match-string 1) (point)) index))))
+    index))
+
 (define-derived-mode aforth-mode prog-mode "aforth"
   "Major mode for editing aforth files"
   (setq font-lock-defaults '((aforth-font-lock-keywords)))
@@ -116,6 +151,7 @@
   (setq comment-end ")")
   (setq comment-start-skip "\\((\\*?\\|\\\\\\) *")
 
+  (setq imenu-create-index-function 'aforth-create-index)
   (run-hooks 'aforth-mode-hook)
   )
 
