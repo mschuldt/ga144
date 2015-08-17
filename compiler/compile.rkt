@@ -397,6 +397,12 @@
 ;;If T is negative, program flow continues; otherwise jumps to a. Used like 'until'
 (add-directive! "-until" (lambda () (compile-next-type "-if")))
 
+(add-directive!
+ "unext"
+ (lambda ()
+   (compile-instruction! "unext")
+   (pop stack)))
+
 ;;*next (ax-x)
 ;;equivalent to 'swap next'
 (add-directive!
