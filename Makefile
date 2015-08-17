@@ -1,5 +1,5 @@
 all: compiler interpreter tests gui
-	raco make common.rkt dump.rkt
+	raco make common.rkt dump
 
 compiler: compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt
 	raco make compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt
