@@ -177,7 +177,7 @@
 (define (add-to-next-slot inst)
   ;;this assumes that we are not going to be overwriting code
   (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
-  (unless current-word (raise "Error. You probably forgot to use 'node' first"))
+  (unless current-word (error "You probably forgot to use 'node' first"))
   (vector-set! current-word current-slot inst)
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
@@ -461,7 +461,7 @@
 
     (if last
         (vector-set! word last thing)
-        (pretty-display "ERROR: add-to-slot -- invalid slot"))))
+        (error "add-to-slot -- invalid slot"))))
 
 ;;then (r)
 ;;forces word alignment and resolves a forward transfer.
@@ -506,7 +506,7 @@
           [addr (get-word-address word)])
      (if addr
          (push stack addr)
-         (pretty-display (format "ERROR: ` -- \"~a\" is not defined" word))))))
+         (error (format "\"~a\" is not defined" word))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Boot descriptors
@@ -594,6 +594,10 @@
     (add-directive!
      (car addr)
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
+
+(define (error msg)
+  (pretty-display (format "ERR[~a:~a] ~a" current-tok-line current-tok-col msg))
+  (exit 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
