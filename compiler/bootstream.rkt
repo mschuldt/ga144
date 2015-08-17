@@ -5,6 +5,7 @@
          "../common.rkt")
 
 (provide make-bootstream
+         sget-convert
          print-bootstream)
 
 (enum (N E S W))
@@ -93,6 +94,17 @@
                   ))
       (set! len (vector-length code)))
     code))
+
+(define (sget-convert bootstream)
+  ;; convert bootstream words to the byte format expected by node 708
+  ;; bootstream is an array of 18 bit words
+  (define new '())
+  (for ((n bootstream))
+    (set! new (cons (^ (ior (& n #x3) #b10110100) #xff)
+                    (cons (^ (& (>> n 2) #xff) #xff)
+                          (cons (^ (& (>> n 10) #xff) #xff)
+                                new)))))
+  (reverse new))
 
 (define (get-direction coord dir)
   ;;converts dir={N, E, S, W} into an address for node COORD
