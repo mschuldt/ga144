@@ -16,12 +16,12 @@
 
 ;;paths are lists of N, E, S, and W directions,
 ;;which is the direction of the the current node (starting with `start')
-;;that the stream will take. The last direction should be #f.
+;;that the stream will take.
 
 ;;path1 from DB004 page 31
 (define path1 (let ((NENW (append (cons N (make-list 16 E))
                                   (cons N (make-list 16 W)))))
-                (append (make-list 9 E)
+                (append (make-list 8 E)
                         (make-list 7 S)
                         (make-list 17 W)
                         NENW NENW NENW
@@ -54,15 +54,15 @@
 (define (make-bootstream assembled)
   ;;ASSEMBLED is a list of 'node' structs
   ;;returns an array of assembled words
-  (let ((nodes (make-vector 144 #f))
-        (ordered-nodes '())
-        (coord-changes (vector 100 1 -100 -1));;N, E, S, W coordinate changes
-        (coord start)
-        (len 0)
-        (code (vector))
-        (node #f)
-        (node-code #f)
-        (nothing (vector)))
+  (let* ((nodes (make-vector 144 #f))
+         (ordered-nodes '())
+         (coord-changes (vector 100 1 -100 -1));;N, E, S, W coordinate changes
+         (coord (+ start (vector-ref coord-changes (car path))))
+         (len 0)
+         (code (vector))
+         (node #f)
+         (node-code #f)
+         (nothing (vector)))
     ;;place nodes into 'nodes' array, a mapping of node indexes to nodes
     ;;this allows constant time node code lookup
     (for ([node assembled])
@@ -93,7 +93,21 @@
                   (vector (word "jump" 0));;TODO
                   ))
       (set! len (vector-length code)))
-    code))
+    ;; create bootframes
+    (define frame1 (vector-append
+                    (vector #xae
+                            (get-direction start (car path))
+                            len)
+                    code))
+    (let ((start-node (vector-ref nodes (coord->index start))))
+      (set! code
+        (if start-node
+            (get-used-portion (node-mem start-node))
+            (vector))))
+    (define frame2 (vector-append
+                    (vector 0 0 (vector-length code))
+                    code))
+    (vector-append frame1 frame2)))
 
 (define (sget-convert bootstream)
   ;; convert bootstream words to the byte format expected by node 708

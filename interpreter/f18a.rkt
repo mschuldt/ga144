@@ -312,6 +312,10 @@
             (send reading-node finish-port-read value))))
       #t)
 
+    (define post-finish-port-read #f)
+    (define/public (set-post-finish-port-read fn)
+      (set! post-finish-port-read fn))
+
     (define/public (finish-port-read val)
       ;;called by adjacent node when it writes to a port we are reading from
       (when (PORT-DEBUG) (printf "[~a](finish-port-read  ~a)\n" coord val))
@@ -323,13 +327,16 @@
           (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
         (set! multiport-read-ports #f))
       (set! current-reading-port #f)
-      (wakeup))
+      (wakeup)
+      (and post-finish-port-read (post-finish-port-read)))
 
+    (define post-finish-port-write #f)
     (define/public (finish-port-write)
       ;;called by adjacent node when it reads from a port we are writing to
       (when (PORT-DEBUG) (printf "[~a](finish-port-write)\n" coord))
       (set! current-writing-port #f)
-      (wakeup))
+      (wakeup)
+      (and post-finish-port-write (post-finish-port-write)))
 
     (define/public (receive-port-read port node)
       ;;called by adjacent node when it is reading from one of our ports
@@ -790,6 +797,52 @@
       (set! step-fn step0)
       (when suspended
         (wakeup)))
+
+    (define/public (load-bootstream frames)
+      (define jump-addr #f)
+      (define dest-addr #f)
+      (define n-words #f)
+      (define index #f)
+      (define last #f)
+      (define word #f)
+      (define (write-next)
+        (if (< index last)
+            (begin
+              (set! word (vector-ref frames index))
+              (set! index (add1 index))
+              (set-memory! dest-addr word))
+            (if (eq? jump-addr #xae)
+                (load-bootframe last)
+                (begin (set! post-finish-port-write #f)
+                       (send (send ga144 coord->node 709)
+                             set-post-finish-port-read
+                             #f)
+                       (set! P jump-addr)
+                       (set! step-fn step0)))))
+
+      (set! post-finish-port-write write-next)
+      ;;TODO: don't hardcode next node. convert dest-addr to ludr port
+      (send (send ga144 coord->node 709)
+            set-post-finish-port-read
+            write-next)
+
+      (define (load-bootframe [index_ 0])
+        (set! index index_)
+        (set! jump-addr (vector-ref frames index))
+        (set! dest-addr (vector-ref frames (+ index 1)))
+        (set! n-words (vector-ref frames (+ index 2)))
+        (set! index (+ index 3))
+        (set! last (+ n-words index))
+        (when suspended (wakeup))
+        (if (port-addr? dest-addr)
+            (write-next)
+            (begin
+              (for ((i (range n-words)))
+                (set-memory! i (vector-ref frames index))
+                (set! index (add1 index)))
+              (set! P jump-addr)
+              (set! step-fn step0))))
+      (load-bootframe))
 
     (define (setup-ports)
       (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))

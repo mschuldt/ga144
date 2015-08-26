@@ -107,7 +107,7 @@
 
     (define/public (load-bootstream bs [input-node 708])
       ;;Load a bootstream through INPUT-NODE
-      (send (coord->node input-node) execute-array bs))
+      (send (coord->node input-node) load-bootstream bs))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; execution control
