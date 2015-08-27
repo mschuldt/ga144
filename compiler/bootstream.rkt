@@ -91,7 +91,7 @@
                                   (vector-length node-code)))
                   (if node-code
                       (vector-append node-code
-                                     (vector (word "jump" 0)))
+                                     (vector (word "jump" (or (node-p node) 0))))
                       nothing)
                   ))
       (set! len (vector-length code)))
