@@ -116,9 +116,9 @@
   ;; bootstream is an array of 18 bit words
   (define new '())
   (for ((n bootstream))
-    (set! new (cons (^ (ior (& n #x3) #b10110100) #xff)
+    (set! new (cons (^ (& (>> n 10) #xff) #xff)
                     (cons (^ (& (>> n 2) #xff) #xff)
-                          (cons (^ (& (>> n 10) #xff) #xff)
+                          (cons (^ (ior (& (<< n 6) #xc0) #x2d) #xff)
                                 new)))))
   (reverse new))
 
