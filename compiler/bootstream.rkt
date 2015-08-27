@@ -89,8 +89,10 @@
                   ;;then load this nodes code into ram
                   (load-pump (and node-code
                                   (vector-length node-code)))
-                  (or node-code nothing)
-                  (vector (word "jump" 0));;TODO
+                  (if node-code
+                      (vector-append node-code
+                                     (vector (word "jump" 0)))
+                      nothing)
                   ))
       (set! len (vector-length code)))
     ;; create bootframes
