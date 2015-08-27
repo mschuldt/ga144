@@ -6,7 +6,7 @@
 
 (provide f18a%)
 
-;;(defmacro DEBUG () `(= coord 510))
+;;(defmacro DEBUG () `(= coord 708))
 (defmacro DEBUG () #f)
 (define DISPLAY_STATE? #f)
 (defmacro PORT-DEBUG ()
@@ -784,10 +784,8 @@
       (define index 0)
       (vector-set! memory #x300 (vector
                                  (lambda ()
-                                        ;(printf "YES\n")
                                    (if (< index len)
                                        (let ((word (vector-ref code index)))
-                                         ;;(printf "reading bootstream port. index=~a\n" index)
                                          (set! index (add1 index))
                                          (d-push! word)
                                          #t)

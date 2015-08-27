@@ -36,12 +36,14 @@
 ;; 'load-pump' loads the code for a given node into its ram.
 
 (define (word a [b #f] [c #f] [d #f]) (assemble-word (vector a b c d)))
+
 (define (port-pump coord dir len)
   (vector (word "@p" "dup" "a!" ".")
           (word "call" (get-direction coord dir))
           (word "@p" "push" "!" ".")
           (word (sub1 len))
           (word "@p" "!" "unext" ".")))
+
 (define (load-pump len)
   (if len
       (vector (word "@p" "a!" "@p" ".")
@@ -55,6 +57,9 @@
   ;;ASSEMBLED is a list of 'node' structs
   ;;returns an array of assembled words
   (let* ((nodes (make-vector 144 #f))
+         ;; ordered-nodes  is a list of node objects in the reverse order
+         ;; that the bootstream visites them - or in the order that they)
+         ;; have code loaded into their ram.
          (ordered-nodes '())
          (coord-changes (vector 100 1 -100 -1));;N, E, S, W coordinate changes
          (coord (+ start (vector-ref coord-changes (car path))))
@@ -75,7 +80,7 @@
                                 ordered-nodes))
       (when dir
         (set! coord (+ coord (vector-ref coord-changes dir)))))
-    ;;now generate the actual bootstream
+    ;; now generate the actual bootstream
     (for ([dir (reverse path)])
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))

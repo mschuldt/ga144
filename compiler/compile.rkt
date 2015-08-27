@@ -153,7 +153,7 @@
 
 (define (compile-token token)
   (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
-                       token current-addr current-slot next-addr))
+                       (token-tok token) current-addr current-slot next-addr))
   (let ((x #f)
         (tok (if (token? token)
                  (token-tok token)
@@ -219,6 +219,7 @@
             (goto-next-word)))
         ;;else
         (begin
+          (error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
           (add-to-waiting word current-word)
           (goto-next-word)))))
@@ -305,7 +306,7 @@
    (let* ([token (read-tok-name)]
           [data (parse-num token)])
      (if (not data)
-         (raise (format "invalid token: ~a" token))
+         (error (format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
 
 ;;node (nn)
@@ -455,19 +456,25 @@
    (compile-if-instruction "call")))
 
 (define (add-to-slot slot thing)
-  (define (find-last-empty word [n 0])
+  (define (find-first-empty word [n 0])
+    ;; find the first empty slot in WORD
     (if (< n 4)
         (if (vector-ref word n)
-            (find-last-empty word (add1 n))
+            (find-first-empty word (add1 n))
             n)
         #f))
 
   (let* ([word (vector-ref memory slot)]
-         [last (and (vector? word) (find-last-empty word))])
+         [last (and (vector? word) (find-first-empty word))])
 
     (if last
         (vector-set! word last thing)
-        (error "add-to-slot -- invalid slot"))))
+        (error (format "add-to-slot -- slot ~a ~a: ~a"
+                       slot
+                       (if (vector? word)
+                           "is not an instruction word"
+                           "is full")
+                        word)))))
 
 ;;then (r)
 ;;forces word alignment and resolves a forward transfer.

@@ -1,4 +1,5 @@
 #!/usr/bin/env racket
+;; -*- scheme  -*-
 #lang racket
 
 (require "common.rkt"
@@ -51,15 +52,15 @@
    (for/list ((node compiled))
      (format " '~a' : {~a}"
              (node-coord node)
-             (comma-join (list (format "'a' : ~a" (node-a node))
-                               (format "'b' : ~a" (node-b node))
-                               (format "'io' : ~a" (node-io node))
-                               (format "'p' : ~a" (node-p node))
+             (comma-join (list (format "'a' : ~a" (or (node-a node) "None"))
+                               (format "'b' : ~a" (or (node-b node) "None"))
+                               (format "'io' : ~a"(or (node-io node) "None"))
+                               (format "'p' : ~a" (or (node-p node) "None"))
                                (format "\n'stack' : ~a \n"
                                        (if (node-stack node)
                                            (format "[~a]"
                                                    (comma-join (node-stack node)))
-                                           #f))))))))
+                                           "None"))))))))
 (define (symbols->json compiled)
   (let ((syms '())
         (symbols #f))
@@ -90,7 +91,8 @@
 (define symbols-json (symbols->json compiled))
 (define assembled (assemble compiled))
 (define assembled-json (assembled->json assembled))
-(define bootstream (make-bootstream assembled))
+(define bootstream (sget-convert (make-bootstream assembled)))
+;;(define bootstream (make-bootstream assembled))
 
 (printf "{~a}\n"
         (comma-join
