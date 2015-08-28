@@ -267,7 +267,7 @@
    (fill-rest-with-nops)))
 
 (define (comment)
-  (unless (equal? (read-char) #\))
+  (unless (equal? (forth-read-char) #\))
     (comment)))
 (add-directive! "(" comment)
 

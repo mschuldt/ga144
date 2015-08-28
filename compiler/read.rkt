@@ -1,7 +1,7 @@
 #lang racket
 
 (require "../common.rkt")
-(provide read-token forth-read forth-read-no-eof)
+(provide read-token forth-read forth-read-no-eof forth-read-char)
 
 (define line-number 1)
 (define col-number 0)
@@ -38,6 +38,13 @@
         (let ((tok (list->string (reverse (iter first-char)))))
           (token tok line-no col-no))
 	(token first-char line-no col-no))))
+
+(define (forth-read-char)
+  (let ((char (read-char)))
+    (when (eq? char #\newline)
+      (set! line-number (add1 line-number))
+      (set! col-number 0))
+    char))
 
 (define (make-reader)
   (let ((stack '()))
