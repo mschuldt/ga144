@@ -100,10 +100,7 @@
     (define/public (load code)
       ;; Places code into each node's RAM/ROM
       (for ([n code])
-        (send (coord->node (node-coord n))
-              load
-              (node-mem n)
-              (node-len n))))
+        (send (coord->node (node-coord n)) load n)))
 
     (define/public (load-bootstream bs [input-node 708])
       ;;Load a bootstream through INPUT-NODE

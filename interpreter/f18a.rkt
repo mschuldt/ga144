@@ -764,15 +764,17 @@
 
     (define/public (suspended?) suspended)
 
-    (define/public (load code [n #f])
+    (define/public (load node)
       ;;CODE is a vector of assembled code
       ;;load N words from CODE into memory, default = len(code)
-      (set! n (or n (vector-length code)))
+      (define code (node-mem node))
+      (define n (or (node-len node) (vector-length code)))
       (define (load index)
         (when (< index n)
           (vector-set! memory index (vector-ref code index))
           (load (add1 index))))
-      (load 0))
+      (load 0)
+      (set! P (or (node-p node) 0)))
 
     (define/public (execute-array code)
       ;;Execute an array of words.
