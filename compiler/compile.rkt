@@ -463,12 +463,14 @@
             (find-first-empty word (add1 n))
             n)
         #f))
-
+  (define max-slot-num (vector 262144 8192 256 8))
   (let* ([word (vector-ref memory slot)]
          [last (and (vector? word) (find-first-empty word))])
-
     (if last
-        (vector-set! word last thing)
+        (if (> thing (vector-ref max-slot-num last))
+            ;; TODO: move instruction to next word in this case
+            (error (format "'~a' cannot fit into slot ~a" thing last))
+            (vector-set! word last thing))
         (error (format "add-to-slot -- slot ~a ~a: ~a"
                        slot
                        (if (vector? word)
