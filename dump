@@ -5,10 +5,12 @@
 (require "common.rkt"
          "compiler/compile.rkt"
          "compiler/assemble.rkt"
-         "compiler/bootstream.rkt")
+         "compiler/bootstream.rkt"
+         "compiler/disassemble.rkt")
 
 (define bootstream? (make-parameter #f))
 (define symbols? (make-parameter #f))
+(define pretty? (make-parameter #f))
 
 (define input-file
   (command-line
@@ -17,6 +19,8 @@
     (bootstream? #t)]
    [("-s" "--symbols") "include symboltable"
     (symbols? #t)]
+   [("-p" "--pretty") "print in human readable"
+    (pretty? #t)]
    #:args (filename)
    filename))
 
@@ -85,21 +89,79 @@
                                       (for/list ((i (range (node-len node))))
                                         (vector-ref mem i))))))))
 
-(define compiled (compile (file->string input-file)))
-(define compiled-json (compiled->json compiled))
-(define boot-descriptors-json (boot-descriptors->json compiled))
-(define symbols-json (symbols->json compiled))
-(define assembled (assemble compiled))
-(define assembled-json (assembled->json assembled))
-(define bootstream (sget-convert (make-bootstream assembled)))
-;;(define bootstream (make-bootstream assembled))
 
-(printf "{~a}\n"
-        (comma-join
-         (list (format "'file' : '~a'\n" input-file)
-               (format "'compiled': {~a}\n" compiled-json)
-               (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
-               (format "'symbols': {~a}\n" symbols-json)
-               (format "'assembled': {~a}\n" assembled-json)
-               (format "'bootstream' : [~a] " (comma-join bootstream))
-               )))
+(define (print-json)
+  (define compiled (compile (file->string input-file)))
+  (define compiled-json (compiled->json compiled))
+  (define boot-descriptors-json (boot-descriptors->json compiled))
+  (define symbols-json (symbols->json compiled))
+  (define assembled (assemble compiled))
+  (define assembled-json (assembled->json assembled))
+  (define bootstream (sget-convert (make-bootstream assembled)))
+  ;;(define bootstream (make-bootstream assembled))
+  (printf "{~a}\n"
+          (comma-join
+           (list (format "'file' : '~a'\n" input-file)
+                 (format "'compiled': {~a}\n" compiled-json)
+                 (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
+                 (format "'symbols': {~a}\n" symbols-json)
+                 (format "'assembled': {~a}\n" assembled-json)
+                 (format "'bootstream' : [~a] " (comma-join bootstream))
+                 ))))
+
+(define (print-pretty)
+  (define compiled (compile (file->string input-file)))
+  (define compiled-hash (make-hash))
+  (for ((node compiled))
+    (hash-set! compiled-hash (node-coord node)
+               (vector-copy (node-mem node))))
+
+  (define assembled (assemble compiled))
+
+  (define i 0)
+  (define name #f)
+
+
+  (define (pad-print thing [pad 20])
+    (let* ((s (format "~a" thing))
+           (len (string-length s))
+           (str (string-append s (make-string (- pad len) #\ ))))
+      (printf str)))
+
+  (define (make-pretty thing)
+    (if (vector? thing)
+        (vector->list thing)
+        thing))
+
+  (define (make-symbol-hash syms)
+    (let ((ht (make-hash)))
+      (for ((sym syms))
+        (hash-set! ht (symbol-address sym) (symbol-name sym) ))
+      ht))
+
+  (define (get-name ht index)
+    (if (hash-has-key? ht index)
+        (hash-ref ht index)
+        #f))
+
+  (for ((node assembled))
+    (define coord (node-coord node))
+    (define symbols (make-symbol-hash (node-symbols node)))
+    (define comp (hash-ref compiled-hash coord))
+    (define asm (node-mem node))
+    (define word #f)
+    (printf "\n\n__________________ node ~a ____________________\n" coord)
+    (printf "     Compiled            Assembled    Disassembled\n")
+    (for ((i 64))
+      (set! word (vector-ref comp i))
+      (unless (equal? word (vector #f #f #f #f))
+        (set! name (get-name symbols i))
+        (when name (printf "~a:\n" name))
+        (printf "~a    " i)
+        (pad-print (make-pretty word))
+        (pad-print (format "~a" (vector-ref asm i)) 13)
+        (printf "~a\n" (make-pretty (disassemble-word (vector-ref asm i))))))))
+
+(if (pretty?)
+    (print-pretty)
+    (print-json))
