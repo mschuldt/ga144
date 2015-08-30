@@ -16,6 +16,7 @@
   (if (list? port-debug-list)
       `(member coord ',port-debug-list)
       port-debug-list))
+(define save-history #t)
 
 (define f18a%
   (class object%
@@ -54,8 +55,26 @@
     (define WD #f)
     (define ~WD #t)
 
+    (define history '())
+
     (define (err msg)
-      (error (format "[~a] ~a" coord msg)))
+      (printf "[~a] ERROR\n" coord)
+      (display-all)
+      (when save-history
+        (printf "Execution history(most recent first):\n ~a\n"
+                (for/list ((op history)
+                           (_ (range 15)))
+                  (when (and (cons? op)
+                             ;; some instructions don't have destination address
+                             (or (< (car op) 2);; ';' and 'ex'
+                                 (= (car op) 4)));; 'unext'
+                    (set! op (car op)))
+                  (if (cons? op)
+                      (format "~a(~a)"
+                              (vector-ref opcodes (car op))
+                              (cdr op))
+                      (vector-ref opcodes op)))))
+      (error msg))
 
     (define (set-pin! pin val)
       ;;val is #f or #t
@@ -154,8 +173,7 @@
     (define (add-to-active-list)
       (if suspended
           (send ga144 add-to-active-list this)
-          (raise (format "[~a]cannot add active node to active list" coord))))
-            (err "cannot add active node to active list"))))
+          (err "cannot add active node to active list")))
 
     (define (suspend)
       (remove-from-active-list)
@@ -534,11 +552,15 @@
     (define unext-jump-p #f)
 
     (define/public (execute! opcode [jump-addr-pos 0] [addr-mask #f])
-      (if (< opcode 8)
-          ((vector-ref instructions opcode)
-           (bitwise-bit-field I 0 jump-addr-pos)
-           addr-mask)
-          ((vector-ref instructions opcode))))
+      (when save-history
+        (if (< opcode 8)
+            (set! history (cons (cons opcode jump-addr-pos) history))
+            (set! history (cons opcode history)))
+        (if (< opcode 8)
+            ((vector-ref instructions opcode)
+             (bitwise-bit-field I 0 jump-addr-pos)
+             addr-mask)
+            ((vector-ref instructions opcode)))))
 
     (define (step0-helper)
       (set! I (d-pop!))
