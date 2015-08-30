@@ -370,7 +370,7 @@
 (add-directive!
  "for"
  (lambda ()
-   (add-to-next-slot "push")
+   (compile-instruction! "push")
    (here)))
 
 (define (compile-next-type inst)
