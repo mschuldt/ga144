@@ -54,6 +54,9 @@
     (define WD #f)
     (define ~WD #t)
 
+    (define (err msg)
+      (error (format "[~a] ~a" coord msg)))
+
     (define (set-pin! pin val)
       ;;val is #f or #t
       (when (and waiting-for-pin
@@ -145,13 +148,14 @@
 
     (define (remove-from-active-list)
       (if suspended
-          (raise (format "[~a]cannot remove suspended node from active list" coord))
+          (err "cannot remove suspended node from active list")
           (send ga144 remove-from-active-list this)))
 
     (define (add-to-active-list)
       (if suspended
           (send ga144 add-to-active-list this)
           (raise (format "[~a]cannot add active node to active list" coord))))
+            (err "cannot add active node to active list"))))
 
     (define (suspend)
       (remove-from-active-list)
@@ -249,7 +253,7 @@
           (when (setq writing-node (vector-ref writing-nodes port))
             ;;an ajacent writing node is waiting for us to read its value
             (if done
-                (printf "Error: multiport-read -- more then one node writing")
+                (err "multiport-read -- more then one node writing")
                 (begin
                   (when (PORT-DEBUG)
                     (printf "       value was ready: ~a\n"
@@ -513,7 +517,7 @@
           (let ((x (vector-ref memory addr)))
             (if (vector? x)
                 ((vector-ref x 0))
-                (printf "ERROR: read-memory(~a) - invalid port\n" addr)))
+                (err (format "read-memory(~a) - invalid port\n" addr))))
           (d-push! (vector-ref memory (region-index addr)))))
 
     (define (set-memory! addr value)
@@ -521,7 +525,7 @@
           (let ((x (vector-ref memory addr)))
             (if x
                 ((vector-ref x 1) value)
-                (printf "ERROR: set-memory!(~a, ~a) - invalid port\n" addr value)))
+                (err "set-memory!(~a, ~a) - invalid port\n" addr value)))
           (vector-set! memory (region-index addr) value)))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -791,8 +795,8 @@
                                          (set! index (add1 index))
                                          (d-push! word)
                                          #t)
-                                       (raise "execute: invalid index")))
-                                 (lambda (x) (raise "execute: invalid port"))))
+                                       (err "execute: invalid index")))
+                                 (lambda (x) (err "execute: invalid port"))))
 
       (set! step-fn step0)
       (when suspended
