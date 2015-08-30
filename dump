@@ -11,6 +11,7 @@
 (define bootstream? (make-parameter #f))
 (define symbols? (make-parameter #f))
 (define pretty? (make-parameter #f))
+(define hex? (make-parameter #f))
 
 (define input-file
   (command-line
@@ -21,6 +22,8 @@
     (symbols? #t)]
    [("-p" "--pretty") "print in human readable"
     (pretty? #t)]
+   [("-x" "--hex") "print numbers in hexadecimal format"
+    (hex? #t)]
    #:args (filename)
    filename))
 
@@ -144,6 +147,10 @@
         (hash-ref ht index)
         #f))
 
+  (set! hex? (hex?))
+  (define (n val)
+    (format (if hex? "~x" "~a") val))
+
   (for ((node assembled))
     (define coord (node-coord node))
     (define symbols (make-symbol-hash (node-symbols node)))
@@ -151,15 +158,16 @@
     (define asm (node-mem node))
     (define word #f)
     (printf "\n\n__________________ node ~a ____________________\n" coord)
+    (printf "P = ~a\n" (n (or (node-p node) 0)))
     (printf "     Compiled            Assembled    Disassembled\n")
     (for ((i 64))
       (set! word (vector-ref comp i))
       (unless (equal? word (vector #f #f #f #f))
         (set! name (get-name symbols i))
         (when name (printf "~a:\n" name))
-        (printf "~a    " i)
+        (printf "~a    " (n i))
         (pad-print (make-pretty word))
-        (pad-print (format "~a" (vector-ref asm i)) 13)
+        (pad-print (format "~a" (n (vector-ref asm i))) 13)
         (printf "~a\n" (make-pretty (disassemble-word (vector-ref asm i))))))))
 
 (if (pretty?)
