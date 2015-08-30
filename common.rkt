@@ -21,7 +21,7 @@
 
 (define instructions-preceded-by-nops '("+" "+*"))
 
-(define instructions-using-rest-of-word '(";" "ex" "unext"))
+(define instructions-using-rest-of-word '(";" "ex"))
 
 (define ops-that-end-word '("unext" ";"))
 
