@@ -106,13 +106,12 @@
                             (get-direction start (car path))
                             len)
                     code))
-    (let ((start-node (vector-ref nodes (coord->index start))))
-      (set! code
-        (if start-node
-            (get-used-portion (node-mem start-node))
-            (vector))))
+    (define start-node (vector-ref nodes (coord->index start)))
+    (set! code (if start-node
+                   (get-used-portion (node-mem start-node))
+                   (vector)))
     (define frame2 (vector-append
-                    (vector 0 0 (vector-length code))
+                    (vector (or (node-p start-node) 0) 0 (vector-length code))
                     code))
     (vector-append frame1 frame2)))
 
