@@ -53,15 +53,21 @@
               (word "@p" "!+" "unext"))
       (vector (word ";"))))
 
-(define (make-async-bootstream assembled)
-  ;;ASSEMBLED is a list of 'node' structs
-  ;;returns an array of assembled words
-  (let* ((nodes (make-vector 144 #f))
-         ;; ordered-nodes  is a list of node objects in the reverse order
+(define (make-node-index-map assembled)
+  ;; place nodes into an array that maps node indexes to nodes
+  ;; this allows constant time node lookup
+  (let ((nodes (make-vector 144 #f)))
+    (for ([node assembled])
+      (vector-set! nodes (coord->index (node-coord node)) node))
+    nodes))
+(define coord-changes (vector 100 1 -100 -1)) ;; N, E, S, W coordinate changes
+
+(define (make-async-frame1 nodes assembled)
+  ;;make frame 1 of the async bootstream, loads code for all nodes except the first
+  (let* (;; ordered-nodes  is a list of node objects in the reverse order
          ;; that the bootstream visites them - or in the order that they)
          ;; have code loaded into their ram.
          (ordered-nodes '())
-         (coord-changes (vector 100 1 -100 -1));;N, E, S, W coordinate changes
          (coord (+ start (vector-ref coord-changes (car path))))
          (path (cdr path))
          (len 0)
@@ -69,10 +75,7 @@
          (node #f)
          (node-code #f)
          (nothing (vector)))
-    ;;place nodes into 'nodes' array, a mapping of node indexes to nodes
-    ;;this allows constant time node code lookup
-    (for ([node assembled])
-      (vector-set! nodes (coord->index (node-coord node)) node))
+    (define nodes (make-node-index-map assembled))
     ;;create list of nodes in order the bootstream will visit them
     ;;If the node is not used then its value will be (coordinate . #f)
     (for ([dir path])
@@ -107,14 +110,24 @@
                             (get-direction start (car path))
                             len)
                     code))
-    (define start-node (vector-ref nodes (coord->index start)))
-    (set! code (if start-node
+    frame1
+    ))
+
+(define (make-async-bootstream assembled)
+  ;; ASSEMBLED is a list of 'node' structs
+  ;; returns an array of assembled words
+  (define nodes (make-node-index-map assembled))
+  (define frame1 (make-async-frame1 nodes assembled))
+
+  (define start-node (vector-ref nodes (coord->index start)))
+  (define code (if start-node
                    (get-used-portion (node-mem start-node))
                    (vector)))
-    (define frame2 (vector-append
-                    (vector (or (node-p start-node) 0) 0 (vector-length code))
-                    code))
-    (vector-append frame1 frame2)))
+  (define frame2 (vector-append
+                  (vector (or (node-p start-node) 0) 0 (vector-length code))
+                  code))
+  (vector-append frame1 frame2))
+
 
 (define (sget-convert bootstream)
   ;; convert bootstream words to the byte format expected by node 708
