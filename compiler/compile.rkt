@@ -57,6 +57,7 @@
 (define next-addr #f) ;;index of next word in memory
 (define current-slot #f);;index of the next slot in current-word
 (define words #f) ;;word definitions -> addresses
+(define rom #f) ;; ROM word definitions -> addresses
 
 (define (add-word! name addr)
   (set-node-symbols! current-node
@@ -87,7 +88,9 @@
   (or (and (hash-has-key? words name)
            (hash-ref words name))
       (and (hash-has-key? io-places-hash name)
-           (hash-ref io-places-hash name))))
+           (hash-ref io-places-hash name))
+      (and (hash-has-key? rom name)
+           (hash-ref rom name))))
 
 (define (instruction? token)
   (set-member? opcode-set token))
@@ -123,6 +126,7 @@
   (set! current-addr #f)
   (set! next-addr #f)
   (set! words (make-hash))
+  (set! rom #f)
   (set! waiting (make-hash))
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
@@ -325,6 +329,7 @@
      (set! current-node (vector-ref nodes index))
      (set! memory (node-mem current-node))
      (set! words (node-word-dict current-node))
+     (set! rom (get-node-rom coord))
      ;;TODO: should calling 'node' multiple times be ok?
      ;;      if so, don't add current-node to used-nodes again
      (set! used-nodes (cons current-node used-nodes))

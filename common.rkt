@@ -1,6 +1,7 @@
 #lang racket
 
-(require compatibility/defmacro)
+(require compatibility/defmacro
+         "rom.rkt")
 
 (provide (all-defined-out))
 
@@ -93,6 +94,42 @@
 (define &RDLU #x1A5)
 
 (define MEM-SIZE #x301)
+
+(define basic-rom-ht (make-hash basic-rom))
+(define analog-rom-ht (make-hash analog-rom))
+(define serdes-boot-rom-ht (make-hash serdes-boot-rom))
+(define sync-boot-rom-ht (make-hash sync-boot-rom))
+(define async-boot-rom-ht (make-hash async-boot-rom))
+(define spi-boot-rom-ht (make-hash spi-boot-rom))
+(define 1-wire-rom-ht (make-hash 1-wire-rom))
+
+;; from section 2.3, DB002
+(define analog-nodes '(709 713 717 617 117))
+(define serdes-nodes '(1 701))
+(define sync-boot-nodes '(300))
+(define async-boot-nodes '(708))
+(define spi-boot-nodes '(705))
+(define 1-wire-nodes '(200))
+(define SDRAM-addr-node 9)
+(define SDRAM-control-node 8)
+(define SDRAM-data-node 7)
+(define eForth-Bitsy-node 105)
+(define eForth-stack-node 106)
+(define SDRAM-mux-node 107)
+(define SDRAM-idle-node 108)
+
+(define (get-node-rom node)
+  (cond ((member node analog-nodes) analog-rom-ht)
+        ((member node serdes-nodes) serdes-boot-rom-ht)
+        ((member node sync-boot-nodes) sync-boot-rom-ht)
+        ((member node async-boot-nodes) async-boot-rom-ht)
+        ((member node spi-boot-nodes) spi-boot-rom-ht)
+        ((member node 1-wire-nodes) 1-wire-rom-ht)
+        ;;TODO: SDRAM-addr-node, SDRAM-control-node, SDRAM-data-node
+        ;;       eForth-Bitsy-node,  eForth-stack-node,  SDRAM-mux-node
+        ;;       SDRAM-idle-node
+        ;;   => currently default to basic rom
+        (else basic-rom-ht)))
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
