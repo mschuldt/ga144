@@ -500,6 +500,23 @@ then
 "
   (check-dat 400 4 3 2))
 
+(define-test "-until"
+  "node 509
+0 10
+begin
+-1 + over 2 + over
+-until
+"
+  (check-dat 509 -1 22))
+
+(define-test "hex"
+  "node 100
+0x1 0x2 +
+0x1 0x0 +
+0x12abd 0xd +
+"
+  (check-dat 100 76490 1 3))
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
