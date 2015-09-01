@@ -4,7 +4,7 @@
          "disassemble.rkt"
          "../common.rkt")
 
-(provide make-bootstream
+(provide make-async-bootstream
          sget-convert
          print-bootstream)
 
@@ -53,7 +53,7 @@
               (word "@p" "!+" "unext"))
       (vector (word ";"))))
 
-(define (make-bootstream assembled)
+(define (make-async-bootstream assembled)
   ;;ASSEMBLED is a list of 'node' structs
   ;;returns an array of assembled words
   (let* ((nodes (make-vector 144 #f))
