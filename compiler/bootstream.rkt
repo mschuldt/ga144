@@ -6,13 +6,14 @@
 
 (provide make-async-bootstream
          sget-convert
-         print-bootstream)
+         print-bootstream
+         async-bootstream)
 
 (enum (N E S W))
 
-(define dir-names (vector "north" "east" "south" "west"))
+(struct bootstream (name start path))
 
-(define start 708);;first node we stream code into
+(define dir-names (vector "north" "east" "south" "west"))
 
 ;;paths are lists of N, E, S, and W directions,
 ;;which is the direction of the the current node (starting with `start')
@@ -27,7 +28,9 @@
                         NENW NENW NENW
                         (cons N (make-list 7 E))
                         (list #f))))
-(define path path1)
+
+
+(define async-bootstream (bootstream "async" 708 path1))
 
 ;; we generate the bootstream for the nodes backwards - the
 ;; last node in the chain first.
@@ -62,12 +65,14 @@
     nodes))
 (define coord-changes (vector 100 1 -100 -1)) ;; N, E, S, W coordinate changes
 
-(define (make-async-frame1 nodes assembled)
+(define (make-async-frame1 nodes assembled bootstream)
   ;;make frame 1 of the async bootstream, loads code for all nodes except the first
   (let* (;; ordered-nodes  is a list of node objects in the reverse order
          ;; that the bootstream visites them - or in the order that they)
          ;; have code loaded into their ram.
          (ordered-nodes '())
+         (start (bootstream-start bootstream))
+         (path (bootstream-path bootstream))
          (coord (+ start (vector-ref coord-changes (car path))))
          (path (cdr path))
          (len 0)
@@ -113,13 +118,14 @@
     frame1
     ))
 
-(define (make-async-bootstream assembled)
+(define (make-bootstream assembled bootstream)
   ;; ASSEMBLED is a list of 'node' structs
-  ;; returns an array of assembled words
+  ;; returns an array of assembled words)
+  ;; BOOTSTREAM is of type struct bootstream
   (define nodes (make-node-index-map assembled))
-  (define frame1 (make-async-frame1 nodes assembled))
-
-  (define start-node (vector-ref nodes (coord->index start)))
+  (define frame1 (make-async-frame1 nodes assembled bootstream))
+  (define start-node
+    (vector-ref nodes (coord->index (bootstream-start bootstream))))
   (define code (if start-node
                    (get-used-portion (node-mem start-node))
                    (vector)))
@@ -127,6 +133,9 @@
                   (vector (or (node-p start-node) 0) 0 (vector-length code))
                   code))
   (vector-append frame1 frame2))
+
+(define (make-async-bootstream assembled)
+  (make-bootstream assembled async-bootstream))
 
 
 (define (sget-convert bootstream)
