@@ -130,7 +130,8 @@
                    (get-used-portion (node-mem start-node))
                    (vector)))
   (define frame2 (vector-append
-                  (vector (or (node-p start-node) 0) 0 (vector-length code))
+                  (vector (or (and start-node
+                                   (node-p start-node)) 0) 0 (vector-length code))
                   code))
   (vector-append frame1 frame2))
 
