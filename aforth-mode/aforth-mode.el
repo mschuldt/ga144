@@ -11,7 +11,7 @@
 (setq aforth-ports '("up" "left" "down" "right" "io"
                      "north" "east" "south" "west"))
 
-(setq aforth-directives '( "start" "for" "begin" "then"
+(setq aforth-directives '( "start" "for" "begin" "then" "here"
                            "while"  "reclaim"))
 (setq aforth-directives2 '(".." "#swap" "-while" ","))
 
@@ -85,7 +85,7 @@
 
 (setq aforth-font-lock-keywords
       `(;;word definitions
-	("\\(:\\)[ \t\n]+\\([a-zA-Z0-9_-]+\\)"
+	("\\(:\\)[ \t\n]+\\([a-zA-Z0-9_+!@.*/\-]+\\)"
 	 (1 aforth-word-face)
 	 (2 aforth-word-face))
         ("&[a-zA-Z0-9]+" . aforth-word-reference-face)
