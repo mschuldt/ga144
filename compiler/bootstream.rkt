@@ -21,7 +21,7 @@
 ;;path1 from DB004 page 31
 (define path1 (let ((NENW (append (cons N (make-list 16 E))
                                   (cons N (make-list 16 W)))))
-                (append (make-list 8 E)
+                (append (make-list 9 E)
                         (make-list 7 S)
                         (make-list 17 W)
                         NENW NENW NENW
@@ -63,6 +63,7 @@
          (ordered-nodes '())
          (coord-changes (vector 100 1 -100 -1));;N, E, S, W coordinate changes
          (coord (+ start (vector-ref coord-changes (car path))))
+         (path (cdr path))
          (len 0)
          (code (vector))
          (node #f)
