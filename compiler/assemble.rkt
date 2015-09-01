@@ -4,8 +4,9 @@
 
 (provide assemble-word assemble)
 
-(define masks (vector #b1010 #b10101 #b1010 #b101))
-(define (xor-inst inst slot) (bitwise-xor inst (vector-ref masks slot)))
+(define const-masks (vector #x3ffff #x3ff #xff #x7))
+(define xor-bits (vector #b1010 #b10101 #b1010 #b101))
+(define (xor-inst inst slot) (bitwise-xor inst (vector-ref xor-bits slot)))
 
 (define (assemble-inst word slot shift)
   ;;Assemble the instruction from WORD in SLOT, SHIFTed to its proper location
@@ -17,8 +18,8 @@
                                               (if (= slot 3) 4 1)))
                                     slot)
                           shift)
-        ;;slot contains an address, or is unused
-        (or inst 0))))
+        ;;slot contains an address, number, or is unused
+        (or (and inst (& (vector-ref const-masks slot) inst)) 0))))
 
 (define (assemble-word word)
   (cond ((number? word) word)
