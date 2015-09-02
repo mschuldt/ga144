@@ -9,10 +9,6 @@
          print-bootstream
          async-bootstream)
 
-(enum (N E S W))
-
-(struct bootstream (name start path))
-
 (define dir-names (vector "north" "east" "south" "west"))
 
 ;;paths are lists of N, E, S, and W directions,
@@ -149,12 +145,6 @@
                           (cons (^ (ior (& (<< n 6) #xc0) #x2d) #xff)
                                 new)))))
   (reverse new))
-
-(define (get-direction coord dir)
-  ;;converts dir={N, E, S, W} into an address for node COORD
-  (cdr (assoc (convert-direction coord
-                                 (vector-ref dir-names dir))
-              named-addresses)))
 
 (define (get-used-portion code)
   ;; [w1, ..., wn, #f, ..., #f] => [w1, ..., wn]

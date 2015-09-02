@@ -146,6 +146,8 @@
 
 (struct token (tok line col))
 
+(struct bootstream (name start path))
+
 (define (create-node coord [mem #f] [len 0])
   (let ((new (node coord mem len)))
     (set-node-symbols! new (list))
@@ -229,3 +231,11 @@
 
 (enum (LEFT UP DOWN RIGHT))
 (define port-names (vector "LEFT" "UP" "DOWN" "RIGHT"))
+
+(enum (N E S W))
+(define (get-direction coord dir)
+  ;;converts dir={N, E, S, W} into an address for node COORD
+  (cdr (assoc (convert-direction coord
+                                 (vector-ref dir-names dir))
+              named-addresses)))
+
