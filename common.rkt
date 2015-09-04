@@ -38,6 +38,10 @@
                           ("top" . #x1B5)
                           ("side" . #x185)
                           ("corner" . #x195)))
+(define addresses->names (make-hash (for/list ((x named-addresses))
+                                      (cons (cdr x) (car x)))))
+(define (port-name address)
+  (hash-ref addresses->names address))
 
 (define io-places '(("---u" . #x145)
                     ("--l-" . #x175)
