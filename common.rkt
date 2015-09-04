@@ -235,7 +235,22 @@
 (enum (N E S W))
 (define (get-direction coord dir)
   ;;converts dir={N, E, S, W} into an address for node COORD
+  (define dir-names (vector "north" "east" "south" "west"))
   (cdr (assoc (convert-direction coord
                                  (vector-ref dir-names dir))
               named-addresses)))
 
+
+
+(define (comma-join things)
+  (when (vector? things)
+    (set! things (vector->list things)))
+  (string-join (for/list ((thing things))
+                 (cond ((string? thing)
+                        thing)
+                       ((number? thing)
+                        (number->string thing))
+                                        ;(else (raise "invalid thing"))
+                       (else (format "~a" thing))
+                       ))
+               ","))

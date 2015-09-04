@@ -9,8 +9,6 @@
          print-bootstream
          async-bootstream)
 
-(define dir-names (vector "north" "east" "south" "west"))
-
 ;;paths are lists of N, E, S, and W directions,
 ;;which is the direction of the the current node (starting with `start')
 ;;that the stream will take.

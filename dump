@@ -27,19 +27,6 @@
    #:args (filename)
    filename))
 
-(define (comma-join things)
-  (when (vector? things)
-    (set! things (vector->list things)))
-  (string-join (for/list ((thing things))
-                 (cond ((string? thing)
-                        thing)
-                       ((number? thing)
-                        (number->string thing))
-                                        ;(else (raise "invalid thing"))
-                       (else (format "~a" thing))
-                       ))
-               ","))
-
 (define (compiled->json compiled)
   (comma-join
    (for/list ((node compiled))
