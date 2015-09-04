@@ -212,7 +212,7 @@
 
 (define (compile-call! word)
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
-  (let ([addr (get-word-address word)]);;TODO: ROM words
+  (let ([addr (get-word-address word)])
     (if addr
         (begin
           (unless (address-fits? addr current-slot)

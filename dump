@@ -8,7 +8,7 @@
          "compiler/bootstream.rkt"
          "compiler/disassemble.rkt")
 
-(define bootstream? (make-parameter #f))
+(define print-bootstream? (make-parameter #f))
 (define symbols? (make-parameter #f))
 (define pretty? (make-parameter #f))
 (define hex? (make-parameter #f))
@@ -17,7 +17,7 @@
   (command-line
    #:once-each
    [("-b" "--bootstream") "print bootstream"
-    (bootstream? #t)]
+    (print-bootstream? #t)]
    [("-s" "--symbols") "include symboltable"
     (symbols? #t)]
    [("-p" "--pretty") "print in human readable"

@@ -6,12 +6,13 @@
 
 (provide f18a%)
 
-;;(defmacro DEBUG () `(= coord 708))
+;;(defmacro DEBUG () `(member coord '(708 709 710)))
+;;(defmacro DEBUG () `(= coord 709))
 (defmacro DEBUG () #f)
 (define DISPLAY_STATE? #f)
 (defmacro PORT-DEBUG ()
   ;;port-debug-list is: #t, #f, or list of nodes
-  ;;(define port-debug-list '(509 510 511 610 410))
+  ;;(define port-debug-list '(708 709 710))
   (define port-debug-list #f)
   (if (list? port-debug-list)
       `(member coord ',port-debug-list)
@@ -247,7 +248,7 @@
             (if writing-node
                 (begin ;;value was ready
                   (when (PORT-DEBUG) (printf "       value was ready: ~a\n"
-                                                    (vector-ref port-vals port)))
+                                             (vector-ref port-vals port)))
                   (d-push! (vector-ref port-vals port))
                   ;;clear state from last reading
                   (vector-set! writing-nodes port #f)
@@ -555,12 +556,12 @@
       (when save-history
         (if (< opcode 8)
             (set! history (cons (cons opcode jump-addr-pos) history))
-            (set! history (cons opcode history)))
-        (if (< opcode 8)
-            ((vector-ref instructions opcode)
-             (bitwise-bit-field I 0 jump-addr-pos)
-             addr-mask)
-            ((vector-ref instructions opcode)))))
+            (set! history (cons opcode history))))
+      (if (< opcode 8)
+          ((vector-ref instructions opcode)
+           (bitwise-bit-field I 0 jump-addr-pos)
+           addr-mask)
+          ((vector-ref instructions opcode))))
 
     (define (step0-helper)
       (set! I (d-pop!))
@@ -674,7 +675,7 @@
         (set! P (incr P)))
 
       (define-instruction! "@+" () ; fetch-plus
-        (read-memory A)
+        (read-memory (& A #x1ff))
         (set! A (incr A)))
 
       (define-instruction! "@b" () ;fetch-b
@@ -682,7 +683,7 @@
         #t)
 
       (define-instruction! "@" (); fetch a
-        (read-memory A) #t)
+        (read-memory (& A #x1ff)) #t)
 
       (define-instruction! "!p" () ; store p
         (set-memory! P (d-pop!))
@@ -955,7 +956,7 @@
       (when (DEBUG) (printf "\nstep-program! node ~a\n" coord))
       (step-fn)
       (when (and (DEBUG) DISPLAY_STATE?) (send ga144 display-node-states
-                                              (list coord)))
+                                               (list coord)))
       )
 
     ;; Steps the program n times.
