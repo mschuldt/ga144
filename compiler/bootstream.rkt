@@ -67,7 +67,8 @@
          (ordered-nodes '())
          (start (bootstream-start bootstream))
          (path (bootstream-path bootstream))
-         (coord (+ start (vector-ref coord-changes (car path))))
+         (first-dir (car path))
+         (coord (+ start (vector-ref coord-changes first-dir)))
          (path (cdr path))
          (len 0)
          (code (vector))
@@ -84,11 +85,18 @@
       (when dir
         (set! coord (+ coord (vector-ref coord-changes dir)))))
     ;; now generate the actual bootstream
-    (for ([dir (reverse path)])
+    (define rpath (reverse path))
+    (for ([dir rpath]
+          [prev (cdr (append rpath (list first-dir)))])
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
       (set! node-code (and (node-mem node) (get-used-portion (node-mem node))))
       (set! code (vector-append
+                  ;;focusing call
+                  (vector (word "jump"
+                                (get-direction (node-coord node)
+                                               (vector-ref (vector S W N E)
+                                                           prev))))
                   ;;move all the previous code through this node
                   (if (> len 0)
                       (port-pump (node-coord node) dir len)
