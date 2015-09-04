@@ -11,8 +11,8 @@
                     ("interp" . #xc4) ;; 1384  interpolate
                     ("triangle" . #xce) ;; 1394
                     ("clc" . #xd3) ;; 1398
-                    ("--u/mod" . #xd5)  ;; 1398
-                    ("-u/mod" . #xd6) ;; 1398
+                    ("--u/mod" . #x2d5)  ;; 1398
+                    ("-u/mod" . #x2d6) ;; 1398
                     ("poly" . #xaa) ;; 1382  polynomial approximation
                     ))
 
@@ -25,8 +25,8 @@
                      ("interp" . #xc4) ;; 1384  interpolate
                      ("triangle" . #xce) ;; 1394
                      ("clc" . #xd3) ;; 1398
-                     ("--u/mod" . #xd5)  ;; 1398
-                     ("-u/mod" . #xd6) ;; 1398
+                     ("--u/mod" . #x2d5)  ;; 1398
+                     ("-u/mod" . #x2d6) ;; 1398
                      ("poly" . #xaa) ;; 1382  polynomial approximation
                      ))
 
@@ -40,8 +40,8 @@
                           ("interp" . #xc4) ;; 1384  interpolate
                           ("triangle" . #xce) ;; 1394
                           ("clc" . #xd3) ;; 1398
-                          ("--u/mod" . #xd5)  ;; 1398
-                          ("-u/mod" . #xd6) ;; 1398
+                          ("--u/mod" . #x2d5)  ;; 1398
+                          ("-u/mod" . #x2d6) ;; 1398
                           ("poly" . #xaa) ;; 1382  polynomial approximation
                           ))
 
@@ -105,8 +105,8 @@
                      ("*." . #xca) ;; 1396
                      ("interp" . #xcf) ;; 1384
                      ("clc" . #xcf) ;; 1398
-                     ("--u/mod" . #xd1)  ;; 1398
-                     ("-u/mod" . #xd2) ;; 1398 ;;TODO: check
+                     ("--u/mod" . #x2d1)  ;; 1398
+                     ("-u/mod" . #x2d2) ;; 1398 ;;TODO: check
                      ))
 
 (define (rom-doc name block doc [code #f])
