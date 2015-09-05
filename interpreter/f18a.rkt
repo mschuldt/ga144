@@ -848,6 +848,12 @@
                        (set! step-fn step0)))))
 
       (set! post-finish-port-write write-next)
+      ;; Cancel active reads. TODO: single port reads
+      (when multiport-read-ports
+        (for ([port multiport-read-ports])
+          ;;reuse 'receive-port-read' to cancel the read notification
+          (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
+        (set! multiport-read-ports #f))
       ;;TODO: don't hardcode next node. convert dest-addr to ludr port
       (send (send ga144 coord->node 709)
             set-post-finish-port-read
