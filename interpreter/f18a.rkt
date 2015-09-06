@@ -628,11 +628,13 @@
 
       (define-instruction! "jump" (addr mask)
         (when (DEBUG) (printf "jump to ~a\n" addr))
+        (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
         #f)
 
       (define-instruction! "call" (addr mask)
         (when (DEBUG) (printf "calling: ~a\n" addr))
+        (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
         #f)
@@ -704,7 +706,7 @@
             ;;case 2:
             (let* ([sum (if extended-arith?
                             (let ([sum (+ T S carry-bit)])
-                              (set! carry-bit (& sum #x40000))
+                              (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
                               sum)
                             (+ T S))]
                    [sum17 (& sum #x20000)]
@@ -731,7 +733,7 @@
       (define-instruction! "+" ()
         (if extended-arith?
             (let ([sum (+ (d-pop!) (d-pop!) carry-bit)])
-              (set! carry-bit (& sum #x40000))
+              (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
               (d-push! (18bit sum)))
             (d-push! (18bit (+ (d-pop!) (d-pop!))))))
 
