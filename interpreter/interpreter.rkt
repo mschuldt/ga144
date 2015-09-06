@@ -197,7 +197,8 @@
             (printf "unknown chip name or node coordinate '~a'\n" chip/node)))))
 
 (def-command all () "Apply future commands to all chips"
-  (set! selected-chip #f))
+  (begin (set! selected-chip #f)
+         (set! selected-node #f)))
 
 (define (is-yes-string str)
   (set! str (string-downcase str))
