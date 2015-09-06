@@ -517,6 +517,14 @@ begin
 "
   (check-dat 100 76490 1 3))
 
+(define-test "--u-slash-mod"
+  "node 500
+0 200 10 - 1 . + --u/mod
+node 1
+0 5 3 - 1 . + --u/mod"
+  (check-dat 500 20 0)
+  (check-dat 1 1 2))
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
