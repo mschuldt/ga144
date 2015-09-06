@@ -40,7 +40,7 @@
                                                (port-name from) (sub1 (* i 65)))
                                        "")
                                    ;; send this nodes ID and its ROM
-                                   "0xbf a!"
+                                   "0x80 a!"
                                    (format "~a !b" coord)
                                    "63 for @+ !b unext warm") "\n"))
                           "\n"))
