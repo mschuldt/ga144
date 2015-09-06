@@ -264,6 +264,22 @@
 (def-command breakpoints () "print active breakpoints"
   (printf "TODO\n"))
 
+(def-command dis (node) "disassemble all of NODE's memory"
+  (if selected-chip
+      (send selected-chip disassemble-memory (string->number node))
+      (printf "Must select chip\n")))
+
+(def-command dis-ram (node) "disassemble NODE's RAM"
+  (if selected-chip
+      (send selected-chip disassemble-memory (string->number node) 0 #x03F)
+      (printf "Must select chip\n")))
+
+(def-command dis-rom (node) "disassemble NODE's ROM"
+  (if selected-chip
+      (send selected-chip disassemble-memory (string->number node) #x80 #xbf)
+      (printf "Must select chip\n"))
+  )
+
 (define (get-help-string command)
   (if (hash-has-key? _help command)
       (string-append (format "~a command usage:\n    " command)

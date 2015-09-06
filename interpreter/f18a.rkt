@@ -2,7 +2,8 @@
 
 (require compatibility/defmacro
          "stack.rkt"
-         "../common.rkt")
+         "../common.rkt"
+         "../compiler/disassemble.rkt")
 
 (provide f18a%)
 
@@ -1126,4 +1127,27 @@
         (when waiting-for-pin
           (printf "Waiting for pin 17\n"))
         ))
+
+    (define/public (disassemble-memory [start 0] [end #xff])
+      ;;  disassemble and print a node memory from START to END, inclusive
+      (define (pad-print thing [pad 20])
+        (let* ((s (format "~a" thing))
+               (len (string-length s))
+               (str (string-append s (make-string (- pad len) #\ ))))
+          (printf str)))
+      (define (get-name index)
+        (set! index (& index #xff)) ;; get rid of extended arithmetic bit
+        (if (hash-has-key? rom-symbols index)
+            (hash-ref rom-symbols index)
+            #f))
+      (let ((word #f)
+            (name #f))
+        (for ((i (range start (add1 end))))
+          (set! i (region-index i))
+          (when (setq name (get-name i))
+            (printf "~a:\n" name))
+          (set! word (vector-ref memory i))
+          (pad-print i 4)
+          (pad-print word)
+          (printf "~a\n" (disassemble-word word)))))
     ))

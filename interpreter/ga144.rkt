@@ -222,6 +222,10 @@
 
     (define/public (get-time) time)
 
+    (define/public (disassemble-memory coord [start 0] [end #xff])
+      ;;  disassemble and print a nodes memory
+      (send (coord->node coord) disassemble-memory start end))
+
     (build-node-matrix)
     (reset!)
     ))
