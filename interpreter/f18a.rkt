@@ -932,8 +932,8 @@
       (set! T 0)
       (set! IO #x15555)
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
-      (set! dstack (make-stack 8))
-      (set! rstack (make-stack 8))
+      (set! dstack (make-stack 8 #x15555))
+      (set! rstack (make-stack 8 #x15555))
       (set! blocking-read #f)
       (set! blocking-write #f)
       (set! blocking #f)

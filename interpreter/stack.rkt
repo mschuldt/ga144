@@ -5,8 +5,8 @@
 
 (struct stack (sp body) #:mutable #:transparent)
 
-(define (make-stack len)
-  (stack 0 (make-vector len)))
+(define (make-stack len [init 0])
+  (stack 0 (make-vector len init)))
 
 ;;; Copies the given stack. This keeps mutable vectors from being
 ;;; shared between different stacks.
