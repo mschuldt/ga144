@@ -121,20 +121,22 @@
       (and (eq? (car l1) (car l2))
            (same-subset? (cdr l1) (cdr l2)))))
 
+(define default #x15555)
+
 (define-test "basic1"
   "node 1 1 2 + node 717 1 2 3 4 +"
   (check-reg 1 t 3)
-  (check-dat 1 3 0)
+  (check-dat 1 3 default)
   ;;(check-mem 1 67813 1 2)
 
   (check-reg 717 t 7)
-  (check-dat 717 7 2 1 0))
+  (check-dat 717 7 2 1 default))
 
 (define-test "basic2"
   "node 2 3 3 + 1"
   (check-reg 2 t 1)
   (check-reg 2 s 6)
-  (check-dat 2 1 6 0))
+  (check-dat 2 1 6 default))
 
 (define-test "negate"
   "node 505 3 - 1 + dup 5 +"
@@ -145,7 +147,7 @@
   "node 500 1 2 3 over node 2 2 3 over over"
   (check-reg 500 t 2)
   (check-reg 500 s 3)
-  (check-dat 500 2 3 2 1 0)
+  (check-dat 500 2 3 2 1 default)
   ;;(check-dat 2 2 3 2 3)
   )
 
@@ -157,28 +159,28 @@
    node 302 1 if 0 if 4 + then 3 + then 2 +
    node 303 0 if 1 if 4 + then 3 + then 3 +"
   (check-reg 100 t 5)
-  (check-reg 100 s 0)
+  (check-reg 100 s default)
   (check-reg 200 t 1)
-  (check-reg 200 s 0)
+  (check-reg 200 s default)
   (check-reg 300 t 9)
   (check-reg 300 s 1)
   (check-reg 301 t 1)
-  (check-reg 301 s 0)
+  (check-reg 301 s default)
   (check-reg 302 t 5)
   (check-reg 302 s 1)
   (check-reg 303 t 3)
-  (check-reg 303 s 0))
+  (check-reg 303 s default))
 
 (define-test "-if"
   "node 100 2 -if 3 + then 5 +
    node 200 0 -if 3 + then 5 +
    node 300 2 - 1 +  -if 3 + then 5 +"
   (check-reg 100 t 7)
-  (check-reg 100 s 0)
+  (check-reg 100 s default)
   (check-reg 200 t 5)
-  (check-reg 200 s 0)
+  (check-reg 200 s default)
   (check-reg 300 t 6)
-  (check-reg 300 s 0))
+  (check-reg 300 s default))
 
 (define-test "and"
   "node 1 1 1 and
@@ -188,13 +190,13 @@
    node 5 2 dup dup -1 . + and
           4 dup dup -1 . + and
           7 dup dup -1 . + and"
-  (check-dat 1 8 4 0 1 0)
-  (check-dat 5 6 7 0 4 0 2 0))
+  (check-dat 1 8 4 0 1 default)
+  (check-dat 5 6 7 0 4 0 2 default))
 
 (define-test "push&pop"
   "node 1 2 4 push 3 push 5 pop warm ; ( use 'warm ;' to preserve r stack ) "
-  (check-dat 1 3 5 2 0)
-  (check-ret 1 4 0))
+  (check-dat 1 3 5 2 default)
+  (check-ret 1 4 default))
 
 (define-test "b"
   "node 0 east b! @b @b @b +
@@ -222,13 +224,13 @@
    node 201 east a! west  b! @ !b @ !b @ !b
    node 200 east a! south  b! @ !b @ !b @ !b
    node 100 north    a! south  b! @ 1 + !b @ 1 + !b @ 1 + !b "
-  (check-dat 0 4 3 2 0)
-  (check-dat 1 0 0 0)
-  (check-dat 102 0 0 0)
-  (check-dat 202 0 0 0)
-  (check-dat 201 0 0 0)
-  (check-dat 200 0 0 0)
-  (check-dat 100 0 0 0))
+  (check-dat 0 4 3 2 default)
+  (check-dat 1 default default default)
+  (check-dat 102 default default default)
+  (check-dat 202 default default default)
+  (check-dat 201 default default default)
+  (check-dat 200 default default default)
+  (check-dat 100 default default default))
 
 (define-test "blocking-read-right-port1"
   "node 0 east a! @
@@ -341,12 +343,12 @@
 (define-test "drop"
   "node 1 2 4 drop 3
    node 2 1 2 3 push drop pop ( nip)"
-  (check-dat 1 3 2 0)
-  (check-dat 2 3 1 0))
+  (check-dat 1 3 2 default)
+  (check-dat 2 3 1 default))
 
 (define-test "a-fetch-inc"
   "node 1 6 a! @+ @+ @+ 0 if 2 3 4 5 10 then"
-  (check-dat 1 0 4 3 2 0))
+  (check-dat 1 0 4 3 2 default))
 
 (define-test "a-store-inc"
   "node 1 1 1 1 10 20 30 0 a! !+ !+ !+"
@@ -409,13 +411,13 @@
     1 4 for 2* unext
       4 for 2/ unext
     "
-  (check-dat 1 1 16 8 0))
+  (check-dat 1 1 16 8 default))
 
 (define-test ","
   "node 1
     @p @p @p
     , 1 , 22 , 333  "
-  (check-dat 1 333 22 1 0 0))
+  (check-dat 1 333 22 1 default default))
 
 (define-test "fib"
   "node 1
@@ -443,7 +445,7 @@ node 2
 3
 west push ;
 "
-  (check-dat 1 0)
+  (check-dat 1 default)
   (check-dat 2 6 6))
 
 (define-test "multiport-execution"
@@ -453,7 +455,7 @@ east b!
 dup + dup .
 node 102
 3 rdlu ;"
-  (check-dat 101 0)
+  (check-dat 101 default)
   (check-dat 102 6 6))
 
 (define-test "port-execution2"
@@ -498,7 +500,7 @@ east a!
 then
 &A &B &C
 "
-  (check-dat 400 4 3 2))
+  (check-dat 400 4 3 2 0 default))
 
 (define-test "-until"
   "node 509
@@ -515,21 +517,21 @@ begin
 0x1 0x0 +
 0x12abd 0xd +
 "
-  (check-dat 100 76490 1 3))
+  (check-dat 100 76490 1 3 default))
 
 (define-test "--u-slash-mod"
   "node 500
 0 200 10 - 1 . + --u/mod
 node 1
 0 5 3 - 1 . + --u/mod"
-  (check-dat 500 20 0)
-  (check-dat 1 1 2))
+  (check-dat 500 20 0 default)
+  (check-dat 1 1 2 default))
 
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
   (for ([test tests])
-  ;;(for ((test (list (car tests))))
+    ;;(for ((test (list (car tests))))
     (test))
   (display (format "passed: ~a\n" tests-passed))
   (display (format "failed: ~a\n" tests-failed)))
