@@ -192,7 +192,7 @@
   (check-dat 5 6 7 0 4 0 2 0))
 
 (define-test "push&pop"
-  "node 1 2 4 push 3 push 5 pop"
+  "node 1 2 4 push 3 push 5 pop warm ; ( use 'warm ;' to preserve r stack ) "
   (check-dat 1 3 5 2 0)
   (check-ret 1 4 0))
 
