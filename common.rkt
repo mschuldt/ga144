@@ -1,7 +1,8 @@
 #lang racket
 
 (require compatibility/defmacro
-         "rom.rkt")
+         "rom.rkt"
+         "rom-dump.rkt")
 
 (provide (all-defined-out))
 
@@ -98,6 +99,8 @@
 (define &RDLU #x1A5)
 
 (define MEM-SIZE #x301)
+
+(define rom-ht (make-hash ROM-DUMP))
 
 (define basic-rom-ht (make-hash basic-rom))
 (define analog-rom-ht (make-hash analog-rom))

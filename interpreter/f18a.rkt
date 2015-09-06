@@ -124,6 +124,11 @@
     (define carry-bit 0)
     (define extended-arith? #f)
 
+    (define rom-symbols (let ((ht (make-hash)))
+                          (for ((sym (hash->list (get-node-rom coord))))
+                            (hash-set! ht (region-index (cdr sym)) (car sym)))
+                          ht))
+
     ;; Pushes to the data stack.
     (define (d-push! value)
       (push-stack! dstack S)
@@ -911,6 +916,11 @@
                            (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
                            )))
 
+    (define (load-rom)
+      (for ((word (hash-ref rom-ht coord))
+            (i (range #x80 #xc0)))
+        (vector-set! memory i word)))
+
     (define/public (reset! [bit 18])
       (set! A 0)
       (set! B 0)
@@ -937,6 +947,7 @@
       (set! unext-jump-p #f)
       (set! break-at-wakeup #f)
       (set! break-at-io-change #f)
+      (load-rom)
       (setup-ports))
 
     ;; Resets only p
