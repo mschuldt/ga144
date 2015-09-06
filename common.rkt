@@ -258,3 +258,15 @@
                        (else (format "~a" thing))
                        ))
                ","))
+
+;;Determine if we are in RAM or ROM, return the index for that memory location
+;;DB001 section 2.2  Top half of RAM and ROM is repeated
+(define (region-index addr)
+  (set! addr (& addr #xff)) ;; get rid of extended arithmetic bit
+  (if (>= addr #x80);;ROM
+      (if (> addr #xbf)
+          (- addr #x40)
+          addr)
+      (if (> addr #x3F)
+          (- addr #x40)
+          addr)))
