@@ -59,8 +59,9 @@
 
     (define history '())
 
-    ;; hash table mapping symbols names to symbol structs
-    (define symbols #f)
+    (define symbols #f) ;;names -> symbol structs
+    (define ram-name->addr #f)
+    (define ram-addr->name #f)
 
     (define (err msg)
       (printf "[~a] ERROR\n" coord)
@@ -191,8 +192,8 @@
 
       (when break-at-io-change
         (when break-at-io-change-autoreset
-          (set! break-at-wakeup #f))
-        (send ga144 break this)))
+          (set! break-at-wakeup #f)) ;;TODO:???
+        (break "io change - suspend")))
 
     (define (wakeup)
       (add-to-active-list)
@@ -201,11 +202,11 @@
           (begin
             (when break-at-wakeup-autoreset
               (set! break-at-wakeup #f))
-            (send ga144 break this))
+            (break "wakeup"))
           (when break-at-io-change
             (when break-at-io-change-autoreset
               (set! break-at-wakeup #f))
-            (send ga144 break this))))
+            (break "io change - wakup"))))
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; ludr port communication
 
@@ -564,9 +565,10 @@
       (set! I (d-pop!))
       (set! I^ (^ I #x15555))
       (if (vector-ref breakpoints (if (port-addr? P) P (region-index P)))
-          (begin (set! P (incr P))
-                 (set! step-fn step-0-execute)
-                 (send ga144 break this))
+          (begin (let ((name (get-memory-name P)))
+                   (set! P (incr P))
+                   (set! step-fn step-0-execute)
+                   (break name)))
           (begin (set! P (incr P))
                  (if (eq? I 'end)
                      (suspend)
@@ -805,13 +807,16 @@
           (load (add1 index))))
       (load 0)
       (set! P (or (node-p node) 0))
-      (set! symbols (let ((ht (make-hash)))
-                      (for ((sym (node-symbols node)))
-                        (printf "symbol: ~a\n" (symbol-name sym))
-                        (hash-set! ht
-                                   (symbol-name sym)
-                                   sym))
-                      ht)))
+      (let ((structs (make-hash))
+            (addrs (make-hash))
+            (names (make-hash)))
+        (for ((sym (node-symbols node)))
+          (hash-set! structs (symbol-name sym) sym)
+          (hash-set! addrs (symbol-name sym) (symbol-address sym))
+          (hash-set! names (symbol-address sym) (symbol-name sym)))
+        (set! symbols structs)
+        (set! ram-addr->name names)
+        (set! ram-name->addr addrs)))
 
     (define/public (execute-array code)
       ;;Execute an array of words.
@@ -1081,6 +1086,12 @@
              (printf "[~a] ERR: invalid breakpoint '~a'\n" coord line-or-word)
              #f)))
 
+    (define (break [reason #f])
+      (printf "[~a] Breakpoint: ~a \n"
+              coord
+              (or reason (format "~x(~x)" P (region-index P))))
+      (send ga144 break this))
+
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display debug functions
     (define/public (display-state)
@@ -1180,6 +1191,13 @@
           (printf "Waiting for pin 17\n"))
         ))
 
+    (define (get-memory-name index)
+      (set! index (& index #xff)) ;; get rid of extended arithmetic bit
+      (if (hash-has-key? ram-addr->name index)
+          (hash-ref ram-addr->name index)
+          (if (hash-has-key? rom-symbols index)
+              (hash-ref rom-symbols index)
+              #f)))
     (define/public (disassemble-memory [start 0] [end #xff])
       ;;  disassemble and print a node memory from START to END, inclusive
       (define (pad-print thing [pad 20])
@@ -1187,16 +1205,11 @@
                (len (string-length s))
                (str (string-append s (make-string (- pad len) #\ ))))
           (printf str)))
-      (define (get-name index)
-        (set! index (& index #xff)) ;; get rid of extended arithmetic bit
-        (if (hash-has-key? rom-symbols index)
-            (hash-ref rom-symbols index)
-            #f))
       (let ((word #f)
             (name #f))
         (for ((i (range start (add1 end))))
           (set! i (region-index i))
-          (when (setq name (get-name i))
+          (when (setq name (get-memory-name i))
             (printf "~a:\n" name))
           (set! word (vector-ref memory i))
           (pad-print i 4)

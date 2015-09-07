@@ -19,6 +19,7 @@
 
     (define time 0)
     (define breakpoint #f) ;; set to #t when a breakpoint is reached
+    (define breakpoint-node #f) ;;node where breakpoint originated
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; 8x18 node matrix
 
@@ -90,7 +91,7 @@
     (define cli-active? #f) ;; if true, we are in a cli session
 
     (define/public (break [node #f])
-      (printf "[[ Breakpoint at node ~a\n" (send node get-coord))
+      (set! breakpoint-node node)
       ;; set the breakpoint flag which returns control to the interpreter
       (set! breakpoint #t))
 
