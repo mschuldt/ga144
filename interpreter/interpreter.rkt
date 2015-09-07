@@ -25,6 +25,13 @@
 (define selected-node #f)
 
 (define _counter 1)
+
+(define cli-active? #f)
+
+(define enter-cli-on-breakpoint? #f)
+(define (enter-cli-on-breakpoint x)
+  (set! enter-cli-on-breakpoint? x))
+
 (define (new-ga144 [name #f])
   (unless name
     (set! name (format "chip~a" _counter))
@@ -62,18 +69,26 @@
 (define (step* [chip #f])
   (if chip
       (and (send chip step-program!*)
+           (and (not cli-active?)
+                enter-cli-on-breakpoint?)
            (enter-cli))
       (for ((c chips))
         (and (send c step-program!*)
+             (and (not cli-active?)
+                enter-cli-on-breakpoint?)
              (enter-cli)))))
 
 (define (step [n 1] [chip #f])
   (if chip
       (and (send chip step-program-n! n)
+           (and (not cli-active?)
+                enter-cli-on-breakpoint?)
            (enter-cli))
       (for ((c chips))
         ;;TODO: stop when everything is suspended
         (and (send c step-program-n! n)
+             (and (not cli-active?)
+                enter-cli-on-breakpoint?)
              (enter-cli)))))
 
 (define (reset! [chip #f])
@@ -293,6 +308,7 @@
 
 
 (define (enter-cli)
+  (set! cli-active? #t)
   (when (and (= num-chips 1)
              (not selected-chip))
     (set! selected-chip (car chips)))
@@ -335,4 +351,5 @@
                             command (sub1 len))))))
         (set! last-command input)))
     (and again (loop)))
-  (loop))
+  (loop)
+  (set! cli-active? #f))
