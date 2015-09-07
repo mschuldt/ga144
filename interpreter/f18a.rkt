@@ -1193,9 +1193,11 @@
 
     (define (get-memory-name index)
       (set! index (& index #xff)) ;; get rid of extended arithmetic bit
-      (if (hash-has-key? ram-addr->name index)
+      (if (and ram-addr->name
+               (hash-has-key? ram-addr->name index))
           (hash-ref ram-addr->name index)
-          (if (hash-has-key? rom-symbols index)
+          (if (and rom-symbols
+                   (hash-has-key? rom-symbols index))
               (hash-ref rom-symbols index)
               #f)))
     (define/public (disassemble-memory [start 0] [end #xff])
