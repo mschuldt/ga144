@@ -125,6 +125,7 @@
       breakpoint)
 
     (define/public (step-program-n! n)
+      (set! breakpoint #f)
       (when (and (> n 0)
                  (not breakpoint))
         (step-program!)
@@ -133,6 +134,7 @@
 
     ;;step program until all nodes are non-active
     (define/public (step-program!* [max-time #f])
+      (set! breakpoint #f)
       (define (step)
         (unless (or (= last-active-index -1)
                     breakpoint)

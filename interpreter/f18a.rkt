@@ -59,6 +59,9 @@
 
     (define history '())
 
+    ;; hash table mapping symbols names to symbol structs
+    (define symbols #f)
+
     (define (err msg)
       (printf "[~a] ERROR\n" coord)
       (display-all)
@@ -560,10 +563,14 @@
     (define (step0-helper)
       (set! I (d-pop!))
       (set! I^ (^ I #x15555))
-      (set! P (incr P))
-      (if (eq? I 'end)
-          (suspend)
-          (step-0-execute)))
+      (if (vector-ref breakpoints (if (port-addr? P) P (region-index P)))
+          (begin (set! P (incr P))
+                 (set! step-fn step-0-execute)
+                 (send ga144 break this))
+          (begin (set! P (incr P))
+                 (if (eq? I 'end)
+                     (suspend)
+                     (step-0-execute)))))
 
     (define (step-0-execute)
       (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
@@ -797,7 +804,14 @@
           (vector-set! memory index (vector-ref code index))
           (load (add1 index))))
       (load 0)
-      (set! P (or (node-p node) 0)))
+      (set! P (or (node-p node) 0))
+      (set! symbols (let ((ht (make-hash)))
+                      (for ((sym (node-symbols node)))
+                        (printf "symbol: ~a\n" (symbol-name sym))
+                        (hash-set! ht
+                                   (symbol-name sym)
+                                   sym))
+                      ht)))
 
     (define/public (execute-array code)
       ;;Execute an array of words.
@@ -950,6 +964,8 @@
       (set! unext-jump-p #f)
       (set! break-at-wakeup #f)
       (set! break-at-io-change #f)
+      (set! symbols #f)
+      (reset-breakpoints)
       (load-rom)
       (setup-ports))
 
@@ -1019,6 +1035,7 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; breakpoints
 
+    (define breakpoints (make-vector MEM-SIZE #f))
     (define break-at-wakeup #f)
     (define break-at-io-change #f)
     ;; when true, set unset break-at-wakeup everytime it fires
@@ -1027,11 +1044,42 @@
 
     (define/public (break-at-next-wakeup)
       (set! break-at-wakeup #t))
+
     (define/public (break-at-next-io-change)
       (set! break-at-io-change #t))
 
+    (define/public (set-breakpoint line-or-word)
+      (define addr (get-breakpoint-address line-or-word))
+      (when addr
+        (vector-set! breakpoints addr #t)))
+
+    (define/public (unset-breakpoint line-or-word)
+      (define addr (get-breakpoint-address line-or-word))
+      (when addr
+        (vector-set! breakpoints addr #f)))
+
     (define/public (reset-breakpoints)
+      (set! breakpoints (make-vector MEM-SIZE #f))
       (set! break-at-wakeup #f))
+
+    (define (get-breakpoint-address line-or-word)
+      (cond ((string? line-or-word)
+             ;;TODO: include ROM words
+             (if (hash-has-key? symbols line-or-word)
+                 (symbol-address (hash-ref symbols line-or-word))
+                 (begin
+                   (printf "[~a] ERR: no record of word '~a'\n" coord line-or-word)
+                   #f)))
+            ((number? line-or-word)
+             (if (and (>= line-or-word 0)
+                      (< line-or-word MEM-SIZE))
+                 line-or-word
+                 (begin
+                   (printf "[~a] ERR: invalid address '~a'\n" coord line-or-word)
+                   #f)))
+            (else
+             (printf "[~a] ERR: invalid breakpoint '~a'\n" coord line-or-word)
+             #f)))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display debug functions
