@@ -488,7 +488,10 @@
                    pin1
                    (set! io (ior io pin1-bit))))))
 
-        (d-push! io))
+        io))
+
+    (define (push-io-reg)
+      (d-push! (read-io-reg))
       #t)
 
     (define (set-io-reg val)
@@ -901,7 +904,7 @@
                                       (lambda (v) (port-write UP v))))
       (vector-set! memory &DOWN (vector (lambda () (port-read DOWN))
                                         (lambda (v) (port-write DOWN v))))
-      (vector-set! memory &IO (vector (lambda () (read-io-reg))
+      (vector-set! memory &IO (vector (lambda () (push-io-reg))
                                       (lambda (v) (set-io-reg v))))
       (vector-set! memory &--LU
                    (vector (lambda () (multiport-read (list LEFT UP)))
