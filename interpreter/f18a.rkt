@@ -533,6 +533,7 @@
 
     (define (read-memory addr)
       ;;pushes the value at memory location ADDR onto the data stack
+      (set! addr (& addr #x1ff))
       (when (or (< addr 0)
                 (>= addr MEM-SIZE))
         (err (format "(read-memory ~a) out of range" addr)))
@@ -544,6 +545,7 @@
           (d-push! (vector-ref memory (region-index addr)))))
 
     (define (set-memory! addr value)
+      (set! addr (& addr #x1ff))
       (when (or (< addr 0)
                 (>= addr MEM-SIZE))
         (err (format "(read-memory ~a) out of range" addr)))
@@ -575,7 +577,7 @@
     (define (step0-helper)
       (set! I (d-pop!))
       (set! I^ (^ I #x15555))
-      (if (vector-ref breakpoints (if (port-addr? P) P (region-index P)))
+      (if (vector-ref breakpoints (if (port-addr? P) (& P #x1ff) (region-index P)))
           (begin (let ((name (get-memory-name P)))
                    (set! P (incr P))
                    (set! step-fn step-0-execute)
