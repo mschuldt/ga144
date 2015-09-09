@@ -45,11 +45,12 @@
     (define IO #x15555)
     (define IO-read #x15555)
 
-    ;;value of each gpio pin. #t or #f
-    (define pin17 #t)
-    (define pin5 #t)
-    (define pin3 #t)
-    (define pin1 #t)
+    ;;value of each gpio pin. #t or #f)
+    ;;"All pins reset to weak pulldown"
+    (define pin17 #f)
+    (define pin5 #f)
+    (define pin3 #f)
+    (define pin1 #f)
 
     ;;#t if we are suspended waiting for pin17 to change
     (define waiting-for-pin #f)
@@ -969,6 +970,10 @@
       (set! pin-handlers-set-p #f)
       (set! WD #f)
       (set! ~WD #t)
+      (set! pin17 #f)
+      (set! pin5 #f)
+      (set! pin3 #f)
+      (set! pin1 #f)
       (set! unext-jump-p #f)
       (set! break-at-wakeup #f)
       (set! break-at-io-change #f)
