@@ -61,7 +61,7 @@
     io b! right a!
     9294 for @ emit18 drop next
     708 emit18
-    0xbf a!
+    0x80 a!
     63 for @+ emit18 next
     2375 emit18
     warm
