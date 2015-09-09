@@ -44,6 +44,7 @@
     (define T 0)
     (define IO #x15555)
     (define IO-read #x15555)
+    (define data 0)
 
     ;;value of each gpio pin. #t or #f)
     ;;"All pins reset to weak pulldown"
@@ -949,7 +950,11 @@
       (vector-set! memory &RDLU
                    (vector (lambda () (multiport-read (list RIGHT DOWN LEFT UP)))
                            (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
-                           )))
+                           ))
+      (vector-set! memory &DATA
+                   (vector (lambda () (d-push! data) #t)
+                           (lambda (v) (set! data v) #t)))
+      )
 
     (define (load-rom)
       (for ((word (hash-ref rom-ht coord))
