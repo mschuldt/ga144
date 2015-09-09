@@ -979,12 +979,21 @@
       (set! break-at-io-change #f)
       (set! symbols #f)
       (reset-breakpoints)
+      (reset-p!)
       (load-rom)
       (setup-ports))
 
     ;; Resets only p
-    (define/public (reset-p! [start 0])
-      (set! P start))
+    (define/public (reset-p! [start #f])
+      (if start
+          (set! P start)
+          (let ((rom (get-node-rom coord)))
+            (if (hash-has-key? rom "cold")
+                (set! P (hash-ref rom "cold"))
+                (if (hash-has-key? rom "warm")
+                    (set! P (hash-ref rom "warm"))
+                    (err "ROM does not define 'warm' or 'cold')")))))
+      (printf "[~a]P===> ~a\n" coord P))
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
