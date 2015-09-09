@@ -84,21 +84,24 @@
                       (vector-ref opcodes op)))))
       (error msg))
 
-    (define (set-pin! pin val)
+    (define (log msg)
+      (printf "[~a] ~a\n" coord msg))
+
+    (define/public (set-pin! pin val)
       ;;val is #f or #t
-      (when (and waiting-for-pin
-                 (= pin 0)
-                 (= val ~WD))
-        ;;The node is suspend waiting for this value,
-        ;;complete the read and wakeup the node
-        (d-push! val)
-        (wakeup))
       ;;???Racket equivalent of `set'?
       ;;(set (vector-ref (vector 'pin17 'pin5 'pin3 'pin1) pin) val)
       (cond ((= pin 0) (set! pin17 val))
             ((= pin 1) (set! pin1 val))
             ((= pin 2) (set! pin3 val))
-            ((= pin 3) (set! pin5 val))))
+            ((= pin 3) (set! pin5 val)))
+      (when (and waiting-for-pin
+                 (= pin 0)
+                 (eq? val ~WD))
+        ;;The node is suspend waiting for this value,
+        ;;complete the read and wakeup the node
+        (d-push! (if val 1 0))
+        (finish-port-read val)))
 
     (define (18bit n)
       (if (number? n);;temp fix
@@ -249,8 +252,8 @@
       ;;returns #t if value is on the stack, #f if we are suspended waiting for it
       (if (eq? port wake-pin-port)
           ;;reading from pin17
-          (if (= pin17 ~WD)
-              (begin (d-push! pin17)
+          (if (eq? pin17 ~WD)
+              (begin (d-push! (if pin17 1 0))
                      #t)
               (begin ;;else: suspend while waiting for pin to change
                 (set! waiting-for-pin #t)
@@ -282,21 +285,29 @@
             [writing-node #f]
             [other #f])
         (for ([port ports])
-          (when (setq writing-node (vector-ref writing-nodes port))
-            ;;an ajacent writing node is waiting for us to read its value
-            (if done
-                (err "multiport-read -- more then one node writing")
-                (begin
-                  (when (PORT-DEBUG)
-                    (printf "       value was ready: ~a\n"
-                            (vector-ref port-vals port)))
-                  (d-push! (vector-ref port-vals port))
-                  (vector-set! writing-nodes port #f)
-                  (send writing-node finish-port-write)
-                  (set! done #t)))))
+          (if (eq? port wake-pin-port)
+              ;;reading from pin17
+              (begin (log "multiport-read: reading pin17")
+                     (when (eq? pin17 ~WD)
+                       (d-push! (if pin17 1 0))
+                       (set! done #t)))
+              (when (setq writing-node (vector-ref writing-nodes port))
+                ;;an ajacent writing node is waiting for us to read its value
+                (if done
+                    (err "multiport-read -- more then one node writing")
+                    (begin
+                      (when (PORT-DEBUG)
+                        (printf "       value was ready: ~a\n"
+                                (vector-ref port-vals port)))
+                      (d-push! (vector-ref port-vals port))
+                      (vector-set! writing-nodes port #f)
+                      (send writing-node finish-port-write)
+                      (set! done #t))))))
         (if done ;;successfully read a value from one of the ports
             #t
             (begin ;;else: suspend while we wait for an other node to write
+              (when (member wake-pin-port ports)
+                (set! waiting-for-pin #t))
               (set! multiport-read-ports '())
               (for ([port ports])
                 ;;(unless (vector-ref ludr-port-nodes port)
@@ -351,7 +362,8 @@
       (set! post-finish-port-read fn))
 
     (define/public (finish-port-read val)
-      ;;called by adjacent node when it writes to a port we are reading from
+      ;;called by adjacent node when it writes to a port we are reading from)
+      ;;or when a pin change causes node to awaken
       (when (PORT-DEBUG) (printf "[~a](finish-port-read  ~a)\n" coord val))
       (d-push! val)
       (when multiport-read-ports
@@ -361,6 +373,7 @@
           (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
         (set! multiport-read-ports #f))
       (set! current-reading-port #f)
+      (set! waiting-for-pin #f)
       (wakeup)
       (and post-finish-port-read (post-finish-port-read)))
 
