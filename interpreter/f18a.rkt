@@ -188,15 +188,16 @@
           (err "cannot add active node to active list")))
 
     (define (suspend)
+      (when (PORT-DEBUG) (printf "[~a] suspending\n" coord))
       (remove-from-active-list)
       (set! suspended #t)
-
       (when break-at-io-change
         (when break-at-io-change-autoreset
           (set! break-at-wakeup #f)) ;;TODO:???
         (break "io change - suspend")))
 
     (define (wakeup)
+      (when (PORT-DEBUG) (printf "[~a] wakeup\n" coord))
       (add-to-active-list)
       (set! suspended #f)
       (if break-at-wakeup
@@ -295,7 +296,6 @@
         (if done ;;successfully read a value from one of the ports
             #t
             (begin ;;else: suspend while we wait for an other node to write
-              (when (PORT-DEBUG) (printf "       suspending\n"))
               (set! multiport-read-ports '())
               (for ([port ports])
                 ;;(unless (vector-ref ludr-port-nodes port)
@@ -326,7 +326,6 @@
               (send reading-node finish-port-read value)
               #t)
             (begin
-              (when (PORT-DEBUG) (printf "       suspending\n"))
               (send (vector-ref ludr-port-nodes port)
                     receive-port-write port value this)
               (set! current-writing-port port)
@@ -341,7 +340,7 @@
       (let ([reading-node #f])
         (for ([port ports])
           (when (setq reading-node (vector-ref reading-nodes port))
-            (when (PORT-DEBUG) (printf "       wrote to port: ~a" port))
+            (when (PORT-DEBUG) (printf "       wrote to port: ~a\n" port))
             (vector-set! reading-nodes port #f)
             (send reading-node finish-port-read value))))
       #t)
@@ -534,6 +533,9 @@
 
     (define (read-memory addr)
       ;;pushes the value at memory location ADDR onto the data stack
+      (when (or (< addr 0)
+                (>= addr MEM-SIZE))
+        (err (format "(read-memory ~a) out of range" addr)))
       (if (port-addr? addr)
           (let ((x (vector-ref memory addr)))
             (if (vector? x)
@@ -542,11 +544,16 @@
           (d-push! (vector-ref memory (region-index addr)))))
 
     (define (set-memory! addr value)
+      (when (or (< addr 0)
+                (>= addr MEM-SIZE))
+        (err (format "(read-memory ~a) out of range" addr)))
       (if (port-addr? addr)
           (let ((x (vector-ref memory addr)))
             (if x
-                ((vector-ref x 1) value)
-                (err "set-memory!(~a, ~a) - invalid port\n" addr value)))
+                (if (vector? x)
+                    ((vector-ref x 1) value)
+                    (err (format "trying to access undefined port: 0x~x" addr)))
+                (err (format "set-memory!(~a, ~a) - invalid port\n" addr value))))
           (vector-set! memory (region-index addr) value)))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -992,8 +999,7 @@
                 (set! P (hash-ref rom "cold"))
                 (if (hash-has-key? rom "warm")
                     (set! P (hash-ref rom "warm"))
-                    (err "ROM does not define 'warm' or 'cold')")))))
-      (printf "[~a]P===> ~a\n" coord P))
+                    (err "ROM does not define 'warm' or 'cold')"))))))
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
