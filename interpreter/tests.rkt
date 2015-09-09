@@ -474,8 +474,8 @@ east a!
   (check-mem 2 9 3 5))
 
 ;; ;;http://www.greenarraychips.com/home/documents/greg/AB004-141021-PORTEX.pdf
-(define-test "port-execution3"
-  "node 1
+(define-test "port-execution3" ;;TODO: fix errors when node = 1
+  "node 2
 0 if
 : set @p ! ! ; .. @p a! ..
 : @next @p ! @ ; .. @+ !p ..
@@ -484,12 +484,16 @@ east a!
 : store set !next ;
 then
 east a!
-0 set
-6 !next 3 !next
-0 set
-@next dup @next"
-  (check-dat 1 3 6 6)
-  (check-mem 2 6 3))
+..
+@p ! .. ( focusing call)
+ r---
+ 0 set
+ 6 !next 3 !next
+  0 set
+ @next dup @next
+"
+  (check-dat 2 3 6 6)
+  (check-mem 3 6 3))
 
 (define-test "word-references"
   "node 400

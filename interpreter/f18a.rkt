@@ -949,7 +949,7 @@
 
     (define/public (reset! [bit 18])
       (set! A 0)
-      (set! B 0)
+      (set! B (cdr (assoc "io" named-addresses)))
       (set! P 0)
       (set! I 0)
       (set! R 0)
