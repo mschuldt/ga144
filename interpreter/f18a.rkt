@@ -979,9 +979,9 @@
       (set! B (cdr (assoc "io" named-addresses)))
       (set! P 0)
       (set! I 0)
-      (set! R 0)
-      (set! S 0)
-      (set! T 0)
+      (set! R #x15555)
+      (set! S #x15555)
+      (set! T #x15555)
       (set! IO #x15555)
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
       (set! dstack (make-stack 8 #x15555))
