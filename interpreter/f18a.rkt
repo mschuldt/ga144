@@ -444,9 +444,13 @@
     (define io-read-default #f)
 
     (define pin1-ctl-mask #x30000)
+    (define pin1-ctl-shift 16)
     (define pin2-ctl-mask #x3)
-    (define pin3-ctl-mask #x12)
+    (define pin2-ctl-shift 0)
+    (define pin3-ctl-mask #xc)
+    (define pin3-ctl-shift 2)
     (define pin4-ctl-mask #x30)
+    (define pin4-ctl-shift 4)
 
     (define pin1-handler #f)
     (define pin2-handler #f)
@@ -462,6 +466,15 @@
       (set! pin3-handler c)
       (set! pin4-handler d)
       (set! pin-handlers-set-p #t))
+
+    (define/public (set-gpio-handler pin handler)
+      (when (>= pin num-gpio-pins)
+        (err (format "node ~a does not have pin ~a" coord pin)))
+      (cond ((= pin 0) (set! pin1-handler handler))
+            ((= pin 1) (set! pin2-handler handler))
+            ((= pin 2) (set! pin3-handler handler))
+            ((= pin 3) (set! pin4-handler handler))
+            (else (err (format "invalid pin: ~a" pin)))))
 
     (define (read-io-reg)
       ;;sacrifice speed here to keep reads and writes as fast as possible
@@ -493,15 +506,14 @@
           (and pin17
                (set! io (ior io pin17-bit)))
           (when (> num-gpio-pins 1)
-            (and pin5
-                 (set! io (ior io pin5-bit)))
+            (and pin1
+                 (set! io (ior io pin1-bit)))
             (when (> num-gpio-pins 2)
               (and pin3
                    (set! io (ior io pin3-bit)))
               (and (> num-gpio-pins 3)
-                   pin1
-                   (set! io (ior io pin1-bit))))))
-
+                   pin5
+                   (set! io (ior io pin5-bit))))))
         io))
 
     (define (push-io-reg)
@@ -509,29 +521,31 @@
       #t)
 
     (define (set-io-reg val)
+      (printf "[~a] IO = ~a\n" coord val)
       (set! prev-IO IO)
       (set! IO val)
       (set! WD (if (= (& (>> IO 11) 1) 1) #t #f))
       (set! ~WD (not WD))
       ;;if a digital pin control field changed, notify its handlers
       (when (and (> num-gpio-pins 0)
-                 pin-handlers-set-p)
+                 ;;pin-handlers-set-p
+                 )
         (let ((changed (^ prev-IO IO)))
-          (and (& changed pin1-ctl-mask)
+          (and (> (& changed pin1-ctl-mask) 0)
                pin1-handler
-               (pin1-handler (& IO pin1-ctl-mask)))
+               (pin1-handler (>> (& IO pin1-ctl-mask) pin1-ctl-shift)))
           (when (> num-gpio-pins 1)
-            (and (& changed pin2-ctl-mask)
+            (and (> (& changed pin2-ctl-mask) 0)
                  pin2-handler
-                 (pin2-handler (& IO pin2-ctl-mask)))
+                 (pin2-handler (>> (& IO pin2-ctl-mask) pin2-ctl-shift)))
             (when (> num-gpio-pins 2)
-              (and (& changed pin3-ctl-mask)
+              (and (> (& changed pin3-ctl-mask) 0)
                    pin3-handler
-                   (pin3-handler (& IO pin3-ctl-mask)))
+                   (pin3-handler (>> (& IO pin3-ctl-mask) pin3-ctl-shift)))
               (and (> num-gpio-pins 3)
-                   (& changed pin4-ctl-mask)
+                   (> (& changed pin4-ctl-mask) 0)
                    pin4-handler
-                   (pin4-handler (& IO pin4-ctl-mask)))))))
+                   (pin4-handler (>> (& IO pin4-ctl-mask) pin4-ctl-shift)))))))
       #t)
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
