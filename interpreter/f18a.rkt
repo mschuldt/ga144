@@ -1221,6 +1221,48 @@
           (printf "Waiting for pin 17\n"))
         ))
 
+    (define/public (describe-io-reg [describe #f])
+      ;;set node handshake read bits
+      (define io (read-io-reg))
+      (printf "IO = ~a, 0x~x, 0b~b\n" io io io)
+      (when (vector-ref reading-nodes LEFT)
+        (printf "   LEFT reading\n"))
+      (when (vector-ref reading-nodes UP)
+        (printf "   UP reading\n"))
+      (when (vector-ref reading-nodes DOWN)
+        (printf "   DOWN reading\n"))
+      (when (vector-ref reading-nodes RIGHT)
+        (printf "   RIGHT reading\n"))
+
+      ;;set node handshake write bits
+      (when (vector-ref writing-nodes LEFT)
+        (printf "   LEFT writing\n"))
+
+      (when (vector-ref writing-nodes UP)
+        (printf "   UP writing\n"))
+      (when (vector-ref writing-nodes DOWN)
+        (printf "   DOWN writing\n"))
+      (when (vector-ref writing-nodes RIGHT)
+        (printf "   RIGHT writing\n"))
+
+      (printf "   (~a gpio pins)\n" num-gpio-pins)
+      (when (> num-gpio-pins 0)
+        (if pin17
+            (printf "    pin17 HIGH\n")
+            (printf "    pin17 LOW\n"))
+        (when (> num-gpio-pins 1)
+          (if pin1
+              (printf "    pin1 HIGH\n")
+              (printf "    pin1 LOW\n"))
+          (when (> num-gpio-pins 2)
+            (if pin3
+                (printf "    pin3 HIGH\n")
+                (printf "    pin3 LOW\n"))
+            (and (> num-gpio-pins 3)
+                 (if pin5
+                     (printf "    pin3 HIGH\n")
+                     (printf "    pin5 LOW\n")))))))
+
     (define (get-memory-name index)
       (set! index (& index #xff)) ;; get rid of extended arithmetic bit
       (if (and ram-addr->name
