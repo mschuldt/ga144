@@ -33,7 +33,8 @@
                                           #t
                                           #:compiled-file compiled-file
                                           #:assembled-file assembled-file)
-                        (step*)
+                        ;;(step*)
+                        (send test-chip step-program!*);; faster then (step*)
                         (for ([x tests])
                           (set! result (x))
                           (when result
