@@ -69,14 +69,16 @@
 (define (step* [chip #f])
   (define (step-all)
     (define again #f)
+    (define breakpoint? #f)
     (for ((c chips))
       (when (> (send c num-active-nodes) 0)
         (set! again #t)
-        (and (send c step-program!)
+        (set! breakpoint? (send c step-program!))
+        (and breakpoint?
              (and (not cli-active?)
                   enter-cli-on-breakpoint?)
              (enter-cli))))
-    (when again (step-all)))
+    (when (and again (not breakpoint?)) (step-all)))
   (if chip
       (and (send chip step-program!*)
            (and (not cli-active?)
