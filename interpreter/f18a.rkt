@@ -677,13 +677,15 @@
         #f)
 
       (define-instruction! "jump" (addr mask)
-        (when debug (log (format "jump to ~a" addr)))
+        (when debug (log (format "jump to ~a  ~a"
+                                 addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
         #f)
 
       (define-instruction! "call" (addr mask)
-        (when debug (log (format "calling: ~a" addr)))
+        (when debug
+          (log (format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
