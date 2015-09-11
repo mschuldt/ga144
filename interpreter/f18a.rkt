@@ -452,6 +452,11 @@
     (define pin4-ctl-mask #x30)
     (define pin4-ctl-shift 4)
 
+    (define pin1-config 1)
+    (define pin2-config 1)
+    (define pin3-config 1)
+    (define pin4-config 1)
+
     (define pin1-handler #f)
     (define pin2-handler #f)
     (define pin3-handler #f)
@@ -531,21 +536,21 @@
                  ;;pin-handlers-set-p
                  )
         (let ((changed (^ prev-IO IO)))
-          (and (> (& changed pin1-ctl-mask) 0)
-               pin1-handler
-               (pin1-handler (>> (& IO pin1-ctl-mask) pin1-ctl-shift)))
+          (when (> (& changed pin1-ctl-mask) 0)
+            (set! pin1-config (>> (& IO pin1-ctl-mask) pin1-ctl-shift))
+            (and pin1-handler (pin1-handler pin1-config)))
           (when (> num-gpio-pins 1)
-            (and (> (& changed pin2-ctl-mask) 0)
-                 pin2-handler
-                 (pin2-handler (>> (& IO pin2-ctl-mask) pin2-ctl-shift)))
+            (when (> (& changed pin2-ctl-mask) 0)
+              (set! pin2-config (>> (& IO pin2-ctl-mask) pin2-ctl-shift))
+              (and pin2-handler (pin2-handler pin2-config)))
             (when (> num-gpio-pins 2)
-              (and (> (& changed pin3-ctl-mask) 0)
-                   pin3-handler
-                   (pin3-handler (>> (& IO pin3-ctl-mask) pin3-ctl-shift)))
-              (and (> num-gpio-pins 3)
-                   (> (& changed pin4-ctl-mask) 0)
-                   pin4-handler
-                   (pin4-handler (>> (& IO pin4-ctl-mask) pin4-ctl-shift)))))))
+              (when (> (& changed pin3-ctl-mask) 0)
+                (set! pin3-config (>> (& IO pin3-ctl-mask) pin3-ctl-shift))
+                (and pin3-handler (pin3-handler pin3-config)))
+              (when (and (> num-gpio-pins 3)
+                         (> (& changed pin4-ctl-mask) 0))
+                (set! pin4-config (>> (& IO pin4-ctl-mask) pin4-ctl-shift))
+                (and pin4-handler (pin4-handler pin4-config)))))))
       #t)
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
@@ -1251,7 +1256,7 @@
           (printf "Waiting for pin 17\n"))
         ))
 
-    (define/public (describe-io-reg [describe #f])
+    (define/public (describe-io [describe #f])
       ;;set node handshake read bits
       (define io (read-io-reg))
       (printf "IO = ~a, 0x~x, 0b~b\n" io io io)
@@ -1277,21 +1282,30 @@
 
       (printf "   (~a gpio pins)\n" num-gpio-pins)
       (when (> num-gpio-pins 0)
+
+        (printf "   pin17:\n")
+        (printf "      config: ~a\n" pin1-config)
         (if pin17
-            (printf "    pin17 HIGH\n")
-            (printf "    pin17 LOW\n"))
+            (printf "      pin: HIGH\n")
+            (printf "      pin: LOW\n"))
         (when (> num-gpio-pins 1)
+          (printf "   pin1:\n")
+          (printf "      config: ~a\n" pin2-config)
           (if pin1
-              (printf "    pin1 HIGH\n")
-              (printf "    pin1 LOW\n"))
+            (printf "      pin: HIGH\n")
+            (printf "      pin: LOW\n"))
           (when (> num-gpio-pins 2)
+            (printf "   pin3:\n")
+            (printf "      config: ~a\n" pin3-config)
             (if pin3
-                (printf "    pin3 HIGH\n")
-                (printf "    pin3 LOW\n"))
+                (printf "      pin: HIGH\n")
+                (printf "      pin: LOW\n"))
             (and (> num-gpio-pins 3)
+                 (printf "   pin5:\n")
+                 (printf "      config: ~a\n" pin4-config)
                  (if pin5
-                     (printf "    pin3 HIGH\n")
-                     (printf "    pin5 LOW\n")))))))
+                     (printf "      pin: HIGH\n")
+                     (printf "      pin: LOW\n")))))))
 
     (define (get-memory-name index)
       (set! index (& index #xff)) ;; get rid of extended arithmetic bit
