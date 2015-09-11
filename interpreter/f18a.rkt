@@ -1018,6 +1018,7 @@
       (set! break-at-wakeup #f)
       (set! break-at-io-change #f)
       (set! symbols #f)
+      (set! history '())
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
