@@ -15,6 +15,7 @@
     (init-field index ga144 [active-index 0])
 
     (set! active-index index);;index of this node in the 'active-nodes' vector
+    (define step-count 0)
     (define suspended #f)
     (define coord (index->coord index))
 
@@ -1039,7 +1040,7 @@
     ;; p and executing the word.
     ;; returns #f when P = 0, else #t
     (define/public (step-program!)
-      (when debug (log "\nstep-program!"))
+      (set! step-count (add1 step-count))
       (step-fn)
       (when print-state (send ga144 display-node-states (list coord)))
       )
@@ -1047,6 +1048,8 @@
     ;; Steps the program n times.
     (define/public (step-program-n! n)
       (for ([i (in-range 0 n)]) (step-program!)))
+
+    (define/public (get-step-count) step-count)
 
     (define/public (init)
       (init-ludr-port-nodes)
