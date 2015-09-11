@@ -170,7 +170,7 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display functions
 
-    (define (list-active-nodes)
+    (define/public (get-active-nodes)
       (if (>= last-active-index 0)
           (for/list ([i (add1 last-active-index)])
             (vector-ref active-nodes i))
@@ -182,14 +182,14 @@
     (define/public (display-node-states [nodes #f])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
-                       (list-active-nodes))))
+                       (get-active-nodes))))
         (for ([node nodes])
           (send node display-state))))
 
     (define/public (display-dstacks [nodes #f])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
-                       (list-active-nodes))))
+                       (get-active-nodes))))
         (for ([node nodes])
           (send node display-dstack))))
 
