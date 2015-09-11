@@ -191,7 +191,7 @@
           (err "cannot add active node to active list")))
 
     (define (suspend)
-      (when debug-ports (printf "[~a] suspending\n" coord))
+      (when debug-ports (log "suspending"))
       (remove-from-active-list)
       (set! suspended #t)
       (when break-at-io-change
@@ -200,7 +200,7 @@
         (break "io change - suspend")))
 
     (define (wakeup)
-      (when debug-ports (printf "[~a] wakeup\n" coord))
+      (when debug-ports (log "wakeup"))
       (add-to-active-list)
       (set! suspended #f)
       (if break-at-wakeup
@@ -246,7 +246,7 @@
            (vector-ref (vector "L" "U" "D" "R") current-writing-port)))
 
     (define (port-read port)
-      (when debug-ports (printf "[~a](port-read ~a)\n" coord port))
+      (when debug-ports (log (format "(port-read ~a)\n" port)))
       ;;read a value from a ludr port
       ;;returns #t if value is on the stack, #f if we are suspended waiting for it
       (if (eq? port wake-pin-port)
@@ -279,7 +279,7 @@
                   #f)))))
 
     (define (multiport-read ports)
-      (when debug-ports (printf "[~a](multiport-read ~a)\n" coord ports))
+      (when debug-ports (log (format "(multiport-read ~a)\n" ports)))
       (let ([done #f]
             [writing-node #f]
             [other #f])
@@ -327,7 +327,7 @@
 
     (define (port-write port value)
       (when debug-ports
-        (printf "[~a](port-write ~a  ~a)\n" coord port value))
+        (log (format "(port-write ~a  ~a)\n" port value)))
       ;;writes a value to a ludr port
       (let ((reading-node (vector-ref reading-nodes port)))
         (if reading-node
@@ -347,7 +347,7 @@
       ;; "every node that intends to read the value written
       ;;  must already be doing so and suspended"
       (when debug-ports
-        (printf "[~a](multiport-write ~a  ~a)\n" coord ports value))
+        (log (format "(multiport-write ~a  ~a)\n" ports value)))
       (let ([reading-node #f])
         (for ([port ports])
           (when (setq reading-node (vector-ref reading-nodes port))
@@ -363,7 +363,7 @@
     (define/public (finish-port-read val)
       ;;called by adjacent node when it writes to a port we are reading from)
       ;;or when a pin change causes node to awaken
-      (when debug-ports (printf "[~a](finish-port-read  ~a)\n" coord val))
+      (when debug-ports (log (format "(finish-port-read  ~a)\n" val)))
       (d-push! val)
       (when multiport-read-ports
         ;;there may be other nodes that still think we are waiting for them to write
@@ -379,7 +379,7 @@
     (define post-finish-port-write #f)
     (define/public (finish-port-write)
       ;;called by adjacent node when it reads from a port we are writing to
-      (when debug-ports (printf "[~a](finish-port-write)\n" coord))
+      (when debug-ports (log "(finish-port-write)"))
       (set! current-writing-port #f)
       (wakeup)
       (and post-finish-port-write (post-finish-port-write)))
@@ -387,14 +387,13 @@
     (define/public (receive-port-read port node)
       ;;called by adjacent node when it is reading from one of our ports
       (when debug-ports
-        (printf "[~a](receive-port-read ~a   ~a)\n"
-                coord port (and node (send node str))))
+        (log (format "(receive-port-read ~a   ~a)" port (and node (send node str)))))
       (vector-set! reading-nodes port node))
 
     (define/public (receive-port-write port value node)
       (when debug-ports
-        (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
-                coord port value (send node str)))
+        (log (format "(receive-port-write ~a  ~a  ~a)"
+                     port value (send node str))))
       ;;called by adjacent node when it is writing to one of our ports
       (vector-set! writing-nodes port node)
       (vector-set! port-vals port value))
@@ -520,7 +519,7 @@
       #t)
 
     (define (set-io-reg val)
-      (when print-io (printf "[~a] IO = ~a\n" coord val))
+      (when print-io (log (format "IO = ~a\n" val)))
       (set! prev-IO IO)
       (set! IO val)
       (set! WD (if (= (& (>> IO 11) 1) 1) #t #f))
@@ -658,7 +657,7 @@
                             _n
                             (if debug
                                 (lambda args
-                                  (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
+                                  (log (format "OPCODE: '~a'" opcode))
                                   body ...)
                                 (lambda args
                                   body ...)))
@@ -676,13 +675,13 @@
         #f)
 
       (define-instruction! "jump" (addr mask)
-        (when debug (printf "jump to ~a\n" addr))
+        (when debug (log (format "jump to ~a" addr)))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
         #f)
 
       (define-instruction! "call" (addr mask)
-        (when debug (printf "calling: ~a\n" addr))
+        (when debug (log (format "calling: ~a" addr)))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
@@ -706,7 +705,7 @@
 
       (define-instruction! "if" (addr mask)
         (and (= T 0)
-             (begin (when debug (printf "If: jumping to ~a\n" addr))
+             (begin (when debug (log (format "If: jumping to ~a\n" addr)))
                     (set! P (ior addr (& P mask))))
              #f))
 
@@ -863,7 +862,7 @@
       ;;Make a fake port and port execute the code through it.
       ;;Used for loading bootstreams through a node.
       (define len (vector-length code))
-      (printf "execute-array(): len(code)=~a\n" len)
+      (log (format "execute-array(): len(code)=~a" len))
       (set! P #x300)
       (define index 0)
       (vector-set! memory #x300 (vector
@@ -1038,7 +1037,7 @@
     ;; p and executing the word.
     ;; returns #f when P = 0, else #t
     (define/public (step-program!)
-      (when debug (printf "\nstep-program! node ~a\n" coord))
+      (when debug (log "\nstep-program!"))
       (step-fn)
       (when print-state (send ga144 display-node-states (list coord)))
       )
@@ -1128,23 +1127,22 @@
              (if (hash-has-key? symbols line-or-word)
                  (symbol-address (hash-ref symbols line-or-word))
                  (begin
-                   (printf "[~a] ERR: no record of word '~a'\n" coord line-or-word)
+                   (log (format "ERR: no record of word '~a'" line-or-word))
                    #f)))
             ((number? line-or-word)
              (if (and (>= line-or-word 0)
                       (< line-or-word MEM-SIZE))
                  line-or-word
                  (begin
-                   (printf "[~a] ERR: invalid address '~a'\n" coord line-or-word)
+                   (log (format "ERR: invalid address '~a'" line-or-word))
                    #f)))
             (else
-             (printf "[~a] ERR: invalid breakpoint '~a'\n" coord line-or-word)
+             (log (format "ERR: invalid breakpoint '~a'" line-or-word))
              #f)))
 
     (define (break [reason #f])
-      (printf "[~a] Breakpoint: ~a \n"
-              coord
-              (or reason (format "~x(~x)" P (region-index P))))
+      (log (format "Breakpoint: ~a "
+                   (or reason (format "~x(~x)" P (region-index P)))))
       (send ga144 break this))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
