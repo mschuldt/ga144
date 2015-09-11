@@ -84,7 +84,8 @@
       (error msg))
 
     (define (log msg)
-      (printf "[~a] ~a\n" coord msg))
+      (define name (get-field name ga144))
+      (printf "[~a~a] ~a\n" (if name (format "~a." name) "") coord msg))
 
     (define/public (set-pin! pin val)
       ;;val is #f or #t
