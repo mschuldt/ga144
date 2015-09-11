@@ -67,16 +67,23 @@
   (call-with-input-file file (lambda (x) (compile-and-load chip x))))
 
 (define (step* [chip #f])
+  (define (step-all)
+    (define again #f)
+    (for ((c chips))
+      (when (> (send c num-active-nodes) 0)
+        (set! again #t)
+        (and (send c step-program!)
+             (and (not cli-active?)
+                  enter-cli-on-breakpoint?)
+             (enter-cli))))
+    (when again (step-all)))
   (if chip
       (and (send chip step-program!*)
            (and (not cli-active?)
                 enter-cli-on-breakpoint?)
            (enter-cli))
-      (for ((c chips))
-        (and (send c step-program!*)
-             (and (not cli-active?)
-                enter-cli-on-breakpoint?)
-             (enter-cli)))))
+      (step-all)))
+
 
 (define (step [n 1] [chip #f])
   (if chip
