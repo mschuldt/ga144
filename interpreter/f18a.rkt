@@ -7,17 +7,6 @@
 
 (provide f18a%)
 
-;;(defmacro DEBUG () `(member coord '(708 709 710)))
-;;(defmacro DEBUG () `(= coord 709))
-(defmacro DEBUG () #f)
-(define DISPLAY_STATE? #f)
-(defmacro PORT-DEBUG ()
-  ;;port-debug-list is: #t, #f, or list of nodes
-  ;;(define port-debug-list '(708 709 710))
-  (define port-debug-list #f)
-  (if (list? port-debug-list)
-      `(member coord ',port-debug-list)
-      port-debug-list))
 (define save-history #t)
 
 (define f18a%
@@ -64,6 +53,16 @@
     (define symbols #f) ;;names -> symbol structs
     (define ram-name->addr #f)
     (define ram-addr->name #f)
+
+    (define debug #f)
+    (define debug-ports #f)
+    (define print-state #f)
+    (define print-io #f)
+    (define/public (set-debug [general #t] [ports #f] [state #f] [io #f])
+      (set! debug general)
+      (set! debug-ports ports)
+      (set! print-state state)
+      (set! print-io io))
 
     (define (err msg)
       (printf "[~a] ERROR\n" coord)
@@ -192,7 +191,7 @@
           (err "cannot add active node to active list")))
 
     (define (suspend)
-      (when (PORT-DEBUG) (printf "[~a] suspending\n" coord))
+      (when debug-ports (printf "[~a] suspending\n" coord))
       (remove-from-active-list)
       (set! suspended #t)
       (when break-at-io-change
@@ -201,7 +200,7 @@
         (break "io change - suspend")))
 
     (define (wakeup)
-      (when (PORT-DEBUG) (printf "[~a] wakeup\n" coord))
+      (when debug-ports (printf "[~a] wakeup\n" coord))
       (add-to-active-list)
       (set! suspended #f)
       (if break-at-wakeup
@@ -247,7 +246,7 @@
            (vector-ref (vector "L" "U" "D" "R") current-writing-port)))
 
     (define (port-read port)
-      (when (PORT-DEBUG) (printf "[~a](port-read ~a)\n" coord port))
+      (when debug-ports (printf "[~a](port-read ~a)\n" coord port))
       ;;read a value from a ludr port
       ;;returns #t if value is on the stack, #f if we are suspended waiting for it
       (if (eq? port wake-pin-port)
@@ -263,7 +262,7 @@
           (let ((writing-node (vector-ref writing-nodes port)))
             (if writing-node
                 (begin ;;value was ready
-                  (when (PORT-DEBUG) (printf "       value was ready: ~a\n"
+                  (when debug-ports (printf "       value was ready: ~a\n"
                                              (vector-ref port-vals port)))
                   (d-push! (vector-ref port-vals port))
                   ;;clear state from last reading
@@ -272,7 +271,7 @@
                   (send writing-node finish-port-write)
                   #t)
                 (begin ;;else: suspend while we wait for other node to write
-                  (when (PORT-DEBUG) (printf "       suspending\n"))
+                  (when debug-ports (printf "       suspending\n"))
                   (send (vector-ref ludr-port-nodes port)
                         receive-port-read port this)
                   (set! current-reading-port port)
@@ -280,7 +279,7 @@
                   #f)))))
 
     (define (multiport-read ports)
-      (when (PORT-DEBUG) (printf "[~a](multiport-read ~a)\n" coord ports))
+      (when debug-ports (printf "[~a](multiport-read ~a)\n" coord ports))
       (let ([done #f]
             [writing-node #f]
             [other #f])
@@ -296,7 +295,7 @@
                 (if done
                     (err "multiport-read -- more then one node writing")
                     (begin
-                      (when (PORT-DEBUG)
+                      (when debug-ports
                         (printf "       value was ready: ~a\n"
                                 (vector-ref port-vals port)))
                       (d-push! (vector-ref port-vals port))
@@ -327,13 +326,13 @@
               #f))))
 
     (define (port-write port value)
-      (when (PORT-DEBUG)
+      (when debug-ports
         (printf "[~a](port-write ~a  ~a)\n" coord port value))
       ;;writes a value to a ludr port
       (let ((reading-node (vector-ref reading-nodes port)))
         (if reading-node
             (begin
-              (when (PORT-DEBUG) (printf "       target is ready\n"))
+              (when debug-ports (printf "       target is ready\n"))
               (vector-set! reading-nodes port #f)
               (send reading-node finish-port-read value)
               #t)
@@ -347,12 +346,12 @@
     (define (multiport-write ports value)
       ;; "every node that intends to read the value written
       ;;  must already be doing so and suspended"
-      (when (PORT-DEBUG)
+      (when debug-ports
         (printf "[~a](multiport-write ~a  ~a)\n" coord ports value))
       (let ([reading-node #f])
         (for ([port ports])
           (when (setq reading-node (vector-ref reading-nodes port))
-            (when (PORT-DEBUG) (printf "       wrote to port: ~a\n" port))
+            (when debug-ports (printf "       wrote to port: ~a\n" port))
             (vector-set! reading-nodes port #f)
             (send reading-node finish-port-read value))))
       #t)
@@ -364,7 +363,7 @@
     (define/public (finish-port-read val)
       ;;called by adjacent node when it writes to a port we are reading from)
       ;;or when a pin change causes node to awaken
-      (when (PORT-DEBUG) (printf "[~a](finish-port-read  ~a)\n" coord val))
+      (when debug-ports (printf "[~a](finish-port-read  ~a)\n" coord val))
       (d-push! val)
       (when multiport-read-ports
         ;;there may be other nodes that still think we are waiting for them to write
@@ -380,20 +379,20 @@
     (define post-finish-port-write #f)
     (define/public (finish-port-write)
       ;;called by adjacent node when it reads from a port we are writing to
-      (when (PORT-DEBUG) (printf "[~a](finish-port-write)\n" coord))
+      (when debug-ports (printf "[~a](finish-port-write)\n" coord))
       (set! current-writing-port #f)
       (wakeup)
       (and post-finish-port-write (post-finish-port-write)))
 
     (define/public (receive-port-read port node)
       ;;called by adjacent node when it is reading from one of our ports
-      (when (PORT-DEBUG)
+      (when debug-ports
         (printf "[~a](receive-port-read ~a   ~a)\n"
                 coord port (and node (send node str))))
       (vector-set! reading-nodes port node))
 
     (define/public (receive-port-write port value node)
-      (when (PORT-DEBUG)
+      (when debug-ports
         (printf "[~a](receive-port-write ~a  ~a  ~a)\n"
                 coord port value (send node str)))
       ;;called by adjacent node when it is writing to one of our ports
@@ -521,7 +520,7 @@
       #t)
 
     (define (set-io-reg val)
-      (printf "[~a] IO = ~a\n" coord val)
+      (when print-io (printf "[~a] IO = ~a\n" coord val))
       (set! prev-IO IO)
       (set! IO val)
       (set! WD (if (= (& (>> IO 11) 1) 1) #t #f))
@@ -657,7 +656,7 @@
       (define-syntax-rule (define-instruction! opcode args body ...)
         (begin (vector-set! instructions
                             _n
-                            (if (DEBUG)
+                            (if debug
                                 (lambda args
                                   (printf (format "[~a]OPCODE: '~a'\n" coord opcode))
                                   body ...)
@@ -677,13 +676,13 @@
         #f)
 
       (define-instruction! "jump" (addr mask)
-        (when (DEBUG) (printf "jump to ~a\n" addr))
+        (when debug (printf "jump to ~a\n" addr))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
         #f)
 
       (define-instruction! "call" (addr mask)
-        (when (DEBUG) (printf "calling: ~a\n" addr))
+        (when debug (printf "calling: ~a\n" addr))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
@@ -707,7 +706,7 @@
 
       (define-instruction! "if" (addr mask)
         (and (= T 0)
-             (begin (when (DEBUG) (printf "If: jumping to ~a\n" addr))
+             (begin (when debug (printf "If: jumping to ~a\n" addr))
                     (set! P (ior addr (& P mask))))
              #f))
 
@@ -1039,10 +1038,9 @@
     ;; p and executing the word.
     ;; returns #f when P = 0, else #t
     (define/public (step-program!)
-      (when (DEBUG) (printf "\nstep-program! node ~a\n" coord))
+      (when debug (printf "\nstep-program! node ~a\n" coord))
       (step-fn)
-      (when (and (DEBUG) DISPLAY_STATE?) (send ga144 display-node-states
-                                               (list coord)))
+      (when print-state (send ga144 display-node-states (list coord)))
       )
 
     ;; Steps the program n times.
