@@ -103,6 +103,8 @@
       (send chip reset!)
       (for ((c chips))
         (send c reset!))))
+(define (delete-all-chips)
+  (set! chips '()))
 
 (define (connect-pins from-node from-pin
                       to-node to-pin)
