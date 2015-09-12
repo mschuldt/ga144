@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from cal import *
 from serial import Serial
 

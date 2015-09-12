@@ -66,7 +66,7 @@
       (set! print-io io))
 
     (define (err msg)
-      (printf "[~a] ERROR\n" coord)
+      (printf "[~a] ERROR (chip: ~a)\n" coord (get-field name ga144))
       (display-all)
       (when save-history
         (printf "Execution history(most recent first):\n ~a\n"
@@ -264,7 +264,7 @@
             (if writing-node
                 (begin ;;value was ready
                   (when debug-ports (printf "       value was ready: ~a\n"
-                                             (vector-ref port-vals port)))
+                                            (vector-ref port-vals port)))
                   (d-push! (vector-ref port-vals port))
                   ;;clear state from last reading
                   (vector-set! writing-nodes port #f)
@@ -287,8 +287,7 @@
         (for ([port ports])
           (if (eq? port wake-pin-port)
               ;;reading from pin17
-              (begin (log "multiport-read: reading pin17")
-                     (when (eq? pin17 ~WD)
+              (begin (when (eq? pin17 ~WD)
                        (d-push! (if pin17 1 0))
                        (set! done #t)))
               (when (setq writing-node (vector-ref writing-nodes port))
@@ -307,6 +306,7 @@
             #t
             (begin ;;else: suspend while we wait for an other node to write
               (when (member wake-pin-port ports)
+                (when debug (log "suspending. waiting-for-pin = True"))
                 (set! waiting-for-pin #t))
               (set! multiport-read-ports '())
               (for ([port ports])
@@ -661,12 +661,9 @@
       (define-syntax-rule (define-instruction! opcode args body ...)
         (begin (vector-set! instructions
                             _n
-                            (if debug
-                                (lambda args
-                                  (log (format "OPCODE: '~a'" opcode))
-                                  body ...)
-                                (lambda args
-                                  body ...)))
+                            (lambda args
+                              (when debug (log (format "OPCODE: '~a'" opcode)))
+                              body ...))
                (set! _n (add1 _n))))
 
       (define-instruction! ";" (_ __)
@@ -894,15 +891,34 @@
       (define index #f)
       (define last #f)
       (define word #f)
+
       (define (write-next)
         (if (< index last)
             (begin
+              ;;(log (format "(write-next) index = ~a (last=~a)" index last))
               (set! word (vector-ref frames index))
               (set! index (add1 index))
               (set-memory! dest-addr word))
-            (if (eq? jump-addr #xae)
-                (load-bootframe last)
-                (begin (set! post-finish-port-write #f)
+            (if (or (eq? jump-addr #xae) ;;async
+                    (eq? jump-addr #xb6)) ;;sync
+                (begin
+                  (printf "SECOND FRAME\n")
+                  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;)
+                  ;;TEMP FIX:
+                  ;; the target chip bootstream is special: the second)
+                  ;; frame is written to a different path
+                  (send (send ga144 coord->node 709)
+                        set-post-finish-port-read
+                        #f)
+                  (send (send ga144 coord->node 608)
+                        set-post-finish-port-read
+                        write-next)
+                  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                  ;;(send ga144 show-io-changes #t)
+                  (load-bootframe last))
+                (begin (printf "END FRAME\n")
+                       (set! post-finish-port-write #f)
+                       ;;(send (send ga144 coord->node 400)
                        (send (send ga144 coord->node 709)
                              set-post-finish-port-read
                              #f)
@@ -917,7 +933,9 @@
           (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
         (set! multiport-read-ports #f))
       ;;TODO: don't hardcode next node. convert dest-addr to ludr port
+
       (send (send ga144 coord->node 709)
+            ;;(send ga144 coord->node 400)
             set-post-finish-port-read
             write-next)
 
@@ -928,9 +946,12 @@
         (set! n-words (vector-ref frames (+ index 2)))
         (set! index (+ index 3))
         (set! last (+ n-words index))
+
         (when suspended (wakeup))
         (if (port-addr? dest-addr)
-            (write-next)
+            (begin
+              (set! step-fn void)
+              (write-next))
             (begin
               (for ((i (range n-words)))
                 (set-memory! i (vector-ref frames index))
@@ -1181,7 +1202,7 @@
       (let ((n (sub1 n)))
         (define (print i)
           (let ((v (vector-ref memory i)))
-            (printf "~a " v)
+            (printf "~x " v)
             (unless (or (eq? v 'end)
                         (>= i n))
               (print (add1 i)))))
@@ -1292,8 +1313,8 @@
           (printf "   pin1:\n")
           (printf "      config: ~a\n" pin2-config)
           (if pin1
-            (printf "      pin: HIGH\n")
-            (printf "      pin: LOW\n"))
+              (printf "      pin: HIGH\n")
+              (printf "      pin: LOW\n"))
           (when (> num-gpio-pins 2)
             (printf "   pin3:\n")
             (printf "      config: ~a\n" pin3-config)
@@ -1316,6 +1337,7 @@
                    (hash-has-key? rom-symbols index))
               (hash-ref rom-symbols index)
               #f)))
+
     (define/public (disassemble-memory [start 0] [end #xff])
       ;;  disassemble and print a node memory from START to END, inclusive
       (define (pad-print thing [pad 20])

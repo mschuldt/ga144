@@ -15,7 +15,7 @@
 (define ga144%
   (class object%
     (super-new)
-    (init-field name [interactive #f])
+    (init-field [name #f] [interactive #f])
 
     (define time 0)
     (define breakpoint #f) ;; set to #t when a breakpoint is reached
@@ -180,6 +180,7 @@
 
     (define/public (num-active-nodes)
       (add1 last-active-index))
+
 
     (define/public (display-node-states [nodes #f])
       (let ((nodes (if nodes

@@ -86,7 +86,6 @@
            (enter-cli))
       (step-all)))
 
-
 (define (step [n 1] [chip #f])
   (if chip
       (and (send chip step-program-n! n)
@@ -111,9 +110,9 @@
 (define (connect-pins from-node from-pin
                       to-node to-pin)
   (define (wire x)
-    (printf "(WIRE ~a) ~a.~a<-->~a.~a\n" x
-            (send from-node get-coord) from-pin
-            (send to-node get-coord) to-pin)
+    ;;    (printf "(WIRE ~a) ~a.~a<-->~a.~a\n" x
+    ;;            (send from-node get-coord) from-pin
+    ;;            (send to-node get-coord) to-pin)
     (send to-node set-pin! to-pin (= x 3)))
   (send from-node set-gpio-handler from-pin wire))
 
