@@ -19,7 +19,7 @@
              (< index 3))
         (begin (vector-set! to (add1 index) (bitwise-bit-field from 0 jump))
                #f)
-        (not (member inst ops-that-end-word)))))
+        (not (member inst instructions-using-rest-of-word)))))
 
 (define (disassemble-word word)
   (let ((to (make-vector 4 #f))

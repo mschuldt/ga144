@@ -25,8 +25,6 @@
 
 (define instructions-using-rest-of-word '(";" "ex"))
 
-(define ops-that-end-word '(";"))
-
 (define named-addresses '(("right" . #x1D5)
                           ("down" . #x115)
                           ("left" . #x175)
