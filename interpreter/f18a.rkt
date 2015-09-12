@@ -1026,6 +1026,7 @@
       (set! break-at-io-change #f)
       (set! symbols #f)
       (set! history '())
+      (set! suspended #f)
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
