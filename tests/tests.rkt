@@ -1,9 +1,9 @@
 #lang racket
 
 (require compatibility/defmacro
-         "interpreter.rkt"
+         "../interpreter/interpreter.rkt"
          "../common.rkt"
-         "stack.rkt")
+         "../interpreter/stack.rkt")
 
 (define (18bit n)
   (if (number? n)
@@ -17,7 +17,7 @@
 
 (define-syntax-rule (define-test name program checks ...)
   (set! tests (cons (lambda ()
-		      ;;(printf "running test: '~a'\n" name)
+		      (printf "running test: '~a'\n" name)
                       (let ([tests (list checks ...)]
                             [result #f]
                             [failed '()]
@@ -537,7 +537,7 @@ node 1
   (set! tests-failed 0)
   (set! tests-passed 0)
   (for ([test tests])
-    ;;(for ((test (list (car tests))))
+  ;;(for ((test (list (car tests))))
     (test))
   (display (format "passed: ~a\n" tests-passed))
   (display (format "failed: ~a\n" tests-failed)))
