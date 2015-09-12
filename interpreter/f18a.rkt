@@ -111,9 +111,9 @@
 
     ;;bit of each gpio pin in the io register
     (define pin17-bit (<< 1 17))
-    (define pin5-bit (<< 1 5))
-    (define pin3-bit (<< 1 3))
-    (define pin1-bit 1)
+    (define pin5-bit (<< 1 6))
+    (define pin3-bit (<< 1 4))
+    (define pin1-bit 2)
     ;;bits of each read/write status bit in the io register
     (define Rr- (18bit (~ (<< 1 16))))
     (define Rw (<< 1 15))
