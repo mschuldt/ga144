@@ -101,8 +101,7 @@
                  (eq? val ~WD))
         ;;The node is suspend waiting for this value,
         ;;complete the read and wakeup the node
-        (d-push! (if val 1 0))
-        (finish-port-read val)))
+        (finish-port-read (if val 1 0))))
 
     (define (18bit n)
       (if (number? n);;temp fix
