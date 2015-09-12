@@ -320,6 +320,19 @@
       (printf "Must select chip\n"))
   )
 
+(def-command show-io (node) "display io register in detail"
+  (if selected-chip
+      (send (send selected-chip coord->node (string->number node))
+            describe-io)
+      (printf "Must select chip\n")))
+
+(def-command show-io () "display io register of selected node in detail"
+  (if selected-node
+      (if selected-chip
+          (send selected-node describe-io)
+          (printf "Must select chip\n"))
+      (printf "Must select node\n")))
+
 (define (get-help-string command)
   (if (hash-has-key? _help command)
       (string-append (format "~a command usage:\n    " command)
