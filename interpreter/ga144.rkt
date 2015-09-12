@@ -113,16 +113,18 @@
     ;; step functions return true if a breakpoint has been reached, else false
 
     (define/public (step-program!)
-      ;; (when (= (modulo time 100) 0)
-      ;;   (print-active))
+      (set! breakpoint #f)
       (set! time (add1 time))
-      (when (> current-node-index last-active-index)
-        ;;start from the beginning, or -1 if no nodes are active
-        (set! current-node-index (min 0 last-active-index)))
-      (when (>= current-node-index 0)
-        (set! current-node (vector-ref active-nodes current-node-index))
+      (define last last-active-index)
+      (define (step [index 0] )
+        (set! current-node (vector-ref active-nodes index))
         (send current-node step-program!)
-        (set! current-node-index (add1 current-node-index)))
+        (when (and (< index last-active-index)
+                   (not breakpoint))
+          (step (add1 index))))
+      ;;TODO: use current-node-index to correctly resume after a breakpoint
+      (when (>= last 0)
+        (step))
       breakpoint)
 
     (define/public (step-program-n! n)
