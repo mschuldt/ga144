@@ -81,6 +81,7 @@
 (define &LEFT #x175) ;373
 (define &RIGHT #x1d5) ;469
 (define &IO #x15d)
+(define &DATA #x141)
 
 (define &---U #x145)
 (define &--L- #x175)
