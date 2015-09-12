@@ -181,31 +181,30 @@ node 601 east a! west b! ~a
 node 600 east a! south b! ~a
 node 500 north a! south b! ~a
 node 400 north a! south b! ~a
+
 node 300
  ( reference: block 632 )
-  : dly !b 40 for unext ;
+  : dly !b 32 for unext ;
   : 1bt dup dly 0x10000 or dly ;
- ( : 1bt !b ; )
 : c+d+ 0x30003 1bt ; ( set clock high, data high, etc)
 : c+d- 0x30002 1bt ;
 : c-d+ 0x20003 1bt ;
 : c-d- 0x20002 1bt ;
-: bit- ( send bit with clock low)
-   -if c-d+ ; then c-d- ;
-: bit+ ( send bit with clock high)
+: bit-
    -if c+d+ ; then c+d- ;
-: go
-  @
+: bit+
+   -if c-d+ ; then c-d- ;
+: send
   8 for
     bit- 2*
     bit+ 2*
   next
- (  wait wait )
-go ;
+: loop
+ @ send
+loop ;
 : main
-north a!
-io b!
-go ;
+north a! io b!
+@ 0x30000 dly send loop ;
 " wire wire wire wire wire wire wire wire wire wire wire))
 
   ;; bootstream that is loaded into target chip through node 300 sync port
@@ -219,20 +218,17 @@ go ;
   (define nodes (make-node-index-map assembled))
   ;; create bootstream for host chip. The first frame loads the code to move the
   ;; bootstream to node 300, the second frame contains the target chips bootstream
+
   (vector-append
    ;;frame 1
    (make-async-frame1 nodes host-code bootstream)
    ;;frame 2
-   (vector-append (vector #xae
+   (vector-append (vector 0
                           ;;(get-direction host-start (car host-path))
                           (get-direction host-start S)
                           (vector-length target-bootstream))
                   target-bootstream)
-   ;;   (vector #xae
-   ;;           (get-direction host-start S)
-   ;;           6
-   ;;           1 2 3 0 #x3ffff 5
-   ;;           )
+   ;;(vector 0 0 0 0)
    ))
 
 (define (sget-convert bootstream)
