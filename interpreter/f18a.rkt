@@ -1182,7 +1182,8 @@
     ;; state display debug functions
     (define/public (display-state)
       (printf "_____Node ~a state_____\n" coord)
-      (printf "P:~x(~x) A:~x B:~x R:~x\n" P (region-index P) A B R)
+      (printf "P:~x(~x) A:~x B:~x R:~x IO:~x\n"
+              P (region-index P) A B R (read-io-reg))
       (when extended-arith?
         (printf "[extended arith]  carry=~a\n" carry-bit))
       (display-dstack)
