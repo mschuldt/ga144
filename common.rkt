@@ -280,3 +280,7 @@
       (if (> addr #x3F)
           (- addr #x40)
           addr)))
+
+(defmacro assert (x)
+  `(unless ,x
+     (error ,(format "Assertion failed: ~a" x))))
