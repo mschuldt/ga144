@@ -5,7 +5,8 @@
          "compile.rkt"
          "../common.rkt")
 
-(provide make-bootstream
+(provide make-bootstream-type
+         make-bootstream
          make-async-bootstream
          make-sync-bootstream
          sget-convert
@@ -140,10 +141,11 @@
              len)
      code)))
 
-(define (make-bootstream assembled bootstream)
+(define (make-bootstream-type assembled bootstream)
   ;; ASSEMBLED is a list of 'node' structs
   ;; returns an array of assembled words)
   ;; BOOTSTREAM is of type struct bootstream
+
   (define nodes (make-node-index-map assembled))
   (define frame1 (make-async-frame1 nodes assembled bootstream))
   (define start-node
@@ -157,9 +159,19 @@
                   code))
   (vector-append frame1 frame2))
 
+(define (make-bootstream assembled)
+  (define type (compiled-bootstream assembled))
+  (define nodes (compiled-nodes assembled))
+  (cond ((equal? type "async")
+         (make-async-bootstream nodes))
+        ((equal? type "2wire")
+         (make-bootstream-type nodes sync-bootstream))
+        ((equal? type "async-target")
+         (make-sync-bootstream nodes))))
+
 (define (make-async-bootstream assembled)
   ;; Standard async bootstream. Starts at 708 and visits all nodes.
-  (make-bootstream assembled async-bootstream))
+  (make-bootstream-type assembled async-bootstream))
 
 (define (make-sync-bootstream assembled)
   ;; creates a bootstream to load ASSEMBED code into target chip through
@@ -208,13 +220,13 @@ north a! io b!
 " wire wire wire wire wire wire wire wire wire wire wire))
 
   ;; bootstream that is loaded into target chip through node 300 sync port
-  (define target-bootstream (make-bootstream assembled sync-bootstream))
-                                        ;(define bootstream host-sync-bootstream)
+  (define target-bootstream (make-bootstream-type assembled sync-bootstream))
+  ;;(define bootstream host-sync-bootstream)
   (define bootstream async-bootstream)
   (define host-start (bootstream-start bootstream))
   (define host-path (bootstream-path bootstream))
   ;; Compile the host loader code
-  (define host-code (assemble (compile host-loader-code)))
+  (define host-code (compiled-nodes (assemble (compile host-loader-code))))
   (define nodes (make-node-index-map assembled))
   ;; create bootstream for host chip. The first frame loads the code to move the
   ;; bootstream to node 300, the second frame contains the target chips bootstream

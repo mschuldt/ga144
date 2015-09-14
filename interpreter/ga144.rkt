@@ -98,9 +98,9 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; program loading
 
-    (define/public (load code)
+    (define/public (load compiled)
       ;; Places code into each node's RAM/ROM
-      (for ([n code])
+      (for ([n (compiled-nodes compiled)])
         (send (coord->node (node-coord n)) load n)))
 
     (define/public (load-bootstream bs [input-node 708])

@@ -32,6 +32,10 @@
 (define current-tok-col 0)
 (define prev-current-tok-line 0)
 (define prev-current-tok-col 0)
+
+ ;;type of bootstream, set by the 'bootstream' directive
+(define bootstream-type #f)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (compile port)
@@ -43,7 +47,7 @@
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
-  used-nodes)
+  (compiled used-nodes (or bootstream-type default-bootstream-type)))
 
 (define (compile-file file)
   (call-with-input-file file compile))
@@ -135,6 +139,7 @@
   (set! waiting (make-hash))
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
+  (set! bootstream-type #f)
   (define-named-addresses!))
 
 (define (read-tok)
@@ -606,6 +611,17 @@
 
 ;;NOTE: +node, /ram, and /part are note supported
 
+(add-directive!
+ "bootstream"
+ (lambda ()
+   (let ((tok (read-tok-name)))
+     (if (member tok bootstream-types)
+         (set! bootstream-type tok)
+         (error (format "Invalid bootstream type: ~a\n Options: ~a\n"
+                        tok (string-join bootstream-types ", ")))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (for [(dir (list "north" "south" "east" "west"))]
   (add-directive!
    dir
@@ -626,7 +642,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (display-compiled nodes)
+(define (display-compiled compiled)
   ;;NODES is a list of node structs
   (define (display-word word [n 0])
     (if (number? word)
@@ -649,7 +665,7 @@
       (pretty-display (format "\nnode ~a" (node-coord (car nodes))))
       (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
-  (display-node nodes))
+  (display-node (compiled-nodes compiled)))
 
 ;;unext (a)
 ;;ends a micronext loop. Since the loop occurs entirely within a single

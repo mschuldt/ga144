@@ -40,8 +40,9 @@
         (vector-set! mem i (disassemble-word (vector-ref mem i)))))
     (disassemble (cdr nodes))))
 
-(define (display-disassemble nodes [all? #f])
+(define (display-disassemble compiled [all? #f])
   ;;like `disassemble' but also prints out the disassemble and the original words
+  (define nodes (compiled-nodes compiled))
   (define (display-word word [n 0])
     (when (< n 4)
       (let ((inst (vector-ref word n)))

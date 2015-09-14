@@ -148,11 +148,19 @@
 ;;       the remaining words in mem are all #f
 ;; 'symbols' a list of symbol structs
 
+(struct compiled (nodes bootstream) #:mutable #:transparent)
+;; struct to hold compiled code
+;; 'nodes': list of 'node' structs
+;; 'bootstream': type of bootstream to generate
+
 (struct symbol (name address line col))
 
 (struct token (tok line col))
 
 (struct bootstream (name start path))
+
+(define bootstream-types '("async" "2wire" "async-target"))
+(define default-bootstream-type "async")
 
 (define (create-node coord [mem #f] [len 0])
   (let ((new (node coord mem len)))

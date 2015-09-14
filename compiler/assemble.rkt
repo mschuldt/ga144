@@ -32,12 +32,15 @@
                      (a (assemble-inst word 0 13)))
                 (bitwise-ior a b c d)))))
 
-(define (assemble nodes)
-  ;;NODES is a list of 'node' structs
+(define (assemble compiled)
+  ;;COMPILED is a struct of type 'compiled'
   ;;This function mutates the node structs, assembling the words in place
-  (unless (null? nodes)
-    (let ((mem (node-mem (car nodes))))
-      (for ([i (vector-length mem)])
-        (vector-set! mem i (assemble-word (vector-ref mem i)))))
-    (assemble (cdr nodes)))
-  nodes)
+  (define nodes (compiled-nodes compiled))
+  (define (assemble-nodes nodes)
+    (unless (null? nodes)
+      (let ((mem (node-mem (car nodes))))
+        (for ([i (vector-length mem)])
+          (vector-set! mem i (assemble-word (vector-ref mem i)))))
+      (assemble-nodes (cdr nodes))))
+  (assemble-nodes (compiled-nodes compiled))
+  compiled)
