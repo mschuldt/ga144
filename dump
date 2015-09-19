@@ -29,7 +29,7 @@
 
 (define (compiled->json compiled)
   (comma-join
-   (for/list ((node compiled))
+   (for/list ((node (compiled-nodes compiled)))
      (format "'~a' : [~a]"
              (node-coord node)
              (comma-join (let ((mem (node-mem node)))
@@ -43,7 +43,7 @@
 
 (define (boot-descriptors->json compiled)
   (comma-join
-   (for/list ((node compiled))
+   (for/list ((node (compiled-nodes compiled)))
      (format " '~a' : {~a}"
              (node-coord node)
              (comma-join (list (format "'a' : ~a" (or (node-a node) "None"))
@@ -58,7 +58,7 @@
 (define (symbols->json compiled)
   (let ((syms '())
         (symbols #f))
-    (for/list ((node compiled))
+    (for/list ((node (compiled-nodes compiled)))
       (set! symbols (node-symbols node))
       (unless (null? symbols)
         (push syms
@@ -72,7 +72,7 @@
     (comma-join syms)))
 
 (define (assembled->json assembled)
-  (comma-join (for/list ((node assembled))
+  (comma-join (for/list ((node (compiled-nodes assembled)))
                 (format "'~a' : [~a]"
                         (node-coord node)
                         (comma-join (let ((mem (node-mem node)))
