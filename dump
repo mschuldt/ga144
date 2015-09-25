@@ -11,6 +11,7 @@
 (define print-bootstream? (make-parameter #f))
 (define symbols? (make-parameter #f))
 (define pretty? (make-parameter #f))
+(define count? (make-parameter #f))
 (define hex? (make-parameter #f))
 
 (define input-file
@@ -22,6 +23,8 @@
     (symbols? #t)]
    [("-p" "--pretty") "print in human readable"
     (pretty? #t)]
+   [("-c" "--count") "count ram usage"
+    (count? #t)]
    [("-x" "--hex") "print numbers in hexadecimal format"
     (hex? #t)]
    #:args (filename)
@@ -100,6 +103,14 @@
                  (format "'bootstream' : [~a] " (comma-join bootstream))
                  ))))
 
+(define (print-count)
+  (define compiled (compile (file->string input-file)))
+  (for ((n (compiled-nodes compiled)))
+    (printf "~a  ~a  ~a%\n" (node-coord n)
+            (node-len n)
+            (exact->inexact (* (/ (node-len n) 64) 100)))))
+
+
 (define (print-pretty)
   (define compiled (compile (file->string input-file)))
   (define compiled-hash (make-hash))
@@ -158,6 +169,8 @@
         (pad-print (format "~a" (n (vector-ref asm i))) 13)
         (printf "~a\n" (make-pretty (disassemble-word (vector-ref asm i))))))))
 
-(if (pretty?)
-    (print-pretty)
-    (print-json))
+(if (count?)
+    (print-count)
+    (if (pretty?)
+        (print-pretty)
+        (print-json)))
