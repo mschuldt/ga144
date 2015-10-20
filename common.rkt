@@ -284,3 +284,8 @@
 (defmacro assert (x)
   `(unless ,x
      (error ,(format "Assertion failed: ~a" x))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compiler options
+(define compile-0-as-dup-dup-or #t)
