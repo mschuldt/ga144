@@ -214,11 +214,11 @@
   (when DEBUG? (printf "    compile-constant!(~a)\n" const))
   (if (and (= const 0)
            compile-0-as-dup-dup-or)
-      (begin (add-to-next-slot "dup")
-             (add-to-next-slot "dup")
-             (add-to-next-slot "or"))
+      (begin (compile-instruction! "dup")
+             (compile-instruction! "dup")
+             (compile-instruction! "or"))
       (begin
-        (add-to-next-slot "@p")
+        (compile-instruction! "@p")
         (set-next-empty-word! const))))
 
 (define (compile-call! word)
