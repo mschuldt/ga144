@@ -161,7 +161,10 @@
 
 (struct bootstream (name start path))
 
-(define bootstream-types '("async" "2wire" "async-target"))
+(define bootstream-types '("async" ;; load through node 708 serial
+                           "2wire" ;; load through node 300 2wire
+                           "async-target" ;; in host node 708 to target node 300
+                           ))
 (define default-bootstream-type "async")
 
 (define (create-node coord [mem #f] [len 0])
@@ -298,4 +301,4 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
-(define compile-0-as-dup-dup-or #t)
+(define compile-0-as-dup-dup-or #f)

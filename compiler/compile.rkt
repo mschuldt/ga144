@@ -33,7 +33,7 @@
 (define prev-current-tok-line 0)
 (define prev-current-tok-col 0)
 
- ;;type of bootstream, set by the 'bootstream' directive
+;;type of bootstream, set by the 'bootstream' directive
 (define bootstream-type #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -497,7 +497,7 @@
                        (if (vector? word)
                            "is not an instruction word"
                            "is full")
-                        word)))))
+                       word)))))
 
 ;;then (r)
 ;;forces word alignment and resolves a forward transfer.
@@ -623,7 +623,7 @@
    (let ((tok (read-tok-name)))
      (if (member tok bootstream-types)
          (set! bootstream-type tok)
-         (error (format "Invalid bootstream type: ~a\n Options: ~a\n"
+         (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
                         tok (string-join bootstream-types ", ")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
