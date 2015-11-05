@@ -39,6 +39,8 @@
                           ("corner" . #x195)))
 (define addresses->names (make-hash (for/list ((x named-addresses))
                                       (cons (cdr x) (car x)))))
+(define names->addresses (make-hash named-addresses))
+
 (define (port-name address)
   (hash-ref addresses->names address))
 
@@ -195,6 +197,14 @@
      [(equal? dir "west")
       (if (= (modulo x 2) 0) "left" "right")]
      [else (raise "convert-direction: invalid direction")])))
+
+(define (get-address name [node #f])
+  (cond ((hash-has-key? names->addresses name) ;;normal address names
+         (hash-ref names->addresses name))
+        ((and node  ;;relative names
+              (member name '("north" "south" "east" "west")))
+         (convert-direction name node))
+        (else (string->number name)))) ;; literals and word addresses
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;stack macros

@@ -128,9 +128,30 @@
                   ;;then load this nodes code into ram
                   (load-pump (and node-code
                                   (vector-length node-code)))
+                  (if node-code node-code nothing)
+
                   (if node-code
-                      (vector-append node-code
-                                     (vector (word "jump" (or (node-p node) 0))))
+                      (vector-append
+                       ;; set a
+                       (if (node-a node)
+                           (vector (word "@p" "a!" "." ".")
+                                   (word (node-a node)))
+                           nothing)
+                       ;; set io
+                       (if (node-io node)
+                           (vector (word "@p" "@p" "b!" ".")
+                                   (word #x15D) ;; io
+                                   (node-io node)
+                                   (word "!b" "." "." "."))
+                           nothing)
+                       ;; set b
+                       (if (node-b node)
+                           (vector (word "@p" "b!" "." ".")
+                                   (word (node-b node)))
+                           nothing)
+                       ;; jump to starting address
+                       (vector (word "jump" (or (node-p node) 0)))
+                       )
                       nothing)
                   ))
       (set! len (vector-length code)))

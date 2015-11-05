@@ -549,13 +549,13 @@
 ;; DB004 section 5.5.1
 
 (define (set-register-helper name set-fn)
+  (unless current-node
+    (raise (format "must select node before '~a'" name)))
   (let* ((n (read-tok-name))
-         (addr (and n (string->number n))))
-    (when (and (not addr)
-               (not (setq addr (get-word-address n))))
+         (addr (or (get-address n current-node-coord)
+                   (get-word-address n))))
+    (unless addr
       (raise (format "unknown address for compiler directive '~a': ~a" name n)))
-    (unless current-node
-      (raise (format "must select node before '~a'" name)))
     (set-fn current-node addr)))
 
 ;; /b (a)
