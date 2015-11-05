@@ -105,11 +105,18 @@
 
 (define (print-count)
   (define compiled (compile (file->string input-file)))
+  (define total 0)
+  (define (percent a b)
+    (exact->inexact (* (/ a b) 100)))
   (for ((n (compiled-nodes compiled)))
-    (printf "~a  ~a  ~a%\n" (node-coord n)
+    (printf "~a  ~a~a ~a%\n"
+            (node-coord n)
             (node-len n)
-            (exact->inexact (* (/ (node-len n) 64) 100)))))
-
+            (if (> (node-len n) 64) "*" " ")
+            (percent (node-len n) 64))
+    (set! total (+ total (node-len n))))
+  (printf "Total: ~a nodes, ~a words, ~a%\n"
+          (length (compiled-nodes compiled)) total (percent total (* 64 144))))
 
 (define (print-pretty)
   (define compiled (compile (file->string input-file)))
