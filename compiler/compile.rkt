@@ -104,6 +104,14 @@
        (> (string-length token) 1)
        (eq? (string-ref token 0) #\&)))
 
+(define (remote-call? token)
+  ;; return (NAME . NODE) for tokens with form "NAME@NODE"
+  (define m (and (string? token)
+                 (regexp-match #rx"^(.+)@([0-9]+)$" token)))
+  (and m
+       (= (length m) 3)
+       (cons (cadr m) (string->number (caddr m)))))
+
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
 (define (add-directive! name code)
@@ -176,6 +184,7 @@
           [(instruction? tok) (compile-instruction! tok)]
           [(setq x (parse-num tok)) (compile-constant! x)]
           [(word-ref? tok) (compile-word-ref! (substring tok 1))]
+          [(setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x))]
           [else (compile-call! tok)])
     tok))
 
@@ -243,6 +252,15 @@
           (when DEBUG? (printf "       waiting on address....\n"))
           (add-to-waiting word current-word)
           (goto-next-word)))))
+
+(define (compile-remote-call! word coord)
+  (define node (vector-ref nodes (coord->index coord))) ;;TODO: validate COORD
+  (define words (node-word-dict node))
+  (if words
+      (if (hash-has-key? words word)
+          (compile-call! word (hash-ref words word))
+          (error (format "remote word not found: ~a@~a " word coord)))
+      (error (format "can't find dictionary for node: ~a" coord))))
 
 (define (compile-word-ref! word)
   (let ((addr (get-word-address word)))
