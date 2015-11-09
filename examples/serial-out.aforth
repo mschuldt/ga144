@@ -7,9 +7,10 @@ node  708
     0 emit1
     7 for dup emit1 2/ next
     1 emit1 ;
+: exit 1 emit8
 : emit18 ( n - n )
-    ( 18bit words sent using 4 bytes in this order: 0xa5 lower8 middle8 upper2 )
-    0xa5 emit8 drop
+    ( 18bit words sent using 4 bytes in this order: wordcode lower8 middle8 upper2)
+    0 emit8 drop
     emit8 emit8 emit8 ;
 : main
     io b! south a!
