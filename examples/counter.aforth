@@ -1,0 +1,58 @@
+( ./cal counter.aforth /dev/ttyUSB3 460800 )
+
+( uses a crystal to maintain time.)
+( sends the counter value over serial once per second )
+
+( the first values printed are debug values )
+( then the period delay values used for pumping the crystal is printed)
+( then the second counter is printed when it is incremented )
+
+( uses the code from crystal.aforth and serial-out.aforth )
+
+node 715
+: -osc over !
+  io b! for
+  0x30000 !b dup .. 2/ dup for unext
+  0x20000 !b .. over 1 and .. + for unext next
+  dup or !b dup 30000 for
+  drop @b - -while next ;
+  then dup or pop drop ;
+: clang
+  12895 ( 12700) 2000 for dup 5000 -osc while
+  drop 1 . + next clang ; then
+: prep west a! ! 0 !
+   0 0x20000 0x800 0x30800 0 0x20000 0x800 0x30800
+   dup up a! drop
+: run !b !b @ drop run ;
+: main
+west a! 715 !
+clang ;
+
+node 714 : wire @ !b wire ; : main east a! west b! 714 !b wire ;
+node 713 : wire @ !b wire ; : main east a! west b! 713 !b wire ;
+node 712 : wire @ !b wire ; : main east a! west b! 712 !b wire ;
+node 711 : wire @ !b wire ; : main east a! west b! 711 !b wire ;
+node 710 : wire @ !b wire ; : main east a! west b! 710 !b wire ;
+
+node 709
+: monitor
+( print the test oscillation periods)
+@ dup !b
+if monitor then  ( 0 means oscillation found)
+io b! 0 ( seconds ) 0 ( clock edge) 
+: count ( counts seconds )
+ 0     !b up a! dup dup ! drop
+ 0x800 !b up a! dup dup ! drop
+ dup 32000 - 1 . + . +
+ -if drop 1 . + count ; then
+     drop over 1 . + dup west a! ! 0 count ; 
+: main
+east a! west b! 709 !b 
+monitor ;
+
+node 708
+: emit1 1 and 3 or !b 904 for unext ; 
+: emit8 0 emit1 7 for dup emit1 2/ next 1 emit1 ;
+: emit18 0 emit8 drop emit8 emit8 emit8 ;
+: main io b! east a!
+: loop @ emit18 loop ;
