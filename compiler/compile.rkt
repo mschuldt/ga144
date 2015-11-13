@@ -36,6 +36,10 @@
 ;;type of bootstream, set by the 'bootstream' directive
 (define bootstream-type #f)
 
+
+;;list of mconses containing word addresses and call/jump address
+(define address-cells (set))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define parsed-nodes #f)
@@ -62,7 +66,9 @@
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
-  (compiled used-nodes (or bootstream-type default-bootstream-type)))
+
+  (compiled (map remove-address-cells used-nodes)
+            (or bootstream-type default-bootstream-type)))
 
 (define (compile-file file)
   (call-with-input-file file compile))
@@ -79,12 +85,13 @@
 (define rom #f) ;; ROM word definitions -> addresses
 
 (define (add-word! name addr)
+  (define cell (make-new-address-cell addr))
   (set-node-symbols! current-node
                      (cons (symbol name addr current-tok-line current-tok-col)
                            (node-symbols current-node)))
-  (hash-set! words name addr))
+  (hash-set! words name cell))
 
-(define waiting #f);;word -> list of cells waiting for the word's address
+(define waiting (make-hash));;word -> list of cells waiting for the word's address
 (define (add-to-waiting word addr-cell)
   (unless (hash-has-key? waiting word)
     (hash-set! waiting word (list)))
@@ -93,7 +100,7 @@
   (and (hash-has-key? waiting word)
        (hash-ref waiting word)))
 (define (waiting-clear word)
-  (hash-set! words word #f))
+  (hash-set! waiting word #f))
 
 (define (make-addr addr)
   (bitwise-ior addr extended-arith))
@@ -104,12 +111,14 @@
 
 ;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
-  (or (and (hash-has-key? words name)
-           (hash-ref words name))
-      (and (hash-has-key? io-places-hash name)
-           (hash-ref io-places-hash name))
-      (and (hash-has-key? rom name)
-           (hash-ref rom name))))
+  (define addr (or (and (hash-has-key? words name)
+                        (hash-ref words name))
+                   (and (hash-has-key? io-places-hash name)
+                        (hash-ref io-places-hash name))
+                   (and (hash-has-key? rom name)
+                        (hash-ref rom name))))
+  (if (mpair? addr) (mcar addr) addr))
+
 
 (define (instruction? token)
   (set-member? opcode-set token))
@@ -248,26 +257,34 @@
 
 (define (compile-call! word [address #f])
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
-  (let ([addr (or address (get-word-address word))])
+  (define (compile-call-or-jump)
+    (let ((next (read-tok-name)))
+      (if (and next (equal? next ";"))
+          (add-to-next-slot "jump")
+          (begin (add-to-next-slot "call")
+                 (and next (unread-tok next))))))
+  (let ([addr (or address (get-word-address word))]
+        [cell #f])
     (if addr
         (begin
           (unless (address-fits? addr current-slot)
             (fill-rest-with-nops))
           (when DEBUG? (printf "       address = ~a\n" addr))
-          (let ((next (read-tok-name)))
-            (if (and next (equal? next ";"))
-                (add-to-next-slot "jump")
-                (begin (add-to-next-slot "call")
-                       (and next (unread-tok next)))))
-          (add-to-next-slot addr)
+          (compile-call-or-jump)
+          (add-to-next-slot (make-new-address-cell addr))
           (unless (= current-slot 0)
             (goto-next-word)))
         ;;else
         (begin
           (error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
-          (add-to-waiting word current-word)
-          (goto-next-word)))))
+          (printf "       waiting on address....\n")
+          (compile-call-or-jump)
+          (set! cell (make-new-address-cell))
+          (add-to-waiting word cell)
+          (add-to-next-slot cell)
+          (unless (= current-slot 0)
+            (goto-next-word))))))
 
 (define (compile-remote-call! word coord)
   (define node (vector-ref nodes (coord->index coord))) ;;TODO: validate COORD
@@ -295,6 +312,23 @@
              (org next-addr))
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
+
+(define (make-new-address-cell [val #f])
+  (define cell (mcons null null))
+  (set! address-cells (set-add address-cells cell))
+  (set-mcar! cell val)
+  cell)
+
+(define (remove-address-cells node)
+  (define mem (node-mem node))
+  (for ((word mem)
+        (i (vector-length mem)))
+    (when (vector? word)
+      (for ((slot word)
+            (i 4))
+        (when (mpair? slot)
+          (vector-set! word i (mcar slot))))))
+  node)
 
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
@@ -435,7 +469,7 @@
     (unless (address-fits? addr current-slot)
       (fill-rest-with-nops))
     (add-to-next-slot inst)
-    (add-to-next-slot addr)
+    (add-to-next-slot (make-new-address-cell addr))
     (unless (= current-slot 0)
       (goto-next-word))))
 
