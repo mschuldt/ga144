@@ -38,12 +38,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define parsed-nodes #f)
+(define parsed-words #f)
+(define current-token-list #f)
+
+
 (define (compile port)
   (reset!)
   (when (string? port)
     (set! port (open-input-string port)))
   (current-input-port port)
-  (compile-loop)
+  (set! parsed-nodes (parse-code))
+  (for ((node parsed-nodes))
+    (start-new-node (car node))
+    (set! parsed-words (cdr node))
+    (for ((word parsed-words))
+      (set! current-token-list word)
+      (define (compile-loop)
+        (unless (null? current-token-list)
+          (compile-token (read-tok))
+          (compile-loop)))
+      (compile-loop)))
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
@@ -151,27 +166,28 @@
   (define-named-addresses!))
 
 (define (read-tok)
-  (let ((token (forth-read)))
-    (when token
-      (set! prev-current-tok-line current-tok-line)
-      (set! prev-current-tok-col current-tok-col)
-      (set! current-tok-line (token-line token))
-      (set! current-tok-col (token-col token)))
-    token))
+  (if (null? current-token-list)
+      #f
+      (let ((token (car current-token-list)))
+        (set! current-token-list (cdr current-token-list))
+        (when token
+          (set! prev-current-tok-line current-tok-line)
+          (set! prev-current-tok-col current-tok-col)
+          (set! current-tok-line (token-line token))
+          (set! current-tok-col (token-col token)))
+        token)))
 
 (define (unread-tok tok)
-  (forth-read tok current-tok-line current-tok-col)
+  (set! current-token-list (cons (token tok current-tok-line current-tok-col)
+                                 current-token-list))
   (set! current-tok-line prev-current-tok-line)
   (set! current-tok-col prev-current-tok-col))
 
 (define (read-tok-name)
-  (token-tok (read-tok)))
+  (define tok (read-tok))
+  (and tok (token-tok tok)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (compile-loop)
-  (unless (eof-object? (compile-token (forth-read)))
-    (compile-loop)))
 
 (define (compile-token token)
   (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
@@ -230,19 +246,19 @@
         (compile-instruction! "@p")
         (set-next-empty-word! const))))
 
-(define (compile-call! word)
+(define (compile-call! word [address #f])
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
-  (let ([addr (get-word-address word)])
+  (let ([addr (or address (get-word-address word))])
     (if addr
         (begin
           (unless (address-fits? addr current-slot)
             (fill-rest-with-nops))
           (when DEBUG? (printf "       address = ~a\n" addr))
           (let ((next (read-tok-name)))
-            (if (equal? next ";")
+            (if (and next (equal? next ";"))
                 (add-to-next-slot "jump")
                 (begin (add-to-next-slot "call")
-                       (unread-tok next))))
+                       (and next (unread-tok next)))))
           (add-to-next-slot addr)
           (unless (= current-slot 0)
             (goto-next-word)))
@@ -298,7 +314,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 (add-directive!
  eof
  (lambda ()
@@ -347,28 +362,31 @@
          (error (format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
 
+(define (start-new-node coord)
+  (when memory ;;make sure last instruction is full
+    (fill-rest-with-nops)
+    (set-node-len! current-node (sub1 next-addr)))
+  (define index (coord->index coord))
+  ;;TODO: validate 'node'
+  ;;assert (node-coord node) == coord
+  (set! current-node (vector-ref nodes index))
+  (set! memory (node-mem current-node))
+  (set! words (node-word-dict current-node))
+  (set! rom (get-node-rom coord))
+  ;;TODO: should calling 'node' multiple times be ok?
+  ;;      if so, don't add current-node to used-nodes again
+  (set! used-nodes (cons current-node used-nodes))
+  (set! current-node-coord coord)
+  (org 0))
+
 ;;node (nn)
 ;;starts compilation for the given node with number in yyxx notation
 (add-directive!
  "node"
  (lambda ()
-   (when memory ;;make sure last instruction is full
-     (fill-rest-with-nops)
-     (set-node-len! current-node (sub1 next-addr)))
-   (let* ([token (read-tok-name)]
-          [coord (parse-num token)]
-          [index (coord->index coord)])
-     ;;TODO: validate 'node'
-     ;;assert (node-coord node) == coord
-     (set! current-node (vector-ref nodes index))
-     (set! memory (node-mem current-node))
-     (set! words (node-word-dict current-node))
-     (set! rom (get-node-rom coord))
-     ;;TODO: should calling 'node' multiple times be ok?
-     ;;      if so, don't add current-node to used-nodes again
-     (set! used-nodes (cons current-node used-nodes))
-     (set! current-node-coord coord)
-     (org 0))))
+   (define coord (read-tok-name))
+   ;;TODO: validate coord
+   (start-new-node (parse-num coord))))
 
 ;;+cy
 ;;forces word alignment then turns P9 on in the location counter. Places in memory
