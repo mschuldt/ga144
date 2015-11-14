@@ -80,7 +80,7 @@
       (read-loop)))
 
   (read-loop)
-  nodes)
+  (reverse nodes))
 
 
 (define (parse-words)
@@ -140,7 +140,8 @@
             (set! last token)
             (read-loop)))))
   (read-loop)
-  (reverse words))
+  (reverse words)
+)
 
 
 (define (forth-read-no-eof)

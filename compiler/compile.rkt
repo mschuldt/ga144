@@ -38,7 +38,7 @@
 
 
 ;;list of mconses containing word addresses and call/jump address
-(define address-cells (set))
+(define address-cells #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -267,16 +267,18 @@
         [cell #f])
     (if addr
         (begin
-          (unless (address-fits? addr current-slot)
+          (unless (address-fits? (if (mpair? addr) (mcar addr) addr) current-slot)
             (fill-rest-with-nops))
           (when DEBUG? (printf "       address = ~a\n" addr))
           (compile-call-or-jump)
-          (add-to-next-slot (make-new-address-cell addr))
+          (add-to-next-slot (if (mpair? addr)
+                                addr
+                                (make-new-address-cell addr)))
           (unless (= current-slot 0)
             (goto-next-word)))
         ;;else
         (begin
-          (error (format "word '~a' is not defined yet" word));;TODO
+          ;;(error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
           (printf "       waiting on address....\n")
           (compile-call-or-jump)
@@ -292,7 +294,8 @@
   (if words
       (if (hash-has-key? words word)
           (compile-call! word (hash-ref words word))
-          (error (format "remote word not found: ~a@~a " word coord)))
+          (error (format "remote word not found: ~a@~a (called from node ~a)"
+                         word coord current-node-coord)))
       (error (format "can't find dictionary for node: ~a" coord))))
 
 (define (compile-word-ref! word)
@@ -314,35 +317,88 @@
              (set! next-addr (add1 next-addr)))))
 
 (define (make-new-address-cell [val #f])
-  (define cell (mcons null null))
+  (define cell (mcons val (mcons next-addr null)))
   (set! address-cells (set-add address-cells cell))
-  (set-mcar! cell val)
   cell)
 
 (define (remove-address-cells node)
+  ;; unwrap mcons address cells
+  ;; shift down words to make room if address is to large
   (define mem (node-mem node))
+  (define addr #f)
+  (define call-inst #f)
+  (define new-word-index #f)
+  (define addr-cells (node-address-cells node))
+  (define (count word)
+    (define n 0)
+    (for ((inst word))
+      (when (equal? inst "@p")
+        (set! n (add1 n))))
+    n)
+
   (for ((word mem)
-        (i (vector-length mem)))
+        (word-index (vector-length mem)))
     (when (vector? word)
       (for ((slot word)
-            (i 4))
+            (slot-index 4))
         (when (mpair? slot)
-          (vector-set! word i (mcar slot))))))
+          (set! addr (mcar slot))
+          (if (not (address-fits? addr (sub1 slot-index) (mcar (mcdr slot))))
+              (begin
+                (set! new-word-index (+ word-index 1 (count word)))
+                (shift-words-down mem new-word-index)
+                (increment-address (node-address-cells node) new-word-index)
+                (set! call-inst (vector-ref word (sub1 slot-index)))
+                (unless (member call-inst '("call" "jump" "next" "-if" "if"))
+                  (error (format "invalid call instruction: '~a'" call-inst)))
+                ;; remove call from old word
+                (vector-set! word (sub1 slot-index) ".")
+                (vector-set! word slot-index ".")
+                ;; create and set call in new word
+                (set! word (vector call-inst (add1 addr) "." "."))
+                (vector-set! mem new-word-index word)
+                )
+              (vector-set! word slot-index addr))))))
   node)
+
+(define (increment-address address-cells from)
+  (for ((cell address-cells))
+    (when (>= (mcar cell) from)
+      (set-mcar! cell (add1 (mcar cell))))
+    (when (>= (mcar (mcdr cell)) from)
+      (set-mcar! (mcdr cell) (add1 (mcar (mcdr cell)))))))
+
+(define (shift-words-down memory from)
+  (printf "(shift-words-down ~a)\n" from)
+
+  (set! current-addr (add1 current-addr))
+  (set! next-addr (add1 next-addr))
+  (set! current-word (vector-ref memory current-addr))
+  ;(printf "next-addr = ~a\n" next-addr)
+  ;(printf "before:\n")
+  ;(printf "~a\n" memory)
+  (for ((i (reverse (range from next-addr))))
+    (vector-set! memory (add1 i) (vector-ref memory i)))
+  ;(printf "after:\n")
+  ;(printf "~a\n" memory)
+  )
 
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
 
-(define (address-fits? destination-addr jump-slot)
+(define (address-fits? destination-addr jump-slot [P #f])
   ;; returns #t if DESTINATION-ADDR is reachable from the current word
   ;; JUMP-SLOT is the slot of the jump/call instruction
+  (set! P (or P next-addr))
   (and jump-slot
        (>= jump-slot 0)
        (< jump-slot 3)
        (let* ([mask (vector-ref address-masks jump-slot)]
               [~mask (& (~ mask) #x3ffff)]
-              [min-dest (& ~mask next-addr)]
-              [max-dest (ior (& ~mask next-addr) (& mask destination-addr))])
+              [min-dest (& ~mask P)]
+              [max-dest (ior (& ~mask P) (& mask destination-addr))])
+         (printf "mask: ~a, ~~mask: ~a, min-dest: ~a, max-dest: ~a\n"
+                 mask ~mask min-dest max-dest)
          (and (>= destination-addr min-dest)
               (<= destination-addr max-dest)))))
 
@@ -358,29 +414,25 @@
     (comment)))
 (add-directive! "(" comment)
 
-(define (insert-call cell addr)
-  #f;;insert a call to ADDR in word CELL
-  ;;TODO
-  )
-
 (add-directive!
  ":"
  (lambda ()
    (fill-rest-with-nops)
    (let* ([word (read-tok-name)]
+          [address (make-addr current-addr)]
           [waiting-list (get-waiting-list word)])
-     (if waiting-list
-         (begin (for [(cell waiting-list)]
-                  (insert-call cell current-addr))
-                (waiting-clear word))
-         (begin
-           (when (hash-has-key? words word)
-             (pretty-display (format "WARNING: redefinition of word '~a'" word)))
-           (when (equal? word "main")
-             (if (node-p current-node)
-                 (printf "warning: use of /p overrides 'main'\n")
-                 (set-node-p! current-node (make-addr current-addr))))
-           (add-word! word (make-addr current-addr)))))))
+     (when waiting-list
+       (for [(cell waiting-list)]
+         (set-mcar! cell address))
+       (waiting-clear word))
+
+     (when (hash-has-key? words word)
+       (pretty-display (format "WARNING: redefinition of word '~a'" word)))
+     (when (equal? word "main")
+       (if (node-p current-node)
+           (printf "warning: use of /p overrides 'main'\n")
+           (set-node-p! current-node (make-addr current-addr))))
+     (add-word! word address))))
 
 ;;forces word alignment
 (add-directive!
@@ -406,6 +458,7 @@
   (set! current-node (vector-ref nodes index))
   (set! memory (node-mem current-node))
   (set! words (node-word-dict current-node))
+  (set! address-cells (node-address-cells current-node))
   (set! rom (get-node-rom coord))
   ;;TODO: should calling 'node' multiple times be ok?
   ;;      if so, don't add current-node to used-nodes again
@@ -558,7 +611,8 @@
   (let* ([word (vector-ref memory slot)]
          [last (and (vector? word) (find-first-empty word))])
     (if last
-        (if (> thing (vector-ref max-slot-num last))
+        (if (and (not (mpair? thing))
+                 (> thing (vector-ref max-slot-num last)))
             ;; TODO: move instruction to next word in this case
             (error (format "'~a' cannot fit into slot ~a" thing last))
             (vector-set! word last thing))
@@ -575,7 +629,7 @@
  "then"
  (lambda ()
    (fill-rest-with-nops)
-   (add-to-slot (pop stack) current-addr)))
+   (add-to-slot (pop stack) (make-new-address-cell current-addr))))
 
 ;;org (n)
 ;;sets the compiler's location counter to a given address at
