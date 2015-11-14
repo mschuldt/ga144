@@ -533,6 +533,15 @@ node 1
   (check-dat 500 20 0 default)
   (check-dat 1 1 2 default))
 
+(define-test "const"
+  "node 600
+const x 3
+const xx or 5 1
+const xxx + 4 5
+x xx xxx
+x xx +"
+  (check-dat 600 7 9 4 3 default))
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)

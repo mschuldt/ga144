@@ -21,6 +21,7 @@
 (define last-inst #f)
 ;;coordinate of the current node we are compiling for
 (define current-node-coord #f)
+(define current-node-consts #f) ;; maps constant name to values
 ;;struct of the current node we are compiling for
 (define current-node #f)
 
@@ -284,6 +285,7 @@
           [(setq x (parse-num tok)) (compile-constant! x)]
           [(word-ref? tok) (compile-word-ref! (substring tok 1))]
           [(setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x))]
+          [(node-const? tok) (compile-node-const tok)]
           [else (compile-call! tok)])
     tok))
 
@@ -532,6 +534,7 @@
   ;;      if so, don't add current-node to used-nodes again
   (set! used-nodes (cons current-node used-nodes))
   (set! current-node-coord coord)
+  (set! current-node-consts (node-consts current-node))
   (org 0))
 
 ;;node (nn)
@@ -817,6 +820,47 @@
          (set! bootstream-type tok)
          (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
                         tok (string-join bootstream-types ", ")))))))
+
+(define (define-const name val)
+  (when (hash-has-key? current-node-consts name)
+    (error (format "redefining node const '~a'" name)))
+  (hash-set! current-node-consts name val))
+
+(define (node-const? name)
+  (hash-has-key? current-node-consts name))
+(define (compile-node-const name)
+  (unless (hash-has-key? current-node-consts name)
+    (error (format "node const not found'~a'" name)))
+  (compile-constant! (hash-ref current-node-consts name)))
+
+(define const-ops (make-hash `(("+" . ,+)
+                               ("or" . ,bitwise-xor)
+                               )))
+
+(add-directive!
+ "const"
+ (lambda ()
+   (define (read-apply-op name op-name)
+     (define op (hash-ref const-ops op-name))
+     (define left-tok (read-tok-name))
+     (define left (string->number left-tok))
+     (unless left
+       (error (format "invalid const param for op ~a: '~a'" op-name left-tok)))
+     (define right-tok (read-tok-name))
+     (define right (string->number right-tok))
+     (unless right
+       (error (format "invalid const param for op ~a: '~a'" op-name right-tok)))
+     (define-const name (bitwise-and (apply op (list left right)) #x3ffff)))
+
+   (define name (read-tok-name))
+   (define op (read-tok-name))
+   (define op-n (string->number op))
+
+   (cond (op-n (define-const name op-n))
+         ((hash-has-key? const-ops op)
+          (read-apply-op name op))
+         (else (error (format "invalid const op type: '~a'" op))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

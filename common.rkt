@@ -143,7 +143,7 @@
 ;; Compiling a program returns a list of these
 (struct node (coord mem len [symbols #:auto] [word-dict #:auto]
                     [a #:auto] [b #:auto] [io #:auto] [stack #:auto] [p #:auto]
-                    [address-cells #:auto])
+                    [address-cells #:auto] [consts #:auto])
         #:mutable #:transparent)
 ;; 'coord' is the node coordinate this code belongs to
 ;; 'mem' is the vector of compiled words
@@ -173,6 +173,7 @@
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
     (set-node-address-cells! new (set))
+    (set-node-consts! new (make-hash))
     new))
 
 (define (coord->index n)
