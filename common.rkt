@@ -304,3 +304,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
 (define compile-0-as-dup-dup-or #f)
+(define reorder-words-with-fallthrough #t)
+
+

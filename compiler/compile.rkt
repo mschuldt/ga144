@@ -53,6 +53,20 @@
     (set! port (open-input-string port)))
   (current-input-port port)
   (set! parsed-nodes (parse-code))
+
+  (when reorder-words-with-fallthrough
+    (set! parsed-nodes (for/list ((node parsed-nodes))
+                         (cons (car node) (reorder-with-fallthrough (cdr node)))))
+    (when #t
+      (with-output-to-file "opt.aforth"
+        (lambda ()
+          (for ((node parsed-nodes))
+            (printf "\nnode ~a\n" (car node))
+            (for ((word (cdr node)))
+              (printf "~a\n" (string-join (map token-tok word))))))
+        #:exists 'replace)))
+
+
   (for ((node parsed-nodes))
     (start-new-node (car node))
     (set! parsed-words (cdr node))
@@ -67,11 +81,70 @@
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
 
+  ;;(display-compiled (compiled used-nodes default-bootstream-type))
   (compiled (map remove-address-cells used-nodes)
             (or bootstream-type default-bootstream-type)))
 
 (define (compile-file file)
   (call-with-input-file file compile))
+
+(define (reorder-with-fallthrough words)
+  (define fallthroughs (make-hash))
+  (define name->word (make-hash))
+  (define word #f)
+  (define setup-code #f)
+  (unless (equal? (token-tok (caar words)) ":")
+    (set! setup-code (car words))
+    (set! words (cdr words)))
+  (define names (map (lambda (x) (token-tok (cadr x))) words))
+  (define output '())
+  (define tail-word #f)
+  ;;collect fall-through pairs
+  (for ((word words))
+    (hash-set! name->word (token-tok (cadr word)) word)
+    (let* ((rword (reverse word))
+           (ret (token-tok (car rword)))
+           (name (token-tok (cadr rword))))
+      (hash-set! fallthroughs (token-tok (cadr word))
+                 (if (and (equal? ret ";")
+                          (member name names)
+                          ;; protect against recursive calls
+                          (not (equal? name (token-tok (cadr word)))))
+                     name #f))))
+  (let ((x (filter (lambda (x) (cdr x)) (hash->list fallthroughs))))
+    (unless (or (null? x) #t)
+      (pretty-display "fallthroughs:")
+      (pretty-display x)))
+  (define fall-into-nodes (hash-values fallthroughs))
+  (for ((node fall-into-nodes))
+    (set! names (remove node names)))
+  (set! names (append names (filter (lambda (x) x)
+                                    (set->list (list->set fall-into-nodes)))))
+
+  (define (pop)
+    (define x (car names))
+    (set! names (cdr names))
+    x)
+
+  (define (f [x #f])
+    (define name (or x (pop)))
+    (define ft (hash-ref fallthroughs name))
+    (define body (hash-ref name->word name))
+    (when (and ft (member ft names))
+      (set! body (reverse (cddr (reverse body))))) ;;remove tailcall
+    (set! output (cons body output))
+    (set! names (remove name names))
+    (when (and ft (member ft names))
+      (f ft)))
+
+  (define (loop)
+    (unless (null? names)
+      (f)
+      (loop)))
+  (loop)
+  (if setup-code
+      (cons setup-code (reverse output))
+      (reverse output)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -93,7 +166,8 @@
 
 (define waiting (make-hash));;word -> list of cells waiting for the word's address
 (define (add-to-waiting word addr-cell)
-  (unless (hash-has-key? waiting word)
+  (unless (and (hash-has-key? waiting word)
+               (hash-ref waiting word))
     (hash-set! waiting word (list)))
   (hash-set! waiting word (cons addr-cell (hash-ref waiting word))))
 (define (get-waiting-list word)
@@ -259,6 +333,8 @@
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
   (define (compile-call-or-jump)
     (let ((next (read-tok-name)))
+      ;;(when (equal? current-slot 3))
+      ;;  (fill-rest-with-nops)))
       (if (and next (equal? next ";"))
           (add-to-next-slot "jump")
           (begin (add-to-next-slot "call")
@@ -374,14 +450,8 @@
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
   (set! current-word (vector-ref memory current-addr))
-  ;(printf "next-addr = ~a\n" next-addr)
-  ;(printf "before:\n")
-  ;(printf "~a\n" memory)
   (for ((i (reverse (range from next-addr))))
-    (vector-set! memory (add1 i) (vector-ref memory i)))
-  ;(printf "after:\n")
-  ;(printf "~a\n" memory)
-  )
+    (vector-set! memory (add1 i) (vector-ref memory i))))
 
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
@@ -397,8 +467,6 @@
               [~mask (& (~ mask) #x3ffff)]
               [min-dest (& ~mask P)]
               [max-dest (ior (& ~mask P) (& mask destination-addr))])
-         (printf "mask: ~a, ~~mask: ~a, min-dest: ~a, max-dest: ~a\n"
-                 mask ~mask min-dest max-dest)
          (and (>= destination-addr min-dest)
               (<= destination-addr max-dest)))))
 
