@@ -1,18 +1,16 @@
 node  708
-
-: emit1 ( n )
+: out18 ( n - n )
+    ( 18bit words sent using 4 bytes in this order: wordcode lower8 middle8 upper2)
+    0 out8 drop
+    out8 out8
+: out8 ( n - n )
+    0 out1
+    7 for dup out1 2/ next 1
+: out1 ( n )
     1 and 3 or !b
     904 for unext ; ( unext delay = [1/baud_rate]/[2.4*10^-9] )
-: emit8 ( n - n )
-    0 emit1
-    7 for dup emit1 2/ next
-    1 emit1 ;
-: exit 1 emit8
-: emit18 ( n - n )
-    ( 18bit words sent using 4 bytes in this order: wordcode lower8 middle8 upper2)
-    0 emit8 drop
-    emit8 emit8 emit8 ;
+: exit 1 out8
 : main
     io b! south a!
 : loop
-    @ emit18 loop ;
+    @ out18 loop ;

@@ -45,7 +45,7 @@ io b! 0 ( seconds ) 0 ( clock edge)
  0x800 !b up a! dup dup ! drop
  dup 32000 - 1 . + . +
  -if drop 1 . + count ; then
-     drop over 1 . + dup west a! ! 0 count ; 
+     drop over 1 . + dup west a! ! 0 count ;
 : main
 east a! west b! 709 !b 
 monitor ;
