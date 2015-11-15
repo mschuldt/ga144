@@ -1,5 +1,5 @@
-( prints the first 15 numbers of the Fibonacci sequence )
-( ./cal fibonacci.aforth /dev/ttyUSB3 460800 )
+( prints the first 15 numbers of the Lucas sequence )
+( ./cal lucas-series.aforth /dev/ttyUSB3 460800 )
 
 bootstream async
 ( bootstream async-target)
@@ -14,9 +14,6 @@ node 708
     15 for @ out18 drop next
     exit ;
 
-node  608
-north a!
-1 0
-: fib
-over over + dup !
-fib
+node 608
+north a! 2 1 over ! dup !
+: lucas over over + dup ! lucas
