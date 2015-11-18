@@ -59,6 +59,11 @@
 
 (define forth-read (make-reader))
 
+(define (comment)
+  ;;TODO: update line/col numbers
+  (unless (equal? (forth-read-char) #\))
+    (comment)))
+
 (define (parse-code)
   ;;returns list of cons: ((NODE . CODELIST)...)
   ;;first item is list of code before the first node. boot descriptors etc
@@ -67,17 +72,31 @@
   (define current-node-code #f)
 
   (define (read-loop)
-    (define node-token (forth-read))
-    (define num-token (forth-read))
-    (define node-tok (token-tok node-token))
-    (define num-tok (token-tok num-token))
-    (when (not (eof-object? node-tok))
-      (when (or (eof-object? num-tok)
-                (not (equal? node-tok "node"))
-                (not (string->number num-tok)))
-        (raise "malformed node syntax"))
-      (set! nodes (cons (cons (string->number num-tok) (parse-words)) nodes))
-      (read-loop)))
+    (define tok-token (forth-read))
+    (define tok (token-tok tok-token))
+    (cond ((equal? tok "(")
+           (comment)
+           (read-loop))
+          ((equal? tok "node")
+           (let* ((node-token tok-token)
+                  (num-token (forth-read))
+                  (node-tok (token-tok node-token))
+                  (num-tok (token-tok num-token)))
+             (when (not (eof-object? node-tok))
+               (when (or (eof-object? num-tok)
+                         (not (equal? node-tok "node"))
+                         (not (string->number num-tok)))
+                 (error "malformed node syntax"))
+               (set! nodes (cons (cons (string->number num-tok) (parse-words))
+                                 nodes))
+               (read-loop))))
+          ((eof-object? tok)
+           ;;return
+           )
+          ((equal? tok "bootstream")
+           (forth-read) ;;TODO: ignoring for now
+           (read-loop))
+          (else (raise (format "don't know what to do with '~a'" tok)))))
 
   (read-loop)
   (reverse nodes))
@@ -127,10 +146,6 @@
                      (raise "invalid syntax2")) ;;TODO: better error messages
                    (set! current-word (list name token)))
                   ((equal? tok "(")
-                   (define (comment)
-                     ;;TODO: update line/col numbers
-                     (unless (equal? (forth-read-char) #\))
-                       (comment)))
                    (comment))
                   ((equal? tok "node")
                    (forth-read tok)
@@ -140,8 +155,7 @@
             (set! last token)
             (read-loop)))))
   (read-loop)
-  (reverse words)
-)
+  (reverse words))
 
 
 (define (forth-read-no-eof)
