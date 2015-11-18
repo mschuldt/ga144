@@ -93,15 +93,19 @@
 
   (define bootstream (sget-convert (make-bootstream assembled)))
 
-  (printf "{~a}\n"
-          (comma-join
-           (list (format "'file' : '~a'\n" input-file)
-                 (format "'compiled': {~a}\n" compiled-json)
-                 (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
-                 (format "'symbols': {~a}\n" symbols-json)
-                 (format "'assembled': {~a}\n" assembled-json)
-                 (format "'bootstream' : [~a] " (comma-join bootstream))
-                 ))))
+  (define x (list (format "'file' : '~a'\n" input-file)
+                  (format "'compiled': {~a}\n" compiled-json)
+                  (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
+                  (format "'assembled': {~a}\n" assembled-json)))
+
+  (when (symbols?)
+    (set! x (append x (list (format "'symbols': {~a}\n" symbols-json)))))
+
+  (when (print-bootstream?)
+    (set! x (append x (list (format "'bootstream' : [~a] "
+                                    (comma-join bootstream))))))
+
+  (printf "{~a}\n" (comma-join x)))
 
 (define (print-count)
   (define compiled (compile (file->string input-file)))
