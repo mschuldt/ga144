@@ -204,13 +204,22 @@
       (if (= (modulo x 2) 0) "left" "right")]
      [else (raise "convert-direction: invalid direction")])))
 
+;;successfully parses a token as a number, or returns false
+(define (parse-num tok)
+  (when (and (> (string-length tok) 2)
+             (eq? (string-ref tok 0) #\0)
+             (eq? (string-ref tok 1) #\x))
+    ;; convert format 0x... to #x...
+    (set! tok (list->string (cons #\# (cdr (string->list tok))))))
+  (string->number tok))
+
 (define (get-address name [node #f])
   (cond ((hash-has-key? names->addresses name) ;;normal address names
          (hash-ref names->addresses name))
         ((and node  ;;relative names
               (member name '("north" "south" "east" "west")))
          (convert-direction name node))
-        (else (string->number name)))) ;; literals and word addresses
+        (else (parse-num name)))) ;; literals and word addresses
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;stack macros

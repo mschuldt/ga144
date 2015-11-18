@@ -82,7 +82,8 @@
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
 
-  ;;(display-compiled (compiled used-nodes default-bootstream-type))
+  (when DEBUG? (display-compiled (compiled used-nodes default-bootstream-type)))
+
   (compiled (map remove-address-cells used-nodes)
             (or bootstream-type default-bootstream-type)))
 
@@ -218,15 +219,6 @@
 (define (get-directive name)
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
-
-;;successfully parses a token as a number, or returns false
-(define (parse-num tok)
-  (when (and (> (string-length tok) 2)
-             (eq? (string-ref tok 0) #\0)
-             (eq? (string-ref tok 1) #\x))
-    ;; convert format 0x... to #x...
-    (set! tok (list->string (cons #\# (cdr (string->list tok))))))
-  (string->number tok))
 
 (define (reset!)
   (set! nodes (make-vector num-nodes #f))
@@ -497,10 +489,13 @@
        (waiting-clear word))
 
      (when (hash-has-key? words word)
-       (pretty-display (format "WARNING: redefinition of word '~a'" word)))
+       (pretty-display
+        (format "WARNING: redefinition of word '~a' in node ~a"
+                word current-node-coord)))
      (when (equal? word "main")
        (if (node-p current-node)
-           (printf "warning: use of /p overrides 'main'\n")
+           (printf "warning: use of /p overrides 'main' in node ~a\n"
+                   current-node-coord)
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
@@ -710,6 +705,7 @@
  (lambda ()
    (let ([n (parse-num (read-tok-name))])
      ;;TODO: validate n
+     (unless n (error "invalid address for 'org'"))
      (org n))))
 
 ;;while (x-rx)
@@ -837,17 +833,23 @@
                                ("or" . ,bitwise-xor)
                                )))
 
+(define (lookup-const-value x)
+  ;; parses x as a number or looks it up
+  (or (parse-num x)
+      (and (node-const? x)
+           (hash-ref current-node-consts x))))
+
 (add-directive!
  "const"
  (lambda ()
    (define (read-apply-op name op-name)
      (define op (hash-ref const-ops op-name))
      (define left-tok (read-tok-name))
-     (define left (string->number left-tok))
+     (define left (lookup-const-value left-tok))
      (unless left
        (error (format "invalid const param for op ~a: '~a'" op-name left-tok)))
      (define right-tok (read-tok-name))
-     (define right (string->number right-tok))
+     (define right (lookup-const-value right-tok))
      (unless right
        (error (format "invalid const param for op ~a: '~a'" op-name right-tok)))
      (define-const name (bitwise-and (apply op (list left right)) #x3ffff)))
