@@ -208,7 +208,8 @@
 (define (parse-num tok)
   (when (and (> (string-length tok) 2)
              (eq? (string-ref tok 0) #\0)
-             (eq? (string-ref tok 1) #\x))
+             (or (eq? (string-ref tok 1) #\x)
+                 (eq? (string-ref tok 1) #\b)))
     ;; convert format 0x... to #x...
     (set! tok (list->string (cons #\# (cdr (string->list tok))))))
   (string->number tok))
