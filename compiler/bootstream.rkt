@@ -140,8 +140,8 @@
                        ;; set io
                        (if (node-io node)
                            (vector (word "@p" "@p" "b!" ".")
-                                   (word #x15D) ;; io
                                    (node-io node)
+                                   (word #x15D) ;; io
                                    (word "!b" "." "." "."))
                            nothing)
                        ;; set b
