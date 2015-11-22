@@ -314,5 +314,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
+(define auto-nop-insertion #t)
+
 (define compile-0-as-dup-dup-or #f)
 (define reorder-words-with-fallthrough #f)

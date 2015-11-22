@@ -302,7 +302,8 @@
 
 (define (compile-instruction! inst)
   (when DEBUG? (printf "    compile-instruction!(~a)\n" inst))
-  (when (and (member inst instructions-preceded-by-nops)
+  (when (and auto-nop-insertion
+             (member inst instructions-preceded-by-nops)
              (not (equal? last-inst ".")))
     (add-to-next-slot "."))
   (when (and (equal? current-slot 3)
