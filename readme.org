@@ -37,16 +37,17 @@ This should print out the first 15 numbers of the [[https://en.wikipedia.org/wik
 This compiler differs from the Greenarrays version in the following ways:
 
 - No semantic color
-   - standard for syntax for words and comments
+   - standard forth syntax for words and comments
    - hex,bin literals: 0xN, 0bN
    - boot descriptors and other yellow words are reserved keywords.
 - north, east, south, and west
   get resolved to correct ports, up, down, left, or right
 - Each node has a seporate namespace
-   - word@coord compiles a call to word in node coord. 
+   - word@coord compiles a call to word in node coord.
    - 'reclaim' has no use.
-- Automatic nop insertion
-  Can be disabled. Currently inserts nops even when not actually needed
+- Automatic nop insertion.
+  - Can be disabled.
+  - Currently inserts nops even when not actually needed
 - Arguments follow the yellow words.
   For example, use "node 715" instead of "715 node".
 - Generalized host computations during compilation are not supported.
@@ -61,7 +62,7 @@ sends back over the serial port.
 
  ./cal filename.aforth /dev/ttyUSB<N> baud-rate
 
- <N> is the serial port number. This can be found by running 'dmesg' after inserting the port.
+ <N> is the serial port number. On Linux this can be found by running 'dmesg' after inserting the port.
  baud-rate defaults to 460800
 
 * Dumping compilation data
@@ -73,9 +74,9 @@ The script 'dump' can be used to dump data from various compilation
 
 Includes the compiled code, boot descriptors, and assembled code
 Options:
- -b include the bootstream
- -s include the symbol table
- -c count the words in each node
+| -b | include the bootstream       |
+| -s | include the symbol table     |
+| -c | count the words in each node |
 
 * Interpreter/Debugger
 TODO
@@ -89,5 +90,3 @@ Options:
  - Automatically compile 0 as "dup dup or"
  - Reorder words with tail calls so that they are above the word
    they call. Then remove the call and rely on fall through.
-
-
