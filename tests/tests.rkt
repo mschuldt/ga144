@@ -517,13 +517,15 @@ begin
 "
   (check-dat 509 -1 22))
 
-(define-test "hex"
+(define-test "hex+bin"
   "node 100
 0x1 0x2 +
 0x1 0x0 +
 0x12abd 0xd +
+0b1010 0b101 +
 "
-  (check-dat 100 76490 1 3 default))
+  (check-dat 100 15 76490 1 3 default))
+
 
 (define-test "--u-slash-mod"
   "node 500

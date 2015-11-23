@@ -328,8 +328,8 @@
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
   (define (compile-call-or-jump)
     (let ((next (read-tok-name)))
-      ;;(when (equal? current-slot 3))
-      ;;  (fill-rest-with-nops)))
+      (when (equal? current-slot 3)
+        (fill-rest-with-nops))
       (if (and next (equal? next ";"))
           (add-to-next-slot "jump")
           (begin (add-to-next-slot "call")
@@ -490,13 +490,12 @@
        (waiting-clear word))
 
      (when (hash-has-key? words word)
-       (pretty-display
-        (format "WARNING: redefinition of word '~a' in node ~a"
-                word current-node-coord)))
+       (error (format "redefinition of word '~a' in node ~a"
+                      word current-node-coord)))
      (when (equal? word "main")
        (if (node-p current-node)
-           (printf "warning: use of /p overrides 'main' in node ~a\n"
-                   current-node-coord)
+           (error (format "use of /p overrides 'main' in node ~a\n"
+                          current-node-coord))
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
