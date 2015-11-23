@@ -12,8 +12,12 @@
                      "north" "east" "south" "west"))
 
 (setq aforth-directives '( "start" "for" "begin" "then" "here"
-                           "while"  "reclaim"))
-(setq aforth-directives2 '(".." "#swap" "-while" ","))
+                           "while"  "reclaim" "leap"))
+
+(setq aforth-directives2 '(".." "#swap" "-while" "," "-until"
+                           "---u" "--l-" "--lu" "-d--" "-d-u"
+                           "-dl-" "-dlu" "r---" "r--u" "r-l-"
+                           "r-lu" "rd--" "rd-u" "rdl-" "rdlu"))
 
 ;;directives that take an argument
 (setq aforth-directives-3 '("node" "org"))
