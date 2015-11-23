@@ -1,0 +1,349 @@
+( Slightly modified code from Greenarrays's AN012.
+ http://www.greenarraychips.com/home/documents/greg/AN012-130606-SENSORTAG.pdf
+ 
+Usage:
+1. Connect the eval board USB ports A and C to your computer.
+3. Run the script that print sensor readings sent from USB C on the eval board.
+   python sensortag-listen.py USB_C 460800
+3. compile and load:
+    ./cal sensortag.aforth USB_A 460800
+Replace USB_A and USB_C with the actual port names. This can be found with dmesg 
+The listen script must be started before loading.
+
+)
+
+node 709 ( i2c timing )
+bootstream async-target
+/p 3 /b io /a up
+
+(
+this dac actively pulls sensor scl line up and provides low energy
+timing for slow i2c bus. simple state machine receives one of two
+instrs from 708 thru right port.
+)
+
+const pu or 3 0x15555 ( wait-high)
+const -pu or pu 0x800  ( wait-low )
+: edge ( mn-mn)  ( mn = 0x800, pu or -pu )
+( sets io state for wakeup,
+  modify wakeup value on stack for opposite edge
+  suspend on shared pin )
+dup !b ( set wakeup state / DAC output )
+over or
+( @ drop )
+dup
+!  ( shared pin wakeup )
+;
+: dun ( mn)
+( ends a burst when act receives a call to, this defn. waits one clock
+ phase before, entering idl for spacing.)
+ edge
+: idl
+( idl state between bursts of i2c actvity. turns pull-up on and expects a
+return instruction. that does not delay 708 but we delay next, stim by at
+least one clock phase and enter, active state.)
+( turn on pullup, wait for return instruction,
+  read io reg, if high, wait for low edge, if low wait for high )
+
+  pu !b  ( turn pullup on)
+  ( ??? does it get turned off between burst? )
+  r---  ( call node 709 port, which receives a return instruction )
+  @b ( read io)
+  pu ( used if pin is low )
+  over -if
+  ( pin was high)
+  -pu dup
+  then
+  drop ( drops extra -pu or io value to expose pu value)
+  0x800 over edge
+: act ( mn)
+( act expects return instructions, delaying each
+  by one clock phase after its predecessor )
+  edge r--- act ;
+
+node 708 ( slow i2c )
+
+( /a right /b io  /p left)
+
+(
+On boot, node 708 executes its left port to accept register initialization
+sequences for all the sensors from node 707, which has room for 25 8-bit
+register settings. [If more were needed, memory in node 706 could be used;
+or, if two modes of operation are contemplated, node 706 can supply an
+alternative initialization sequence.] After setting initial values in these
+registers, node 707 directs node 708 to execute its down port where the
+application hub will deliver on-line polling commands. Node 707 suspends
+until next boot. The code in node 708 provides a set of simple primitives
+for port execution
+)
+( clock pin: 708.17)
+( data pin: 708.1 )
+: main east a! io !b --l- ;
+
+: set ( n )
+  (  sets pins then waits 1/2 bit time )
+  !b @p ! ; .. ;
+: !hi ( n )
+  ( set with wait if clock stretched. )
+  dup begin over set
+  ( loop until pin 17 is high)
+  .. drop @b -until drop drop ;
+
+: c+d- 0x2 !hi ;
+( c+d- etc...set bus state and delay. Any clock rise may be stretched)
+: c-d+ : c-d* 0x20000 set ;
+: c-d- 0x20002 set ;
+: c+d+ : c+d* 0 !hi ;
+
+: w1 ( n-n' )
+  ( xmit bit16 `i1' rcv bit1 both shift left.)
+  2* -if
+  : wnak c-d+ c+d+ ;
+  : wack then c-d- c+d- ;
+
+: w16 leap : w8 ( h.l-l.s )
+ ( xmit/shift bits 15-8, ret nak bit1.)
+  then 7 for 2* w1 2/ next
+  .. : i1 ( n-n+ ) c-d* c+d* @b 0x2 and or ; ( WHY OR? => building a full word)
+: strt : rest ( a.x-x.nak )
+  ( strt or restart chip a )
+  c-d+ c+d+ c+d- w8 ;
+: stop ( ends frame )
+  wack c+d+ @p ! ; .. dun@709 ;
+
+: !af ( a.i-s )
+( starts reg write, use `w8', `w16' as needed then `stop' )
+  strt w8 ;
+: r8 ( -n ) 7 for 2* i1 next ;
+: zr8+ ( -n ) dup dup or : r8+ ( n-n ) r8 wack ;
+
+( port executable functions,
+ all of these require port execution, help to deliver args and results )
+: @regs ( a.i-ss )
+( starts burst read of chip a reg i)
+  dup 0x100 or  ( WHY '0x100 or'? )
+  .. push !af pop rest ;
+: @w+ ( -n )
+( @w+ reads 16 bits msb first into bits 16-1 )
+zr8+ r8+ ;
+
+: @w. ( -n )
+( @w. @b. read final word/byte to 8-1)
+zr8+ : @b. ( n-n' ) r8 wnak stop ;
+
+node 707 ( sensor init)
+( /b left /a 0 )
+( this node initializes all sensors after reset
+by storing register values)
+
+( ( host ) ( : /t here 2/ -1 + ; ( target) 
+
+( table starting at zero holds up to 25 2-word,
+  entries, one for each 8/16-bit register
+
+...+0 00 aaaa aaa0 iiii iiii busadr, index,
+...+1 w0 1111 1111 2222 2222 wordflg, byte1,2,
+...first section of tbl disables all sensors,
+
+on boot, node 708 executes left port to catch
+..these commands. after exhausting the table,
+..we direct node 708 to down for on-line work
+)
+( stby acc ) , 0x1e1b , 0  ( mag ) , 0x1c10 , 0
+( gyro) , 0xd03e , 0x4000  ( therm) , 0x8802  , 0x20400
+( /t  everything standby)
+( acc ) , 0x1e1b , 0 ( 0x4000) , 0x1e21 , 0
+ , 0x1e1b , 0x8000 ( 0xc000)
+( srst acc ) ( , 0x1e1d , 0x8000)
+( /t enables for condition yellow)
+( mag ) , 0x1c11 , 0xa000 , 0x1c10 , 0xc100
+( gyro) , 0xd03e , 0 ( therm) , 0x8802 , 0x27400
+( /t) ( enables for alerted mode)
+( (&!rs ( address of !rs) ( ( org ( make sure room!,)
+: main
+east b! dup dup or a!
+: !rs  10 ( /t above) for
+  @p !b @+
+      .. @p !af@708 ..
+  !b @+ dup @p 
+      .. @p ..
+  !b !b
+  .. -if @p !b ..
+      w8@708
+  then
+  @p !b @p
+     .. w8@708
+     .. stop@708 ..
+  !b next
+  .. @p !b
+     .. -d--
+     .. warm ;
+
+
+node 608 ( poll, distrib )
+(  /p 0x29 /b down /a 0)
+
+(
+608 performs normal data polling as commanded
+by 607. the primitive is burst read of 16-bit
+words. node 708 is commanded to do the burst,
+read; the resulting data are passed to nodes,
+609, for internal distribution, and 508, for,
+prototype raw data logging.,
+)
+
+: @r; ( a.i)
+( @r; starts a burst on chip a register i )
+( called by node 608 with addr value from its main table)
+@p !b !b ;
+  .. @p @regs@708 ..
+: 1w+ ( -n )
+@p !b  ( call @w+ in node 708 )
+.. @w+@708 ..
+@p !b @b ; ( retrieve the result from 708)
+.. 2/ !p
+: 1w. ( -n )
+@p !b
+   .. @w.@708 ..
+@p !b @b ;
+.. 2/ !p
+( : dlv up a! dup .. ! right a! .. ! ;)
+: dlv south a! ! ;
+: @nw ( n )
+( @nw bursts n+1 words with msb in first reg; )
+   push begin zif 1w. dlv ;
+   then 1w+ dlv end
+: swb ( n ) ( swap bytes)
+push 0xffff dup dup or 
+  pop dup 2* 2* a!
+  9 for +* unext drop drop a and dlv ;
+  
+: @nbs ( n )
+( @nbs bursts with lsb in first reg; on sensor,
+...tag, only accelerometer works this way. )
+ push begin zif 1w. swb ;
+ then 1w+ swb end
+: seq ( n a.i )
+( seq finishes a burst after @r; n neg is ones,
+...complement of count for @nbs.,)
+( @r; ) -if - @nbs ; then @nw ;
+: main
+down b!
+: stm
+( stm waits for next cycle, passing stimulus,
+...from 609 to 607 and slaving to 607)
+ right a! @ south a! 0x3ffff ! left a! ! --l- ;
+( reclaim ) ( exit )
+
+
+node 607 ( poll sequencer )
+( host : /t here 2 / -1 + ; : /- - ; target )
+
+( table of up to 24 bursts,)
+( acc) , 0x1e06 , 0x3fffd ( 2 /-)
+( mag) , 0x1c01 , 2
+( gyro) , 0xd01d , 2
+( therm) , 0x8801 , 0 , 0x8800 , 0
+( misc) , 0x1e0f , 0 ( , 8802 , 0) , 0x1c07 , 0
+
+: main left b!
+: !rs ( /t above)
+@b dup or a! ( read 608, store 0 in a )
+
+6 for ( loop for each table item )
+@p !b @+
+   .. @p @r;@608 ..
+!b
+
+@p !b
+  .. @p seq@608 ..
+@+ !b
+next
+
+@p !b
+   .. stm@608
+!rs ;
+
+
+
+node 715
+: -osc over
+  io b! for
+  0x30000 !b dup .. 2/ dup for unext
+  0x20000 !b .. over 1 and .. + for unext next
+  dup or !b dup 30000 for
+  drop @b - -while next ;
+  then dup or pop drop ;
+: clang
+  12470  2000 for dup 5000 -osc while
+  drop 1 . + next clang ; then
+: prep 
+   0 0x20000 0x800 0x30800 0 0x20000 0x800 0x30800
+   dup up a! drop
+: run !b !b @ drop run ;
+: main south a! clang ;
+
+node 717 ( hub timing )
+
+const pu or 3 0x15555 ( io for wait-high )
+const -pu or pu 0x800 ( io for wait-low )
+
+: main -pu pu over over
+over over over over over up a! !b warm ;
+: dly ( n ) push begin dup dup ! drop !b next ;
+
+node 617 ( hub control )
+
+: wait ( n)
+( `dly` waits 5 seconds for boot to finish.,
+time delay actually starts when the oscillator
+node begins exciting the crystal. while delay,
+runs, node 517 resets ble chip which we assume
+is open for business within five seconds. uses
+`wait` which delays n halfcycles of watch xtal. )
+( 11111 !b dup !b )
+.. @p ! !
+.. @p dly@717
+.. @p !
+.. . 
+.. ;
+
+: main north a! west b!
+: dly 4 for 65536 wait next
+: run 65536 wait 1 !b run
+
+node 616 : wire @ !b wire ; : main east a! west b! 616 !b wire ;
+
+node 615
+ ( reads from 715 until resonance is found, then from 616 )
+: wire1 @ if !b wire1 then !b 8888 !b east a!
+: wire @ !b wire ;
+( : main north a! west b! 615 !b wire1 ; )
+: main east a! west b! wire ; 
+
+node 614 : wire @ !b wire ; : main east a! west b! wire ;
+node 613 : wire @ !b wire ; : main east a! west b! 613 !b wire ;
+node 612 : wire @ !b wire ; : main east a! west b! 612 !b wire ;
+node 611 : wire @ !b wire ; : main east a! west b! 611 !b wire ;
+node 610 : wire @ !b wire ; : main east a! west b! 610 !b wire ;
+node 609 : wire @ !b wire ; : main east a! west b! 609 !b wire ;
+( node 509 : wire @ !b wire ; : main north a! west b! 608 !b wire ; )
+( node 508 : wire @ !b wire ; : main east a! west b! 608 !b wire ; )
+node 508 : wire @ !b wire ; : main north a! west b! 608 !b wire ;
+node 507 : wire @ !b wire ; : main east a! west b! 607 !b wire ;
+node 506 : wire @ !b wire ; : main east a! west b! 606 !b wire ;
+node 505 : wire @ !b wire ; : main east a! west b! 605 !b wire ;
+node 504 : wire @ !b wire ; : main east a! west b! 604 !b wire ;
+node 503 : wire @ !b wire ; : main east a! west b! 603 !b wire ;
+node 502 : wire @ !b wire ; : main east a! west b! 602 !b wire ;
+node 501 : wire @ !b wire ; : main east a! west b! 601 !b wire ;
+node 500 : wire @ !b wire ; : main east a! north b! 601 !b wire ;
+
+node 600 ( async out)
+: val 1 and if 0x20000 ; then 0x30000 ;
+: out18 0 out8 drop out8 out8
+: out8 0 out1 7 for dup out1 2/ next 1
+: out1 val !b drop 865 for unext ;
+: exit 1 out8
+: main io b! south a! 600 out18
+: loop @ out18 loop
