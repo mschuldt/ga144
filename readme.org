@@ -1,0 +1,93 @@
+This is an alternative Arrayforth toolchain targeting the GA144 multi-processor
+chip.
+
+It includes a compiler, bootstreamer/loader, and interpreter.
+They are all independent of the Greenarrays tools.
+
+This was originally built to support work with [[http://pl.eecs.berkeley.edu/projects/chlorophyll/][Chlorophyll]] but is intended
+to be useful for manually writing Arrayforth as well.
+
+The Greenarrays Arrayforth documentation may be used for reference.
+This compiler is not fully compatible and differs in a few ways,
+They are listed below.
+
+** Setup
+*** Requirements:
+  - Racket
+  - Python
+  - pyserial
+  - Linux (only tested on Ubuntu, might work elsewhere)
+
+*** Compiling
+run 'make' to compile
+
+run 'make check' to run interpreter tests
+
+*** First program
+To check that everything works, first connect the GA144 eval board or chip.
+If needed run 'dmesg' to find the serial port it is connected on.
+Try running the lucas series example program:
+#+BEGIN_SRC bash
+  ./cal examples/lucas-series.aforth /dev/ttyUSB3 460800
+#+END_SRC
+ Replace /dev/ttyUSB3 with the actual serial port.
+This should print out the first 15 numbers of the [[https://en.wikipedia.org/wiki/Lucas_number][lucas series]] before exiting
+
+* Additional features and Differences
+This compiler differs from the Greenarrays version in the following ways:
+
+- No semantic color
+   - standard for syntax for words and comments
+   - hex,bin literals: 0xN, 0bN
+   - boot descriptors and other yellow words are reserved keywords.
+- north, east, south, and west
+  get resolved to correct ports, up, down, left, or right
+- Each node has a seporate namespace
+   - word@coord compiles a call to word in node coord. 
+   - 'reclaim' has no use.
+- Automatic nop insertion
+  Can be disabled. Currently inserts nops even when not actually needed
+- Arguments follow the yellow words.
+  For example, use "node 715" instead of "715 node".
+- Generalized host computations during compilation are not supported.
+  The compiler is not a forth interpreter.
+- There are no grey words
+
+* Compiling and Loading
+
+The script 'cal' is used to Compile And Load code into the GA144.
+After loading it enters into a listen mode and will print words the GA144
+sends back over the serial port.
+
+ ./cal filename.aforth /dev/ttyUSB<N> baud-rate
+
+ <N> is the serial port number. This can be found by running 'dmesg' after inserting the port.
+ baud-rate defaults to 460800
+
+* Dumping compilation data
+
+The script 'dump' can be used to dump data from various compilation
+ stages in json format.
+
+ ./dump [-b] [-s] [-c] file
+
+Includes the compiled code, boot descriptors, and assembled code
+Options:
+ -b include the bootstream
+ -s include the symbol table
+ -c count the words in each node
+
+* Interpreter/Debugger
+TODO
+
+* Optimizations
+ All optimizations are disabled by default. For now you must
+ turn them on by changing #f to #t for the desired optimizations at
+ bottom of common.rkt
+
+Options:
+ - Automatically compile 0 as "dup dup or"
+ - Reorder words with tail calls so that they are above the word
+   they call. Then remove the call and rely on fall through.
+
+
