@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+# Compile And Load a program into a GA144 and listen for output
+
+# This script was originally based on work by James Bowman
+# https://github.com/jamesbowman
+#
+
+from sys import argv
+import subprocess
+from subprocess import call
+from serial import Serial
+import time
+from struct import unpack
+
+def write(bs, serial):
+    # reboot by dropping RTS
+    if target:
+        target.setRTS(0)
+        target.setRTS(1)
+    serial.setRTS(0)
+    serial.setRTS(1)
+    serial.write(bs)
+    serial.flush()
+
+#18bit words transmitted using 4 bytes with format:
+#     upper2 middle8 lower8 wordcode
+#
+# wordcodes:
+#  0: receive 18 bit word
+#  1: exit
+def listen(port, speed, serial, verbose=True):
+    if verbose:
+        print "Listening. port={}, speed={}".format(port, speed)
+    while True:
+        s = serial.read(4)
+        (v, ) = unpack("<I", s)
+        if (v & 0xff) == 0:
+            print (v >> 8) & 0x3ffff
+        elif (v & 0xff) == 1:
+            if verbose: print "[exit]"
+            exit(0)
+        else:
+            print "ERROR -- unknown code:", v, v & 0xff
+
+def run_command(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    return eval(p.communicate()[0])
+
+if __name__ == "__main__":
+    speed = 460800
+    #speed = 921600
+    if len(argv) not in [3,4]:
+        print "usage: ./cal filename port [speed={}]".format(speed)
+        exit(1)
+
+    filename = argv[1]
+    port = argv[2]
+    if len(argv) == 4:
+        speed = int(argv[3])
+
+    cmd = "racket dump -b " + argv[1]
+    compiled = run_command(cmd)
+    bootstream = compiled['bootstream']
+    print "Writing bootstream ({} bytes)...".format(len(bootstream))
+    host = Serial(port, speed)
+    # target chip serial for resetting
+    target = None #Serial("/dev/ttyUSB4", 921600)
+    write("".join(map(chr, bootstream)), host)
+    
+    listen(port, speed, host)
+
+# ./cal test.aforth /dev/ttyUSB3 460800
