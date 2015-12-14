@@ -140,25 +140,25 @@
                           ht))
 
     ;; Pushes to the data stack.
-    (define (d-push! value)
+    (define/public (d-push! value)
       (push-stack! dstack S)
       (set! S T)
       (set! T (18bit value)))
 
     ;; Pushes to the rstack stack.
-    (define (r-push! value)
+    (define/public (r-push! value)
       (push-stack! rstack R)
       (set! R value))
 
     ;; Pops from the data stack.
-    (define (d-pop!)
+    (define/public (d-pop!)
       (let ([ret-val T])
         (set! T S)
         (set! S (pop-stack! dstack))
         ret-val))
 
     ;; Pops from the rstack stack.
-    (define (r-pop!)
+    (define/public (r-pop!)
       (let ([ret-val R])
         (set! R (pop-stack! rstack))
         ret-val))
