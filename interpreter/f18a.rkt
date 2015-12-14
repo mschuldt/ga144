@@ -882,6 +882,18 @@
       (when suspended
         (wakeup)))
 
+    (define/public (call-word! word)
+      ;; only used for externally calling words from the debugger
+      (if (hash-has-key? symbols word)
+          (let ((addr (symbol-address (hash-ref symbols word))))
+            (log (format "call-word!: ~a -> ~a\n" word addr))
+            ((vector-ref instructions 3) addr 0)
+            (set! step-fn step0)
+            (when suspended
+              (wakeup))
+            #t)
+          #f))
+
     (define/public (load-bootstream frames)
       (define jump-addr #f)
       (define dest-addr #f)

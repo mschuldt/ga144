@@ -292,13 +292,34 @@
           (printf "TODO: push numbers onto node data stack"))
       (printf "Must select chip\n")))
 
-(def-command : (inst) "execute instruction in the selected node"
+
+(def-command ex (inst) "execute instruction in the selected node"
   (if selected-node
       (execute-instruction (send selected-node get-coord) inst)
       (printf "[Must select node]\n")))
 
-(def-command : (coord inst) "execute instruction in the COORD node"
+(def-command ex (coord inst) "execute instruction in the COORD node"
   (execute-instruction coord inst))
+
+(define (call-word coord word [args #f])
+  (if selected-chip
+      (let ((node (send selected-chip coord->node coord)))
+        (when args
+          (for ((a (reverse args)))
+            (send node d-push! a)))
+        (send node call-word! word))
+      (printf "Must select chip\n")))
+
+(def-command : (name)  "call word NAME in the selected node"
+  (if selected-node
+      (call-word (send selected-node get-coord) name)
+      (printf "[Must select node]\n")))
+
+(def-command push (value)  "push VALUE onto the dstack of the selected node"
+  (if selected-node
+      (send selected-node d-push! value)
+      (printf "[Must select node]\n")))
+
 
 (def-command breakpoints () "print active breakpoints"
   (printf "TODO\n"))
