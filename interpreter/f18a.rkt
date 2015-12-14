@@ -609,15 +609,13 @@
     (define (step0-helper)
       (set! I (d-pop!))
       (set! I^ (^ I #x15555))
-      (if (vector-ref breakpoints (if (port-addr? P) (& P #x1ff) (region-index P)))
-          (begin (let ((name (get-memory-name P)))
-                   (set! P (incr P))
-                   (set! step-fn step-0-execute)
-                   (break name)))
-          (begin (set! P (incr P))
-                 (if (eq? I 'end)
-                     (suspend)
-                     (step-0-execute)))))
+      (when ((vector-ref breakpoints (if (port-addr? P)
+                                         (& P #x1ff)
+                                         (region-index P))))
+        (begin (set! P (incr P))
+               (if (eq? I 'end)
+                   (suspend)
+                   (step-0-execute)))))
 
     (define (step-0-execute)
       (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
@@ -1141,18 +1139,32 @@
       (set! break-at-io-change #t))
 
     (define/public (set-breakpoint line-or-word)
+      (define (break-fn)
+        (let ((name (get-memory-name P)))
+          (set! step-fn (lambda ()
+                          (set! P (incr P))
+                          (step-0-execute)))
+          (break name)
+          #f))
       (define addr (get-breakpoint-address line-or-word))
       (when addr
-        (vector-set! breakpoints addr #t)))
+        (log (format "setting breakpoint for '~a' at word ~a\n" line-or-word addr))
+        (vector-set! breakpoints addr break-fn)))
 
     (define/public (unset-breakpoint line-or-word)
       (define addr (get-breakpoint-address line-or-word))
       (when addr
-        (vector-set! breakpoints addr #f)))
+        (vector-set! breakpoints addr (lambda () #t))))
 
     (define/public (reset-breakpoints)
-      (set! breakpoints (make-vector MEM-SIZE #f))
+      (set! breakpoints (make-vector MEM-SIZE (lambda () #t)))
       (set! break-at-wakeup #f))
+
+    (define/public (set-word-hook-fn line-or-word fn)
+      (define addr (get-breakpoint-address line-or-word))
+      (if addr
+          (vector-set! breakpoints addr (lambda () (fn) #t))
+          (printf "[~a] set-word-hook-fn -- invalid word" coord line-or-word)))
 
     (define (get-breakpoint-address line-or-word)
       (cond ((string? line-or-word)

@@ -94,6 +94,7 @@
       (set! breakpoint-node node)
       ;; set the breakpoint flag which returns control to the interpreter
       (set! breakpoint #t))
+    (define/public (get-breakpoint-node) breakpoint-node)
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; program loading
@@ -116,7 +117,7 @@
       (set! breakpoint #f)
       (set! time (add1 time))
       (define last last-active-index)
-      (define (step [index 0] )
+      (define (step [index 0])
         (set! current-node (vector-ref active-nodes index))
         (send current-node step-program!)
         (when (and (< index last-active-index)
