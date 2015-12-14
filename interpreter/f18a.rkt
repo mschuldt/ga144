@@ -1339,7 +1339,7 @@
               (hash-ref rom-symbols index)
               #f)))
 
-    (define/public (disassemble-memory [start 0] [end #xff])
+    (define/public (disassemble-memory [start 0] [end #xff] [show-p? #t])
       ;;  disassemble and print a node memory from START to END, inclusive
       (define (pad-print thing [pad 20])
         (let* ((s (format "~a" thing))
@@ -1352,8 +1352,20 @@
           (set! i (region-index i))
           (when (setq name (get-memory-name i))
             (printf "~a:\n" name))
+          (printf (if (and (equal? i P) show-p?) ">" " "))
           (set! word (vector-ref memory i))
           (pad-print i 4)
           (pad-print word)
-          (printf "~a\n" (disassemble-word word)))))
+          (define dis (disassemble-word word))
+          (define ind (vector-member "call" dis))
+          (when ind
+            (let* ((addr (vector-ref dis (add1 ind)))
+                   (name (get-memory-name (region-index addr))))
+              (vector-set! dis (add1 ind) (format "~a(~a)" addr name))))
+
+          (printf "~a\n" dis))))
+
+    (define/public (disassemble-local)
+      (disassemble-memory (- P 5) (+ P 5)))
+
     ))

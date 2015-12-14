@@ -313,10 +313,28 @@
       (send selected-chip disassemble-memory (string->number node) 0 #x03F)
       (printf "Must select chip\n")))
 
+(def-command dis-rom () "disassemble current-nodes RAM"
+  (if selected-node
+      (send selected-chip disassemble-memory (send selected-node get-coord) 0 #x03F)
+      (printf "Must select node\n"))
+  )
+
 (def-command dis-rom (node) "disassemble NODE's ROM"
   (if selected-chip
       (send selected-chip disassemble-memory (string->number node) #x80 #xbf)
       (printf "Must select chip\n"))
+  )
+
+(def-command dis-rom () "disassemble current-nodes ROM"
+  (if selected-node
+      (send selected-chip disassemble-memory (send selected-node get-coord) #x80 #xbf)
+      (printf "Must select node\n"))
+  )
+
+(def-command dis () "disassemble memory around P register in current-node"
+  (if selected-node
+      (send selected-chip disassemble-local (send selected-node get-coord))
+      (printf "Must select node\n"))
   )
 
 (def-command show-io (node) "display io register in detail"
