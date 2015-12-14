@@ -233,6 +233,10 @@
       ;;  disassemble and print a nodes memory
       (send (coord->node coord) disassemble-memory start end))
 
+    (define/public (disassemble-local coord)
+      ;;  disassemble and print a nodes memory
+      (send (coord->node coord) disassemble-local))
+
     (build-node-matrix)
     (reset!)
     ))

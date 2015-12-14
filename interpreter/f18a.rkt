@@ -650,6 +650,9 @@
 
     (define step-fn step0)
 
+    (define (get-current-slot-index)
+      (or (vector-member step-fn (vector step0 step1 step2 step3)) 0))
+
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instructions
     (define (init-instructions)
@@ -1386,7 +1389,10 @@
             (let* ((addr (vector-ref dis (add1 ind)))
                    (name (get-memory-name (region-index addr))))
               (vector-set! dis (add1 ind) (format "~a(~a)" addr name))))
+          (define slot-i (get-current-slot-index))
 
+          (when (and (equal? i P) show-p?)
+            (vector-set! dis slot-i (format "{{~a}}" (vector-ref dis slot-i))))
           (printf "~a\n" dis))))
 
     (define/public (disassemble-local)
