@@ -337,7 +337,7 @@
       (send selected-chip disassemble-memory (string->number node) 0 #x03F)
       (printf "Must select chip\n")))
 
-(def-command dis-rom () "disassemble current-nodes RAM"
+(def-command dis-ram () "disassemble current-nodes RAM"
   (if selected-node
       (send selected-chip disassemble-memory (send selected-node get-coord) 0 #x03F)
       (printf "Must select node\n"))
