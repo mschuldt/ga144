@@ -852,6 +852,10 @@
           (load (add1 index))))
       (load 0)
       (set! P (or (node-p node) 0))
+      (set! A (or (node-a node) 0))
+      (set! B (or (node-b node) (cdr (assoc "io" named-addresses))))
+      (set! IO (or (node-io node) #x15555))
+
       (let ((structs (make-hash))
             (addrs (make-hash))
             (names (make-hash)))
