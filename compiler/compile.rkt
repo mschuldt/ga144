@@ -440,8 +440,7 @@
       (set-mcar! (mcdr cell) (add1 (mcar (mcdr cell)))))))
 
 (define (shift-words-down memory from)
-  (printf "(shift-words-down ~a)\n" from)
-
+  (raise "shift-words-down ~a" current-node-coord)
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
   (set! current-word (vector-ref memory current-addr))

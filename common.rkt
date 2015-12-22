@@ -7,6 +7,7 @@
 (provide (all-defined-out))
 
 (define num-words 64)
+(define num-words 1000)
 (define num-nodes 144)
 
 (define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
