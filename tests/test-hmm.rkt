@@ -9,27 +9,25 @@
 
 (define chip (new-ga144 "host"))
 
-(define code (file->string "hmm_pinning_real-noopt3.aforth"))
-
-(define compiled (compile code))
+;; compile and assemble code
+(define compiled (compile (file->string "hmm_pinning_real-noopt3.aforth")))
 (define assembled (assemble compiled))
 
+;; load assembled code into chip
 (send chip load assembled)
 
-;(define node_205 (get-node chip 205))
-;(send node_205 set-breakpoint "derive_group")
-;(send node_205 set-breakpoint "x")
-
-
+;; set breakpoint at word 'two' in node 305
 (define node_305 (get-node chip 305))
-;(send node_305 set-breakpoint "one")
+                                        ;(send node_305 set-breakpoint "one")
 (send node_305 set-breakpoint "two")
 
-
+;; entering the cli is optional and must be enabled
 (enter-cli-on-breakpoint #t)
-;;(send chip show-io-changes #t)
 
+;; prints a representation of every nodes io state at each change
+;(send chip show-io-changes #t)
 
+;; step* runs the interpreter until it exits or a breakpoint is reached
 (step*)
 (step*)
 (step*)
@@ -38,4 +36,3 @@
 (step*)
 
 ;(enter-cli)
-
