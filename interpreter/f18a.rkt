@@ -756,7 +756,7 @@
         ;;case 2 - If bit A0 is one
         ;;  Sums T and S and concatenates the result with A, shifting
         ;;  everything to the right by one bit to replace T:A
-        (if (& A 1)
+        (if (= (& A 1) 1)
             ;;case 2:
             (let* ([sum (if extended-arith?
                             (let ([sum (+ T S carry-bit)])
