@@ -219,7 +219,7 @@
          (hash-ref names->addresses name))
         ((and node  ;;relative names
               (member name '("north" "south" "east" "west")))
-         (convert-direction name node))
+         (convert-direction node name))
         (else (parse-num name)))) ;; literals and word addresses
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
