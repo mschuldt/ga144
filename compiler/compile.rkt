@@ -193,12 +193,20 @@
 
 ;;TODO: initial scan should resolve tail calls and collect word names
 (define (get-word-address name)
+  (and DEBUG? (printf "       get-word-address(~a)\n" name))
   (define addr (or (and (hash-has-key? words name)
                         (hash-ref words name))
                    (and (hash-has-key? io-places-hash name)
                         (hash-ref io-places-hash name))
                    (and (hash-has-key? rom name)
                         (hash-ref rom name))))
+  (and DEBUG? (printf "          addr = ~a\n" addr))
+  (when (not addr)
+    ;; if name is not found locally, check if it is a remote call
+    (let ((x (remote-call? name)))
+      (and DEBUG? (printf "          x = ~a\n" addr))
+      (set! addr (and x (get-remote-addr (car x) (cdr x))))
+      (and DEBUG? (printf "          (global)addr = ~a\n" addr))))
   (if (mpair? addr) (mcar addr) addr))
 
 
@@ -365,15 +373,21 @@
           (unless (= current-slot 0)
             (goto-next-word))))))
 
-(define (compile-remote-call! word coord)
+(define (get-remote-addr word coord)
   (define node (vector-ref nodes (coord->index coord))) ;;TODO: validate COORD
   (define words (node-word-dict node))
   (if words
       (if (hash-has-key? words word)
-          (compile-call! word (hash-ref words word))
+          (hash-ref words word)
           (error (format "remote word not found: ~a@~a (called from node ~a)"
                          word coord current-node-coord)))
       (error (format "can't find dictionary for node: ~a" coord))))
+
+(define (compile-remote-call! word coord)
+  (when DEBUG? (printf "     compile-remote-call!(~a, ~a)\n" word coord))
+  (define addr (get-remote-addr word coord))
+  (when DEBUG? (printf "        addr = ~a\n" addr))
+  (compile-call! word addr))
 
 (define (compile-word-ref! word)
   (let ((addr (get-word-address word)))
