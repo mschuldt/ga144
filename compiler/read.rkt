@@ -1,7 +1,12 @@
 #lang racket
 
 (require "../common.rkt")
-(provide read-token forth-read forth-read-no-eof forth-read-char parse-code)
+(provide read-token
+         forth-read
+         forth-read-no-eof
+         forth-read-char
+         parse-code
+         display-parsed-code)
 
 (define line-number 1)
 (define col-number 0)
@@ -65,8 +70,10 @@
     (comment)))
 
 (define (parse-code)
-  ;;returns list of cons: ((NODE . CODELIST)...)
+  ;;returns list of cons: ((NODE . CODELIST)...))
   ;;first item is list of code before the first node. boot descriptors etc
+  ;;CODELIST is a list of type struct token.
+  ;; the first two words are the colon and word name
   (define nodes '())
   (define current-node-num #f)
   (define current-node-code #f)
@@ -157,9 +164,26 @@
   (read-loop)
   (reverse words))
 
-
 (define (forth-read-no-eof)
   (let [(res (forth-read))]
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))
+
+(define (display-parsed-code parsed-nodes)
+  ;; (display-parsed-code (parse-code))
+  (for/list ((node parsed-nodes))
+    (printf "_____________________ node ~a ___________________\n" (car node))
+    ;;print boot descriptors
+    (for/list ((inst (cadr node)))
+      (printf " ~a " (token-tok inst)))
+    (printf "\n")
+    ;;print words
+    (for/list ((word (cddr node)))
+      ;; print ": <wordname>"
+      (printf " ~a ~a\n"
+              (token-tok (car word))
+              (token-tok (cadr word)))
+      ;; print word body
+      (for/list ((inst (cddr word)))
+        (printf "    ~a\n" (token-tok inst))))))
