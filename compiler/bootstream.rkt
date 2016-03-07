@@ -164,7 +164,7 @@
 
 (define (make-bootstream-type assembled bootstream)
   ;; ASSEMBLED is a list of 'node' structs
-  ;; returns an array of assembled words)
+  ;; returns an array of assembled words
   ;; BOOTSTREAM is of type struct bootstream
 
   (define nodes (make-node-index-map assembled))

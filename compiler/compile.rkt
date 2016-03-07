@@ -43,8 +43,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; result of (parse-code), a list of nodes: (node-num wordlist1 wordlist2...)
 (define parsed-nodes #f)
 (define parsed-words #f)
+;; the list of instructions we are currently compiling (body of the current word)
 (define current-token-list #f)
 
 
@@ -83,6 +85,10 @@
     (set-node-len! current-node (sub1 next-addr)))
 
   (when DEBUG? (display-compiled (compiled used-nodes default-bootstream-type)))
+
+  ;; errors from this point on are not associated with line numbers
+  (set! current-tok-line #f)
+  (set! current-tok-col #f)
 
   (compiled (map remove-address-cells used-nodes)
             (or bootstream-type default-bootstream-type)))
@@ -351,7 +357,7 @@
         (begin
           ;;(error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
-          (printf "       waiting on address....\n")
+          ;(printf "       waiting on address.....\n")
           (compile-call-or-jump)
           (set! cell (make-new-address-cell))
           (add-to-waiting word cell)
@@ -414,6 +420,9 @@
             (slot-index 4))
         (when (mpair? slot)
           (set! addr (mcar slot))
+          (when (not addr)
+            (error (format "remove-address-cells -- invalid address: ~a" addr)))
+
           (if (not (address-fits? addr (sub1 slot-index) (mcar (mcdr slot))))
               (begin
                 (set! new-word-index (+ word-index 1 (count word)))
@@ -440,7 +449,7 @@
       (set-mcar! (mcdr cell) (add1 (mcar (mcdr cell)))))))
 
 (define (shift-words-down memory from)
-  (printf "(shift-words-down ~a)\n" from)
+  ;;(printf "(shift-words-down ~a)\n" from)
 
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
@@ -880,8 +889,12 @@
      (car addr)
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
 
+
 (define (error msg)
-  (pretty-display (format "ERR[~a:~a] ~a" current-tok-line current-tok-col msg))
+  (pretty-display (if (and current-tok-line current-tok-col)
+                      (format "ERROR[~a:~a] ~a"
+                              current-tok-line current-tok-col msg)
+                      (format "ERROR ~a" msg)))
   (exit 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

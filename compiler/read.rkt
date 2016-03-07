@@ -61,7 +61,6 @@
 	      (begin0 (car stack)
                 (set! stack (cdr stack))))))))
 
-
 (define forth-read (make-reader))
 
 (define (comment)
