@@ -51,6 +51,7 @@
 
 
 (define (compile port)
+  (when DEBUG? (printf "DEBUG PRINT MODE"))
   (reset!)
   (when (string? port)
     (set! port (open-input-string port)))
