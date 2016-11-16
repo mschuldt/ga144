@@ -22,8 +22,8 @@
 (define target (new-ga144 "target"))
 
 (define code "
-bootstream async-target
 node 708
+bootstream async-target
 11 22 +
 ")
 
