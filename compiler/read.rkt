@@ -11,6 +11,9 @@
 (define line-number 1)
 (define col-number 0)
 
+(define (syntax-error msg)
+  (raise (format "[~a:~a]syntax error: ~a" line-number col-number msg )))
+
 (define (read-token in)
   (define (get-first-char-in-list)
     (let ((new-char (read-char in)))
@@ -92,7 +95,7 @@
                (when (or (eof-object? num-tok)
                          (not (equal? node-tok "node"))
                          (not (string->number num-tok)))
-                 (error "malformed node syntax"))
+                 (syntax-error "malformed node syntax"))
                (set! nodes (cons (cons (string->number num-tok) (parse-words))
                                  nodes))
                (read-loop))))
@@ -102,7 +105,7 @@
           ((equal? tok "bootstream")
            (forth-read) ;;TODO: ignoring for now
            (read-loop))
-          (else (raise (format "don't know what to do with '~a'" tok)))))
+          (else (syntax-error (format "don't know what to do with '~a'" tok)))))
 
   (read-loop)
   (reverse nodes))
@@ -120,8 +123,8 @@
   (define done #f)
   (define (end-word [name #f])
     (set! current-word (reverse current-word))
-    (when (< (length current-word) 2)
-      (raise "invalid syntax"))
+    (when (= (length current-word) 0)
+      (syntax-error "empty node body"))
     (set! words (cons current-word words))
     (set! current-word '()))
 
@@ -133,7 +136,7 @@
           (begin
             (forth-read tok)
             (when (not (null? current-word))
-              (when (< (length current-word) 2) (raise "invalid syntax"))
+              (when (= (length current-word) 0) (syntax-error "empty node body."))
               (set! words (cons (reverse current-word) words))))
           (begin
             (cond ((and (equal? words '())
@@ -149,7 +152,7 @@
                    (end-word)
                    (define name (forth-read))
                    (when (or (not name) (eof-object? (token-tok name)))
-                     (raise "invalid syntax2")) ;;TODO: better error messages
+                     (syntax-error "expected word name following ':'"))
                    (set! current-word (list name token)))
                   ((equal? tok "(")
                    (comment))
