@@ -212,7 +212,10 @@ node 603 east a! west b! ~a
 node 602 east a! west b! ~a
 node 601 east a! west b! ~a
 node 600 east a! south b! ~a
-node 500 north a! south b! ~a
+node 500  0x20000 io b! !b
+ 10000 for . . next
+ 0 !b
+ north a! south b! ~a
 node 400 north a! south b! ~a
 
 node 300
