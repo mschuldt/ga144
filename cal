@@ -32,26 +32,39 @@ def write(bs, serial):
 def listen(port, speed, serial, verbose=True):
     if verbose:
         print "Listening. port={}, speed={}".format(port, speed)
+
+    def read_n( n ):
+        x = [ord(serial.read( 1 )) for _ in range( n ) ]
+        x.reverse()
+        word = 0
+        for byte in x:
+            word = ( word << 8 ) | byte
+            n -= 1
+        return word
+
     while True:
-        s = serial.read(4)
-        (v, ) = unpack("<I", s)
-        if (v & 0xff) == 0:
-            print (v >> 8) & 0x3ffff
-        elif (v & 0xff) == 1:
-            if verbose: print "[exit]"
-            exit(0)
+        n = read_n( 1 )
+        if n  == 1:
+            print "[exit]"
+            return
+        if n == 0:
+            n = read_n( 3 )
+            print n & 0x3ffff
         else:
-            print "ERROR -- unknown code:", v, v & 0xff
+            print "ERROR -- unknown code:", s
+
 
 def run_command(cmd):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    return eval(p.communicate()[0])
+    x = p.communicate()[0]
+    #print x
+    return eval(x)
 
 if __name__ == "__main__":
     speed = 460800
     #speed = 921600
-    if len(argv) not in [3,4]:
-        print "usage: ./cal filename port [speed={}]".format(speed)
+    if len(argv) not in [3,4,5]:
+        print "usage: ./cal filename port [speed={}] [--no-listen]".format(speed)
         exit(1)
 
     filename = argv[1]
@@ -64,10 +77,15 @@ if __name__ == "__main__":
     bootstream = compiled['bootstream']
     print "Writing bootstream ({} bytes)...".format(len(bootstream))
     host = Serial(port, speed)
+    host.reset_input_buffer()
+
     # target chip serial for resetting
     target = None #Serial("/dev/ttyUSB4", 921600)
     write("".join(map(chr, bootstream)), host)
-    
-    listen(port, speed, host)
+
+    if "--no-listen" not in argv:
+        listen(port, speed, host)
+    host.close()
+
 
 # ./cal test.aforth /dev/ttyUSB3 460800
