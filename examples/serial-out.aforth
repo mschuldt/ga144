@@ -10,7 +10,7 @@ node 708
 : out1 ( n )
     1 and 3 or !b
     904 for unext ; ( unext delay = [1/baud_rate]/[2.4*10^-9] )
-: exit 1 out8
+: exit 1 out8 ;
 : main
     io b! south a!
 : loop

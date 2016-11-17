@@ -20,9 +20,9 @@ def read_seq():
                     val2 = float(0x10000 - val) / 0x20000 * 10 / 1.27 * 9.8
                 else:
                     val2 = float(val) / 0x20000 * 10 * -1 / 1.27 * 9.8
-                x = val & 0xfff
-                if x & 0x800:
-                    x = ((v - 0x800) + 1)*(-1)
+                #x = val & 0xfff
+                #if x & 0x800:
+                #    x = ((v - 0x800) + 1)*(-1)
             print name, val, val2 or ""
         else:
             print "?????????"
@@ -36,7 +36,7 @@ def listen(serial):
             if val == 0x3ffff:
                 read_seq()
             else:
-                print val
+                print "(unkown)",val
         elif (v & 0xff) == 1:
             print "[exit]"
             exit(0)

@@ -1,19 +1,23 @@
 ( prints the first 15 numbers of the Lucas sequence )
 ( ./cal lucas-series.aforth /dev/ttyUSB3 460800 )
 
-bootstream async
-( bootstream async-target)
-
 node 708
+bootstream async-target
 : out18 0 out8 drop out8 out8
 : out8 0 out1 7 for dup out1 2/ next 1
 : out1 1 and 3 or !b 904 for unext ;
-: exit 1 out8
+: exit 1 out8 ;
 : main
     io b! south a!
     15 for @ out18 drop next
-    exit ;
+    exit
+( cold   => 7.8mA )
+( warm   => 3.6mA )
+( south a! ! (  =>2.3mA )
+left a! ! ( => 0.015mA )
+
 
 node 608
-north a! 2 1 over ! dup !
+north a!  2 1 over ! dup !
 : lucas over over + dup ! lucas
+

@@ -164,7 +164,7 @@
 
 (define (make-bootstream-type assembled bootstream)
   ;; ASSEMBLED is a list of 'node' structs
-  ;; returns an array of assembled words)
+  ;; returns an array of assembled words
   ;; BOOTSTREAM is of type struct bootstream
 
   (define nodes (make-node-index-map assembled))
@@ -174,10 +174,29 @@
   (define code (if start-node
                    (get-used-portion (node-mem start-node))
                    (vector)))
+  (define nothing (vector))
   (define frame2 (vector-append
                   (vector (or (and start-node
                                    (node-p start-node)) 0) 0 (vector-length code))
-                  code))
+                  code
+                  ;; ;boot descriptors for first node
+                  ;; (if (and start-node (node-a start-node))
+                  ;;     (vector (word "@p" "a!" "." ".")
+                  ;;             (word (node-a start-node)))
+                  ;;     nothing)
+                  ;; ;; set io
+                  ;; (if (and start-node (node-io start-node))
+                  ;;     (vector (word "@p" "@p" "b!" ".")
+                  ;;             (node-io start-node)
+                  ;;             (word #x15D) ;; io
+                  ;;             (word "!b" "." "." "."))
+                  ;;     nothing)
+                  ;; ;; set b
+                  ;; (if (and start-node (node-b start-node))
+                  ;;     (vector (word "@p" "b!" "." ".")
+                  ;;             (word (node-b start-node)))
+                  ;;     nothing)
+                  ))
   (vector-append frame1 frame2))
 
 (define (make-bootstream assembled)
@@ -212,7 +231,10 @@ node 603 east a! west b! ~a
 node 602 east a! west b! ~a
 node 601 east a! west b! ~a
 node 600 east a! south b! ~a
-node 500 north a! south b! ~a
+node 500  0x20000 io b! !b
+ 10000 for . . next
+ 0 !b
+ north a! south b! ~a
 node 400 north a! south b! ~a
 
 node 300

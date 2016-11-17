@@ -37,7 +37,7 @@ dup
 : dun ( mn)
 ( ends a burst when act receives a call to, this defn. waits one clock
  phase before, entering idl for spacing.)
- edge
+ r---
 : idl
 ( idl state between bursts of i2c actvity. turns pull-up on and expects a
 return instruction. that does not delay 708 but we delay next, stim by at
@@ -283,6 +283,7 @@ node 715
 : run !b !b @ drop run ;
 : main south a! clang ;
 
+
 node 717 ( hub timing )
 
 const pu or 3 0x15555 ( io for wait-high )
@@ -310,7 +311,7 @@ is open for business within five seconds. uses
 
 : main north a! west b!
 : dly 4 for 65536 wait next
-: run 65536 wait 1 !b run
+: run  65536 wait 1 !b run
 
 node 616 : wire @ !b wire ; : main east a! west b! 616 !b wire ;
 
@@ -347,3 +348,10 @@ node 600 ( async out)
 : exit 1 out8
 : main io b! south a! 600 out18
 : loop @ out18 loop
+
+
+node 705
+: main io b! 0 !b
+
+node 300
+: main io b! 0 !b

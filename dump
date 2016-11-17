@@ -125,9 +125,10 @@
 (define (print-pretty)
   (define compiled (compile (file->string input-file)))
   (define compiled-hash (make-hash))
-  (for ((node compiled))
+  (for ((node (compiled-nodes compiled)))
     (hash-set! compiled-hash (node-coord node)
                (vector-copy (node-mem node))))
+
 
   (define assembled (assemble compiled))
 
@@ -161,7 +162,7 @@
   (define (n val)
     (format (if hex? "~x" "~a") val))
 
-  (for ((node assembled))
+  (for ((node (compiled-nodes assembled)))
     (define coord (node-coord node))
     (define symbols (make-symbol-hash (node-symbols node)))
     (define comp (hash-ref compiled-hash coord))
