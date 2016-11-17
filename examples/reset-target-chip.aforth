@@ -1,0 +1,8 @@
+( host 500.17 connected to target chip reset pin )
+
+node 500
+: main
+0x20000 io b! !b
+200000 for . . . . next
+0x0 !b
+warm
