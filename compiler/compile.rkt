@@ -49,14 +49,19 @@
 ;; the list of instructions we are currently compiling (body of the current word)
 (define current-token-list #f)
 
-
-(define (compile port)
-  (when DEBUG? (printf "DEBUG PRINT MODE"))
+(define (compile in)
+  ;;IN is a port, filename or list of parsed nodes in (parse-code) format
+  (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (reset!)
-  (when (string? port)
-    (set! port (open-input-string port)))
-  (current-input-port port)
-  (set! parsed-nodes (parse-code))
+  (define port #f)
+  (cond ((string? in)
+         (set! port (open-input-string in)))
+        ((list? in)
+         (set! parsed-nodes in))
+        (else (set! port in)))
+  (when port
+    (current-input-port port)
+    (set! parsed-nodes (parse-code)))
 
   (when reorder-words-with-fallthrough
     (set! parsed-nodes (for/list ((node parsed-nodes))
@@ -366,7 +371,7 @@
         (begin
           ;;(error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
-          ;(printf "       waiting on address.....\n")
+          ;;(printf "       waiting on address.....\n")
           (compile-call-or-jump)
           (set! cell (make-new-address-cell))
           (add-to-waiting word cell)

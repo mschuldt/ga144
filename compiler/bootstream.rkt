@@ -174,10 +174,29 @@
   (define code (if start-node
                    (get-used-portion (node-mem start-node))
                    (vector)))
+  (define nothing (vector))
   (define frame2 (vector-append
                   (vector (or (and start-node
                                    (node-p start-node)) 0) 0 (vector-length code))
-                  code))
+                  code
+                  ;; ;boot descriptors for first node
+                  ;; (if (and start-node (node-a start-node))
+                  ;;     (vector (word "@p" "a!" "." ".")
+                  ;;             (word (node-a start-node)))
+                  ;;     nothing)
+                  ;; ;; set io
+                  ;; (if (and start-node (node-io start-node))
+                  ;;     (vector (word "@p" "@p" "b!" ".")
+                  ;;             (node-io start-node)
+                  ;;             (word #x15D) ;; io
+                  ;;             (word "!b" "." "." "."))
+                  ;;     nothing)
+                  ;; ;; set b
+                  ;; (if (and start-node (node-b start-node))
+                  ;;     (vector (word "@p" "b!" "." ".")
+                  ;;             (word (node-b start-node)))
+                  ;;     nothing)
+                  ))
   (vector-append frame1 frame2))
 
 (define (make-bootstream assembled)

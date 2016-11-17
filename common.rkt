@@ -6,7 +6,8 @@
 
 (provide (all-defined-out))
 
-(define num-words 64)
+(define num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
+
 (define num-nodes 144)
 
 (define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
@@ -314,7 +315,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
-(define auto-nop-insertion #t)
+(define auto-nop-insertion #f)
 
 (define compile-0-as-dup-dup-or #f)
 (define reorder-words-with-fallthrough #f)

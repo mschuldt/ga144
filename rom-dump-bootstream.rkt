@@ -69,8 +69,8 @@
 
 ;;(printf code)
 
-(define compiled (compile code))
-(define assembled (assemble compiled))
+(define c (compile code))
+(define assembled (assemble c))
 
 (define (pad-print thing [pad 20])
   (let* ((s (format "~a" thing))
