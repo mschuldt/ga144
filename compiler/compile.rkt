@@ -96,6 +96,8 @@
   (set! current-tok-line #f)
   (set! current-tok-col #f)
 
+  (map check-for-undefined-words used-nodes)
+
   (compiled (map remove-address-cells used-nodes)
             (or bootstream-type default-bootstream-type)))
 
@@ -172,7 +174,7 @@
 (define rom #f) ;; ROM word definitions -> addresses
 
 (define (add-word! name addr)
-  (define cell (make-new-address-cell addr))
+  (define cell (make-new-address-cell addr name))
   (set-node-symbols! current-node
                      (cons (symbol name addr current-tok-line current-tok-col)
                            (node-symbols current-node)))
@@ -364,20 +366,21 @@
           (compile-call-or-jump)
           (add-to-next-slot (if (mpair? addr)
                                 addr
-                                (make-new-address-cell addr)))
+                                (make-new-address-cell addr word)))
           (unless (= current-slot 0)
             (goto-next-word)))
         ;;else
         (begin
-          ;;(error (format "word '~a' is not defined yet" word));;TODO
           (when DEBUG? (printf "       waiting on address....\n"))
-          ;;(printf "       waiting on address.....\n")
           (compile-call-or-jump)
-          (set! cell (make-new-address-cell))
+          (set! cell (make-new-address-cell #f word))
           (add-to-waiting word cell)
           (add-to-next-slot cell)
           (unless (= current-slot 0)
             (goto-next-word))))))
+
+;;TODO:
+;; support for calling remote words in nodes that are defined later in the program
 
 (define (get-remote-addr word coord)
   (define node (vector-ref nodes (coord->index coord))) ;;TODO: validate COORD
@@ -413,10 +416,24 @@
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
 
-(define (make-new-address-cell [val #f])
-  (define cell (mcons val (mcons next-addr null)))
+(define (make-new-address-cell val [name #f])
+  ;; name is an optional tag, usually the name of the word, that discribes the address.)
+  ;; it is use for debug only
+  (define cell (mcons val (mcons next-addr (mcons name null))))
   (set! address-cells (set-add address-cells cell))
   cell)
+
+(define (check-for-undefined-words node)
+  (define addr-cells (node-address-cells node))
+  (for ((word (node-mem node)))
+       (when (vector? word)
+         (when (vector? word)
+           (for ((slot word))
+                (when (and (mpair? slot)
+                           (not (mcar slot))
+                           (mcar (mcdr (mcdr slot))))
+                  (error (format "Undefined function: '~a' in node ~a" (mcar (mcdr (mcdr slot)))
+                                 (node-coord node)))))))))
 
 (define (remove-address-cells node)
   ;; unwrap mcons address cells
@@ -438,10 +455,10 @@
     (when (vector? word)
       (for ((slot word)
             (slot-index 4))
-        (when (mpair? slot)
+           (when (mpair? slot)
           (set! addr (mcar slot))
           (when (not addr)
-            (error (format "remove-address-cells -- invalid address: ~a" addr)))
+            (error (format "remove-address-cells -- invalid address '~a' for '~a'" addr (mcar (mcdr (mcdr slot))))))
 
           (if (not (address-fits? addr (sub1 slot-index) (mcar (mcdr slot))))
               (begin
@@ -617,7 +634,7 @@
     (unless (address-fits? addr current-slot)
       (fill-rest-with-nops))
     (add-to-next-slot inst)
-    (add-to-next-slot (make-new-address-cell addr))
+    (add-to-next-slot (make-new-address-cell addr inst))
     (unless (= current-slot 0)
       (goto-next-word))))
 
@@ -724,7 +741,7 @@
  "then"
  (lambda ()
    (fill-rest-with-nops)
-   (add-to-slot (pop stack) (make-new-address-cell current-addr))))
+   (add-to-slot (pop stack) (make-new-address-cell current-addr "then"))))
 
 ;;org (n)
 ;;sets the compiler's location counter to a given address at
