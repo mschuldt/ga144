@@ -45,7 +45,7 @@
     (if (list? first-char)
         (let ((tok (list->string (reverse (iter first-char)))))
           (token tok line-no col-no))
-	(token first-char line-no col-no))))
+        (token first-char line-no col-no))))
 
 (define (forth-read-char)
   (let ((char (read-char)))
@@ -59,9 +59,9 @@
     (lambda ([tok #f] [line -1] [col -1])
       (if tok
           (set! stack (cons (token tok line col) stack))
-	  (if (null? stack)
-	      (read-token (current-input-port))
-	      (begin0 (car stack)
+          (if (null? stack)
+              (read-token (current-input-port))
+              (begin0 (car stack)
                 (set! stack (cdr stack))))))))
 
 (define forth-read (make-reader))

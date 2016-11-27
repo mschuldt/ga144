@@ -99,7 +99,7 @@
         ;;TODO: stop when everything is suspended
         (and (send c step-program-n! n)
              (and (not cli-active?)
-                enter-cli-on-breakpoint?)
+                  enter-cli-on-breakpoint?)
              (enter-cli)))))
 
 (define (reset! [chip #f])

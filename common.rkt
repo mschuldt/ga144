@@ -145,7 +145,7 @@
 (struct node (coord mem len [symbols #:auto] [word-dict #:auto]
                     [a #:auto] [b #:auto] [io #:auto] [stack #:auto] [p #:auto]
                     [address-cells #:auto] [consts #:auto])
-        #:mutable #:transparent)
+  #:mutable #:transparent)
 ;; 'coord' is the node coordinate this code belongs to
 ;; 'mem' is the vector of compiled words
 ;; 'len' is how many instructions are used in mem. len <= length(mem)
@@ -195,15 +195,15 @@
   (let ([x (remainder coord 100)]
         [y (quotient coord 100)])
     (cond
-     [(equal? dir "north")
-      (if (= (modulo y 2) 0) "down" "up")]
-     [(equal? dir "south")
-      (if (= (modulo y 2) 0) "up" "down")]
-     [(equal? dir "east")
-      (if (= (modulo x 2) 0) "right" "left")]
-     [(equal? dir "west")
-      (if (= (modulo x 2) 0) "left" "right")]
-     [else (raise "convert-direction: invalid direction")])))
+      [(equal? dir "north")
+       (if (= (modulo y 2) 0) "down" "up")]
+      [(equal? dir "south")
+       (if (= (modulo y 2) 0) "up" "down")]
+      [(equal? dir "east")
+       (if (= (modulo x 2) 0) "right" "left")]
+      [(equal? dir "west")
+       (if (= (modulo x 2) 0) "left" "right")]
+      [else (raise "convert-direction: invalid direction")])))
 
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
@@ -291,7 +291,7 @@
                         thing)
                        ((number? thing)
                         (number->string thing))
-                                        ;(else (raise "invalid thing"))
+                       ;(else (raise "invalid thing"))
                        (else (format "~a" thing))
                        ))
                ","))

@@ -423,8 +423,8 @@
       (when (> num-gpio-pins 0)
         ;;add the gpio bits to the io read mask
         (set! io-read-mask
-          (vector-ref (vector #f #x20000 #x20002 #x2000a #x2002a)
-                      num-gpio-pins)))
+              (vector-ref (vector #f #x20000 #x20002 #x2000a #x2002a)
+                          num-gpio-pins)))
       ;;add the status bits
       (when (vector-ref ludr-port-nodes 0)
         (set! io-read-mask (ior io-read-mask #x1800)))
