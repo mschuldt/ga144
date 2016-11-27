@@ -654,6 +654,11 @@
 ;;If T is negative, program flow continues; otherwise jumps to a. Used like 'until'
 (add-directive! "-until" (lambda () (compile-next-type "-if")))
 
+;;unext (a)
+;;ends a micronext loop. Since the loop occurs entirely within a single
+;;instruction word, the address is superfluous; it is present only so that the
+;;form "<n> for ... unext" may be written. The micronext opcode may be compiled
+;;into any of the four slots.
 (add-directive!
  "unext"
  (lambda ()
@@ -960,9 +965,3 @@
       (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
   (display-node (compiled-nodes compiled)))
-
-;;unext (a)
-;;ends a micronext loop. Since the loop occurs entirely within a single
-;;instruction word, the address is superfluous; it is present only so that the
-;;form "<n> for ... unext" may be written. The micronext opcode may be compiled
-;;into any of the four slots.
