@@ -6,14 +6,12 @@ Usage:
 3. Run the script that print sensor readings sent from USB C on the eval board.
    python sensortag-listen.py USB_C 460800
 3. compile and load:
-    ./cal sensortag.aforth USB_A 460800
+    ./cal sensortag.aforth USB_A -s 460800 -b async-target
 Replace USB_A and USB_C with the actual port names. This can be found with dmesg 
 The listen script must be started before loading.
-
 )
 
 node 709 ( i2c timing )
-bootstream async-target
 /p 3 /b io /a up
 
 (

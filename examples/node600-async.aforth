@@ -10,8 +10,7 @@ wire pin J30.4 to pin J23.11
 
 on eval board, bootstream is loaded into port A, data is read from port C
 )
-
-bootstream async-target
+( ./cal node600-async.aforth /dev/ttyUSB0 -s 460800 -b async-target )
 
 node 600
 
