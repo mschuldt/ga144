@@ -353,28 +353,32 @@
           (add-to-next-slot "jump")
           (begin (add-to-next-slot "call")
                  (and next (unread-tok next))))))
-  (let ([addr (or address (get-word-address word))]
-        [cell #f])
-    (if addr
-        (begin
-          (unless (address-fits? (if (mpair? addr) (mcar addr) addr) current-slot)
-            (fill-rest-with-nops))
-          (when DEBUG? (printf "       address = ~a\n" addr))
-          (compile-call-or-jump)
-          (add-to-next-slot (if (mpair? addr)
-                                addr
-                                (make-new-address-cell addr word)))
-          (unless (= current-slot 0)
-            (goto-next-word)))
-        ;;else
-        (begin
-          (when DEBUG? (printf "       waiting on address....\n"))
-          (compile-call-or-jump)
-          (set! cell (make-new-address-cell #f word))
-          (add-to-waiting word cell)
-          (add-to-next-slot cell)
-          (unless (= current-slot 0)
-            (goto-next-word))))))
+  (let* ([compiler-word-p (compiler-word? word)]
+         [addr (and (not compiler-word-p)
+                    (or address (get-word-address word)))]
+         [cell #f])
+    (if compiler-word-p
+        (exec-compiler-word word)
+        (if addr
+            (begin
+              (unless (address-fits? (if (mpair? addr) (mcar addr) addr) current-slot)
+                (fill-rest-with-nops))
+              (when DEBUG? (printf "       address = ~a\n" addr))
+              (compile-call-or-jump)
+              (add-to-next-slot (if (mpair? addr)
+                                    addr
+                                    (make-new-address-cell addr word)))
+              (unless (= current-slot 0)
+                (goto-next-word)))
+            ;;else
+            (begin
+              (when DEBUG? (printf "       waiting on address....\n"))
+              (compile-call-or-jump)
+              (set! cell (make-new-address-cell #f word))
+              (add-to-waiting word cell)
+              (add-to-next-slot cell)
+              (unless (= current-slot 0)
+                (goto-next-word)))))))
 
 ;;TODO:
 ;; support for calling remote words in nodes that are defined later in the program
@@ -542,6 +546,7 @@
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
+
 ;;forces word alignment
 (add-directive!
  ".."
@@ -582,7 +587,10 @@
  (lambda ()
    (define coord (read-tok-name))
    ;;TODO: validate coord
-   (start-new-node (parse-num coord))))
+   (define x (parse-num coord))
+   (if (not (null? x))
+       (start-new-node )
+       (error (format "invalid noe number: ~a" x)))))
 
 ;;+cy
 ;;forces word alignment then turns P9 on in the location counter. Places in memory
@@ -933,6 +941,88 @@
   (when current-token
     (printf "  (while compiling token '~a')\n" current-token))
   (exit 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compiler words
+
+;; list of words that are executed by the compiler instead of compiled for the f18a
+(define compiler-words (make-hash))
+
+(define compiler-ops (make-hash))
+
+(define (add-compiler-word! name body)
+  (pretty-display (format "adding compiler word: '~a' = " name))
+  (pretty-display body)
+  (hash-set! compiler-words name body))
+
+(define (def-compiler-op! name fn)
+  (hash-set! compiler-ops name fn))
+
+(define (compiler-binop op)
+  (push stack (op (pop stack) (pop stack))))
+
+(define (compiler-unop op)
+  (push stack (op (pop stack))))
+
+(def-compiler-op! "+" (lambda () (compiler-binop +)))
+(def-compiler-op! "sub" (lambda () (compiler-binop -)))
+(def-compiler-op! "*" (lambda () (compiler-binop *)))
+(def-compiler-op! "/" (lambda () (compiler-binop /)))
+(def-compiler-op! "or" (lambda () (compiler-binop bitwise-xor)))
+(def-compiler-op! "ior" (lambda () (compiler-binop bitwise-ior)))
+(def-compiler-op! "-" (lambda () (compiler-unop bitwise-not)))
+
+(def-compiler-op!
+  "dup"
+  (lambda ()
+    (push stack (car stack))))
+
+(def-compiler-op!
+  "lit"
+  (lambda ()
+    (define n (pop stack))
+    ;;assert number
+    (compile-constant! n)))
+
+(define (exec-compiler-word word)
+  (pretty-display (format "Execing compiler word ~a" word))
+  (let ((body (hash-ref compiler-words word)))
+    (define i #f)
+    (define (exec-body body)
+      (unless (null?  body)
+        (define i (car body))
+        (if (number? i)
+            (push stack i)
+            ((hash-ref compiler-ops i)))
+        (exec-body (cdr body))))
+    (exec-body body)))
+
+(define (compiler-word? word)
+  (hash-has-key? compiler-words word))
+
+(add-directive!
+ "::"
+ (lambda ()
+   (let* ([name (read-tok-name)]
+          [body '()]
+          [tok #f]
+          [x #f])
+     ;; Allow redefinition of compiler words
+     ;;  (when (hash-has-key? compiler-words word)
+     ;;    (error (format "redefinition of compiler word '~a' in node ~a"
+     ;;                   word current-node-coord)))
+     (define (read-body)
+       (set! tok (read-tok-name))
+       (unless (equal? tok ";")
+         (cond ((setq x (parse-num tok))
+                (set! body (cons x body)))
+               ;;TODO:DOING: doe snot  recognize 'lit' is it defined? are hte string key comparison working?
+               ((hash-has-key? compiler-ops tok)
+                (set! body (cons tok body)))
+               (else (error (format "Unsupported compiler word op: ~a" tok))))
+         (read-body)))
+     (read-body)
+     (add-compiler-word! name (reverse body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
