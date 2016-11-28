@@ -152,10 +152,9 @@
 ;;       the remaining words in mem are all #f
 ;; 'symbols' a list of symbol structs
 
-(struct compiled (nodes bootstream) #:mutable #:transparent)
+(struct compiled (nodes) #:mutable #:transparent)
 ;; struct to hold compiled code
 ;; 'nodes': list of 'node' structs
-;; 'bootstream': type of bootstream to generate
 
 (struct symbol (name address line col))
 

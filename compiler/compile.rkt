@@ -34,10 +34,6 @@
 (define prev-current-tok-line 0)
 (define prev-current-tok-col 0)
 
-;;type of bootstream, set by the 'bootstream' directive
-(define bootstream-type #f)
-
-
 ;;list of mconses containing word addresses and call/jump address
 (define address-cells #f)
 
@@ -90,7 +86,7 @@
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
 
-  (when DEBUG? (display-compiled (compiled used-nodes default-bootstream-type)))
+  (when DEBUG? (display-compiled (compiled used-nodes)))
 
   ;; errors from this point on are not associated with line numbers
   (set! current-tok-line #f)
@@ -98,8 +94,7 @@
 
   (map check-for-undefined-words used-nodes)
 
-  (compiled (map remove-address-cells used-nodes)
-            (or bootstream-type default-bootstream-type)))
+  (compiled (map remove-address-cells used-nodes)))
 
 (define (compile-file file)
   (call-with-input-file file compile))
@@ -260,7 +255,6 @@
   (set! waiting (make-hash))
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
-  (set! bootstream-type #f)
   (define-named-addresses!))
 
 (define (read-tok)
@@ -866,15 +860,6 @@
    (swap stack)))
 
 ;;NOTE: +node, /ram, and /part are not supported
-
-(add-directive!
- "bootstream"
- (lambda ()
-   (let ((tok (read-tok-name)))
-     (if (member tok bootstream-types)
-         (set! bootstream-type tok)
-         (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
-                        tok (string-join bootstream-types ", ")))))))
 
 (define (define-const name val)
   (when (hash-has-key? current-node-consts name)

@@ -199,8 +199,11 @@
                   ))
   (vector-append frame1 frame2))
 
-(define (make-bootstream assembled)
-  (define type (compiled-bootstream assembled))
+(define (make-bootstream assembled [type default-bootstream-type])
+  (unless (member type bootstream-types)
+    (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
+                   type (string-join bootstream-types ", "))))
+
   (define nodes (compiled-nodes assembled))
   (cond ((equal? type "async")
          (make-async-bootstream nodes))

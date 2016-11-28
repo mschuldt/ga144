@@ -60,19 +60,49 @@ def run_command(cmd):
     #print x
     return eval(x)
 
+default_speed = 460800
+default_bootstream = 'async'
+
+bootstream_types = [ "async", "2wire", "async-target" ]
+
+def print_usage_and_exist():
+    print "usage: ./cal filename port [--speed (default: {})] [--bootstream (default: {})] [--no-listen]".format(default_speed, default_bootstream)
+    exit(1)
+
 if __name__ == "__main__":
-    speed = 460800
+
     #speed = 921600
-    if len(argv) not in [3,4,5]:
-        print "usage: ./cal filename port [speed={}] [--no-listen]".format(speed)
-        exit(1)
+    if len(argv) not in [3, 4, 5, 7]:
+        print_usage_and_exist()
 
     filename = argv[1]
     port = argv[2]
-    if len(argv) == 4:
-        speed = int(argv[3])
 
-    cmd = "racket dump -b " + argv[1]
+    speed = default_speed
+    bootstream = default_bootstream
+
+
+    argv = argv[3:]
+    serial_listen = True
+    if "--no-listen" in argv:
+        arg.remove("--no-listen")
+        serial_listen = False
+    if not (len(argv) % 2 == 0):
+        print_usage_and_exist()
+
+    while argv:
+        arg = argv.pop(0)
+        if arg == "--speed" or arg == "-s":
+            speed = int(argv.pop(0))
+        elif arg == "--bootstream" or arg == "-b":
+            bootstream_type = argv.pop(0)
+            if bootstream_type not in bootstream_types:
+                print "invalid bootstream type:", bootstream_type
+                exit(1)
+        else:
+            print "invalid option: ", arg
+
+    cmd = "racket dump --bootstream {} {}".format(bootstream_type, filename)
     compiled = run_command(cmd)
     bootstream = compiled['bootstream']
     print "Writing bootstream ({} bytes)...".format(len(bootstream))
@@ -83,9 +113,9 @@ if __name__ == "__main__":
     target = None #Serial("/dev/ttyUSB4", 921600)
     write("".join(map(chr, bootstream)), host)
 
-    if "--no-listen" not in argv:
+    if serial_listen:
         listen(port, speed, host)
     host.close()
 
 
-# ./cal test.aforth /dev/ttyUSB3 460800
+# ./cal test.aforth /dev/ttyUSB3 --speed 460800 --bootstream async-target
