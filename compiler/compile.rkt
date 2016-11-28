@@ -286,8 +286,10 @@
   (and tok (token-tok tok)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define current-token #f)
 
 (define (compile-token token)
+  (set! current-token (token-tok token))
   (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
                        (token-tok token) current-addr current-slot next-addr))
   (let ((x #f)
@@ -301,6 +303,7 @@
           [(setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x))]
           [(node-const? tok) (compile-node-const tok)]
           [else (compile-call! tok)])
+    (set! current-token #f)
     tok))
 
 (define (org n)
@@ -933,10 +936,12 @@
 
 
 (define (error msg)
-  (pretty-display (if (and current-tok-line current-tok-col)
-                      (format "ERROR[~a:~a] ~a"
-                              current-tok-line current-tok-col msg)
-                      (format "ERROR ~a" msg)))
+  (printf "ERROR")
+  (when (and current-tok-line current-tok-col)
+    (printf (format "[~a:~a]" current-tok-line current-tok-col)))
+  (printf (format " ~a\n" msg))
+  (when current-token
+    (printf "  (while compiling token '~a')\n" current-token))
   (exit 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
