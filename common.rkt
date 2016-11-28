@@ -233,8 +233,11 @@
        (pretty-display "ERROR: pop -- list is empty")
        (begin0 (car ,list) (set! ,list (cdr ,list)))))
 
-(defmacro swap (list)
-  `(set! ,list (cons (cadr ,list) (cons (car ,list) (cddr ,list)))))
+(defmacro swap (stack)
+  `(if (> (length ,stack) 1)
+       (set! ,stack (cons (cadr ,stack) (cons (car ,stack) (cddr ,stack))))
+       (error "swap! requires stack depth of 2")))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

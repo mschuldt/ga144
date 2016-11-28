@@ -860,7 +860,12 @@
          (set! len (sub1 len))))
      (set-node-stack! current-node (reverse stack)))))
 
-;;NOTE: +node, /ram, and /part are note supported
+(add-directive!
+ "swap!"
+ (lambda ()
+   (swap stack)))
+
+;;NOTE: +node, /ram, and /part are not supported
 
 (add-directive!
  "bootstream"
