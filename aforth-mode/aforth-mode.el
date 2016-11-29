@@ -89,6 +89,9 @@
 
 (setq aforth-font-lock-keywords
       `(;;word definitions
+        ("\\(::\\)[ \t\n]+\\([a-zA-Z0-9_+!@.*/\-]+\\)"
+	 (1 aforth-directive-face)
+	 (2 aforth-directive-face))
 	("\\(:\\)[ \t\n]+\\([a-zA-Z0-9_+!@.*/\-]+\\)"
 	 (1 aforth-word-face)
 	 (2 aforth-word-face))
