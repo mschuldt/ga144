@@ -349,8 +349,8 @@
   (check-dat 2 3 1 default))
 
 (define-test "a-fetch-inc"
-  "node 1 6 a! @+ @+ @+ 0 if 2 3 4 5 10 then"
-  (check-dat 1 0 4 3 2 default))
+  "node 1 5 a! @+ @+ @+ warm 2 3 4 5 10"
+  (check-dat 1 4 3 2 default))
 
 (define-test "a-store-inc"
   "node 1 1 1 1 10 20 30 0 a! !+ !+ !+"
