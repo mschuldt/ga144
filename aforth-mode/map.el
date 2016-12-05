@@ -33,23 +33,29 @@
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+"		'ga144-inc-node-size)
+        (define-key map "="		'ga144-inc-node-size)
         (define-key map "-"		'ga144-dec-node-size)
         (define-key map (kbd "<up>") 'ga144-move-up)
-        (define-key map (kbd "C-p") 'ga144-move-up)
         (define-key map (kbd "<down>") 'ga144-move-down)
-        (define-key map (kbd "C-n") 'ga144-move-down)
         (define-key map (kbd "<left>") 'ga144-move-left)
-        (define-key map (kbd "C-b") 'ga144-move-left)
         (define-key map (kbd "<right>") 'ga144-move-right)
-        (define-key map (kbd "C-f") 'ga144-move-right)
         (define-key map (kbd "C-x C-s") 'ga144-save)
         (define-key map (kbd "C-e") 'ga144-move-right-end)
         (define-key map (kbd "C-a") 'ga144-move-left-end)
-        (define-key map (kbd "M-<") 'ga144-move-top)
+        (define-key map (kbd "C-b") 'ga144-move-left)
+        (define-key map (kbd "M-b") 'ga144-move-left-half)
+        (define-key map (kbd "C-f") 'ga144-move-right)
+        (define-key map (kbd "M-f") 'ga144-move-right-half)
+        (define-key map (kbd "C-p") 'ga144-move-up)
+        (define-key map (kbd "M-p") 'ga144-move-top-half)
+        (define-key map (kbd "C-n") 'ga144-move-down)
+        (define-key map (kbd "M-n") 'ga144-move-bottom-half)
         (define-key map (kbd "M-<") 'ga144-move-top)
         (define-key map (kbd "M->") 'ga144-move-bottom)
-
         map))
+
+
+
 
 (defface ga144-coord-face '((((background light)) (:foreground "yellow"))
                             (((background dark)) (:foreground "yellow")))
@@ -316,6 +322,22 @@
   (interactive)
   (ga144-move-selected-node (- (mod ga144-current-coord 100))))
 
+(defun ga144-move-left-half ()
+  (interactive)
+  (ga144-move-selected-node (1- (/ (- (mod ga144-current-coord 100)) 2))))
+
+(defun ga144-move-right-half ()
+  (interactive)
+  (ga144-move-selected-node (/ (- 17 (1- (mod ga144-current-coord 100))) 2)))
+
+(defun ga144-move-top-half ()
+  (interactive)
+  (ga144-move-selected-node (* (/ (- 7 (1- (/ ga144-current-coord 100))) 2) 100)))
+
+(defun ga144-move-bottom-half ()
+  (interactive)
+  (ga144-move-selected-node (- (* (1+ (/ (/ ga144-current-coord 100) 2)) 100))))
+
 (defun ga144-move-top ()
   (interactive)
   (ga144-move-selected-node (* (- 7 (/ ga144-current-coord 100)) 100)))
@@ -325,10 +347,17 @@
   (ga144-move-selected-node (- (* (/ ga144-current-coord 100) 100))))
 
 
+(defun ga144-valid-coord-p (coord)
+  (and (>= coord 0)
+       (< (mod coord 100) 18)
+       (< (/ coord 100) 8)))
+
 (defun ga144-move-selected-node (n)
-  (setq ga144-prev-coord ga144-current-coord
-        ga144-current-coord (+ ga144-current-coord n))
-  (update-position))
+  (let ((next (+ ga144-current-coord n)))
+    (when (ga144-valid-coord-p next)
+      (setq ga144-prev-coord ga144-current-coord
+            ga144-current-coord next)
+      (update-position))))
 
 (defun move-selected-node-overlay (from to)
   (let ((node-from (coord->node from))
