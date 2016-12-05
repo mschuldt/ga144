@@ -278,26 +278,24 @@
 
 (defun ga144-move-left ()
   (interactive)
-  (setq ga144-prev-coord ga144-current-coord
-        ga144-current-coord (- ga144-current-coord 1))
-  (update-position))
+  (ga144-move-selected-node -1))
 
 (defun ga144-move-right ()
   (interactive)
-  (setq ga144-prev-coord ga144-current-coord
-        ga144-current-coord (+ ga144-current-coord 1))
-  (update-position))
+  (ga144-move-selected-node 1))
 
 (defun ga144-move-up ()
   (interactive)
-  (setq ga144-prev-coord ga144-current-coord
-        ga144-current-coord (+ ga144-current-coord 100))
-  (update-position))
+  (ga144-move-selected-node 100))
 
 (defun ga144-move-down ()
   (interactive)
+  (ga144-move-selected-node -100))
+
+
+(defun ga144-move-selected-node (n)
   (setq ga144-prev-coord ga144-current-coord
-        ga144-current-coord (- ga144-current-coord 100))
+        ga144-current-coord (+ ga144-current-coord n))
   (update-position))
 
 (defun move-selected-node-overlay (from to)
@@ -316,6 +314,7 @@
 (defun update-position ()
   ;;(setq ga144-modified-p t)
   ;;(ga144-move-to-node ga144-current-coord 'middle)
+  (setq ga144-prev-coord (or ga144-prev-coord 0))
   (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
   (message "current coord: %s" ga144-current-coord))
 
