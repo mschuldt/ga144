@@ -35,10 +35,20 @@
         (define-key map "+"		'ga144-inc-node-size)
         (define-key map "-"		'ga144-dec-node-size)
         (define-key map (kbd "<up>") 'ga144-move-up)
+        (define-key map (kbd "C-p") 'ga144-move-up)
         (define-key map (kbd "<down>") 'ga144-move-down)
+        (define-key map (kbd "C-n") 'ga144-move-down)
         (define-key map (kbd "<left>") 'ga144-move-left)
+        (define-key map (kbd "C-b") 'ga144-move-left)
         (define-key map (kbd "<right>") 'ga144-move-right)
+        (define-key map (kbd "C-f") 'ga144-move-right)
         (define-key map (kbd "C-x C-s") 'ga144-save)
+        (define-key map (kbd "C-e") 'ga144-move-right-end)
+        (define-key map (kbd "C-a") 'ga144-move-left-end)
+        (define-key map (kbd "M-<") 'ga144-move-top)
+        (define-key map (kbd "M-<") 'ga144-move-top)
+        (define-key map (kbd "M->") 'ga144-move-bottom)
+
         map))
 
 (defface ga144-coord-face '((((background light)) (:foreground "yellow"))
@@ -297,6 +307,22 @@
 (defun ga144-move-down ()
   (interactive)
   (ga144-move-selected-node -100))
+
+(defun ga144-move-right-end ()
+  (interactive)
+  (ga144-move-selected-node (- 17 (mod ga144-current-coord 100))))
+
+(defun ga144-move-left-end ()
+  (interactive)
+  (ga144-move-selected-node (- (mod ga144-current-coord 100))))
+
+(defun ga144-move-top ()
+  (interactive)
+  (ga144-move-selected-node (* (- 7 (/ ga144-current-coord 100)) 100)))
+
+(defun ga144-move-bottom ()
+  (interactive)
+  (ga144-move-selected-node (- (* (/ ga144-current-coord 100) 100))))
 
 
 (defun ga144-move-selected-node (n)
