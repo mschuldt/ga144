@@ -75,6 +75,8 @@
           (ga144-create-new))
         (ga144-render)
         (read-only-mode 1)
+        (setq visible-cursor nil
+              cursor-type nil)
         (setq font-lock-defaults '((ga144-font-lock-keywords))))
     (message "ga144-mode: invalid file format")))
 
@@ -89,6 +91,7 @@
         (col (coord->col coord)))
     (next-line (+ (* row  ga144-node-size) (if middle (/ ga144-node-size 2) 0)))
     (forward-char (+ (* col ga144-node-size) (if middle (floor (/ ga144-node-size 2)) 0)))))
+
 
 (defun ga144-draw-map ()
   (read-only-mode -1)
