@@ -74,6 +74,7 @@
         (unless ga144-nodes
           (ga144-create-new))
         (ga144-render)
+        (read-only-mode 1)
         (setq font-lock-defaults '((ga144-font-lock-keywords))))
     (message "ga144-mode: invalid file format")))
 
@@ -90,6 +91,7 @@
     (forward-char (+ (* col ga144-node-size) (if middle (floor (/ ga144-node-size 2)) 0)))))
 
 (defun ga144-draw-map ()
+  (read-only-mode -1)
   (erase-buffer)
   (goto-char 1)
   (let (x coord s l o)
@@ -112,6 +114,7 @@
       (setq o (ga144-node-coord-overlay node))
       (move-overlay o (- (point) l) (point))
       (setf (ga144-node-coord-overlay node) o))
+    (read-only-mode 1)
     (ga144-create-overlays)))
 
 (defun test ()
