@@ -268,8 +268,11 @@
 
 (defun ga144-dec-node-size ()
   (interactive)
-  (setq ga144-node-size (1- ga144-node-size))
-  (ga144-render))
+  (if (> ga144-node-size 3)
+      (progn
+        (setq ga144-node-size (1- ga144-node-size))
+        (ga144-render))
+    (message "Map is cannot be made smaller")))
 
 (defun create-ga144-map (&optional size)
   (let ((size (or size ga144-default-node-size))
