@@ -55,8 +55,6 @@
         map))
 
 
-
-
 (defface ga144-coord-face '((((background light)) (:foreground "yellow"))
                             (((background dark)) (:foreground "yellow")))
   "Default face for GA144 node coordinates") ;;TODO: bold
@@ -134,26 +132,27 @@
   (interactive)
   (setq _x ga144-nodes))
 
-(defface ga144-node-coord-face '((((background light)) (:foreground "yellow"))
-                                 (((background dark)) (:foreground "yellow")))
+(defface ga144-node-coord-face-5 '((((background light)) (:foreground "black")) ;;gold1
+                                    (((background dark)) (:foreground "black"))
+                                    (t (:bold t)))
   "ga144 face for node coordinate numbers")
 
-(defface ga144-default-face-11 '((((background light)) (:foreground "green"))
-                                 (((background dark)) (:foreground "green")))
+(defface ga144-default-face-13 '((((background light)) (:background "LightSkyBlue1"))
+                                 (((background dark)) (:background "LightSkyBlue1")))
   "default ga144 node face 1")
 
-(defface ga144-default-face-22 '((((background light)) (:foreground "blue"))
-                                 (((background dark)) (:foreground "blue")))
+(defface ga144-default-face-24 '((((background light)) (:background "LightSkyBlue2"))
+                                 (((background dark)) (:background "LightSkyBlue2")))
   "default ga144 node face 2")
 
-(defface ga144-select-face '((((background light)) (:foreground "red"))
-                             (((background dark)) (:foreground "red")))
+(defface ga144-select-face-2 '((((background light)) (:background "SeaGreen3"))
+                                (((background dark)) (:background "SeaGreen3")))
   "default ga144 selected node face")
 
-(setq ga144-node-coord-face 'ga144-node-coord-face)
-(setq ga144-default-face-1 'ga144-default-face-11)
-(setq ga144-default-face-2 'ga144-default-face-22)
-(setq ga144-select-face 'ga144-select-face)
+(setq ga144-node-coord-face 'ga144-node-coord-face-5)
+(setq ga144-default-face-1 'ga144-default-face-13)
+(setq ga144-default-face-2 'ga144-default-face-24)
+(setq ga144-select-face 'ga144-select-face-2)
 
 (defun ga144-delete-overlays ()
   (let (o overlays coord face column)
