@@ -89,6 +89,7 @@
         (eval-buffer)
         (unless ga144-nodes
           (ga144-create-new))
+        (message "Loading GA144 project map...")
         (ga144-render)
         (read-only-mode 1)
         (setq visible-cursor nil
