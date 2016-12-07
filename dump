@@ -171,7 +171,7 @@
     (printf "\n\n__________________ node ~a ____________________\n" coord)
     (printf "P = ~a\n" (n (or (node-p node) 0)))
     (printf "     Compiled            Assembled    Disassembled\n")
-    (for ((i 64))
+    (for ((i (node-len node)))
       (set! word (vector-ref comp i))
       (unless (equal? word (vector #f #f #f #f))
         (set! name (get-name symbols i))
