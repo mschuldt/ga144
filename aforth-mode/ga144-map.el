@@ -1,3 +1,6 @@
+(require 'cl)
+(require 'gv)
+
 (setq ga144-map-buffer "*GA144-map*")
 (setq ga144-default-node-size 3)
 (setq ga144-node-size ga144-default-node-size)
