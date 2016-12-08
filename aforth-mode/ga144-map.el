@@ -29,66 +29,32 @@
 (make-variable-buffer-local 'ga144-project-aforth-file-overlay)
 (make-variable-buffer-local 'ga144-has-unsaved-changes)
 
-(setq ga144-mode-map
-      (let ((map (make-sparse-keymap 'ga144-mode-map)))
-        (define-key map "+"		'ga144-inc-node-size)
-        (define-key map "="		'ga144-inc-node-size)
-        (define-key map "-"		'ga144-dec-node-size)
-        (define-key map (kbd "<up>") 'ga144-move-up)
-        (define-key map (kbd "<down>") 'ga144-move-down)
-        (define-key map (kbd "<left>") 'ga144-move-left)
-        (define-key map (kbd "<right>") 'ga144-move-right)
-        (define-key map (kbd "C-x C-s") 'ga144-save)
-        (define-key map (kbd "C-e") 'ga144-move-right-end)
-        (define-key map (kbd "C-a") 'ga144-move-left-end)
-        (define-key map (kbd "C-b") 'ga144-move-left)
-        (define-key map (kbd "M-b") 'ga144-move-left-half)
-        (define-key map (kbd "C-f") 'ga144-move-right)
-        (define-key map (kbd "M-f") 'ga144-move-right-half)
-        (define-key map (kbd "C-p") 'ga144-move-up)
-        (define-key map (kbd "M-p") 'ga144-move-top-half)
-        (define-key map (kbd "C-n") 'ga144-move-down)
-        (define-key map (kbd "M-n") 'ga144-move-bottom-half)
-        (define-key map (kbd "M-<") 'ga144-move-top)
-        (define-key map (kbd "M->") 'ga144-move-bottom)
-        (define-key map (kbd "<return>") 'ga144-goto-current-node)
-        (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
-        map))
-
 (setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord ga144-project-aforth-file))
 
 
-(define-derived-mode ga144-mode nil "GA144"
-  "A major mode for programming the GA144."
+(defface ga144-node-coord-face-5 '((((background light)) (:foreground "black")) ;;gold1
+                                   (((background dark)) (:foreground "black"))
+                                   (t (:bold t)))
+  "ga144 face for node coordinate numbers")
 
-  (use-local-map ga144-mode-map)
-  (setq show-trailing-whitespace nil)
+(defface ga144-default-face-13 '((((background light)) (:background "LightSkyBlue1"))
+                                 (((background dark)) (:background "LightSkyBlue1")))
+  "default ga144 node face 1")
 
-  (if (string-match "ga144$" buffer-file-name)
-      (progn
-        (setq ga144-project-file buffer-file-name)
-        (setq ga144-project-name (file-name-base buffer-file-name))
-        (setq ga144-project-aforth-files (ga144-aforth-files (file-name-directory  buffer-file-name)))
-        (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
-        (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
-        (setq ga144-node-size ga144-default-node-size)
+(defface ga144-default-face-24 '((((background light)) (:background "LightSkyBlue2"))
+                                 (((background dark)) (:background "LightSkyBlue2")))
+  "default ga144 node face 2")
 
-        (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
-          (when (get-buffer buffer-name)
-            (kill-buffer buffer-name))
-          (rename-buffer buffer-name))
-        (setq buffer-file-name nil
-              ga144-nodes nil
-              ga144-current-coord nil)
-        (eval-buffer)
-        (unless ga144-nodes
-          (ga144-create-new))
-        (message "Loading GA144 project map...")
-        (ga144-render)
-        (read-only-mode 1)
-        (setq visible-cursor nil
-              cursor-type nil))
-    (message "ga144-mode: invalid file format")))
+(defface ga144-select-face-2 '((((background light)) (:background "SeaGreen3"))
+                               (((background dark)) (:background "SeaGreen3")))
+  "default ga144 selected node face")
+
+(setq ga144-node-coord-face 'ga144-node-coord-face-5)
+(setq ga144-default-face-1 'ga144-default-face-13)
+(setq ga144-default-face-2 'ga144-default-face-24)
+(setq ga144-select-face 'ga144-select-face-2)
+
+
 
 (defun ga144-get-project-file-buffer (filepath)
   (let ((buff (find-buffer-visiting filepath)))
@@ -149,31 +115,6 @@
     (read-only-mode 1)
     (ga144-create-overlays)))
 
-(defun test ()
-  (interactive)
-  (setq _x ga144-nodes))
-
-(defface ga144-node-coord-face-5 '((((background light)) (:foreground "black")) ;;gold1
-                                    (((background dark)) (:foreground "black"))
-                                    (t (:bold t)))
-  "ga144 face for node coordinate numbers")
-
-(defface ga144-default-face-13 '((((background light)) (:background "LightSkyBlue1"))
-                                 (((background dark)) (:background "LightSkyBlue1")))
-  "default ga144 node face 1")
-
-(defface ga144-default-face-24 '((((background light)) (:background "LightSkyBlue2"))
-                                 (((background dark)) (:background "LightSkyBlue2")))
-  "default ga144 node face 2")
-
-(defface ga144-select-face-2 '((((background light)) (:background "SeaGreen3"))
-                                (((background dark)) (:background "SeaGreen3")))
-  "default ga144 selected node face")
-
-(setq ga144-node-coord-face 'ga144-node-coord-face-5)
-(setq ga144-default-face-1 'ga144-default-face-13)
-(setq ga144-default-face-2 'ga144-default-face-24)
-(setq ga144-select-face 'ga144-select-face-2)
 
 (defun ga144-delete-overlays ()
   (let (o overlays coord face column)
@@ -411,6 +352,65 @@
   (setq ga144-prev-coord (or ga144-prev-coord 0))
   (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
   (message "current coord: %s" ga144-current-coord))
+
+
+(setq ga144-mode-map
+      (let ((map (make-sparse-keymap 'ga144-mode-map)))
+        (define-key map "+"		'ga144-inc-node-size)
+        (define-key map "="		'ga144-inc-node-size)
+        (define-key map "-"		'ga144-dec-node-size)
+        (define-key map (kbd "<up>") 'ga144-move-up)
+        (define-key map (kbd "<down>") 'ga144-move-down)
+        (define-key map (kbd "<left>") 'ga144-move-left)
+        (define-key map (kbd "<right>") 'ga144-move-right)
+        (define-key map (kbd "C-x C-s") 'ga144-save)
+        (define-key map (kbd "C-e") 'ga144-move-right-end)
+        (define-key map (kbd "C-a") 'ga144-move-left-end)
+        (define-key map (kbd "C-b") 'ga144-move-left)
+        (define-key map (kbd "M-b") 'ga144-move-left-half)
+        (define-key map (kbd "C-f") 'ga144-move-right)
+        (define-key map (kbd "M-f") 'ga144-move-right-half)
+        (define-key map (kbd "C-p") 'ga144-move-up)
+        (define-key map (kbd "M-p") 'ga144-move-top-half)
+        (define-key map (kbd "C-n") 'ga144-move-down)
+        (define-key map (kbd "M-n") 'ga144-move-bottom-half)
+        (define-key map (kbd "M-<") 'ga144-move-top)
+        (define-key map (kbd "M->") 'ga144-move-bottom)
+        (define-key map (kbd "<return>") 'ga144-goto-current-node)
+        (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
+        map))
+
+(define-derived-mode ga144-mode nil "GA144"
+  "A major mode for programming the GA144."
+
+  (use-local-map ga144-mode-map)
+  (setq show-trailing-whitespace nil)
+
+  (if (string-match "ga144$" buffer-file-name)
+      (progn
+        (setq ga144-project-file buffer-file-name)
+        (setq ga144-project-name (file-name-base buffer-file-name))
+        (setq ga144-project-aforth-files (ga144-aforth-files (file-name-directory  buffer-file-name)))
+        (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
+        (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
+        (setq ga144-node-size ga144-default-node-size)
+
+        (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
+          (when (get-buffer buffer-name)
+            (kill-buffer buffer-name))
+          (rename-buffer buffer-name))
+        (setq buffer-file-name nil
+              ga144-nodes nil
+              ga144-current-coord nil)
+        (eval-buffer)
+        (unless ga144-nodes
+          (ga144-create-new))
+        (message "Loading GA144 project map...")
+        (ga144-render)
+        (read-only-mode 1)
+        (setq visible-cursor nil
+              cursor-type nil))
+    (message "ga144-mode: invalid file format")))
 
 
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga144-mode))
