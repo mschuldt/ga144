@@ -1,11 +1,7 @@
 (require 'cl)
 (require 'gv)
 
-(setq ga144-default-node-size 3)
-(setq ga144-node-size ga144-default-node-size)
-(setq ga144-has-unsaved-changes nil) ;;how to save buffer-local
-
-
+(defvar ga144-default-node-size 3)
 (defvar ga144-project-name nil)
 (defvar ga144-project-file nil)
 (defvar ga144-nodes nil)
@@ -17,6 +13,7 @@
 (defvar ga144-project-aforth-buffers nil)
 (defvar ga144-project-aforth-file nil)
 (defvar ga144-project-aforth-file-overlay nil)
+(defvar ga144-has-unsaved-changes nil)
 
 (make-variable-buffer-local 'ga144-has-changes)
 (make-variable-buffer-local 'ga144-project-name)
@@ -30,6 +27,7 @@
 (make-variable-buffer-local 'ga144-project-aforth-buffers)
 (make-variable-buffer-local 'ga144-project-aforth-file)
 (make-variable-buffer-local 'ga144-project-aforth-file-overlay)
+(make-variable-buffer-local 'ga144-has-unsaved-changes)
 
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
@@ -84,6 +82,7 @@
         (setq ga144-project-aforth-files (ga144-aforth-files (file-name-directory  buffer-file-name)))
         (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
         (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
+        (setq ga144-node-size ga144-default-node-size)
 
         (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
           (when (get-buffer buffer-name)
