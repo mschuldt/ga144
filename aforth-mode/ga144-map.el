@@ -1,7 +1,6 @@
 (require 'cl)
 (require 'gv)
 
-(setq ga144-map-buffer "*GA144-map*")
 (setq ga144-default-node-size 3)
 (setq ga144-node-size ga144-default-node-size)
 (setq ga144-has-unsaved-changes nil) ;;how to save buffer-local
@@ -31,14 +30,7 @@
 (make-variable-buffer-local 'ga144-project-aforth-buffers)
 (make-variable-buffer-local 'ga144-project-aforth-file)
 (make-variable-buffer-local 'ga144-project-aforth-file-overlay)
-;;;file format:
-;;;   <project-name>.ga144
 
-(defun test ()
-  (interactive)
-  (insert "hello!"))
-
-;;(defvar ga144-mode-map
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+"		'ga144-inc-node-size)
@@ -313,28 +305,6 @@
         (ga144-render))
     (message "Map is cannot be made smaller")))
 
-(defun create-ga144-map (&optional size)
-  (let ((size (or size ga144-default-node-size))
-        (x nil))
-    (switch-to-buffer (get-buffer-create ga144-map-buffer))
-    (erase-buffer)
-    (goto-char 1)
-
-    (dotimes (row 8)
-      (setq x (not x))
-      (dotimes (row-height size)
-        (dotimes (c 18)
-          (setq x (not x))
-          (dotimes (c-width size)
-            (insert (if x "x" "="))))
-        (insert "\n")))))
-
-(defun ga144 ()
-  (interactive)
-  (unless (get-buffer ga144-map-buffer)
-    (setq ga144-node-size ga144-default-node-size)
-    (create-ga144-map))
-  (switch-to-buffer ga144-map-buffer))
 
 (defun ga144-move-left ()
   (interactive)
@@ -447,6 +417,7 @@
           (message "GA144 aforth source not set")))
 
     (message "Not in a GA144 project %s" major-mode)))
+
 (defun update-position ()
   ;;(setq ga144-modified-p t)
   ;;(ga144-move-to-node ga144-current-coord 'middle)
@@ -454,8 +425,5 @@
   (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
   (message "current coord: %s" ga144-current-coord))
 
-(defun goto-node ()
-  "jump to the source of the given node"
-  )
 
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga144-mode))
