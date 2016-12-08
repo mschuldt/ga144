@@ -126,7 +126,7 @@
   (goto-char 1)
   (let ((row (- 7 (coord->row coord)))
         (col (coord->col coord)))
-    (next-line (+ (* row  ga144-node-size) (if middle (/ ga144-node-size 2) 0)))
+    (forward-line (+ (* row  ga144-node-size) (if middle (/ ga144-node-size 2) 0)))
     (forward-char (+ (* col ga144-node-size) (if middle (floor (/ ga144-node-size 2)) 0)))))
 
 
@@ -196,7 +196,7 @@
       (overlay-put o 'face face)
       (push o overlays)
       (when (< i (- ga144-node-size 1))
-        (next-line)
+        (forward-line)
         (beginning-of-line)
         (forward-char column)))
     (setf (ga144-node-overlays node) overlays)))
