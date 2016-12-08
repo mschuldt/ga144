@@ -18,6 +18,8 @@
 (def-local ga144-project-aforth-file nil)
 (def-local ga144-project-aforth-file-overlay nil)
 (def-local ga144-has-unsaved-changes nil)
+(def-local ga144-project-aforth-compile-status nil)
+(def-local ga144-project-aforth-compile-status-overlay nil)
 
 (defvar ga144-auto-resize-map-on-window-change t)
 
@@ -86,11 +88,19 @@
       (insert (make-string (* node-size 18) ? ) "\n" ))
     ;; aforth file chars and overlay
     (let ((s "source file: ") p)
-      (insert "\n" (- (* node-size 8) (length s)))
+      (insert "\n" (- (* node-size 8) (1+ (length s))))
       (beginning-of-line)
       (setq p (point))
       (insert s)
       (move-overlay ga144-project-aforth-file-overlay p (point)))
+    ;;compile status overlay
+    (let ((s "Compilation status: ") p)
+      (insert "\n" (- (* node-size 8) (1+ (length s))))
+      (beginning-of-line)
+      (setq p (point))
+      (insert s)
+      (move-overlay ga144-project-aforth-compile-status-overlay p (point)))
+
     ;; set map overlays
     (loop-nodes node
       (setq coord (ga144-node-coord node))
@@ -105,7 +115,10 @@
     ;; set aforth file overlay string
     (overlay-put ga144-project-aforth-file-overlay 'after-string (or ga144-project-aforth-file "None"))
     (read-only-mode 1)
-    (ga144-create-overlays node-size)))
+    (ga144-create-overlays node-size)
+    ;; set compile status overlay string
+    (overlay-put ga144-project-aforth-compile-status-overlay 'after-string  ga144-project-aforth-compile-status)
+    ))
 
 (defun ga144-delete-overlays ()
   (let (o overlays coord face column)
@@ -400,6 +413,8 @@
         (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
         (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga144-node-size ga144-default-node-size)
+        (setq ga144-project-aforth-compile-status "Unknown")
+        (setq ga144-project-aforth-compile-status-overlay (make-overlay 0 1))
 
         (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
           (when (get-buffer buffer-name)
