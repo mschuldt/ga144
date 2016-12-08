@@ -23,20 +23,20 @@
 
 
 (defface ga144-node-coord-face '((((background light)) (:foreground "black")) ;;gold1
-                                   (((background dark)) (:foreground "black"))
-                                   (t (:bold t)))
+                                 (((background dark)) (:foreground "black"))
+                                 (t (:bold t)))
   "ga144 face for node coordinate numbers")
 
 (defface ga144-default-face-1 '((((background light)) (:background "LightSkyBlue1"))
-                                 (((background dark)) (:background "LightSkyBlue1")))
+                                (((background dark)) (:background "LightSkyBlue1")))
   "default ga144 node face 1")
 
 (defface ga144-default-face-2 '((((background light)) (:background "LightSkyBlue2"))
-                                 (((background dark)) (:background "LightSkyBlue2")))
+                                (((background dark)) (:background "LightSkyBlue2")))
   "default ga144 node face 2")
 
 (defface ga144-select-face '((((background light)) (:background "SeaGreen3"))
-                               (((background dark)) (:background "SeaGreen3")))
+                             (((background dark)) (:background "SeaGreen3")))
   "default ga144 selected node face")
 
 (setq ga144-node-coord-face 'ga144-node-coord-face)
