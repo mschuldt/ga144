@@ -32,28 +32,27 @@
 (setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord ga144-project-aforth-file))
 
 
-(defface ga144-node-coord-face-5 '((((background light)) (:foreground "black")) ;;gold1
+(defface ga144-node-coord-face '((((background light)) (:foreground "black")) ;;gold1
                                    (((background dark)) (:foreground "black"))
                                    (t (:bold t)))
   "ga144 face for node coordinate numbers")
 
-(defface ga144-default-face-13 '((((background light)) (:background "LightSkyBlue1"))
+(defface ga144-default-face-1 '((((background light)) (:background "LightSkyBlue1"))
                                  (((background dark)) (:background "LightSkyBlue1")))
   "default ga144 node face 1")
 
-(defface ga144-default-face-24 '((((background light)) (:background "LightSkyBlue2"))
+(defface ga144-default-face-2 '((((background light)) (:background "LightSkyBlue2"))
                                  (((background dark)) (:background "LightSkyBlue2")))
   "default ga144 node face 2")
 
-(defface ga144-select-face-2 '((((background light)) (:background "SeaGreen3"))
+(defface ga144-select-face '((((background light)) (:background "SeaGreen3"))
                                (((background dark)) (:background "SeaGreen3")))
   "default ga144 selected node face")
 
-(setq ga144-node-coord-face 'ga144-node-coord-face-5)
-(setq ga144-default-face-1 'ga144-default-face-13)
-(setq ga144-default-face-2 'ga144-default-face-24)
-(setq ga144-select-face 'ga144-select-face-2)
-
+(setq ga144-node-coord-face 'ga144-node-coord-face)
+(setq ga144-default-face-1 'ga144-default-face-1)
+(setq ga144-default-face-2 'ga144-default-face-2)
+(setq ga144-select-face 'ga144-select-face)
 
 
 (defun ga144-get-project-file-buffer (filepath)
