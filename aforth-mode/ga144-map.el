@@ -55,17 +55,6 @@
         (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
         map))
 
-
-(defface ga144-coord-face '((((background light)) (:foreground "yellow"))
-                            (((background dark)) (:foreground "yellow")))
-  "Default face for GA144 node coordinates") ;;TODO: bold
-
-(setq ga144-coord-face 'ga144-coord-face)
-
-(setq ga144-font-lock-keywords
-      `(("[0-9]\\{1,3\\}" . ga144-coord-face)
-	))
-
 (setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord ga144-project-aforth-file))
 
 
@@ -98,8 +87,7 @@
         (ga144-render)
         (read-only-mode 1)
         (setq visible-cursor nil
-              cursor-type nil)
-        (setq font-lock-defaults '((ga144-font-lock-keywords))))
+              cursor-type nil))
     (message "ga144-mode: invalid file format")))
 
 (defun ga144-get-project-file-buffer (filepath)
