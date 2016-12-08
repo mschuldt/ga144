@@ -14,7 +14,8 @@
 (defvar ga144-prev-coord nil)
 (defvar ga144-modified-p nil)
 (defvar ga144-node-size nil)
-
+(defvar ga144-project-aforth-files nil)
+(defvar ga144-project-aforth-buffers nil)
 
 (make-variable-buffer-local 'ga144-has-changes)
 (make-variable-buffer-local 'ga144-project-name)
@@ -24,7 +25,8 @@
 (make-variable-buffer-local 'ga144-modified-p)
 (make-variable-buffer-local 'ga144-node-size)
 (make-variable-buffer-local 'ga144-prev-coord)
-
+(make-variable-buffer-local 'ga144-project-aforth-files)
+(make-variable-buffer-local 'ga144-project-aforth-buffers)
 ;;;file format:
 ;;;   <project-name>.ga144
 
@@ -55,6 +57,7 @@
         (define-key map (kbd "M-n") 'ga144-move-bottom-half)
         (define-key map (kbd "M-<") 'ga144-move-top)
         (define-key map (kbd "M->") 'ga144-move-bottom)
+        (define-key map (kbd "<return>") 'ga144-goto-current-node)
         map))
 
 
@@ -97,6 +100,22 @@
               cursor-type nil)
         (setq font-lock-defaults '((ga144-font-lock-keywords))))
     (message "ga144-mode: invalid file format")))
+
+(defun ga144-get-project-file-buffer (filepath)
+  (let ((buff (find-buffer-visiting filepath)))
+    (unless buff
+      (find-file filepath)
+      (setq buff (current-buffer))
+      (bury-buffer))
+    buff))
+
+(defun ga144-aforth-files (dir)
+  (let ((ok '())
+        (files (directory-files dir)))
+    (dolist (file files)
+      (when (string-match "\\.aforth$" file)
+        (push file ok)))
+    ok))
 
 (defun ga144-render()
   (ga144-draw-map)
@@ -370,6 +389,31 @@
     (dolist (o (ga144-node-overlays node-to))
       (overlay-put o 'face ga144-select-face))
     ))
+
+(defun ga144-goto-current-node ()
+  (interactive)
+  (ga144-goto-node ga144-current-coord))
+
+(defun ga144-goto-node (node) ;;TODO: test
+  (if (ga144-valid-coord-p node)
+      (let ((buffers ga144-project-aforth-buffers)
+            buff point found-buff)
+        (while buffers
+          (setq buff (car buffers)
+                buffers (cdr buffers))
+          (with-current-buffer buff
+            (save-excursion
+              (goto-char (point-min))
+              (when (re-search-forward (format "node[\t\n ]+%s" node) nil :noerror)
+                (setq point (point)
+                      found-buff buff
+                      buffers nil)))))
+        (if found-buff
+            (progn
+              (switch-to-buffer found-buff)
+              (goto-char point))
+          (message "Node %s not found." node)))
+    (message "Error: invalid node: %s" node)))
 
 (defun update-position ()
   ;;(setq ga144-modified-p t)
