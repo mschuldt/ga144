@@ -16,6 +16,8 @@
 (defvar ga144-node-size nil)
 (defvar ga144-project-aforth-files nil)
 (defvar ga144-project-aforth-buffers nil)
+(defvar ga144-project-aforth-file nil)
+(defvar ga144-project-aforth-file-overlay nil)
 
 (make-variable-buffer-local 'ga144-has-changes)
 (make-variable-buffer-local 'ga144-project-name)
@@ -27,6 +29,8 @@
 (make-variable-buffer-local 'ga144-prev-coord)
 (make-variable-buffer-local 'ga144-project-aforth-files)
 (make-variable-buffer-local 'ga144-project-aforth-buffers)
+(make-variable-buffer-local 'ga144-project-aforth-file)
+(make-variable-buffer-local 'ga144-project-aforth-file-overlay)
 ;;;file format:
 ;;;   <project-name>.ga144
 
@@ -58,6 +62,7 @@
         (define-key map (kbd "M-<") 'ga144-move-top)
         (define-key map (kbd "M->") 'ga144-move-bottom)
         (define-key map (kbd "<return>") 'ga144-goto-current-node)
+        (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
         map))
 
 
@@ -71,7 +76,8 @@
       `(("[0-9]\\{1,3\\}" . ga144-coord-face)
 	))
 
-(setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord))
+(setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord ga144-project-aforth-file))
+
 
 (define-derived-mode ga144-mode nil "GA144"
   "A major mode for programming the GA144."
@@ -83,6 +89,10 @@
       (progn
         (setq ga144-project-file buffer-file-name)
         (setq ga144-project-name (file-name-base buffer-file-name))
+        (setq ga144-project-aforth-files (ga144-aforth-files (file-name-directory  buffer-file-name)))
+        (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
+        (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
+
         (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
           (when (get-buffer buffer-name)
             (kill-buffer buffer-name))
@@ -129,14 +139,22 @@
     (forward-line (+ (* row  ga144-node-size) (if middle (/ ga144-node-size 2) 0)))
     (forward-char (+ (* col ga144-node-size) (if middle (floor (/ ga144-node-size 2)) 0)))))
 
-
 (defun ga144-draw-map ()
   (read-only-mode -1)
   (erase-buffer)
   (goto-char 1)
   (let (x coord l o)
+    ;; insert map chars
     (dotimes (_ (* ga144-node-size 8))
       (insert (make-string (* ga144-node-size 18) ? ) "\n" ))
+    ;; aforth file chars and overlay
+    (let ((s "source file: ") p)
+      (insert "\n" (- (* ga144-node-size 8) (length s)))
+      (beginning-of-line)
+      (setq p (point))
+      (insert s)
+      (move-overlay ga144-project-aforth-file-overlay p (point)))
+    ;; set map overlays
     (loop-nodes node
       (setq coord (ga144-node-coord node))
       (ga144-move-to-node coord)
@@ -147,6 +165,8 @@
       (setq o (ga144-node-coord-overlay node))
       (move-overlay o (- (point) l) (point))
       (setf (ga144-node-coord-overlay node) o))
+    ;; set aforth file overlay string
+    (overlay-put ga144-project-aforth-file-overlay 'after-string (or ga144-project-aforth-file "None"))
     (read-only-mode 1)
     (ga144-create-overlays)))
 
@@ -415,6 +435,18 @@
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
 
+
+(defun ga144-select-aforth-source ()
+  ;;select the aforth source file for the current ga144 project
+  (interactive)
+  (if (eq major-mode 'ga144-mode)
+      (let ((f (read-file-name "Set GA144 source: ")))
+        (if f
+            (progn (setq ga144-project-aforth-file f)
+                   (overlay-put ga144-project-aforth-file-overlay 'after-string (or ga144-project-aforth-file "None")))
+          (message "GA144 aforth source not set")))
+
+    (message "Not in a GA144 project %s" major-mode)))
 (defun update-position ()
   ;;(setq ga144-modified-p t)
   ;;(ga144-move-to-node ga144-current-coord 'middle)
