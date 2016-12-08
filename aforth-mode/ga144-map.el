@@ -398,6 +398,7 @@
           (ga144-create-new))
         (message "Loading GA144 project map...")
         (ga144-render)
+        (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
         (setq visible-cursor nil
               cursor-type nil))
