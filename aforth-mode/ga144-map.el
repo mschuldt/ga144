@@ -19,6 +19,8 @@
 (def-local ga144-project-aforth-file-overlay nil)
 (def-local ga144-has-unsaved-changes nil)
 
+(defvar ga144-auto-resize-map-on-window-change t)
+
 (setq ga144-persistent-variables '(ga144-nodes-sans-overlays ga144-node-size ga144-current-coord ga144-project-aforth-file))
 
 
@@ -61,29 +63,30 @@
         (push file ok)))
     ok))
 
-(defun ga144-render()
-  (ga144-draw-map)
+(defun ga144-render( node-size )
+  (ga144-draw-map node-size)
   (goto-char 1)
   (update-position))
 
-(defun ga144-move-to-node (coord &optional middle)
+(defun ga144-move-to-node (coord &optional middle node-size)
   (goto-char 1)
   (let ((row (- 7 (coord->row coord)))
-        (col (coord->col coord)))
-    (forward-line (+ (* row  ga144-node-size) (if middle (/ ga144-node-size 2) 0)))
-    (forward-char (+ (* col ga144-node-size) (if middle (floor (/ ga144-node-size 2)) 0)))))
+        (col (coord->col coord))
+        (node-size (or node-size ga144-node-size)))
+    (forward-line (+ (* row  node-size) (if middle (/ node-size 2) 0)))
+    (forward-char (+ (* col node-size) (if middle (floor (/ node-size 2)) 0)))))
 
-(defun ga144-draw-map ()
+(defun ga144-draw-map (node-size)
   (read-only-mode -1)
   (erase-buffer)
   (goto-char 1)
   (let (x coord l o)
     ;; insert map chars
-    (dotimes (_ (* ga144-node-size 8))
-      (insert (make-string (* ga144-node-size 18) ? ) "\n" ))
+    (dotimes (_ (* node-size 8))
+      (insert (make-string (* node-size 18) ? ) "\n" ))
     ;; aforth file chars and overlay
     (let ((s "source file: ") p)
-      (insert "\n" (- (* ga144-node-size 8) (length s)))
+      (insert "\n" (- (* node-size 8) (length s)))
       (beginning-of-line)
       (setq p (point))
       (insert s)
@@ -91,7 +94,7 @@
     ;; set map overlays
     (loop-nodes node
       (setq coord (ga144-node-coord node))
-      (ga144-move-to-node coord)
+      (ga144-move-to-node coord nil node-size)
       (setq s (number-to-string coord)
             l (length s))
       (delete-char l)
@@ -102,8 +105,7 @@
     ;; set aforth file overlay string
     (overlay-put ga144-project-aforth-file-overlay 'after-string (or ga144-project-aforth-file "None"))
     (read-only-mode 1)
-    (ga144-create-overlays)))
-
+    (ga144-create-overlays node-size)))
 
 (defun ga144-delete-overlays ()
   (let (o overlays coord face column)
@@ -112,19 +114,19 @@
         (delete-overlay o))
       (setf (ga144-node-overlays node) nil))))
 
-(defun ga144-create-overlays ()
+(defun ga144-create-overlays (node-size)
   (ga144-delete-overlays)
   (loop-nodes node
     (setq coord (ga144-node-coord node)
           overlays nil)
-    (ga144-move-to-node coord)
+    (ga144-move-to-node coord nil node-size)
     (setq column (current-column)
           face (ga144-node-face node))
-    (dotimes (i ga144-node-size)
-      (setq o (make-overlay (point) (+ (point) ga144-node-size)))
+    (dotimes (i node-size)
+      (setq o (make-overlay (point) (+ (point) node-size)))
       (overlay-put o 'face face)
       (push o overlays)
-      (when (< i (- ga144-node-size 1))
+      (when (< i (- node-size 1))
         (forward-line)
         (beginning-of-line)
         (forward-char column)))
@@ -213,7 +215,7 @@
   (interactive)
   (if (< (* (1+ ga144-node-size) 18)  (window-max-chars-per-line))
       (progn (setq ga144-node-size (1+ ga144-node-size))
-             (ga144-render))
+             (ga144-render ga144-node-size))
     (message "Map cannot be made larger")))
 
 (defun ga144-dec-node-size ()
@@ -221,7 +223,7 @@
   (if (> ga144-node-size 3)
       (progn
         (setq ga144-node-size (1- ga144-node-size))
-        (ga144-render))
+        (ga144-render ga144-node-size))
     (message "Map is cannot be made smaller")))
 
 
@@ -345,11 +347,24 @@
   (message "current coord: %s" ga144-current-coord))
 
 
+(defun ga144-draw-map-in-frame-limits()
+  (let ((max-size (/ (window-max-chars-per-line) 18)))
+    (if (> ga144-node-size max-size)
+        ;; renders the map as large as possible but does not set ga144-node-size so the change is not persistent
+        (ga144-render max-size)
+      (ga144-render ga144-node-size)
+      )))
+
+(defun ga144-handle-window-size-change (frame)
+  ;;TODO: fix, this needs to set the map buffer as current or local variables cannot be accessed
+  (and ga144-auto-resize-map-on-window-change
+       (ga144-draw-map-in-frame-limits)))
+
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
-        (define-key map "+"		'ga144-inc-node-size)
-        (define-key map "="		'ga144-inc-node-size)
-        (define-key map "-"		'ga144-dec-node-size)
+        (define-key map "+" 'ga144-inc-node-size)
+        (define-key map "=" 'ga144-inc-node-size)
+        (define-key map "-" 'ga144-dec-node-size)
         (define-key map (kbd "<up>") 'ga144-move-up)
         (define-key map (kbd "<down>") 'ga144-move-down)
         (define-key map (kbd "<left>") 'ga144-move-left)
@@ -397,11 +412,13 @@
         (unless ga144-nodes
           (ga144-create-new))
         (message "Loading GA144 project map...")
-        (ga144-render)
+        (ga144-draw-map-in-frame-limits)
         (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
         (setq visible-cursor nil
-              cursor-type nil))
+              cursor-type nil)
+        (add-hook 'window-size-change-functions 'ga144-handle-window-size-change)
+        )
     (message "ga144-mode: invalid file format")))
 
 
