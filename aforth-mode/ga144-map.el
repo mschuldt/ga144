@@ -211,8 +211,10 @@
 
 (defun ga144-inc-node-size ()
   (interactive)
-  (setq ga144-node-size (1+ ga144-node-size))
-  (ga144-render))
+  (if (< (* (1+ ga144-node-size) 18)  (window-max-chars-per-line))
+      (progn (setq ga144-node-size (1+ ga144-node-size))
+             (ga144-render))
+    (message "Map cannot be made larger")))
 
 (defun ga144-dec-node-size ()
   (interactive)
