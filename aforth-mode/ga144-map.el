@@ -3,7 +3,8 @@
 
 (defmacro def-local (name &optional default docs)
   `(progn (defvar ,name ,default, docs)
-          (make-variable-buffer-local ',name)))
+          (make-variable-buffer-local ',name)
+          (put ',name 'permanent-local t)))
 
 (def-local ga144-default-node-size 3)
 (def-local ga144-project-name nil)
