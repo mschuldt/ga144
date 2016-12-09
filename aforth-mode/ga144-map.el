@@ -341,7 +341,7 @@
                       buffers nil)))))
         (if found-buff
             (progn
-              (switch-to-buffer found-buff)
+              (switch-to-buffer-other-window found-buff)
               (goto-char point))
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
