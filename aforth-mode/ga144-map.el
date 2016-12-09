@@ -307,12 +307,16 @@
        (< (mod coord 100) 18)
        (< (/ coord 100) 8)))
 
+(defun ga144-set-selected-node (coord)
+  (assert (ga144-valid-coord-p coord))
+  (setq ga144-prev-coord ga144-current-coord
+        ga144-current-coord coord)
+  (update-position))
+
 (defun ga144-move-selected-node (n)
   (let ((next (+ ga144-current-coord n)))
     (when (ga144-valid-coord-p next)
-      (setq ga144-prev-coord ga144-current-coord
-            ga144-current-coord next)
-      (update-position))))
+      (ga144-set-selected-node next))))
 
 (defun move-selected-node-overlay (from to)
   (let ((node-from (coord->node from))
@@ -463,6 +467,12 @@
     (message "GA144 mark set"))
   (setq ga144-mark-coord ga144-current-coord))
 
+(defun ga144-exchange-point-and-mark ()
+  (interactive)
+  (let ((mark ga144-mark-coord))
+    (setq ga144-mark-coord ga144-current-coord)
+    (ga144-set-selected-node mark)))
+
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+" 'ga144-inc-node-size)
@@ -488,6 +498,8 @@
         (define-key map (kbd "<return>") 'ga144-goto-current-node)
         (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
         (define-key map (kbd "C-SPC") 'ga144-set-mark)
+        (define-key map (kbd "C-x C-x") 'ga144-exchange-point-and-mark)
+
         map))
 
 (define-derived-mode ga144-mode nil "GA144"
