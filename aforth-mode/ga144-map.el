@@ -224,11 +224,9 @@
           (values (mapcar (lambda (x) (cons x (eval x))) ga144-persistent-variables))) ;;the values are buffer-local
       (with-temp-file ga144-project-file
         (dolist (v values)
-          (insert (format "(setq %s %s)\n" (car v) (cdr v))))
-        ;;(insert (format "(setq %s " v))
-        ;;(print (eval v) (current-buffer))
-        ;;(insert ")\n")
-        )))
+          (insert "(setq " (symbol-name (car v)))
+          (print (cdr v) (current-buffer))
+          (insert ")\n\n")))))
   (message "saved in %s" ga144-project-file)
   (setq ga144-modified-p nil))
 
