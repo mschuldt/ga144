@@ -21,6 +21,8 @@
 (def-local ga144-has-unsaved-changes nil)
 (def-local ga144-project-aforth-compile-status nil)
 (def-local ga144-project-aforth-compile-status-overlay nil)
+(def-local ga144-mark-active nil)
+(def-local ga144-mark-coord nil)
 
 (defvar ga144-auto-resize-map-on-window-change t)
 
@@ -450,6 +452,17 @@
       (remove-hook 'buffer-list-update-hook 'ga144-update-map-focus)
       )))
 
+(defun ga144-set-mark ()
+  (interactive)
+  (if (and ga144-mark-coord
+           (eq ga144-mark-coord ga144-current-coord))
+      (progn (setq ga144-mark-active (not ga144-mark-active))
+             (if ga144-mark-active
+                 (message "GA144 mark activated")
+               (message "GA144 mark deactivated")))
+    (message "GA144 mark set"))
+  (setq ga144-mark-coord ga144-current-coord))
+
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+" 'ga144-inc-node-size)
@@ -474,6 +487,7 @@
         (define-key map (kbd "M->") 'ga144-move-bottom)
         (define-key map (kbd "<return>") 'ga144-goto-current-node)
         (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
+        (define-key map (kbd "C-SPC") 'ga144-set-mark)
         map))
 
 (define-derived-mode ga144-mode nil "GA144"
