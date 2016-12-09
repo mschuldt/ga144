@@ -161,21 +161,28 @@
 
 (defstruct ga144-node coord special-function node-type text color overlays face coord-overlay)
 
+(defun ga144-valid-node-index-p(n)
+  (and (>= n 0) (< n 144)))
+
 (defun coord->index (n)
+  (assert (ga144-valid-node-index-p n))
   (+ (* (floor (/ n 100)) 18) (mod n 100)))
 
 (defun index->coord (n)
+  (assert (ga144-valid-node-index-p n))
   (+ (* (floor (/ n 18)) 100) (mod n 18)))
 
 (defun coord->row (coord)
+  (assert (ga144-valid-coord-p coord))
   (floor (/ coord 100)))
 
 (defun coord->col (coord)
+  (assert (ga144-valid-coord-p coord))
   (mod coord 100))
 
 (defun coord->node (coord)
+  (assert (ga144-valid-coord-p coord))
   (aref ga144-nodes (coord->index coord)))
-
 
 (defun ga144-get-node-type (coord)
   )
