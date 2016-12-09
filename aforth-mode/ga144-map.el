@@ -428,11 +428,18 @@
           (rename-buffer buffer-name))
         (setq buffer-file-name nil
               ga144-nodes nil
+              ga144-nodes-sans-overlays nil
               ga144-current-coord nil)
         (eval-buffer)
-        (unless ga144-nodes
+
+        (when ga144-nodes-sans-overlays
+          (setq ga144-nodes (ga144-restore-node-overlays ga144-nodes-sans-overlays)))
+
+        (if ga144-nodes
+            (message "Loading GA144 project map...")
+          (print "Creating new ga144 map..")
           (ga144-create-new))
-        (message "Loading GA144 project map...")
+
         (ga144-draw-map-in-frame-limits)
         (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
@@ -442,5 +449,12 @@
         )
     (message "ga144-mode: invalid file format")))
 
+(defun ga144-restore-node-overlays ( ga144-nodes )
+  (let (o)
+    (loop-nodes node
+      (setq o (make-overlay 0 0))
+      (overlay-put o 'face ga144-node-coord-face)
+      (setf (ga144-node-coord-overlay node) o)))
+  ga144-nodes)
 
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga144-mode))
