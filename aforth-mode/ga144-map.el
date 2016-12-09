@@ -464,6 +464,7 @@
              (if ga144-mark-active
                  (message "GA144 mark activated")
                (message "GA144 mark deactivated")))
+    (setq ga144-mark-active t)
     (message "GA144 mark set"))
   (setq ga144-mark-coord ga144-current-coord))
 
