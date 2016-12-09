@@ -44,11 +44,16 @@
                              (((background dark)) (:background "SeaGreen3")))
   "default ga144 selected node face")
 
+(defface ga144-unfocused-face '((((background light)) (:background "LightSkyBlue4"))
+                                (((background dark)) (:background "LightSkyBlue4")))
+  "default ga144 face for the selected, unfocused node")
+
+
 (setq ga144-node-coord-face 'ga144-node-coord-face)
 (setq ga144-default-face-1 'ga144-default-face-1)
 (setq ga144-default-face-2 'ga144-default-face-2)
 (setq ga144-select-face 'ga144-select-face)
-
+(setq ga144-unfocused-face 'ga144-unfocused-face)
 
 (defun ga144-get-project-file-buffer (filepath)
   (let ((buff (find-buffer-visiting filepath)))
@@ -379,6 +384,72 @@
   (and ga144-auto-resize-map-on-window-change
        (ga144-draw-map-in-frame-limits)))
 
+(setq ga144-current-focus-buffer nil) ;;buffer that is currently in focus
+(setq ga144-maps nil);;maps buffer names to buffers
+
+(defun ga144-set-map-focus (state)
+  (if state
+      (dolist (o (ga144-node-overlays (coord->node ga144-current-coord)))
+        (overlay-put o 'face ga144-select-face))
+    (dolist (o (ga144-node-overlays (coord->node ga144-current-coord)))
+      (overlay-put o 'face ga144-unfocused-face))))
+
+(defun ga144-set-map-buffer-focus (buffer focus)
+  (with-current-buffer buffer
+    (ga144-set-map-focus focus)))
+
+(defun ga144-rescan-buffers-for-maps()
+  ;; reconstruct the value for the variale `ga144-maps` in the case that it gets corrupted
+  ;; this should not normally be needed. but is helpfull when ga144-maps get set to nil,
+  ;; for example when eval-buffer is run
+  (message "Something is wrong. re-scanning buffers for maps...")
+  (let (maps)
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when (eq major-mode 'ga144-mode)
+          (push (cons (buffer-name) buffer) maps))))
+    maps))
+
+(defun ga144-update-map-focus ()
+  (condition-case nil
+      (progn
+        ;; If another map was previously selected, remove focus
+        (when ga144-current-focus-buffer
+          (ga144-set-map-buffer-focus ga144-current-focus-buffer nil)
+          (setq ga144-current-focus-buffer nil))
+        ;; if the current buffer is a ga144-map, add focus
+        (when (eq major-mode 'ga144-mode)
+          (unless ga144-maps
+            (setq ga144-maps (ga144-rescan-buffers-for-maps)))
+
+          (let ((curr (cdr (assoc (buffer-name) ga144-maps))))
+
+            (unless (equal curr (current-buffer))
+              ;; The name of the current buffer maps to a different ga144 map buffer
+              ;; This would be a bug, no sure how to recover, just delete all mappings)
+              ;; for that buffer name and hope things will be alright.
+              (message "Bug: ga144 map buffer mismatch in ga144-update-map-focus")
+              (message " debug info: (current-buffer) = %s" (current-buffer))
+              (message " debug info: ga144-maps = %s" ga144-maps)
+              (setq ga144-maps (assoc-delete-all (buffer-name) ga144-maps)))
+
+            (when curr
+              (ga144-set-map-buffer-focus curr t)
+              (setq ga144-current-focus-buffer curr)))))
+    (error (message "Error in ga144-update-map-focus"))))
+
+(defun ga144-kill-buffer-handler ()
+  (when (eq (cdr (assoc (buffer-name) ga144-maps)) (current-buffer))
+    (when (eq ga144-current-focus-buffer (current-buffer))
+      (setq ga144-current-focus-buffer nil))
+
+    (setq ga144-maps (assoc-delete-all (buffer-name) ga144-maps))
+    (unless ga144-maps
+      ;; There are no more maps so there is no need to track focus, and
+      ;; if the hook is not removed we will end up iterating through all buffers with ga144-rescan-buffers-for-maps
+      (remove-hook 'buffer-list-update-hook 'ga144-update-map-focus)
+      )))
+
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+" 'ga144-inc-node-size)
@@ -425,7 +496,9 @@
         (let ((buffer-name (format "*GA144-%s*" ga144-project-name)))
           (when (get-buffer buffer-name)
             (kill-buffer buffer-name))
-          (rename-buffer buffer-name))
+          (rename-buffer buffer-name)
+          (push (cons buffer-name (current-buffer)) ga144-maps))
+
         (setq buffer-file-name nil
               ga144-nodes nil
               ga144-nodes-sans-overlays nil
@@ -446,6 +519,10 @@
         (setq visible-cursor nil
               cursor-type nil)
         (add-hook 'window-size-change-functions 'ga144-handle-window-size-change)
+        (ga144-set-map-focus t)
+        (add-hook 'buffer-list-update-hook 'ga144-update-map-focus)
+        (add-hook 'kill-buffer-hook 'ga144-kill-buffer-handler)
+        (ga144-move-selected-node ga144-current-coord)
         )
     (message "ga144-mode: invalid file format")))
 
