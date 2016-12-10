@@ -50,12 +50,23 @@
                                 (((background dark)) (:background "LightSkyBlue4")))
   "default ga144 face for the selected, unfocused node")
 
+(defface ga144-region-face-1 '((((background light)) (:background "gold1"))
+                               (((background dark)) (:background "gold1")))
+  "default ga144 node region face 2")
+
+(defface ga144-region-face-2 '((((background light)) (:background "gold2"))
+                               (((background dark)) (:background "gold2")))
+  "default ga144 node region face 2")
+
 
 (setq ga144-node-coord-face 'ga144-node-coord-face)
 (setq ga144-default-face-1 'ga144-default-face-1)
 (setq ga144-default-face-2 'ga144-default-face-2)
 (setq ga144-select-face 'ga144-select-face)
 (setq ga144-unfocused-face 'ga144-unfocused-face)
+(setq ga144-region-face-1 'ga144-region-face-1)
+(setq ga144-region-face-2 'ga144-region-face-2)
+
 
 (defun ga144-get-project-file-buffer (filepath)
   (let ((buff (find-buffer-visiting filepath)))
@@ -167,7 +178,7 @@
       (dolist (o (ga144-node-overlays node))
         (overlay-put o 'face face)))))
 
-(defstruct ga144-node coord special-function node-type text color overlays face coord-overlay face-stack)
+(defstruct ga144-node coord special-function node-type text color overlays face region-face coord-overlay face-stack)
 
 (defun ga144-pop-node-face (coord)
   (let* ((node (coord->node coord))
@@ -211,12 +222,12 @@
 (defun ga144-get-node-type (coord)
   )
 
-(defun ga144-get-node-default-face (coord)
+(defun ga144-get-node-default-faces (coord)
   (let ((a (= (mod (/ coord 100) 2) 0))
         (b (= (mod (mod coord 100) 2) 0)))
     (if (eq a b)
-        ga144-default-face-1
-      ga144-default-face-2)))
+        (cons ga144-default-face-1 ga144-region-face-1)
+      (cons ga144-default-face-2 ga144-region-face-2))))
 
 (defun ga144-create-new ()
   (let (coord coord-overlay)
@@ -224,10 +235,12 @@
     (dotimes (i 144)
       (setq coord (index->coord i))
       (setq coord-overlay (make-overlay 0 0 ))
+      (setq faces (ga144-get-node-default-faces coord))
       (overlay-put coord-overlay 'face ga144-node-coord-face)
       (aset ga144-nodes i (make-ga144-node :coord coord
                                            :special-function (ga144-get-node-type coord)
-                                           :face (ga144-get-node-default-face coord)
+                                           :face (car faces)
+                                           :region-face (cdr faces)
                                            :coord-overlay coord-overlay)))
     (setq ga144-current-coord 700)
     (ga144-save)
