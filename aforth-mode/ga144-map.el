@@ -167,7 +167,23 @@
       (dolist (o (ga144-node-overlays node))
         (overlay-put o 'face face)))))
 
-(defstruct ga144-node coord special-function node-type text color overlays face coord-overlay)
+(defstruct ga144-node coord special-function node-type text color overlays face coord-overlay face-stack)
+
+(defun ga144-pop-node-face (coord)
+  (let* ((node (coord->node coord))
+         faces (ga144-node-face-stack node)
+         face (car faces))
+    (if face
+        (setf (ga144-node-face-stack node) (cdr faces))
+      (setq face (ga144-node-face node)))
+    (ga144-set-node-overlay coord face)))
+
+(defun ga244-push-node-face (coord face)
+  (let ((node (coord->node coord))
+        (faces (ga144-node-face-stack node)))
+    (push face faces)
+    (setq (ga144-node-face-stack node) faces)
+    (ga144-set-node-overlay coord face)))
 
 (defun ga144-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
