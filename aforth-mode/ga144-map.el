@@ -519,10 +519,13 @@
 (setq ga144-maps nil);;maps buffer names to buffers
 
 (defun ga144-set-map-focus (state)
-  ;; if we are focusing an unfocused node then just remove the unfocused face from the stack
-  (ga144-set-node-point-face ga144-current-coord (if state
-                                                     ga144-select-face
-                                                   ga144-unfocused-face)))
+  (if state
+      (progn (dolist (coord ga144-region-nodes)
+               (ga144-set-node-point-face coord nil))
+             (ga144-set-node-point-face ga144-current-coord ga144-select-face))
+    (progn (dolist (coord ga144-region-nodes)
+             (ga144-set-node-point-face coord ga144-unfocused-face))
+           (ga144-set-node-point-face ga144-current-coord ga144-unfocused-face))))
 
 (defun ga144-set-map-buffer-focus (buffer focus)
   (with-current-buffer buffer
