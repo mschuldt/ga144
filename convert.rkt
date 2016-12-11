@@ -1,6 +1,8 @@
 #lang racket
 ;; convert output of dump-rom.py
 
+(require "rkt-to-el.rkt")
+
 (define file "raw-rom-dump.txt")
 
 (define lines (file->lines file))

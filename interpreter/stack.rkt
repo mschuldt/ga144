@@ -1,6 +1,8 @@
 ;;; Some utilities for working with 8-word circular stacks
 #lang racket
 
+(require "../rkt-to-el.rkt")
+
 (provide (all-defined-out))
 
 (struct stack (sp body) #:mutable #:transparent)

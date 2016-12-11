@@ -1,11 +1,12 @@
 #lang racket
 
-(require  "../common.rkt")
+(require  "../common.rkt"
+          "../rkt-to-el.rkt")
 
 (provide assemble-word assemble)
 
-(define const-masks (vector #x3ffff #x3ff #xff #x7))
-(define xor-bits (vector #b1010 #b10101 #b1010 #b101))
+(defconst const-masks (vector #x3ffff #x3ff #xff #x7))
+(defconst xor-bits (vector #b1010 #b10101 #b1010 #b101))
 (define (xor-inst inst slot) (bitwise-xor inst (vector-ref xor-bits slot)))
 
 (define (assemble-inst word slot shift)

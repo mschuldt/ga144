@@ -3,11 +3,12 @@
 (require compatibility/defmacro
          "stack.rkt"
          "../common.rkt"
-         "../compiler/disassemble.rkt")
+         "../compiler/disassemble.rkt"
+         "../rkt-to-el.rkt")
 
 (provide f18a%)
 
-(define save-history #t)
+(defvar save-history #t)
 
 (define f18a%
   (class object%

@@ -3,7 +3,8 @@
 (require "assemble.rkt"
          "disassemble.rkt"
          "compile.rkt"
-         "../common.rkt")
+         "../common.rkt"
+         "../rkt-to-el.rkt")
 
 (provide make-bootstream-type
          make-bootstream
@@ -19,7 +20,7 @@
 ;;that the stream will take.
 
 ;;path1 from DB004 page 31
-(define path1 (let ((NENW (append (cons N (make-list 16 E))
+(defconst path1 (let ((NENW (append (cons N (make-list 16 E))
                                   (cons N (make-list 16 W)))))
                 (append (make-list 9 E)
                         (make-list 7 S)
@@ -29,7 +30,7 @@
                         (list #f))))
 
 ;;path0 from DB004 page 31
-(define target-sync-path (let ((SWSE (append (cons S (make-list 16 W))
+(defconst target-sync-path (let ((SWSE (append (cons S (make-list 16 W))
                                              (cons S (make-list 16 E))))
                                (SW (cons S (make-list 17 W))))
                            (append (make-list 4 N)
@@ -40,12 +41,12 @@
                                    (list #f))))
 
 ;; the host-sync-path only goes from 708 to 300
-(define host-sync-path (cons S (append (make-list 8 W)
+(defconst host-sync-path (cons S (append (make-list 8 W)
                                        (make-list 3 S))))
 
-(define async-bootstream (bootstream "async" 708 path1))
-(define sync-bootstream (bootstream "sync" 300 target-sync-path))
-(define host-sync-bootstream (bootstream "host-sync" 708 host-sync-path))
+(defconst async-bootstream (bootstream "async" 708 path1))
+(defconst sync-bootstream (bootstream "sync" 300 target-sync-path))
+(defconst host-sync-bootstream (bootstream "host-sync" 708 host-sync-path))
 
 ;; we generate the bootstream for the nodes backwards - the
 ;; last node in the chain first.

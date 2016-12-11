@@ -1,9 +1,11 @@
 #lang racket
 
+(require "rkt-to-el.rkt")
+
 (provide (all-defined-out))
 
 ;; block 1418  math rom anywhere
-(define basic-rom '(("relay" . #xa1) ;; 1388
+(defconst basic-rom '(("relay" . #xa1) ;; 1388
                     ("warm" . #xa9)  ;; warm
                     ("*.17" . #xb0) ;; 1390  multiply
                     ("*." . #xb7) ;; 1396  fractional multiply
@@ -17,7 +19,7 @@
                     ))
 
 ;; block 1432  analog
-(define analog-rom '(("relay" . #xa1) ;; 1388
+(defconst analog-rom '(("relay" . #xa1) ;; 1388
                      ("warm" . #xa9)  ;; warm
                      ("*.17" . #xb0) ;; 1390  multiply
                      ("*." . #xb7) ;; 1396  fractional multiply
@@ -31,7 +33,7 @@
                      ))
 
 ;; block 1420  serdes top/bot
-(define serdes-boot-rom '(("relay" . #xa1) ;; 1388
+(defconst serdes-boot-rom '(("relay" . #xa1) ;; 1388
                           ("warm" . #xa9)
                           ("cold" . #xaa)
                           ("*.17" . #xb0) ;; 1390  multiply
@@ -46,7 +48,7 @@
                           ))
 
 ;; block 1422  sync serial boot side
-(define sync-boot-rom '(("relay" . #xa1) ;; 1388
+(defconst sync-boot-rom '(("relay" . #xa1) ;; 1388
                         ("warm" . #xa9)
                         ("cold" . #xaa)
                         ("ser-exec" . #xb6)
@@ -60,7 +62,7 @@
                         ))
 
 ;; block 1424  async serial boot top/bot
-(define async-boot-rom '(("relay" . #xa1) ;; 1388
+(defconst async-boot-rom '(("relay" . #xa1) ;; 1388
                          ("warm" . #xa9)
                          ("cold" . #xaa)
                          ("ser-exec" . #xae)
@@ -79,7 +81,7 @@
 ;; 1392 ;???????
 
 ;; block 1428  spi boot top/bot
-(define spi-boot-rom '(("relay" . #xa1) ;; 1388
+(defconst spi-boot-rom '(("relay" . #xa1) ;; 1388
                        ("warm" . #xa9)
                        ("8obits" . #xc2)
                        ("ibit" . #xc7)
@@ -96,7 +98,7 @@
                        ("spi-copy" . #xbc)))
 
 ;; block 1436  1-wire
-(define 1-wire-rom '(("rcv" . #x9e)
+(defconst 1-wire-rom '(("rcv" . #x9e)
                      ("bit" . #xa1)
                      ("warm" . #xa9)
                      ("cold" . #xaa)

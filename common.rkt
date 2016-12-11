@@ -2,31 +2,34 @@
 
 (require compatibility/defmacro
          "rom.rkt"
-         "rom-dump.rkt")
+         "rom-dump.rkt"
+         "rkt-to-el.rkt")
+
 
 (provide (all-defined-out))
 
+(el-require 'cl)
 
-(define num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
-(define num-nodes 144)
+(defvar num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
+(defvar num-nodes 144)
 
-(define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
+(defvar opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                         "over" "a" "." "push" "b!" "a!"))
 
-(define opcode-set (list->set (vector->list opcodes)))
+(defvar opcode-set (list->set (vector->list opcodes)))
 
-(define address-required '("jump" "call" "next" "if" "-if"))
+(defconst address-required '("jump" "call" "next" "if" "-if"))
 
-(define last-slot-instructions
+(defconst last-slot-instructions
   '(";" "unext" "@p" "!p" "+*" "+" "dup" "." ))
 
-(define instructions-preceded-by-nops '("+" "+*"))
+(defconst instructions-preceded-by-nops '("+" "+*"))
 
-(define instructions-using-rest-of-word '(";" "ex"))
+(defconst instructions-using-rest-of-word '(";" "ex"))
 
-(define named-addresses '(("right" . #x1D5)
+(defconst named-addresses '(("right" . #x1D5)
                           ("down" . #x115)
                           ("left" . #x175)
                           ("up" . #x145)
@@ -38,14 +41,15 @@
                           ("top" . #x1B5)
                           ("side" . #x185)
                           ("corner" . #x195)))
-(define addresses->names (make-hash (for/list ((x named-addresses))
+
+(defvar addresses->names (make-hash (for/list ((x named-addresses))
                                       (cons (cdr x) (car x)))))
-(define names->addresses (make-hash named-addresses))
+(defvar names->addresses (make-hash named-addresses))
 
 (define (port-name address)
   (hash-ref addresses->names address))
 
-(define io-places '(("---u" . #x145)
+(defvar io-places '(("---u" . #x145)
                     ("--l-" . #x175)
                     ("--lu" . #x165)
                     ("-d--" . #x115)
@@ -61,7 +65,7 @@
                     ("rdl-" . #x1B5)
                     ("rdlu" . #x1A5)))
 
-(define node-to-gpio-pins '((701 . 2)
+(defvar node-to-gpio-pins '((701 . 2)
                             (705 . 4)
                             (708 . 2)
                             (715 . 1)
@@ -77,55 +81,55 @@
                             (500 . 1)
                             (600 . 1)))
 
-(define &UP #x145) ;325
-(define &DOWN #x115) ;277
-(define &LEFT #x175) ;373
-(define &RIGHT #x1d5) ;469
-(define &IO #x15d)
-(define &DATA #x141)
+(defconst &UP #x145) ;325
+(defconst &DOWN #x115) ;277
+(defconst &LEFT #x175) ;373
+(defconst &RIGHT #x1d5) ;469
+(defconst &IO #x15d)
+(defconst &DATA #x141)
 
-(define &---U #x145)
-(define &--L- #x175)
-(define &--LU #x165)
-(define &-D-- #x115)
-(define &-D-U #x105)
-(define &-DL- #x135)
-(define &-DLU #x125)
-(define &R--- #x1D5)
-(define &R--U #x1C5)
-(define &R-L- #x1F5)
-(define &R-LU #x1E5)
-(define &RD-- #x195)
-(define &RD-U #x185)
-(define &RDL- #x1B5)
-(define &RDLU #x1A5)
+(defconst &---U #x145)
+(defconst &--L- #x175)
+(defconst &--LU #x165)
+(defconst &-D-- #x115)
+(defconst &-D-U #x105)
+(defconst &-DL- #x135)
+(defconst &-DLU #x125)
+(defconst &R--- #x1D5)
+(defconst &R--U #x1C5)
+(defconst &R-L- #x1F5)
+(defconst &R-LU #x1E5)
+(defconst &RD-- #x195)
+(defconst &RD-U #x185)
+(defconst &RDL- #x1B5)
+(defconst &RDLU #x1A5)
 
-(define MEM-SIZE #x301)
+(defconst MEM-SIZE #x301)
 
-(define rom-ht (make-hash ROM-DUMP))
+(defvar rom-ht (make-hash ROM-DUMP))
 
-(define basic-rom-ht (make-hash basic-rom))
-(define analog-rom-ht (make-hash analog-rom))
-(define serdes-boot-rom-ht (make-hash serdes-boot-rom))
-(define sync-boot-rom-ht (make-hash sync-boot-rom))
-(define async-boot-rom-ht (make-hash async-boot-rom))
-(define spi-boot-rom-ht (make-hash spi-boot-rom))
-(define 1-wire-rom-ht (make-hash 1-wire-rom))
+(defvar basic-rom-ht (make-hash basic-rom))
+(defvar analog-rom-ht (make-hash analog-rom))
+(defvar serdes-boot-rom-ht (make-hash serdes-boot-rom))
+(defvar sync-boot-rom-ht (make-hash sync-boot-rom))
+(defvar async-boot-rom-ht (make-hash async-boot-rom))
+(defvar spi-boot-rom-ht (make-hash spi-boot-rom))
+(defvar 1-wire-rom-ht (make-hash 1-wire-rom))
 
 ;; from section 2.3, DB002
-(define analog-nodes '(709 713 717 617 117))
-(define serdes-nodes '(1 701))
-(define sync-boot-nodes '(300))
-(define async-boot-nodes '(708))
-(define spi-boot-nodes '(705))
-(define 1-wire-nodes '(200))
-(define SDRAM-addr-node 9)
-(define SDRAM-control-node 8)
-(define SDRAM-data-node 7)
-(define eForth-Bitsy-node 105)
-(define eForth-stack-node 106)
-(define SDRAM-mux-node 107)
-(define SDRAM-idle-node 108)
+(defconst analog-nodes '(709 713 717 617 117))
+(defconst serdes-nodes '(1 701))
+(defconst sync-boot-nodes '(300))
+(defconst async-boot-nodes '(708))
+(defconst spi-boot-nodes '(705))
+(defconst 1-wire-nodes '(200))
+(defconst SDRAM-addr-node 9)
+(defconst SDRAM-control-node 8)
+(defconst SDRAM-data-node 7)
+(defconst eForth-Bitsy-node 105)
+(defconst eForth-stack-node 106)
+(defconst SDRAM-mux-node 107)
+(defconst SDRAM-idle-node 108)
 
 (define (get-node-rom node)
   (cond ((member node analog-nodes) analog-rom-ht)
@@ -162,11 +166,11 @@
 
 (struct bootstream (name start path))
 
-(define bootstream-types '("async" ;; load through node 708 serial
+(defconst bootstream-types '("async" ;; load through node 708 serial
                            "2wire" ;; load through node 300 2wire
                            "async-target" ;; in host node 708 to target node 300
                            ))
-(define default-bootstream-type "async")
+(defvar default-bootstream-type "async")
 
 (define (create-node coord [mem #f] [len 0])
   (let ((new (node coord mem len)))
@@ -273,7 +277,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (enum (LEFT UP DOWN RIGHT))
-(define port-names (vector "LEFT" "UP" "DOWN" "RIGHT"))
+(defconst port-names (vector "LEFT" "UP" "DOWN" "RIGHT"))
 
 (enum (N E S W))
 (define (get-direction coord dir)
@@ -310,14 +314,9 @@
           (- addr #x40)
           addr)))
 
-(defmacro assert (x)
-  `(unless ,x
-     (error ,(format "Assertion failed: ~a" x))))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
-(define auto-nop-insertion #f)
+(defvar auto-nop-insertion #f)
 
-(define compile-0-as-dup-dup-or #f)
-(define reorder-words-with-fallthrough #f)
+(defvar compile-0-as-dup-dup-or #f)
+(defvar reorder-words-with-fallthrough #f)

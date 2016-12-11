@@ -6,29 +6,31 @@
          "../compiler/disassemble.rkt"
          "ga144.rkt"
          "../common.rkt"
-         "../compiler/compile.rkt")
+         "../compiler/compile.rkt"
+         "../rkt-to-el.rkt")
 
 (provide (all-defined-out))
 
 (define stdin (current-input-port))
-(define _commands (make-hash))
-(define _help (make-hash))
-(define DEBUG #f)
+(defvar _commands (make-hash))
+(defvar _help (make-hash))
+(defvar DEBUG #f)
+(setq DEBUG #f)
 
-(define chips '());;list of ga144 chips
-(define num-chips 0)
-(define name-to-chip (make-hash)) ;; maps chip names to chip objects
+(defvar chips '());;list of ga144 chips
+(defvar num-chips 0)
+(defvar name-to-chip (make-hash)) ;; maps chip names to chip objects
 ;; the currently selected chip. If not false, commands like
 ;; 'step' apply only to this chip. Otherwise they apply to all
 ;; chips in the 'chips' list
-(define selected-chip #f)
-(define selected-node #f)
+(defvar selected-chip #f)
+(defvar selected-node #f)
 
-(define _counter 1)
+(defvar _counter 1)
 
-(define cli-active? #f)
+(defvar cli-active? #f)
 
-(define enter-cli-on-breakpoint? #f)
+(defvar enter-cli-on-breakpoint? #f)
 (define (enter-cli-on-breakpoint x)
   (set! enter-cli-on-breakpoint? x))
 

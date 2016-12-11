@@ -1,7 +1,8 @@
 #lang racket
 
 (require compatibility/defmacro
-         "compiler/compile.rkt")
+         "compiler/compile.rkt"
+         "rkt-to-el.rkt")
 
 (provide (all-defined-out))
 

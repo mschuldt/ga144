@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../common.rkt")
+(require "../common.rkt"
+         "../rkt-to-el.rkt")
 
 (provide disassemble
          display-disassemble

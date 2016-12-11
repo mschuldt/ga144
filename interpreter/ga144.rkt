@@ -2,7 +2,8 @@
 
 (require "stack.rkt"
          "f18a.rkt"
-         "../common.rkt")
+         "../common.rkt"
+         "../rkt-to-el.rkt")
 
 (provide (all-defined-out))
 

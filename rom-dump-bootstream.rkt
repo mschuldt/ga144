@@ -5,7 +5,8 @@
 (require "compiler/compile.rkt"
          "compiler/bootstream.rkt"
          "compiler/assemble.rkt"
-         "common.rkt")
+         "common.rkt"
+         "rkt-to-el.rkt")
 
 (define start (bootstream-start async-bootstream))
 (define path (bootstream-path async-bootstream))
