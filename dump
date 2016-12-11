@@ -6,7 +6,8 @@
          "compiler/compile.rkt"
          "compiler/assemble.rkt"
          "compiler/bootstream.rkt"
-         "compiler/disassemble.rkt")
+         "compiler/disassemble.rkt"
+         "rkt-to-el.rkt")
 
 (define bootstream-type (make-parameter #f))
 (define symbols? (make-parameter #f))

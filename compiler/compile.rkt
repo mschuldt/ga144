@@ -9,7 +9,9 @@
 (require "read.rkt"
          "assemble.rkt"
          "disassemble.rkt"
-         "../common.rkt")
+         "../common.rkt"
+         "../rkt-to-el.rkt"
+         )
 
 (provide compile compile-file display-compiled)
 
