@@ -195,18 +195,18 @@
 (define (convert-direction coord dir)
   ;;converts DIR={North, East, South, West} Into Left, Up, Down, or Right
   ;;depending on the nodes coordinate COORD
-  (let ([x (remainder coord 100)]
-        [y (quotient coord 100)])
+  (let ((x (remainder coord 100))
+        (y (quotient coord 100)))
     (cond
-      [(equal? dir "north")
-       (if (= (modulo y 2) 0) "down" "up")]
-      [(equal? dir "south")
-       (if (= (modulo y 2) 0) "up" "down")]
-      [(equal? dir "east")
-       (if (= (modulo x 2) 0) "right" "left")]
-      [(equal? dir "west")
-       (if (= (modulo x 2) 0) "left" "right")]
-      [else (raise "convert-direction: invalid direction")])))
+      ((equal? dir "north")
+       (if (= (modulo y 2) 0) "down" "up"))
+      ((equal? dir "south")
+       (if (= (modulo y 2) 0) "up" "down"))
+      ((equal? dir "east")
+       (if (= (modulo x 2) 0) "right" "left"))
+      ((equal? dir "west")
+       (if (= (modulo x 2) 0) "left" "right"))
+      (else (raise "convert-direction: invalid direction")))))
 
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)

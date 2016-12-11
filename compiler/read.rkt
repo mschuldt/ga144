@@ -19,31 +19,31 @@
 (define (read-token in)
   (define (get-first-char-in-list)
     (let ((new-char (read-char in)))
-      (cond [(eof-object? new-char) new-char]
-            [(eq? new-char #\newline)
+      (cond ((eof-object? new-char) new-char)
+            ((eq? new-char #\newline)
              (set! line-number (add1 line-number))
              (set! col-number 0)
-             (get-first-char-in-list)]
-            [(char-whitespace? new-char)
+             (get-first-char-in-list))
+            ((char-whitespace? new-char)
              (set! col-number (add1 col-number))
-             (get-first-char-in-list)]
-            [else (list new-char)])))
+             (get-first-char-in-list))
+            (else (list new-char)))))
 
   (define (iter lst)
     (if (or (eof-object? (peek-char in))
             (eq? (peek-char in) #\newline))
         (begin (set! col-number (add1 col-number))
                lst)
-        (let [(new-char (read-char in))]
+        (let ((new-char (read-char in)))
           (set! col-number (add1 col-number))
           (if (char-whitespace? new-char)
               (begin (set! col-number (add1 col-number))
                      lst)
               (iter (cons new-char lst))))))
 
-  (let [(first-char (get-first-char-in-list))
+  (let ((first-char (get-first-char-in-list))
         (line-no line-number)
-        (col-no col-number)]
+        (col-no col-number))
     (if (list? first-char)
         (let ((tok (list->string (reverse (iter first-char)))))
           (token tok line-no col-no))
@@ -169,7 +169,7 @@
   (reverse words))
 
 (define (forth-read-no-eof)
-  (let [(res (forth-read))]
+  (let ((res (forth-read)))
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))

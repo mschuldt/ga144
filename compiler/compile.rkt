@@ -292,13 +292,13 @@
         (tok (if (token? token)
                  (token-tok token)
                  token)))
-    (cond [(setq x (get-directive tok)) (x)]
-          [(instruction? tok) (compile-instruction! tok)]
-          [(setq x (parse-num tok)) (compile-constant! x)]
-          [(word-ref? tok) (compile-word-ref! (substring tok 1))]
-          [(setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x))]
-          [(node-const? tok) (compile-node-const tok)]
-          [else (compile-call! tok)])
+    (cond ((setq x (get-directive tok)) (x))
+          ((instruction? tok) (compile-instruction! tok))
+          ((setq x (parse-num tok)) (compile-constant! x))
+          ((word-ref? tok) (compile-word-ref! (substring tok 1)))
+          ((setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x)))
+          ((node-const? tok) (compile-node-const tok))
+          (else (compile-call! tok)))
     (set! current-token #f)
     tok))
 
@@ -355,10 +355,10 @@
           (add-to-next-slot "jump")
           (begin (add-to-next-slot "call")
                  (and next (unread-tok next))))))
-  (let* ([compiler-word-p (compiler-word? word)]
-         [addr (and (not compiler-word-p)
-                    (or address (get-word-address word)))]
-         [cell #f])
+  (let* ((compiler-word-p (compiler-word? word))
+         (addr (and (not compiler-word-p)
+                    (or address (get-word-address word))))
+         (cell #f))
     (if compiler-word-p
         (exec-compiler-word word)
         (if addr
@@ -507,10 +507,10 @@
   (and jump-slot
        (>= jump-slot 0)
        (< jump-slot 3)
-       (let* ([mask (vector-ref address-masks jump-slot)]
-              [~mask (& (~ mask) #x3ffff)]
-              [min-dest (& ~mask P)]
-              [max-dest (ior (& ~mask P) (& mask destination-addr))])
+       (let* ((mask (vector-ref address-masks jump-slot))
+              (~mask (& (~ mask) #x3ffff))
+              (min-dest (& ~mask P))
+              (max-dest (ior (& ~mask P) (& mask destination-addr))))
          (and (>= destination-addr min-dest)
               (<= destination-addr max-dest)))))
 
@@ -530,9 +530,9 @@
  ":"
  (lambda ()
    (fill-rest-with-nops)
-   (let* ([word (read-tok-name)]
-          [address (make-addr current-addr)]
-          [waiting-list (get-waiting-list word)])
+   (let* ((word (read-tok-name))
+          (address (make-addr current-addr))
+          (waiting-list (get-waiting-list word)))
      (when waiting-list
        (for [(cell waiting-list)]
          (set-mcar! cell address))
@@ -732,8 +732,8 @@
             n)
         #f))
   (define max-slot-num (vector 262144 8192 256 8))
-  (let* ([word (vector-ref memory slot)]
-         [last (and (vector? word) (find-first-empty word))])
+  (let* ((word (vector-ref memory slot))
+         (last (and (vector? word) (find-first-empty word))))
     (if last
         (if (and (not (mpair? thing))
                  (> thing (vector-ref max-slot-num last)))
@@ -787,8 +787,8 @@
 (add-directive!
  "`"
  (lambda ()
-   (let* ([word (read-tok-name)]
-          [addr (get-word-address word)])
+   (let* ((word (read-tok-name))
+          (addr (get-word-address word)))
      (if addr
          (push stack addr)
          (error (format "\"~a\" is not defined" word))))))
@@ -1005,10 +1005,10 @@
 (add-directive!
  "::"
  (lambda ()
-   (let* ([name (read-tok-name)]
-          [body '()]
-          [tok #f]
-          [x #f])
+   (let* ((name (read-tok-name))
+          (body '())
+          (tok #f)
+          (x #f))
      ;; Allow redefinition of compiler words
      ;;  (when (hash-has-key? compiler-words word)
      ;;    (error (format "redefinition of compiler word '~a' in node ~a"

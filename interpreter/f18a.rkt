@@ -153,14 +153,14 @@
 
     ;; Pops from the data stack.
     (define/public (d-pop!)
-      (let ([ret-val T])
+      (let ((ret-val T))
         (set! T S)
         (set! S (pop-stack! dstack))
         ret-val))
 
     ;; Pops from the rstack stack.
     (define/public (r-pop!)
-      (let ([ret-val R])
+      (let ((ret-val R))
         (set! R (pop-stack! rstack))
         ret-val))
 
@@ -171,12 +171,12 @@
     (define (incr curr) ;; DB001 section 2.2
       (if (> (& curr #x100) 0)
           curr
-          (let ([bit9 (& curr #x200)]
-                [addr (& curr #xff)])
-            (ior (cond [(< addr #x7F) (add1 addr)]
-                       [(= addr #x7F) 0]
-                       [(< addr #xFF) (add1 addr)]
-                       [(= addr #xFF) #x80])
+          (let ((bit9 (& curr #x200))
+                (addr (& curr #xff)))
+            (ior (cond ((< addr #x7F) (add1 addr))
+                       ((= addr #x7F) 0)
+                       ((< addr #xFF) (add1 addr))
+                       ((= addr #xFF) #x80))
                  bit9))))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,9 +282,9 @@
 
     (define (multiport-read ports)
       (when debug-ports (log (format "(multiport-read ~a)\n" ports)))
-      (let ([done #f]
-            [writing-node #f]
-            [other #f])
+      (let ((done #f)
+            (writing-node #f)
+            (other #f))
         (for ([port ports])
           (if (eq? port wake-pin-port)
               ;;reading from pin17
@@ -759,19 +759,19 @@
         ;;  everything to the right by one bit to replace T:A
         (if (= (& A 1) 1)
             ;;case 2:
-            (let* ([sum (if extended-arith?
-                            (let ([sum (+ T S carry-bit)])
+            (let* ((sum (if extended-arith?
+                            (let ((sum (+ T S carry-bit)))
                               (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
                               sum)
-                            (+ T S))]
-                   [sum17 (& sum #x20000)]
-                   [result (ior (<< sum 17)
-                                (>> A 1))])
+                            (+ T S)))
+                   (sum17 (& sum #x20000))
+                   (result (ior (<< sum 17)
+                                (>> A 1))))
               (set! A (bitwise-bit-field result 0 18))
               (set! T (ior sum17 (bitwise-bit-field result 18 36))))
             ;;case 2:
-            (let ([t17 (& T #x20000)]
-                  [t0  (& T #x1)])
+            (let ((t17 (& T #x20000))
+                  (t0  (& T #x1)))
               (set! T (ior t17 (>> T 1)))
               (set! A (ior (<< t0 17)
                            (>> A 1))))))
@@ -787,7 +787,7 @@
 
       (define-instruction! "+" ()
         (if extended-arith?
-            (let ([sum (+ (d-pop!) (d-pop!) carry-bit)])
+            (let ((sum (+ (d-pop!) (d-pop!) carry-bit)))
               (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
               (d-push! (18bit sum)))
             (d-push! (18bit (+ (d-pop!) (d-pop!))))))
@@ -946,7 +946,7 @@
       (set! post-finish-port-write write-next)
       ;; Cancel active reads. TODO: single port reads
       (when multiport-read-ports
-        (for ([port multiport-read-ports])
+        (for ((port multiport-read-ports))
           ;;reuse 'receive-port-read' to cancel the read notification
           (send (vector-ref ludr-port-nodes port) receive-port-read port #f))
         (set! multiport-read-ports #f))
@@ -1103,16 +1103,16 @@
 
     (define (init-ludr-port-nodes)
       (define (convert dir)
-        (let ([x (remainder coord 100)]
-              [y (quotient coord 100)])
-          (cond [(equal? dir "north") (if (= (modulo y 2) 0) DOWN UP)]
-                [(equal? dir "south") (if (= (modulo y 2) 0) UP DOWN)]
-                [(equal? dir "east") (if (= (modulo x 2) 0) RIGHT LEFT)]
-                [(equal? dir "west") (if (= (modulo x 2) 0) LEFT RIGHT)])))
-      (let ([west (send ga144 coord->node (- coord 1))]
-            [north (send ga144 coord->node (+ coord 100))]
-            [south (send ga144 coord->node (- coord 100))]
-            [east (send ga144 coord->node (+ coord 1))])
+        (let ((x (remainder coord 100))
+              (y (quotient coord 100)))
+          (cond ((equal? dir "north") (if (= (modulo y 2) 0) DOWN UP))
+                ((equal? dir "south") (if (= (modulo y 2) 0) UP DOWN))
+                ((equal? dir "east") (if (= (modulo x 2) 0) RIGHT LEFT))
+                ((equal? dir "west") (if (= (modulo x 2) 0) LEFT RIGHT)))))
+      (let ((west (send ga144 coord->node (- coord 1)))
+            (north (send ga144 coord->node (+ coord 100)))
+            (south (send ga144 coord->node (- coord 100)))
+            (east (send ga144 coord->node (+ coord 1))))
         (set! ludr-port-nodes (make-vector 4))
 
         ;;TEMPORARY FIX: create new dummy nodes around the edges of the chip
