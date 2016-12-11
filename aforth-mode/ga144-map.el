@@ -23,6 +23,10 @@
 (def-local ga144-project-aforth-compile-status-overlay nil)
 (def-local ga144-mark-active nil)
 (def-local ga144-mark-coord nil)
+(def-local ga144-region-nodes nil) ;; ordered collection of all node coordinates in the region
+(def-local ga144-region-path-p  nil) ;; t if ga144-region-path-p represents a node path
+(def-local ga144-visited-nodes nil) ;; hash table of visited nodes
+
 
 (defvar ga144-auto-resize-map-on-window-change t)
 
@@ -171,30 +175,41 @@
            ,@body)
          ga144-nodes))
 
+(defun ga144-get-node-face (node)
+  (or (car (ga144-node-face-stack node))
+      (ga144-node-face node)))
+
 (defun ga144-update-overlays ()
   (let (face)
     (loop-nodes node
-      (setq ga144-node-face node)
+      (setq face (ga144-get-node-face node))
       (dolist (o (ga144-node-overlays node))
         (overlay-put o 'face face)))))
 
 (defstruct ga144-node coord special-function node-type text color overlays face region-face coord-overlay face-stack)
 
-(defun ga144-pop-node-face (coord)
+(defun ga144-pop-node-face (coord &optional pop-face)
   (let* ((node (coord->node coord))
-         faces (ga144-node-face-stack node)
-         face (car faces))
-    (if face
+         (faces (ga144-node-face-stack node))
+         (face (car faces)))
+    (if pop-face
+        (progn (setq faces (remove pop-face faces)
+		     face (car faces))
+	       (setf (ga144-node-face-stack node) faces))
+      (when face
         (setf (ga144-node-face-stack node) (cdr faces))
+        (setq face (cadr faces))))
+    (unless face
       (setq face (ga144-node-face node)))
     (ga144-set-node-overlay coord face)))
 
-(defun ga244-push-node-face (coord face)
-  (let ((node (coord->node coord))
-        (faces (ga144-node-face-stack node)))
-    (push face faces)
-    (setq (ga144-node-face-stack node) faces)
-    (ga144-set-node-overlay coord face)))
+(defun ga144-push-node-face (coord face)
+  (let* ((node (coord->node coord))
+         (faces (ga144-node-face-stack node)))
+    (when (not (eq (car faces) face))
+      (push face faces)
+      (setf (ga144-node-face-stack node) faces)
+      (ga144-set-node-overlay coord face))))
 
 (defun ga144-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
@@ -230,7 +245,7 @@
       (cons ga144-default-face-2 ga144-region-face-2))))
 
 (defun ga144-create-new ()
-  (let (coord coord-overlay)
+  (let (coord coord-overlay faces)
     (setq ga144-nodes (make-vector 144 nil))
     (dotimes (i 144)
       (setq coord (index->coord i))
@@ -280,7 +295,6 @@
         (setq ga144-node-size (1- ga144-node-size))
         (ga144-render ga144-node-size))
     (message "Map is cannot be made smaller")))
-
 
 (defun ga144-move-left ()
   (interactive)
@@ -347,18 +361,17 @@
     (when (ga144-valid-coord-p next)
       (ga144-set-selected-node next))))
 
+
+(defun ga144-set-node-overlay (coord face)
+  (assert (ga144-valid-coord-p coord))
+  (let ((node (coord->node coord)))
+    
+    (dolist (o (ga144-node-overlays node))
+      (overlay-put o 'face face))))
+
 (defun move-selected-node-overlay (from to)
-  (let ((node-from (coord->node from))
-        (node-to (coord->node to))
-        face)
-
-    (setq face (ga144-node-face node-from))
-    (dolist (o (ga144-node-overlays node-from))
-      (overlay-put o 'face face))
-
-    (dolist (o (ga144-node-overlays node-to))
-      (overlay-put o 'face ga144-select-face))
-    ))
+  (ga144-pop-node-face from ga144-select-face)
+  (ga144-push-node-face to ga144-select-face))
 
 (defun ga144-goto-current-node ()
   (interactive)
@@ -398,13 +411,82 @@
 
     (message "Not in a GA144 project %s" major-mode)))
 
+(defun ga144-reset-region ()
+  (dolist (node ga144-region-nodes)
+    (ga144-pop-node-face node)
+    ;;(ga144-set-node-overlay node (ga144-node-face (coord->node node)))
+    )
+  (setq ga144-region-nodes nil)
+  (clrhash ga144-visited-nodes))
+
+(defun ga144-node-in-region-p (coord)
+  (gethash coord ga144-visited-nodes))
+
+
+(defun ga144-add-node-to-region (coord)
+  (ga144-push-node-face coord (ga144-node-region-face (coord->node coord)))
+  (push coord ga144-region-nodes)
+  (puthash coord t ga144-visited-nodes))
+
+;; the point node is part of the region (otherwise there is no way to select the whole map)
+;; but it retains the normal point color instead of the region color
+;; when the point moves it reverts back to the default color, reverting the
+
+(defun ga144-update-path-selection ()
+  (let ((i 0)
+        dir diff coord m count quit)
+    (setq diff (- (mod ga144-current-coord 100) (mod ga144-prev-coord 100))
+          m 1)
+    (when (= diff 0)
+      (setq diff (- (/ ga144-current-coord 100)(/ ga144-prev-coord 100))
+            m 100))
+    (when diff
+      (setq dir (* (if (> diff 0) 1 -1) m)
+            count (abs diff))
+      (setq coord ga144-prev-coord)
+      (while (and (< i count)
+                  (not quit))
+        (setq i (1+ i))
+        (setq coord (+ coord dir))
+
+        (if (ga144-node-in-region-p coord)
+            (progn (message "Error: Cannot cross path")
+                   (setq quit coord))
+          (ga144-add-node-to-region coord))
+        ))))
+
+(defun ga144-update-rectangle-selection ()
+  ;; find all hte nodes
+  ;; if not in visited add them
+  )
+
+(defun ga144-clear-selection ()
+  )
+
+
 (defun update-position ()
   ;;(setq ga144-modified-p t)
   ;;(ga144-move-to-node ga144-current-coord 'middle)
   (setq ga144-prev-coord (or ga144-prev-coord 0))
+  (if ga144-mark-active
+      (if ga144-region-path-p
+          (ga144-update-path-selection)
+        (ga144-update-rectangle-selection))
+    (ga144-clear-selection))
   (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
   (message "current coord: %s" ga144-current-coord))
 
+(defun update-position ()
+  ;;(setq ga144-modified-p t)
+  ;;(ga144-move-to-node ga144-current-coord 'middle)
+  (setq ga144-prev-coord (or ga144-prev-coord 0))
+  (if ga144-mark-active
+      (if (not ga144-region-path-p)
+          (ga144-update-path-selection)
+        (ga144-update-rectangle-selection))
+    (ga144-clear-selection))
+    (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
+  (message "current coord: %s" ga144-current-coord))
 
 (defun ga144-draw-map-in-frame-limits()
   (let ((max-size (/ (window-max-chars-per-line) 18)))
@@ -423,11 +505,19 @@
 (setq ga144-maps nil);;maps buffer names to buffers
 
 (defun ga144-set-map-focus (state)
+  ;; if we are focusing an unfocused node then just remove the unfocused face from the stack
   (if state
-      (dolist (o (ga144-node-overlays (coord->node ga144-current-coord)))
-        (overlay-put o 'face ga144-select-face))
-    (dolist (o (ga144-node-overlays (coord->node ga144-current-coord)))
-      (overlay-put o 'face ga144-unfocused-face))))
+      (if (eq (ga144-get-node-face (coord->node ga144-current-coord))
+	      ga144-unfocused-face)
+          (progn ;;(ga144-pop-node-face ga144-current-coord ga144-unfocused-face)
+	    (ga144-pop-node-face ga144-current-coord)
+	    (when (not (eq (ga144-get-node-face (coord->node ga144-current-coord)) ga144-select-face))
+	      (message "Expected to revert to select face by poping the unfocused face. failed ")
+	      ;(assert nil)
+	      ))
+        (ga144-push-node-face ga144-current-coord ga144-select-face))
+    (ga144-push-node-face ga144-current-coord ga144-unfocused-face)))
+
 
 (defun ga144-set-map-buffer-focus (buffer focus)
   (with-current-buffer buffer
@@ -445,33 +535,59 @@
           (push (cons (buffer-name) buffer) maps))))
     maps))
 
+(defun assoc-delete-all (key alist)
+  "Delete from ALIST all elements whose car is `equal' to KEY.
+Return the modified alist.
+Elements of ALIST that are not conses are ignored."
+  (while (and (consp (car alist)) (equal (car (car alist)) key))  (setq alist  (cdr alist)))
+  (let ((tail  alist)
+        tail-cdr)
+    (while (setq tail-cdr  (cdr tail))
+      (if (and (consp (car tail-cdr))  (equal (car (car tail-cdr)) key))
+          (setcdr tail (cdr tail-cdr))
+        (setq tail  tail-cdr))))
+  alist)
+
+(setq ga144-updateing-map-focus nil)
+(setq ga444-focus-hook-call-count 0)
+
 (defun ga144-update-map-focus ()
-  (condition-case nil
-      (progn
-        ;; If another map was previously selected, remove focus
-        (when ga144-current-focus-buffer
-          (ga144-set-map-buffer-focus ga144-current-focus-buffer nil)
-          (setq ga144-current-focus-buffer nil))
-        ;; if the current buffer is a ga144-map, add focus
-        (when (eq major-mode 'ga144-mode)
-          (unless ga144-maps
-            (setq ga144-maps (ga144-rescan-buffers-for-maps)))
+  (setq ga444-focus-hook-call-count (1+ ga444-focus-hook-call-count))
+  (if ga144-updateing-map-focus
+      (message "already in update focus handler")
+    (setq ga144-updateing-map-focus t)
+    ;;(condition-case nil
+    (progn
+      ;; If another map was previously selected, remove focus
+      (when ga144-current-focus-buffer
+	(ga144-set-map-buffer-focus ga144-current-focus-buffer nil)
+	(setq ga144-current-focus-buffer nil))
+      ;;    (message "updating focus: major-mode='%s' buffer-name='%s'"
+      ;;             major-mode (buffer-name))
+      ;; if the current buffer is a ga144-map, add focus
+      (when (eq major-mode 'ga144-mode)
+	(unless ga144-maps
+	  (setq ga144-maps (ga144-rescan-buffers-for-maps)))
 
-          (let ((curr (cdr (assoc (buffer-name) ga144-maps))))
+	(let ((curr (cdr (assoc (buffer-name) ga144-maps))))
 
-            (unless (equal curr (current-buffer))
-              ;; The name of the current buffer maps to a different ga144 map buffer
-              ;; This would be a bug, no sure how to recover, just delete all mappings)
-              ;; for that buffer name and hope things will be alright.
-              (message "Bug: ga144 map buffer mismatch in ga144-update-map-focus")
-              (message " debug info: (current-buffer) = %s" (current-buffer))
-              (message " debug info: ga144-maps = %s" ga144-maps)
-              (setq ga144-maps (assoc-delete-all (buffer-name) ga144-maps)))
+	  (unless (equal curr (current-buffer))
+	    ;; The name of the current buffer maps to a different ga144 map buffer
+	    ;; This would be a bug, no sure how to recover, just delete all mappings)
+	    ;; for that buffer name and hope things will be alright.
+	    (message "Bug: ga144 map buffer mismatch in ga144-update-map-focus")
+	    (message " debug info: (current-buffer) = %s" (current-buffer))
+	    (message " debug info: ga144-maps = %s" ga144-maps)
+	    (setq ga144-maps (assoc-delete-all (buffer-name) ga144-maps)))
 
-            (when curr
-              (ga144-set-map-buffer-focus curr t)
-              (setq ga144-current-focus-buffer curr)))))
-    (error (message "Error in ga144-update-map-focus"))))
+	  (when curr
+	    (ga144-set-map-buffer-focus curr t)
+	    (setq ga144-current-focus-buffer curr)))))
+    ;;  (error (message "Error in ga144-update-map-focus")
+    ;;         (setq ga144-updateing-map-focus nil))
+    ;; )
+    (setq ga144-updateing-map-focus nil)))
+
 
 (defun ga144-kill-buffer-handler ()
   (when (eq (cdr (assoc (buffer-name) ga144-maps)) (current-buffer))
@@ -487,6 +603,7 @@
 
 (defun ga144-set-mark ()
   (interactive)
+  (ga144-reset-region)
   (if (and ga144-mark-coord
            (eq ga144-mark-coord ga144-current-coord))
       (progn (setq ga144-mark-active (not ga144-mark-active))
@@ -494,6 +611,7 @@
                  (message "GA144 mark activated")
                (message "GA144 mark deactivated")))
     (setq ga144-mark-active t)
+    (push ga144-current-coord ga144-region-nodes)
     (message "GA144 mark set"))
   (setq ga144-mark-coord ga144-current-coord))
 
@@ -542,6 +660,8 @@
       (progn
         (setq ga144-project-file buffer-file-name)
         (setq ga144-project-name (file-name-base buffer-file-name))
+        (assert ga144-project-name)
+        (assert (not (string= ga144-project-name "nil")))
         (setq ga144-project-aforth-files (ga144-aforth-files (file-name-directory  buffer-file-name)))
         (setq ga144-project-aforth-buffers (mapcar 'ga144-get-project-file-buffer ga144-project-aforth-files))
         (setq ga144-project-aforth-file-overlay (make-overlay 0 0))
@@ -573,7 +693,10 @@
         (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
         (setq visible-cursor nil
-              cursor-type nil)
+              cursor-type nil
+              ga144-region-nodes nil
+              ga144-region-path-p nil
+              ga144-visited-nodes (make-hash-table))
         (add-hook 'window-size-change-functions 'ga144-handle-window-size-change)
         (ga144-set-map-focus t)
         (add-hook 'buffer-list-update-hook 'ga144-update-map-focus)
