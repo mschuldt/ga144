@@ -140,8 +140,9 @@
     (read-only-mode 1)
     (ga144-create-overlays node-size)
     ;; set compile status overlay string
-    (overlay-put ga144-project-aforth-compile-status-overlay 'after-string  ga144-project-aforth-compile-status)
-    ))
+    (overlay-put ga144-project-aforth-compile-status-overlay 'after-string  ga144-project-aforth-compile-status))
+  (ga144-update-overlay-faces))
+
 
 (defun ga144-delete-overlays ()
   (let (o overlays coord face column)
@@ -176,40 +177,54 @@
          ga144-nodes))
 
 (defun ga144-get-node-face (node)
-  (or (car (ga144-node-face-stack node))
-      (ga144-node-face node)))
+  ;; get the current face to display
+  (let ((faces (ga144-node-faces node)))
+    (assert (and (arrayp faces) (= (length faces) ga144-num-faces)))
+    (or (aref faces 4) ;; tmp high
+        (aref faces 3) ;; point
+        (aref faces 2) ;; tmp low
+        (aref faces 1) ;; base
+        (aref faces 0) ;; default
+        )))
 
-(defun ga144-update-overlays ()
-  (let (face)
-    (loop-nodes node
-      (setq face (ga144-get-node-face node))
-      (dolist (o (ga144-node-overlays node))
-        (overlay-put o 'face face)))))
+(defun ga144-update-node-overlays (node)
+  (let ((face (ga144-get-node-face node)))
+    (dolist (o (ga144-node-overlays node))
+      (overlay-put o 'face face))))
 
-(defstruct ga144-node coord special-function node-type text color overlays face region-face coord-overlay face-stack)
+(defun ga144-update-overlay-faces ()
+  (loop-nodes node
+    (ga144-update-node-overlays node)))
 
-(defun ga144-pop-node-face (coord &optional pop-face)
+(defun ga144-set-node-face-internal (coord idx face)
   (let* ((node (coord->node coord))
-         (faces (ga144-node-face-stack node))
-         (face (car faces)))
-    (if pop-face
-        (progn (setq faces (remove pop-face faces)
-		     face (car faces))
-	       (setf (ga144-node-face-stack node) faces))
-      (when face
-        (setf (ga144-node-face-stack node) (cdr faces))
-        (setq face (cadr faces))))
-    (unless face
-      (setq face (ga144-node-face node)))
-    (ga144-set-node-overlay coord face)))
+         (faces (ga144-node-faces node)))
+    (assert (and (arrayp faces) (= (length faces) ga144-num-faces)))
+    (aset faces idx face)
+    (setf (ga144-node-faces node) faces)
+    (ga144-update-node-overlays node)
+    ))
 
-(defun ga144-push-node-face (coord face)
-  (let* ((node (coord->node coord))
-         (faces (ga144-node-face-stack node)))
-    (when (not (eq (car faces) face))
-      (push face faces)
-      (setf (ga144-node-face-stack node) faces)
-      (ga144-set-node-overlay coord face))))
+(defun ga144-set-node-default-face (coord face)
+  (ga144-set-node-face-internal coord 0 face))
+
+(defun ga144-set-node-base-face (coord face)
+  (ga144-set-node-face-internal coord 1 face))
+
+(defun ga144-set-node-tmp-low-face (coord face)
+  (ga144-set-node-face-internal coord 2 face))
+
+(defun ga144-set-node-point-face (coord face)
+  (ga144-set-node-face-internal coord 3 face))
+
+(defun ga144-set-node-tmp-high-face (coord face)
+  (ga144-set-node-face-internal coord 4 face))
+
+(defun ga144-set-region-face (coord &optional remove)
+  (let ((node (coord->node coord)))
+    (ga144-set-node-face-internal coord 2 (if remove nil (ga144-node-region-face node)))))
+
+(defstruct ga144-node coord special-function node-type text color overlays region-face faces coord-overlay)
 
 (defun ga144-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
@@ -244,18 +259,25 @@
         (cons ga144-default-face-1 ga144-region-face-1)
       (cons ga144-default-face-2 ga144-region-face-2))))
 
+(setq ga144-num-faces 5)
+
+(defun ga144-make-face-vector (default-face)
+  (let ((v (make-vector ga144-num-faces nil)))
+    (aset v 0 default-face)
+    v))
+
 (defun ga144-create-new ()
-  (let (coord coord-overlay faces)
+  (let (faces coord coord-overlay default region-face)
     (setq ga144-nodes (make-vector 144 nil))
     (dotimes (i 144)
       (setq coord (index->coord i))
       (setq coord-overlay (make-overlay 0 0 ))
-      (setq faces (ga144-get-node-default-faces coord))
+      (setq default-faces (ga144-get-node-default-faces coord))
       (overlay-put coord-overlay 'face ga144-node-coord-face)
       (aset ga144-nodes i (make-ga144-node :coord coord
                                            :special-function (ga144-get-node-type coord)
-                                           :face (car faces)
-                                           :region-face (cdr faces)
+                                           :faces (ga144-make-face-vector (car default-faces))
+                                           :region-face (cdr default-faces)
                                            :coord-overlay coord-overlay)))
     (setq ga144-current-coord 700)
     (ga144-save)
@@ -361,17 +383,9 @@
     (when (ga144-valid-coord-p next)
       (ga144-set-selected-node next))))
 
-
-(defun ga144-set-node-overlay (coord face)
-  (assert (ga144-valid-coord-p coord))
-  (let ((node (coord->node coord)))
-    
-    (dolist (o (ga144-node-overlays node))
-      (overlay-put o 'face face))))
-
 (defun move-selected-node-overlay (from to)
-  (ga144-pop-node-face from ga144-select-face)
-  (ga144-push-node-face to ga144-select-face))
+  (ga144-set-node-point-face from nil)
+  (ga144-set-node-point-face to ga144-select-face))
 
 (defun ga144-goto-current-node ()
   (interactive)
@@ -412,8 +426,8 @@
     (message "Not in a GA144 project %s" major-mode)))
 
 (defun ga144-reset-region ()
-  (dolist (node ga144-region-nodes)
-    (ga144-pop-node-face node)
+  (dolist (coord ga144-region-nodes)
+    (ga144-set-region-face coord 'remove)
     ;;(ga144-set-node-overlay node (ga144-node-face (coord->node node)))
     )
   (setq ga144-region-nodes nil)
@@ -424,7 +438,7 @@
 
 
 (defun ga144-add-node-to-region (coord)
-  (ga144-push-node-face coord (ga144-node-region-face (coord->node coord)))
+  (ga144-set-region-face coord)
   (push coord ga144-region-nodes)
   (puthash coord t ga144-visited-nodes))
 
@@ -506,18 +520,9 @@
 
 (defun ga144-set-map-focus (state)
   ;; if we are focusing an unfocused node then just remove the unfocused face from the stack
-  (if state
-      (if (eq (ga144-get-node-face (coord->node ga144-current-coord))
-	      ga144-unfocused-face)
-          (progn ;;(ga144-pop-node-face ga144-current-coord ga144-unfocused-face)
-	    (ga144-pop-node-face ga144-current-coord)
-	    (when (not (eq (ga144-get-node-face (coord->node ga144-current-coord)) ga144-select-face))
-	      (message "Expected to revert to select face by poping the unfocused face. failed ")
-	      ;(assert nil)
-	      ))
-        (ga144-push-node-face ga144-current-coord ga144-select-face))
-    (ga144-push-node-face ga144-current-coord ga144-unfocused-face)))
-
+  (ga144-set-node-point-face ga144-current-coord (if state
+                                                     ga144-select-face
+                                                   ga144-unfocused-face)))
 
 (defun ga144-set-map-buffer-focus (buffer focus)
   (with-current-buffer buffer
