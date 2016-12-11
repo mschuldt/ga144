@@ -615,9 +615,11 @@ Elements of ALIST that are not conses are ignored."
              (if ga144-mark-active
                  (message "GA144 mark activated")
                (message "GA144 mark deactivated")))
-    (setq ga144-mark-active t)
+    (progn (setq ga144-mark-active t)
+           (message "GA144 mark set")))
+  (when ga144-mark-active
     (push ga144-current-coord ga144-region-nodes)
-    (message "GA144 mark set"))
+    (ga144-set-region-face ga144-current-coord))
   (setq ga144-mark-coord ga144-current-coord))
 
 (defun ga144-exchange-point-and-mark ()
