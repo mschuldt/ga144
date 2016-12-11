@@ -621,6 +621,13 @@ Elements of ALIST that are not conses are ignored."
     (setq ga144-mark-coord ga144-current-coord)
     (ga144-set-selected-node mark)))
 
+(defun ga144-keyboard-quit ()
+  "cancel the current operation"
+  (interactive)
+  (ga144-reset-region)
+  (setq ga144-mark-active nil)
+  (keyboard-quit))
+
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
         (define-key map "+" 'ga144-inc-node-size)
@@ -647,6 +654,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
         (define-key map (kbd "C-SPC") 'ga144-set-mark)
         (define-key map (kbd "C-x C-x") 'ga144-exchange-point-and-mark)
+        (define-key map (kbd "C-g") 'ga144-keyboard-quit)
 
         map))
 
