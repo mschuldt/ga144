@@ -1,7 +1,7 @@
 #lang racket
 
-(require "../common.rkt")
-
+(require "../common.rkt"
+         "../rkt-to-el.rkt")
 
 (provide read-token
          forth-read
@@ -161,7 +161,7 @@
                   ((equal? tok "node")
                    (forth-read tok)
                    (end-word)
-                   (set! done #t))
+                   (set! done t))
                   (else (set! current-word (cons token current-word))))
             (set! last token)
             (read-loop)))))

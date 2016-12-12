@@ -44,7 +44,7 @@ then
       "inc"
       (lambda () (set! inc-counter (add1 inc-counter))))
 
-(enter-cli-on-breakpoint #t)
+(enter-cli-on-breakpoint t)
 (step*) ;;step to add
 (step*) ;;step to double
 (step*) ;;finish program

@@ -38,7 +38,7 @@
   (unless name
     (set! name (format "chip~a" _counter))
     (set! _counter (add1 _counter)))
-  (let ((chip (new ga144% [name name] [interactive #t])))
+  (let ((chip (new ga144% [name name] [interactive t])))
     (push chips chip)
     (hash-set! name-to-chip name chip)
     (set! num-chips (add1 num-chips))
@@ -75,7 +75,7 @@
     (for ((c chips))
       (when (and (> (send c num-active-nodes) 0)
                  (not breakpoint?))
-        (set! again #t)
+        (set! again t)
         (set! breakpoint? (send c step-program!))
         (when (and breakpoint?
                    (not cli-active?)
@@ -388,12 +388,12 @@
 
 
 (define (enter-cli)
-  (set! cli-active? #t)
+  (set! cli-active? t)
   (when (and (= num-chips 1)
              (not selected-chip))
     (set! selected-chip (car chips)))
   ;;(set! again #f)
-  (define again #t)
+  (define again t)
   (def-command exit () "Exit this cli" (set! again #f))
   (define last-command #f)
   (define (loop)

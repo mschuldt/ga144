@@ -19,7 +19,7 @@
     (init-field [name #f] [interactive #f])
 
     (define time 0)
-    (define breakpoint #f) ;; set to #t when a breakpoint is reached
+    (define breakpoint #f) ;; set to t when a breakpoint is reached
     (define breakpoint-node #f) ;;node where breakpoint originated
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; 8x18 node matrix
@@ -94,7 +94,7 @@
     (define/public (break [node #f])
       (set! breakpoint-node node)
       ;; set the breakpoint flag which returns control to the interpreter
-      (set! breakpoint #t))
+      (set! breakpoint t))
     (define/public (get-breakpoint-node) breakpoint-node)
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -158,7 +158,7 @@
       ;; (when (= (num-active-nodes) 0)
       ;;   (when interactive
       ;;     (printf "[[ All nodes are suspended\n"))
-      ;;   (set! breakpoint #t))
+      ;;   (set! breakpoint t))
 
       breakpoint)
 

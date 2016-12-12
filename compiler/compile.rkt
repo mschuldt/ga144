@@ -64,7 +64,7 @@
   (when reorder-words-with-fallthrough
     (set! parsed-nodes (for/list ((node parsed-nodes))
                          (cons (car node) (reorder-with-fallthrough (cdr node)))))
-    (when #t
+    (when t
       (with-output-to-file "opt.aforth"
         (lambda ()
           (for ((node parsed-nodes))
@@ -123,7 +123,7 @@
                           (not (equal? name (token-tok (cadr word)))))
                      name #f))))
   (let ((x (filter (lambda (x) (cdr x)) (hash->list fallthroughs))))
-    (unless (or (null? x) #t)
+    (unless (or (null? x) t)
       (pretty-display "fallthroughs:")
       (pretty-display x)))
   (define fall-into-nodes (hash-values fallthroughs))
@@ -499,7 +499,7 @@
 (define address-masks (vector #x3ff #xff #x7))
 
 (define (address-fits? destination-addr jump-slot [P #f])
-  ;; returns #t if DESTINATION-ADDR is reachable from the current word
+  ;; returns t if DESTINATION-ADDR is reachable from the current word
   ;; JUMP-SLOT is the slot of the jump/call instruction
   (set! P (or P next-addr))
   (and jump-slot

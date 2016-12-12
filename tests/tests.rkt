@@ -30,7 +30,7 @@
                         (set! test-chip (new-ga144))
                         (compile-and-load test-chip
                                           program
-                                          #t
+                                          t
                                           #:compiled-file compiled-file
                                           #:assembled-file assembled-file)
                         ;;(step*)

@@ -5,7 +5,8 @@
 	 "../compiler/compile.rkt"
          "../compiler/assemble.rkt"
          "../compiler/bootstream.rkt"
-         "../interpreter/stack.rkt")
+         "../interpreter/stack.rkt"
+         "../rkt-to-el.rkt")
 
 (define chip (new-ga144 "host"))
 
@@ -22,10 +23,10 @@
 (send node_305 set-breakpoint "two")
 
 ;; entering the cli is optional and must be enabled
-(enter-cli-on-breakpoint #t)
+(enter-cli-on-breakpoint t)
 
 ;; prints a representation of every nodes io state at each change
-;(send chip show-io-changes #t)
+;(send chip show-io-changes t)
 
 ;; step* runs the interpreter until it exits or a breakpoint is reached
 (step*)

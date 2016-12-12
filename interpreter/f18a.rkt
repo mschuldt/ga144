@@ -8,7 +8,7 @@
 
 (provide f18a%)
 
-(defvar save-history #t)
+(defvar save-history t)
 
 (define f18a%
   (class object%
@@ -37,18 +37,18 @@
     (define IO-read #x15555)
     (define data 0)
 
-    ;;value of each gpio pin. #t or #f)
+    ;;value of each gpio pin. t or #f)
     ;;"All pins reset to weak pulldown"
     (define pin17 #f)
     (define pin5 #f)
     (define pin3 #f)
     (define pin1 #f)
 
-    ;;#t if we are suspended waiting for pin17 to change
+    ;;t if we are suspended waiting for pin17 to change
     (define waiting-for-pin #f)
     ;;state of WD bit in io register
     (define WD #f)
-    (define ~WD #t)
+    (define ~WD t)
 
     (define history '())
 
@@ -60,7 +60,7 @@
     (define debug-ports #f)
     (define print-state #f)
     (define print-io #f)
-    (define/public (set-debug [general #t] [ports #f] [state #f] [io #f])
+    (define/public (set-debug [general t] [ports #f] [state #f] [io #f])
       (set! debug general)
       (set! debug-ports ports)
       (set! print-state state)
@@ -90,7 +90,7 @@
       (printf "[~a~a] ~a\n" (if name (format "~a." name) "") coord msg))
 
     (define/public (set-pin! pin val)
-      ;;val is #f or #t
+      ;;val is #f or t
       ;;???Racket equivalent of `set'?
       ;;(set (vector-ref (vector 'pin17 'pin5 'pin3 'pin1) pin) val)
       (cond ((= pin 0) (set! pin17 val))
@@ -195,7 +195,7 @@
     (define (suspend)
       (when debug-ports (log "suspending"))
       (remove-from-active-list)
-      (set! suspended #t)
+      (set! suspended t)
       (when break-at-io-change
         (when break-at-io-change-autoreset
           (set! break-at-wakeup #f)) ;;TODO:???
@@ -250,14 +250,14 @@
     (define (port-read port)
       (when debug-ports (log (format "(port-read ~a)\n" port)))
       ;;read a value from a ludr port
-      ;;returns #t if value is on the stack, #f if we are suspended waiting for it
+      ;;returns t if value is on the stack, #f if we are suspended waiting for it
       (if (eq? port wake-pin-port)
           ;;reading from pin17
           (if (eq? pin17 ~WD)
               (begin (d-push! (if pin17 1 0))
-                     #t)
+                     t)
               (begin ;;else: suspend while waiting for pin to change
-                (set! waiting-for-pin #t)
+                (set! waiting-for-pin t)
                 (suspend)
                 #f))
           ;;else: normal inter-node read
@@ -271,7 +271,7 @@
                   (vector-set! writing-nodes port #f)
                   ;;let other node know we read the value
                   (send writing-node finish-port-write)
-                  #t)
+                  t)
                 (begin ;;else: suspend while we wait for other node to write
                   (when debug-ports (printf "       suspending\n"))
                   (send (vector-ref ludr-port-nodes port)
@@ -290,7 +290,7 @@
               ;;reading from pin17
               (begin (when (eq? pin17 ~WD)
                        (d-push! (if pin17 1 0))
-                       (set! done #t)))
+                       (set! done t)))
               (when (setq writing-node (vector-ref writing-nodes port))
                 ;;an ajacent writing node is waiting for us to read its value
                 (if done
@@ -302,13 +302,13 @@
                       (d-push! (vector-ref port-vals port))
                       (vector-set! writing-nodes port #f)
                       (send writing-node finish-port-write)
-                      (set! done #t))))))
+                      (set! done t))))))
         (if done ;;successfully read a value from one of the ports
-            #t
+            t
             (begin ;;else: suspend while we wait for an other node to write
               (when (member wake-pin-port ports)
                 (when debug (log "suspending. waiting-for-pin = True"))
-                (set! waiting-for-pin #t))
+                (set! waiting-for-pin t))
               (set! multiport-read-ports '())
               (for ([port ports])
                 ;;(unless (vector-ref ludr-port-nodes port)
@@ -337,7 +337,7 @@
               (when debug-ports (printf "       target is ready\n"))
               (vector-set! reading-nodes port #f)
               (send reading-node finish-port-read value)
-              #t)
+              t)
             (begin
               (send (vector-ref ludr-port-nodes port)
                     receive-port-write port value this)
@@ -356,7 +356,7 @@
             (when debug-ports (printf "       wrote to port: ~a\n" port))
             (vector-set! reading-nodes port #f)
             (send reading-node finish-port-read value))))
-      #t)
+      t)
 
     (define post-finish-port-read #f)
     (define/public (set-post-finish-port-read fn)
@@ -470,7 +470,7 @@
       (set! pin2-handler b)
       (set! pin3-handler c)
       (set! pin4-handler d)
-      (set! pin-handlers-set-p #t))
+      (set! pin-handlers-set-p t))
 
     (define/public (set-gpio-handler pin handler)
       (when (>= pin num-gpio-pins)
@@ -523,13 +523,13 @@
 
     (define (push-io-reg)
       (d-push! (read-io-reg))
-      #t)
+      t)
 
     (define (set-io-reg val)
       (when print-io (log (format "IO = ~a\n" val)))
       (set! prev-IO IO)
       (set! IO val)
-      (set! WD (if (= (& (>> IO 11) 1) 1) #t #f))
+      (set! WD (if (= (& (>> IO 11) 1) 1) t #f))
       (set! ~WD (not WD))
       ;;if a digital pin control field changed, notify its handlers
       (when (and (> num-gpio-pins 0)
@@ -551,7 +551,7 @@
                          (> (& changed pin4-ctl-mask) 0))
                 (set! pin4-config (>> (& IO pin4-ctl-mask) pin4-ctl-shift))
                 (and pin4-handler (pin4-handler pin4-config)))))))
-      #t)
+      t)
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
 
@@ -698,7 +698,7 @@
         (if (= R 0)
             (r-pop!)
             (begin (set! R (sub1 R))
-                   (set! unext-jump-p #t)
+                   (set! unext-jump-p t)
                    (set! step-fn step0)
                    #f)))
 
@@ -731,24 +731,24 @@
 
       (define-instruction! "@b" () ;fetch-b
         (read-memory B)
-        #t)
+        t)
 
       (define-instruction! "@" (); fetch a
-        (read-memory (& A #x1ff)) #t)
+        (read-memory (& A #x1ff)) t)
 
       (define-instruction! "!p" () ; store p
         (set-memory! P (d-pop!))
-        (set! P (incr P)) #t)
+        (set! P (incr P)) t)
 
       (define-instruction! "!+" () ;store plus
         (set-memory! A (d-pop!))
-        (set! A (incr A)) #t)
+        (set! A (incr A)) t)
 
       (define-instruction! "!b" (); store-b
-        (set-memory! B (d-pop!)) #t)
+        (set-memory! B (d-pop!)) t)
 
       (define-instruction! "!" (); store
-        (set-memory! (& A #x1ff)  (d-pop!)) #t)
+        (set-memory! (& A #x1ff)  (d-pop!)) t)
 
       (define-instruction! "+*" () ; multiply-step
         ;;case 1 - If bit A0 is zero
@@ -882,7 +882,7 @@
                                        (let ((word (vector-ref code index)))
                                          (set! index (add1 index))
                                          (d-push! word)
-                                         #t)
+                                         t)
                                        (err "execute: invalid index")))
                                  (lambda (x) (err "execute: invalid port"))))
 
@@ -899,7 +899,7 @@
             (set! step-fn step0)
             (when suspended
               (wakeup))
-            #t)
+            t)
           #f))
 
     (define/public (load-bootstream frames)
@@ -932,7 +932,7 @@
                         set-post-finish-port-read
                         write-next)
                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                  ;;(send ga144 show-io-changes #t)
+                  ;;(send ga144 show-io-changes t)
                   (load-bootframe last))
                 (begin (printf "END FRAME\n")
                        (set! post-finish-port-write #f)
@@ -1024,8 +1024,8 @@
                            (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
                            ))
       (vector-set! memory &DATA
-                   (vector (lambda () (d-push! data) #t)
-                           (lambda (v) (set! data v) #t)))
+                   (vector (lambda () (d-push! data) t)
+                           (lambda (v) (set! data v) t)))
       )
 
     (define (load-rom)
@@ -1055,7 +1055,7 @@
       (set! step-fn step0)
       (set! pin-handlers-set-p #f)
       (set! WD #f)
-      (set! ~WD #t)
+      (set! ~WD t)
       (set! pin17 #f)
       (set! pin5 #f)
       (set! pin3 #f)
@@ -1084,7 +1084,7 @@
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
-    ;; returns #f when P = 0, else #t
+    ;; returns #f when P = 0, else t
     (define/public (step-program!)
       (set! step-count (add1 step-count))
       (step-fn)
@@ -1149,14 +1149,14 @@
     (define break-at-wakeup #f)
     (define break-at-io-change #f)
     ;; when true, set unset break-at-wakeup everytime it fires
-    (define break-at-wakeup-autoreset #t)
+    (define break-at-wakeup-autoreset t)
     (define break-at-io-change-autoreset #f)
 
     (define/public (break-at-next-wakeup)
-      (set! break-at-wakeup #t))
+      (set! break-at-wakeup t))
 
     (define/public (break-at-next-io-change)
-      (set! break-at-io-change #t))
+      (set! break-at-io-change t))
 
     (define/public (set-breakpoint line-or-word)
       (define (break-fn)
@@ -1174,16 +1174,16 @@
     (define/public (unset-breakpoint line-or-word)
       (define addr (get-breakpoint-address line-or-word))
       (when addr
-        (vector-set! breakpoints addr (lambda () #t))))
+        (vector-set! breakpoints addr (lambda () t))))
 
     (define/public (reset-breakpoints)
-      (set! breakpoints (make-vector MEM-SIZE (lambda () #t)))
+      (set! breakpoints (make-vector MEM-SIZE (lambda () t)))
       (set! break-at-wakeup #f))
 
     (define/public (set-word-hook-fn line-or-word fn)
       (define addr (get-breakpoint-address line-or-word))
       (if addr
-          (vector-set! breakpoints addr (lambda () (fn) #t))
+          (vector-set! breakpoints addr (lambda () (fn) t))
           (printf "[~a] set-word-hook-fn -- invalid word" coord line-or-word)))
 
     (define (get-breakpoint-address line-or-word)
@@ -1371,7 +1371,7 @@
               (hash-ref rom-symbols index)
               #f)))
 
-    (define/public (disassemble-memory [start 0] [end #xff] [show-p? #t])
+    (define/public (disassemble-memory [start 0] [end #xff] [show-p? t])
       ;;  disassemble and print a node memory from START to END, inclusive
       (define (pad-print thing [pad 20])
         (let* ((s (format "~a" thing))

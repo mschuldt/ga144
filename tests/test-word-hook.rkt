@@ -30,7 +30,7 @@ then
       (lambda () (set! b-counter (add1 b-counter)))
 )
 
-(enter-cli-on-breakpoint #t)
+(enter-cli-on-breakpoint t)
 
 (step*)
 (define loop-count 15)

@@ -40,3 +40,5 @@
        (pretty-display "ERROR: pop -- list is empty")
        (begin0 (car ,list) (set! ,list (cdr ,list)))))
 
+
+(define t #t)
