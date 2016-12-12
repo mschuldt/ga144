@@ -156,6 +156,9 @@
       (puthash x t s))
     s))
 
+(defun string-join (sequence separator)
+  (mapconcat 'identity sequence separator))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash tables
 (defun make-hash (alist)
@@ -200,9 +203,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; strings
+;;; same: make-string
+
 (defsubst 'string? 'stringp)
 (defsubst 'string-length 'length)
 (defsubst 'string->number 'string-to-number)
+(defsubst 'string-append 'concat)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
