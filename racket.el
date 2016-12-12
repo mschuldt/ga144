@@ -79,6 +79,58 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; flow control
+
+(defmacro begin (&rest body)
+  (cons 'progn body))
+
+(defconst else t) ;;for 'cond'
+
+(defun racket-for-loop-make-sequence (x)
+  (cond ((listp x) x)
+        ((stringp x) (cdr (butlast (split-string x ""))))
+        ((vector x) (mapcar 'identity x))
+        (t (error "unimplemented"))))
+
+
+(defun racket-make-for-loop (spec body collect)
+  (let* ((vars (mapcar 'car spec))
+         (sequences (mapcar 'cadr spec))
+         (seq-names (mapcar (lambda (v) (cons v (intern (concat (symbol-name v) "__rkt_for_loop_sequence")))) vars))
+         (seqs (mapcar 'cdr seq-names))
+         (setq-form  (let (v s forms)
+                       (dolist (vs seq-names)
+                         (setq v (car vs)
+                               s (cdr vs))
+                         (push `(cdr ,s) forms)
+                         (push s forms)
+                         (push `(car ,s) forms)
+                         (push v forms))
+                       (cons 'setq  forms)))
+         (let-vars (append (mapcar* (lambda (name val)
+                                      `(,(cdr name) (racket-for-loop-make-sequence ,val)))
+                                    seq-names sequences)
+                           vars))
+         (condition (if (> (length seqs) 1) (cons 'and seqs) (car seqs))))
+
+    (if collect
+        `(let ,(append let-vars '(__rkt-list-ret__))
+           (while ,condition
+             ,setq-form
+             (push (progn ,@body) __rkt-list-ret__))
+           (reverse __rkt-list-ret__))
+      `(let ,let-vars
+         (while ,condition
+           ,setq-form
+           ,@body)))))
+
+(defmacro for (spec &rest body)
+  (racket-make-for-loop spec body nil))
+
+(defmacro for/list (spec &rest body)
+  (racket-make-for-loop spec body t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; vectors
 (defalias 'vector-set! 'aset)
 (defalias 'vector-ref 'aref)
