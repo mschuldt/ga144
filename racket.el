@@ -1,15 +1,12 @@
-
-(defmacro begin (&rest body)
-  (cons 'progn body))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 'define' macro
 
 (defun racket-gather-local-vars (form &optional exclude)
   (let (vars)
     (cond ((not (consp form)) nil)
-          ((or (eq (car form) 'setq)
-               (eq (car form) 'set!)
-               (and (eq (car form) 'define)
-                    (symbolp (cadr form))))
+
+          ((and (eq (car form) 'define)
+                (symbolp (cadr form)))
            (unless (member (cadr form) exclude)
              (push (cadr form) vars))
            (setq vars (append vars (racket-gather-local-vars (caddr form) exclude))))
@@ -36,9 +33,7 @@
   (cond ((not (consp form)) form)
         ((eq (car form) 'define)
          (if (consp (cadr form))
-             `(setq ,(caadr form) (lambda ,@(racket-make-define-body (cadr form)
-                                                                     (racket-translate-define-body (cddr form)
-                                                                                                   (cons (caadr form) local-functions)))))
+             `(setq ,(caadr form) (lambda ,@(racket-make-define-body (cadr form) (cddr form) (cons (caadr form) local-functions))))
            (cons 'setq (racket-translate-define-body (cdr form) local-functions))))
 
         ((member (car form) local-functions)
@@ -54,7 +49,7 @@
              (reverse body)))))
 
 
-(defun racket-make-define-body (form body)
+(defun racket-make-define-body (form body &optional local-functions)
   (let ((args (cdr form))
         local-vars name positional optional defaults)
     (dolist (a args)
@@ -68,6 +63,7 @@
         (assert (symbolp a))
         (push a positional)))
     (setq local-vars (racket-gather-local-vars body (append positional optional)))
+    (setq body (racket-translate-define-body body local-functions))
     (when local-vars
       (setq body `((let ,local-vars ,@body))))
 
@@ -77,7 +73,7 @@
 
 (defmacro define (form &rest body)
   (if (consp form)
-      (cons 'defun (cons (car form)  (racket-make-define-body form (racket-translate-define-body body))))
+      (cons 'defun (cons (car form)  (racket-make-define-body form body)))
     (assert (symbolp form))
     `(defvar ,form ,body)))
 
