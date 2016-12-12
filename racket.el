@@ -142,6 +142,21 @@
 (defun set-member? (s item)
   (gethash item s))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; strings
+(defsubst 'string? 'stringp)
+(defsubst 'string-length 'length)
+(defsubst 'string->number 'string-to-number)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; numbers
+
+(defalias 'sub1 '1+)
+(defalias 'add1 '1-)
+(defalias number? 'numberp)
+(defun range (from to)
+  (number-sequence from (1- to)))
+
 (defalias 'vector-set! 'aset)
 (defalias 'vector-ref 'aref)
 (defalias 'vector-length 'length)
