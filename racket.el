@@ -123,6 +123,25 @@
     (maphash (lambda (k v)
                (push (cons k v) ret))
              hash)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sets
+
+;; the racket function 'set' cannot be used in elisp, use make-set instead
+
+(setq racket-magic-key
+(defun make-set (&rest items)
+  (let ((s (make-hash-table)))
+    (puthash racket-magic-key t s)
+    (dolist (x item)
+      (puthash x t s))
+    s))
+
+(defun set? (s)
+  (gethash racket-magic-key s))
+      
+(defun set-member? (s item)
+  (gethash item s))
+
 (defalias 'vector-set! 'aset)
 (defalias 'vector-ref 'aref)
 (defalias 'vector-length 'length)
