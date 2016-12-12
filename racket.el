@@ -157,6 +157,16 @@
 (defun range (from to)
   (number-sequence from (1- to)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; conditions
+(defalias 'equal? 'equal)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; vectors
+
 (defalias 'vector-set! 'aset)
 (defalias 'vector-ref 'aref)
+(defalias 'vector? 'vectorp)
 (defalias 'vector-length 'length)
+
+
