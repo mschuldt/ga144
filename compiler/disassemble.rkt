@@ -37,7 +37,7 @@
   ;;mutates the structs 'mem' field in place
   (unless (null? nodes)
     (let ((mem (node-mem (car nodes))))
-      (for ([i (node-len (car nodes))])
+      (for ((i (node-len (car nodes))))
         (vector-set! mem i (disassemble-word (vector-ref mem i)))))
     (disassemble (cdr nodes))))
 

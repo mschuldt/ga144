@@ -17,7 +17,7 @@
 
 ;;; Print a circular stack:
 (define (display-stack stack)
-  (for [(i (in-range 0 8))]
+  (for ((i (in-range 0 8)))
     (display (format " ~x" (vector-ref (stack-body stack)
                                        (modulo (- (stack-sp stack) i) 8))))))
 
@@ -28,7 +28,7 @@
 
 ;;; Pops from the given stack's body.
 (define (pop-stack! stack)
-  (let ([ret-val (vector-ref (stack-body stack) (stack-sp stack))])
+  (let ((ret-val (vector-ref (stack-body stack) (stack-sp stack))))
     (set-stack-sp! stack (modulo (sub1 (stack-sp stack)) 8))
     ret-val))
 
@@ -40,7 +40,7 @@
   (let* ((len (vector-length (stack-body stack)))
          (stack-v (stack-body stack))
          (sp (stack-sp stack)))
-    (for/list ([i len])
+    (for/list ((i len))
       (vector-ref stack-v (modulo (- sp i) 8)))))
 
 (define (stack->vector stack)

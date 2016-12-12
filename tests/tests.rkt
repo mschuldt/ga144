@@ -35,7 +35,7 @@
                                           #:assembled-file assembled-file)
                         ;;(step*)
                         (send test-chip step-program!*);; faster then (step*)
-                        (for ([x tests])
+                        (for ((x tests))
                           (set! result (x))
                           (when result
                             (set! failed (cons result failed))))
@@ -44,7 +44,7 @@
                             (begin (display (format "FAILED: ~a: '~a'\n"
                                                     name
                                                     program))
-                                   (for ([f failed])
+                                   (for ((f failed))
                                      (display f))
                                    (newline)
                                    (set! tests-failed (add1 tests-failed))
@@ -547,7 +547,7 @@ x xx +"
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
-  (for ([test tests])
+  (for ((test tests))
   ;;(for ((test (list (car tests))))
     (test))
   (display (format "passed: ~a\n" tests-passed))

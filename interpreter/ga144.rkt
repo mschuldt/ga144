@@ -28,7 +28,7 @@
 
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
-      (for ([i 144])
+      (for ((i 144))
         (vector-set! nodes i (new f18a% [index i] [ga144 this])))
       (vector-map (lambda (node) (send node init)) nodes))
 
@@ -102,7 +102,7 @@
 
     (define/public (load compiled)
       ;; Places code into each node's RAM/ROM
-      (for ([n (compiled-nodes compiled)])
+      (for ((n (compiled-nodes compiled)))
         (send (coord->node (node-coord n)) load n)))
 
     (define/public (load-bootstream bs [input-node 708])
@@ -176,7 +176,7 @@
 
     (define/public (get-active-nodes)
       (if (>= last-active-index 0)
-          (for/list ([i (add1 last-active-index)])
+          (for/list ((i (add1 last-active-index)))
             (vector-ref active-nodes i))
           '()))
 
@@ -188,14 +188,14 @@
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
-        (for ([node nodes])
+        (for ((node nodes))
           (send node display-state))))
 
     (define/public (display-dstacks [nodes false])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
-        (for ([node nodes])
+        (for ((node nodes))
           (send node display-dstack))))
 
     (define/public (display-memory coord [n MEM-SIZE])

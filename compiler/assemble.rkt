@@ -40,7 +40,7 @@
   (define (assemble-nodes nodes)
     (unless (null? nodes)
       (let ((mem (node-mem (car nodes))))
-        (for ([i (vector-length mem)])
+        (for ((i (vector-length mem)))
           (vector-set! mem i (assemble-word (vector-ref mem i)))))
       (assemble-nodes (cdr nodes))))
   (assemble-nodes (compiled-nodes compiled))

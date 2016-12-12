@@ -189,7 +189,7 @@
   (bitwise-ior addr extended-arith))
 
 (define io-places-hash (make-hash))
-(for ([place io-places])
+(for ((place io-places))
   (hash-set! io-places-hash (car place) (make-addr (cdr place))))
 
 ;;TODO: initial scan should resolve tail calls and collect word names
@@ -237,9 +237,9 @@
 
 (define (reset!)
   (set! nodes (make-vector num-nodes false))
-  (for ([i num-nodes])
+  (for ((i num-nodes))
     (vector-set! nodes i (create-node (index->coord i)
-                                      (list->vector (for/list ([_ num-words])
+                                      (list->vector (for/list ((_ num-words))
                                                       (make-vector 4 false))))))
   (set! used-nodes '())
   (set! last-inst false)
@@ -530,7 +530,7 @@
           (address (make-addr current-addr))
           (waiting-list (get-waiting-list word)))
      (when waiting-list
-       (for [(cell waiting-list)]
+       (for ((cell waiting-list))
          (set-mcar! cell address))
        (waiting-clear word))
 
@@ -757,7 +757,7 @@
 (add-directive!
  "org"
  (lambda ()
-   (let ([n (parse-num (read-tok-name))])
+   (let ((n (parse-num (read-tok-name))))
      ;;TODO: validate n
      (unless n (error "invalid address for 'org'"))
      (org n))))
@@ -916,7 +916,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(for [(dir (list "north" "south" "east" "west"))]
+(for ((dir (list "north" "south" "east" "west")))
   (add-directive!
    dir
    ((lambda (dir)
@@ -925,7 +925,7 @@
 
 
 (define (define-named-addresses!)
-  (for ([addr named-addresses])
+  (for ((addr named-addresses))
     (add-directive!
      (car addr)
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))

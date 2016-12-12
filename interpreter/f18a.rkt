@@ -285,7 +285,7 @@
       (let ((done false)
             (writing-node false)
             (other false))
-        (for ([port ports])
+        (for ((port ports))
           (if (eq? port wake-pin-port)
               ;;reading from pin17
               (begin (when (eq? pin17 ~WD)
@@ -310,7 +310,7 @@
                 (when debug (log "suspending. waiting-for-pin = True"))
                 (set! waiting-for-pin t))
               (set! multiport-read-ports '())
-              (for ([port ports])
+              (for ((port ports))
                 ;;(unless (vector-ref ludr-port-nodes port)
                 ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
                 ;;                 coord (vector-ref port-names port))))
@@ -350,8 +350,8 @@
       ;;  must already be doing so and suspended"
       (when debug-ports
         (log (format "(multiport-write ~a  ~a)\n" ports value)))
-      (let ([reading-node false])
-        (for ([port ports])
+      (let ((reading-node false))
+        (for ((port ports))
           (when (setq reading-node (vector-ref reading-nodes port))
             (when debug-ports (printf "       wrote to port: ~a\n" port))
             (vector-set! reading-nodes port false)
@@ -369,7 +369,7 @@
       (d-push! val)
       (when multiport-read-ports
         ;;there may be other nodes that still think we are waiting for them to write
-        (for ([port multiport-read-ports])
+        (for ((port multiport-read-ports))
           ;;reuse 'receive-port-read' to cancel the read notification
           (send (vector-ref ludr-port-nodes port) receive-port-read port false))
         (set! multiport-read-ports false))
@@ -1093,7 +1093,7 @@
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)
-      (for ([i (in-range 0 n)]) (step-program!)))
+      (for ((i (in-range 0 n))) (step-program!)))
 
     (define/public (get-step-count) step-count)
 

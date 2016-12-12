@@ -240,7 +240,7 @@
 (defmacro enum (syms)
   (let ((i 0)
         (code '()))
-    (for ([sym syms])
+    (for ((sym syms))
       (set! code (cons (list 'define sym i) code))
       (set! i (add1 i)))
     (cons 'begin code)))

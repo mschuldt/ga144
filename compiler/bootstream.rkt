@@ -77,7 +77,7 @@
   ;; place nodes into an array that maps node indexes to nodes
   ;; this allows constant time node lookup
   (let ((nodes (make-vector 144 false)))
-    (for ([node assembled])
+    (for ((node assembled))
       (vector-set! nodes (coord->index (node-coord node)) node))
     nodes))
 
@@ -102,7 +102,7 @@
     (define nodes (make-node-index-map assembled))
     ;;create list of nodes in order the bootstream will visit them
     ;;If the node is not used then its value will be (coordinate . false)
-    (for ([dir path])
+    (for ((dir path))
       (set! ordered-nodes (cons (or (vector-ref nodes (coord->index coord))
                                     (create-node coord false 0))
                                 ordered-nodes))
@@ -110,8 +110,8 @@
         (set! coord (+ coord (vector-ref coord-changes dir)))))
     ;; now generate the actual bootstream
     (define rpath (reverse path))
-    (for ([dir rpath]
-          [prev (cdr (append rpath (list first-dir)))])
+    (for ((dir rpath)
+          (prev (cdr (append rpath (list first-dir)))))
       (set! node (car ordered-nodes))
       (set! ordered-nodes (cdr ordered-nodes))
       (set! node-code (and (node-mem node) (get-used-portion (node-mem node))))
