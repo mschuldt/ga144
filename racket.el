@@ -78,6 +78,51 @@
     `(defvar ,form ,@body)))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; vectors
+(defalias 'vector-set! 'aset)
+(defalias 'vector-ref 'aref)
+(defalias 'vector-length 'length)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; lists
+(defalias 'list? listp)
+
+
+(defun filter (func list)
+  (let ((newlist ()))
+    (dolist (e list)
+      (if (funcall func e)
+          (setq newlist (cons e newlist))))
+    (reverse newlist)))
+
+(defalias 'map 'mapcar)
+(defalias 'null? 'null)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; hash tables
+(defun make-hash (alist)
+  (let ((ht (make-hash-table)))
+    (dolist (x alist)
+      (puthash (car x) (cdr x) ht))
+    ht)) ;;TODO: do list instead of cons work?
+
+(defsubst hash-ref (key table)
+  (gethash table key))
+
+(defsubst hash-set! (table key value)
+  (puthash key value table))
+
+(defun hash-has-key? (hash key)
+  (let ((default (list 'default)))
+    (not (eq (gethash key hash default) default))))
+
+(defun hash->list (hash)
+  (let (ret)
+    (maphash (lambda (k v)
+               (push (cons k v) ret))
+             hash)))
 (defalias 'vector-set! 'aset)
 (defalias 'vector-ref 'aref)
 (defalias 'vector-length 'length)
