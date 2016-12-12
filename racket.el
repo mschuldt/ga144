@@ -75,7 +75,7 @@
   (if (consp form)
       (cons 'defun (cons (car form)  (racket-make-define-body form body)))
     (assert (symbolp form))
-    `(defvar ,form ,body)))
+    `(defvar ,form ,@body)))
 
 
 (defalias 'vector-set! 'aset)
