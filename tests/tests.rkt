@@ -19,7 +19,7 @@
   (set! tests (cons (lambda ()
 		      (printf "running test: '~a'\n" name)
                       (let ([tests (list checks ...)]
-                            [result #f]
+                            [result false]
                             [failed '()]
                             [compiled-file
                              (format "test-out/~a-compiled.txt" name)]
@@ -59,7 +59,7 @@
                     (memory (send (coord->node coord) get-memory))
                     (s (length expect)))
                (if (same-subset-v? expect memory)
-                   #f
+                   false
                    (format "    Memory does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
@@ -75,7 +75,7 @@
                                     reg-num))
                    (var (vector-ref (vector "A" "B" "P" "I" "R" "S" "t") reg-num)))
                (if (eq? val (18bit expect))
-                   #f
+                   false
                    (format "    Failed assertion (node ~a):
         Expected: (eq ~a ~a)
         Got:      (eq ~a ~a)\n"
@@ -88,7 +88,7 @@
                     [dstack (send (coord->node coord) get-dstack-as-list)]
                     [s (length m)])
                (if (same-subset? m dstack)
-                   #f
+                   false
                    (format "    Data stack does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
@@ -101,7 +101,7 @@
                     [rstack (send (coord->node coord) get-rstack-as-list)]
                     [s (length m)])
                (if (same-subset? m rstack)
-                   #f
+                   false
                    (format "    Return stack does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"

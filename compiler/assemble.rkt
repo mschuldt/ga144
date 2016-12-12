@@ -12,7 +12,7 @@
 (define (assemble-inst word slot shift)
   ;;Assemble the instruction from WORD in SLOT, SHIFTed to its proper location
   ;;If the given slot contains an address, it is returned unchanged
-  ;;If the slot contains #f, as unused slots do, return 0
+  ;;If the slot contains false, as unused slots do, return 0
   (let ((inst (vector-ref word slot)))
     (if (string? inst)
         (arithmetic-shift (xor-inst (floor (/ (vector-member inst opcodes)
@@ -24,9 +24,9 @@
 
 (define (assemble-word word)
   (cond ((number? word) word)
-        ;;in the assembled memory vector, #f represents unused words
-        ((or (equal? word (vector #f #f #f #f))
-             (not word)) #f)
+        ;;in the assembled memory vector, false represents unused words
+        ((or (equal? word (vector false false false false))
+             (not word)) false)
         (else (let* ((d (assemble-inst word 3 0))
                      (c (assemble-inst word 2 3))
                      (b (assemble-inst word 1 8))

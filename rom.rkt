@@ -111,7 +111,7 @@
                      ("-u/mod" . #x2d2) ;; 1398 ;;TODO: check
                      ))
 
-(define (rom-doc name block doc [code #f])
+(define (rom-doc name block doc [code false])
   (void))
 
 (rom-doc
@@ -128,7 +128,7 @@ stack location and four data stack locations. it must be at the same location
 in every node.")
 
 (rom-doc
- "warm" #f
+ "warm" false
  "")
 
 (rom-doc

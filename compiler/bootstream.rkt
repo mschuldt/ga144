@@ -27,7 +27,7 @@
                         (make-list 17 W)
                         NENW NENW NENW
                         (cons N (make-list 7 E))
-                        (list #f))))
+                        (list false))))
 
 ;;path0 from DB004 page 31
 (defconst target-sync-path (let ((SWSE (append (cons S (make-list 16 W))
@@ -38,7 +38,7 @@
                                    SWSE SWSE SW
                                    (cons S (make-list 17 E))
                                    SW
-                                   (list #f))))
+                                   (list false))))
 
 ;; the host-sync-path only goes from 708 to 300
 (defconst host-sync-path (cons S (append (make-list 8 W)
@@ -54,7 +54,7 @@
 ;; for the nodes later in the stream through the current node.
 ;; 'load-pump' loads the code for a given node into its ram.
 
-(define (word a [b #f] [c #f] [d #f]) (assemble-word (vector a b c d)))
+(define (word a [b false] [c false] [d false]) (assemble-word (vector a b c d)))
 
 (define (port-pump coord dir len)
   ;;(printf "[~a]port-pump jump direction: ~a\n" coord (get-direction coord dir))
@@ -76,7 +76,7 @@
 (define (make-node-index-map assembled)
   ;; place nodes into an array that maps node indexes to nodes
   ;; this allows constant time node lookup
-  (let ((nodes (make-vector 144 #f)))
+  (let ((nodes (make-vector 144 false)))
     (for ([node assembled])
       (vector-set! nodes (coord->index (node-coord node)) node))
     nodes))
@@ -96,15 +96,15 @@
          (path (cdr path))
          (len 0)
          (code (vector))
-         (node #f)
-         (node-code #f)
+         (node false)
+         (node-code false)
          (nothing (vector)))
     (define nodes (make-node-index-map assembled))
     ;;create list of nodes in order the bootstream will visit them
-    ;;If the node is not used then its value will be (coordinate . #f)
+    ;;If the node is not used then its value will be (coordinate . false)
     (for ([dir path])
       (set! ordered-nodes (cons (or (vector-ref nodes (coord->index coord))
-                                    (create-node coord #f 0))
+                                    (create-node coord false 0))
                                 ordered-nodes))
       (when dir
         (set! coord (+ coord (vector-ref coord-changes dir)))))
@@ -302,9 +302,9 @@ north a! io b!
   (reverse new))
 
 (define (get-used-portion code)
-  ;; [w1, ..., wn, #f, ..., #f] => [w1, ..., wn]
+  ;; [w1, ..., wn, false, ..., false] => [w1, ..., wn]
   (let ((used '())
-        (word #f))
+        (word false))
     (define (get node [index 0])
       (set! word (vector-ref code index))
       (when word

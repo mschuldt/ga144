@@ -42,3 +42,4 @@
 
 
 (define t #t)
+(define false #f)

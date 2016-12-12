@@ -12,7 +12,7 @@
 (define path (bootstream-path async-bootstream))
 ;;(define path (take (bootstream-path async-bootstream) 2))
 
-(define prev-dir #f)
+(define prev-dir false)
 
 (define ports '())
 (define coords '())
@@ -30,7 +30,7 @@
 
 (define code (string-join (for/list ((to ports)
                                      (coord coords)
-                                     (from (cons #f ports))
+                                     (from (cons false ports))
                                      (i (range 144)))
                             (string-join
                              (list (format "node ~a" coord)

@@ -15,17 +15,17 @@
 
 (provide compile compile-file display-compiled)
 
-(define DEBUG? #f)
+(define DEBUG? false)
 
-(define nodes #f) ;;node# -> code struct
+(define nodes false) ;;node# -> code struct
 (define used-nodes '())
 
-(define last-inst #f)
+(define last-inst false)
 ;;coordinate of the current node we are compiling for
-(define current-node-coord #f)
-(define current-node-consts #f) ;; maps constant name to values
+(define current-node-coord false)
+(define current-node-consts false) ;; maps constant name to values
 ;;struct of the current node we are compiling for
-(define current-node #f)
+(define current-node false)
 
 (define stack '())
 
@@ -37,21 +37,21 @@
 (define prev-current-tok-col 0)
 
 ;;list of mconses containing word addresses and call/jump address
-(define address-cells #f)
+(define address-cells false)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; result of (parse-code), a list of nodes: (node-num wordlist1 wordlist2...)
-(define parsed-nodes #f)
-(define parsed-words #f)
+(define parsed-nodes false)
+(define parsed-words false)
 ;; the list of instructions we are currently compiling (body of the current word)
-(define current-token-list #f)
+(define current-token-list false)
 
 (define (compile in)
   ;;IN is a port, filename or list of parsed nodes in (parse-code) format
   (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (reset!)
-  (define port #f)
+  (define port false)
   (cond ((string? in)
          (set! port (open-input-string in)))
         ((list? in)
@@ -89,8 +89,8 @@
   (when DEBUG? (display-compiled (compiled used-nodes)))
 
   ;; errors from this point on are not associated with line numbers
-  (set! current-tok-line #f)
-  (set! current-tok-col #f)
+  (set! current-tok-line false)
+  (set! current-tok-col false)
 
   (map check-for-undefined-words used-nodes)
 
@@ -102,14 +102,14 @@
 (define (reorder-with-fallthrough words)
   (define fallthroughs (make-hash))
   (define name->word (make-hash))
-  (define word #f)
-  (define setup-code #f)
+  (define word false)
+  (define setup-code false)
   (unless (equal? (token-tok (caar words)) ":")
     (set! setup-code (car words))
     (set! words (cdr words)))
   (define names (map (lambda (x) (token-tok (cadr x))) words))
   (define output '())
-  (define tail-word #f)
+  (define tail-word false)
   ;;collect fall-through pairs
   (for ((word words))
     (hash-set! name->word (token-tok (cadr word)) word)
@@ -121,7 +121,7 @@
                           (member name names)
                           ;; protect against recursive calls
                           (not (equal? name (token-tok (cadr word)))))
-                     name #f))))
+                     name false))))
   (let ((x (filter (lambda (x) (cdr x)) (hash->list fallthroughs))))
     (unless (or (null? x) t)
       (pretty-display "fallthroughs:")
@@ -137,7 +137,7 @@
     (set! names (cdr names))
     x)
 
-  (define (f [x #f])
+  (define (f [x false])
     (define name (or x (pop)))
     (define ft (hash-ref fallthroughs name))
     (define body (hash-ref name->word name))
@@ -160,13 +160,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;info about the current target core
-(define memory #f) ;;vector of words
-(define current-addr #f);;index of current word in memory
-(define current-word #f);; tail of current word list
-(define next-addr #f) ;;index of next word in memory
-(define current-slot #f);;index of the next slot in current-word
-(define words #f) ;;word definitions -> addresses
-(define rom #f) ;; ROM word definitions -> addresses
+(define memory false) ;;vector of words
+(define current-addr false);;index of current word in memory
+(define current-word false);; tail of current word list
+(define next-addr false) ;;index of next word in memory
+(define current-slot false);;index of the next slot in current-word
+(define words false) ;;word definitions -> addresses
+(define rom false) ;; ROM word definitions -> addresses
 
 (define (add-word! name addr)
   (define cell (make-new-address-cell addr name))
@@ -185,7 +185,7 @@
   (and (hash-has-key? waiting word)
        (hash-ref waiting word)))
 (define (waiting-clear word)
-  (hash-set! waiting word #f))
+  (hash-set! waiting word false))
 
 (define (make-addr addr)
   (bitwise-ior addr extended-arith))
@@ -238,20 +238,20 @@
        (hash-ref directives name)))
 
 (define (reset!)
-  (set! nodes (make-vector num-nodes #f))
+  (set! nodes (make-vector num-nodes false))
   (for ([i num-nodes])
     (vector-set! nodes i (create-node (index->coord i)
                                       (list->vector (for/list ([_ num-words])
-                                                      (make-vector 4 #f))))))
+                                                      (make-vector 4 false))))))
   (set! used-nodes '())
-  (set! last-inst #f)
+  (set! last-inst false)
   (set! stack '())
-  (set! memory #f)
-  (set! current-word #f)
-  (set! current-addr #f)
-  (set! next-addr #f)
+  (set! memory false)
+  (set! current-word false)
+  (set! current-addr false)
+  (set! next-addr false)
   (set! words (make-hash))
-  (set! rom #f)
+  (set! rom false)
   (set! waiting (make-hash))
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
@@ -259,7 +259,7 @@
 
 (define (read-tok)
   (if (null? current-token-list)
-      #f
+      false
       (let ((token (car current-token-list)))
         (set! current-token-list (cdr current-token-list))
         (when token
@@ -280,13 +280,13 @@
   (and tok (token-tok tok)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define current-token #f)
+(define current-token false)
 
 (define (compile-token token)
   (set! current-token (token-tok token))
   (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
                        (token-tok token) current-addr current-slot next-addr))
-  (let ((x #f)
+  (let ((x false)
         (tok (if (token? token)
                  (token-tok token)
                  token)))
@@ -297,7 +297,7 @@
           ((setq x (remote-call? tok)) (compile-remote-call! (car x) (cdr x)))
           ((node-const? tok) (compile-node-const tok))
           (else (compile-call! tok)))
-    (set! current-token #f)
+    (set! current-token false)
     tok))
 
 (define (org n)
@@ -343,7 +343,7 @@
         (compile-instruction! "@p")
         (set-next-empty-word! const))))
 
-(define (compile-call! word [address #f])
+(define (compile-call! word [address false])
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
   (define (compile-call-or-jump)
     (let ((next (read-tok-name)))
@@ -356,7 +356,7 @@
   (let* ((compiler-word-p (compiler-word? word))
          (addr (and (not compiler-word-p)
                     (or address (get-word-address word))))
-         (cell #f))
+         (cell false))
     (if compiler-word-p
         (exec-compiler-word word)
         (if addr
@@ -374,7 +374,7 @@
             (begin
               (when DEBUG? (printf "       waiting on address....\n"))
               (compile-call-or-jump)
-              (set! cell (make-new-address-cell #f word))
+              (set! cell (make-new-address-cell false word))
               (add-to-waiting word cell)
               (add-to-next-slot cell)
               (unless (= current-slot 0)
@@ -417,7 +417,7 @@
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
 
-(define (make-new-address-cell val [name #f])
+(define (make-new-address-cell val [name false])
   ;; name is an optional tag, usually the name of the word, that discribes the address.)
   ;; it is use for debug only
   (define cell (mcons val (mcons next-addr (mcons name null))))
@@ -440,9 +440,9 @@
   ;; unwrap mcons address cells
   ;; shift down words to make room if address is to large
   (define mem (node-mem node))
-  (define addr #f)
-  (define call-inst #f)
-  (define new-word-index #f)
+  (define addr false)
+  (define call-inst false)
+  (define new-word-index false)
   (define addr-cells (node-address-cells node))
   (define (count word)
     (define n 0)
@@ -498,7 +498,7 @@
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
 
-(define (address-fits? destination-addr jump-slot [P #f])
+(define (address-fits? destination-addr jump-slot [P false])
   ;; returns t if DESTINATION-ADDR is reachable from the current word
   ;; JUMP-SLOT is the slot of the jump/call instruction
   (set! P (or P next-addr))
@@ -728,7 +728,7 @@
         (if (vector-ref word n)
             (find-first-empty word (add1 n))
             n)
-        #f))
+        false))
   (define max-slot-num (vector 262144 8192 256 8))
   (let* ((word (vector-ref memory slot))
          (last (and (vector? word) (find-first-empty word))))
@@ -845,7 +845,7 @@
    (let* ((tok (read-tok-name))
           (len (and tok (string->number tok)))
           (stack '())
-          (val #f))
+          (val false))
      (when (or (not len)
                (< len 0)
                (> len 10))
@@ -987,7 +987,7 @@
 (define (exec-compiler-word word)
   (pretty-display (format "Execing compiler word ~a" word))
   (let ((body (hash-ref compiler-words word)))
-    (define i #f)
+    (define i false)
     (define (exec-body body)
       (unless (null?  body)
         (define i (car body))
@@ -1005,8 +1005,8 @@
  (lambda ()
    (let* ((name (read-tok-name))
           (body '())
-          (tok #f)
-          (x #f))
+          (tok false)
+          (x false))
      ;; Allow redefinition of compiler words
      ;;  (when (hash-has-key? compiler-words word)
      ;;    (error (format "redefinition of compiler word '~a' in node ~a"
@@ -1037,7 +1037,7 @@
 
   (define (display-mem mem [index 0])
     (let ([word (vector-ref mem index)])
-      (unless (equal? word (vector #f #f #f #f))
+      (unless (equal? word (vector false false false false))
         (display (format "~a    " index))
         (display-word word)
         (newline)

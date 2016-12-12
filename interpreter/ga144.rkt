@@ -7,24 +7,24 @@
 
 (provide (all-defined-out))
 
-(define DEBUG? #f)
-(define _PORT-DEBUG? #f)
-(define DISPLAY_STATE? #f)
+(define DEBUG? false)
+(define _PORT-DEBUG? false)
+(define DISPLAY_STATE? false)
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
 
 (define ga144%
   (class object%
     (super-new)
-    (init-field [name #f] [interactive #f])
+    (init-field [name false] [interactive false])
 
     (define time 0)
-    (define breakpoint #f) ;; set to t when a breakpoint is reached
-    (define breakpoint-node #f) ;;node where breakpoint originated
+    (define breakpoint false) ;; set to t when a breakpoint is reached
+    (define breakpoint-node false) ;;node where breakpoint originated
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; 8x18 node matrix
 
-    (define nodes (make-vector 144 #f))
+    (define nodes (make-vector 144 false))
 
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
@@ -40,7 +40,7 @@
         (if (and (>= index 0)
                  (< index 144))
             (vector-ref nodes index)
-            #f ;;TODO: return pseudo node
+            false ;;TODO: return pseudo node
             )))
 
     (define (fn:coord->node coord)
@@ -50,12 +50,12 @@
     ;; suspension and wakeup
 
     ;;TODO: better way to clone vector
-    (define active-nodes #f)
+    (define active-nodes false)
     ;;index of last active node in the 'active-nodes' array
     (define last-active-index 143) ;;all nodes are initially active
 
     (define current-node-index 0) ;;index into 'active-nodes' of the current node
-    (define current-node #f)
+    (define current-node false)
 
     (define/public (remove-from-active-list node)
       (let ((last-active-node (vector-ref active-nodes last-active-index)))
@@ -89,9 +89,9 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; breakpoints
 
-    (define cli-active? #f) ;; if true, we are in a cli session
+    (define cli-active? false) ;; if true, we are in a cli session
 
-    (define/public (break [node #f])
+    (define/public (break [node false])
       (set! breakpoint-node node)
       ;; set the breakpoint flag which returns control to the interpreter
       (set! breakpoint t))
@@ -115,7 +115,7 @@
     ;; step functions return true if a breakpoint has been reached, else false
 
     (define/public (step-program!)
-      (set! breakpoint #f)
+      (set! breakpoint false)
       (set! time (add1 time))
       (define last last-active-index)
       (define (step [index 0])
@@ -130,7 +130,7 @@
       breakpoint)
 
     (define/public (step-program-n! n)
-      (set! breakpoint #f)
+      (set! breakpoint false)
       (when (and (> n 0)
                  (not breakpoint))
         (step-program!)
@@ -138,8 +138,8 @@
       breakpoint)
 
     ;;step program until all nodes are non-active
-    (define/public (step-program!* [max-time #f])
-      (set! breakpoint #f)
+    (define/public (step-program!* [max-time false])
+      (set! breakpoint false)
       (define (step)
         (unless (or (= last-active-index -1)
                     breakpoint)
@@ -168,7 +168,7 @@
       (set! last-active-index 143)
       (set! current-node-index 0)
       (set! current-node (vector-ref active-nodes current-node-index))
-      (set! breakpoint #f)
+      (set! breakpoint false)
       (vector-map (lambda (node) (send node reset!)) nodes))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -184,14 +184,14 @@
       (add1 last-active-index))
 
 
-    (define/public (display-node-states [nodes #f])
+    (define/public (display-node-states [nodes false])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
         (for ([node nodes])
           (send node display-state))))
 
-    (define/public (display-dstacks [nodes #f])
+    (define/public (display-dstacks [nodes false])
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
@@ -224,7 +224,7 @@
     (define/public (print-node coord)
       (send (coord->node coord) display-all))
 
-    (define show-io-changes? #f)
+    (define show-io-changes? false)
     (define/public (show-io-changes show)
       (set! show-io-changes? show))
 

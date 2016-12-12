@@ -172,7 +172,7 @@
                            ))
 (defvar default-bootstream-type "async")
 
-(define (create-node coord [mem #f] [len 0])
+(define (create-node coord [mem false] [len 0])
   (let ((new (node coord mem len)))
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
@@ -218,7 +218,7 @@
     (set! tok (list->string (cons #\# (cdr (string->list tok))))))
   (string->number tok))
 
-(define (get-address name [node #f])
+(define (get-address name [node false])
   (cond ((hash-has-key? names->addresses name) ;;normal address names
          (hash-ref names->addresses name))
         ((and node  ;;relative names
@@ -297,7 +297,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
-(defvar auto-nop-insertion #f)
+(defvar auto-nop-insertion false)
 
-(defvar compile-0-as-dup-dup-or #f)
-(defvar reorder-words-with-fallthrough #f)
+(defvar compile-0-as-dup-dup-or false)
+(defvar reorder-words-with-fallthrough false)

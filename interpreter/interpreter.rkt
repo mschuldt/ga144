@@ -14,8 +14,8 @@
 (define stdin (current-input-port))
 (defvar _commands (make-hash))
 (defvar _help (make-hash))
-(defvar DEBUG #f)
-(setq DEBUG #f)
+(defvar DEBUG false)
+(setq DEBUG false)
 
 (defvar chips '());;list of ga144 chips
 (defvar num-chips 0)
@@ -23,18 +23,18 @@
 ;; the currently selected chip. If not false, commands like
 ;; 'step' apply only to this chip. Otherwise they apply to all
 ;; chips in the 'chips' list
-(defvar selected-chip #f)
-(defvar selected-node #f)
+(defvar selected-chip false)
+(defvar selected-node false)
 
 (defvar _counter 1)
 
-(defvar cli-active? #f)
+(defvar cli-active? false)
 
-(defvar enter-cli-on-breakpoint? #f)
+(defvar enter-cli-on-breakpoint? false)
 (define (enter-cli-on-breakpoint x)
   (set! enter-cli-on-breakpoint? x))
 
-(define (new-ga144 [name #f])
+(define (new-ga144 [name false])
   (unless name
     (set! name (format "chip~a" _counter))
     (set! _counter (add1 _counter)))
@@ -46,9 +46,9 @@
 
 (define (compile-and-load chip
                           in
-                          [include-end-token? #f]
-                          #:compiled-file [compiled-file #f]
-                          #:assembled-file [assembled-file #f])
+                          [include-end-token? false]
+                          #:compiled-file [compiled-file false]
+                          #:assembled-file [assembled-file false])
   (let* ([n 0]
          [code 0]
          [node 0]
@@ -68,10 +68,10 @@
 (define (load-file chip file)
   (call-with-input-file file (lambda (x) (compile-and-load chip x))))
 
-(define (step* [chip #f])
+(define (step* [chip false])
   (define (step-all)
-    (define again #f)
-    (define breakpoint? #f)
+    (define again false)
+    (define breakpoint? false)
     (for ((c chips))
       (when (and (> (send c num-active-nodes) 0)
                  (not breakpoint?))
@@ -91,7 +91,7 @@
            (enter-cli))
       (step-all)))
 
-(define (step [n 1] [chip #f])
+(define (step [n 1] [chip false])
   (if chip
       (and (send chip step-program-n! n)
            (and (not cli-active?)
@@ -104,7 +104,7 @@
                   enter-cli-on-breakpoint?)
              (enter-cli)))))
 
-(define (reset! [chip #f])
+(define (reset! [chip false])
   (if chip
       (send chip reset!)
       (for ((c chips))
@@ -231,7 +231,7 @@
   (if (hash-has-key? name-to-chip chip/node)
       (begin
         (set! selected-chip (hash-ref name-to-chip chip/node))
-        (set! selected-node #f))
+        (set! selected-node false))
       (let ((coord (string->number chip/node)))
         (if coord
             (if selected-chip
@@ -240,8 +240,8 @@
             (printf "unknown chip name or node coordinate '~a'\n" chip/node)))))
 
 (def-command all () "Apply future commands to all chips"
-  (begin (set! selected-chip #f)
-         (set! selected-node #f)))
+  (begin (set! selected-chip false)
+         (set! selected-node false)))
 
 (define (is-yes-string str)
   (set! str (string-downcase str))
@@ -306,7 +306,7 @@
 (def-command ex (coord inst) "execute instruction in the COORD node"
   (execute-instruction coord inst))
 
-(define (call-word coord word [args #f])
+(define (call-word coord word [args false])
   (if selected-chip
       (let ((node (send selected-chip coord->node coord)))
         (when args
@@ -392,10 +392,10 @@
   (when (and (= num-chips 1)
              (not selected-chip))
     (set! selected-chip (car chips)))
-  ;;(set! again #f)
+  ;;(set! again false)
   (define again t)
-  (def-command exit () "Exit this cli" (set! again #f))
-  (define last-command #f)
+  (def-command exit () "Exit this cli" (set! again false))
+  (define last-command false)
   (define (loop)
     (let* ((selected (if (and selected-chip
                               (> num-chips 1))
@@ -404,7 +404,7 @@
            (selected (if selected-node
                          (cons (format "~a" (send selected-node get-coord))
                                selected)
-                         #f))
+                         false))
            (selected (if selected
                          (format "(~a)" (string-join (reverse selected) "."))
                          "")))
@@ -432,4 +432,4 @@
         (set! last-command input)))
     (and again (loop)))
   (loop)
-  (set! cli-active? #f))
+  (set! cli-active? false))

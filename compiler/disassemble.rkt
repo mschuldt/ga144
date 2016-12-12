@@ -12,24 +12,24 @@
   ;;FROM^ = FROM ^ 0x15555
   ;;TO is a vector we disassemble into
   ;;START, END mark the bit positions of the instruction in FROM
-  ;;JUMP is the size of the jump field in FROM, #f if none
+  ;;JUMP is the size of the jump field in FROM, false if none
   (let ((inst (vector-ref opcodes (* (bitwise-bit-field from^ start end)
                                      (if jump 1 4)))))
     (vector-set! to index inst)
     (if (and (member inst address-required)
              (< index 3))
         (begin (vector-set! to (add1 index) (bitwise-bit-field from 0 jump))
-               #f)
+               false)
         (not (member inst instructions-using-rest-of-word)))))
 
 (define (disassemble-word word)
-  (let ((to (make-vector 4 #f))
+  (let ((to (make-vector 4 false))
         (word^ (and word (bitwise-xor word #x15555))))
     (and word
          (disassemble-inst word word^ to 0 13 18 10)
          (disassemble-inst word word^ to 1 8 13 8)
          (disassemble-inst word word^ to 2 3 8 3)
-         (disassemble-inst word word^ to 3 0 3 #f))
+         (disassemble-inst word word^ to 3 0 3 false))
     to))
 
 (define (disassemble nodes)
@@ -41,7 +41,7 @@
         (vector-set! mem i (disassemble-word (vector-ref mem i)))))
     (disassemble (cdr nodes))))
 
-(define (display-disassemble compiled [all? #f])
+(define (display-disassemble compiled [all? false])
   ;;like `disassemble' but also prints out the disassemble and the original words
   (define nodes (compiled-nodes compiled))
   (define (display-word word [n 0])

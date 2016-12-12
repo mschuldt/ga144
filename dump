@@ -9,11 +9,11 @@
          "compiler/disassemble.rkt"
          "rkt-to-el.rkt")
 
-(define bootstream-type (make-parameter #f))
-(define symbols? (make-parameter #f))
-(define pretty? (make-parameter #f))
-(define count? (make-parameter #f))
-(define hex? (make-parameter #f))
+(define bootstream-type (make-parameter false))
+(define symbols? (make-parameter false))
+(define pretty? (make-parameter false))
+(define count? (make-parameter false))
+(define hex? (make-parameter false))
 
 (define input-file
   (command-line
@@ -21,13 +21,13 @@
    [("-b" "--bootstream") bs "bootstream type"
     (bootstream-type bs)]
    [("-s" "--symbols") "include symboltable"
-    (symbols? #t)]
+    (symbols? t)]
    [("-p" "--pretty") "print in human readable"
-    (pretty? #t)]
+    (pretty? t)]
    [("-c" "--count") "count ram usage"
-    (count? #t)]
+    (count? t)]
    [("-x" "--hex") "print numbers in hexadecimal format"
-    (hex? #t)]
+    (hex? t)]
    #:args (filename)
    filename))
 
@@ -61,7 +61,7 @@
                                            "None"))))))))
 (define (symbols->json compiled)
   (let ((syms '())
-        (symbols #f))
+        (symbols false))
     (for/list ((node (compiled-nodes compiled)))
       (set! symbols (node-symbols node))
       (unless (null? symbols)
@@ -134,7 +134,7 @@
   (define assembled (assemble compiled))
 
   (define i 0)
-  (define name #f)
+  (define name false)
 
 
   (define (pad-print thing [pad 20])
@@ -157,7 +157,7 @@
   (define (get-name ht index)
     (if (hash-has-key? ht index)
         (hash-ref ht index)
-        #f))
+        false))
 
   (set! hex? (hex?))
   (define (n val)
@@ -168,13 +168,13 @@
     (define symbols (make-symbol-hash (node-symbols node)))
     (define comp (hash-ref compiled-hash coord))
     (define asm (node-mem node))
-    (define word #f)
+    (define word false)
     (printf "\n\n__________________ node ~a ____________________\n" coord)
     (printf "P = ~a\n" (n (or (node-p node) 0)))
     (printf "     Compiled            Assembled    Disassembled\n")
     (for ((i (node-len node)))
       (set! word (vector-ref comp i))
-      (unless (equal? word (vector #f #f #f #f))
+      (unless (equal? word (vector false false false false))
         (set! name (get-name symbols i))
         (when name (printf "~a:\n" name))
         (printf "~a    " (n i))

@@ -58,7 +58,7 @@
 
 (define (make-reader)
   (let ((stack '()))
-    (lambda ([tok #f] [line -1] [col -1])
+    (lambda ([tok false] [line -1] [col -1])
       (if tok
           (set! stack (cons (token tok line col) stack))
           (if (null? stack)
@@ -79,8 +79,8 @@
   ;;CODELIST is a list of type struct token.
   ;; the first two words are the colon and word name
   (define nodes '())
-  (define current-node-num #f)
-  (define current-node-code #f)
+  (define current-node-num false)
+  (define current-node-code false)
 
   (define (read-loop)
     (define tok-token (forth-read))
@@ -119,11 +119,11 @@
   ;;merged with the next word
 
   (define words '())
-  (define last #f)
+  (define last false)
   (define current-word '())
-  (define current-name #f)
-  (define done #f)
-  (define (end-word [name #f])
+  (define current-name false)
+  (define done false)
+  (define (end-word [name false])
     (set! current-word (reverse current-word))
     (when (= (length current-word) 0)
       (syntax-error "empty node body"))
@@ -145,7 +145,7 @@
                         (not (equal? current-word null))
                         (equal? tok ":"))
                    ;;code before the first word - create a pseudo word for it
-                   (end-word "_first") ;;TODO: use #f instead
+                   (end-word "_first") ;;TODO: use false instead
                    (set! current-word (list token)))
 
                   ((and (and last (equal? (token-tok last) ";"))
