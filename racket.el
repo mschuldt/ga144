@@ -89,7 +89,8 @@
 (defun racket-for-loop-make-sequence (x)
   (cond ((listp x) x)
         ((stringp x) (cdr (butlast (split-string x ""))))
-        ((vector x) (mapcar 'identity x))
+        ((vectorp x) (mapcar 'identity x))
+        ((numberp x) (number-sequence 0 (1- x)))
         (t (error "unimplemented"))))
 
 
