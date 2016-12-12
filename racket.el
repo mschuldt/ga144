@@ -201,6 +201,14 @@
 (defun set-member? (s item)
   (gethash item s))
 
+(defun set->list (s)
+  (let (lst)
+    (maphash (lambda (k v)
+               (unless (eq k racket-magic-set-key)
+                 (push k lst)))
+             s)
+    lst))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; strings
 ;;; same: make-string
