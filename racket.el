@@ -140,7 +140,6 @@
 ;; lists
 (defalias 'list? listp)
 
-
 (defun filter (func list)
   (let ((newlist ()))
     (dolist (e list)
@@ -151,6 +150,11 @@
 (defalias 'map 'mapcar)
 (defalias 'null? 'null)
 
+(defun list->set (lst)
+  (let ((s (make-set)))
+    (dolist (x lst)
+      (puthash x t s))
+    s))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash tables
@@ -180,17 +184,17 @@
 
 ;; the racket function 'set' cannot be used in elisp, use make-set instead
 
-(setq racket-magic-key
+(setq racket-magic-set-key '__racket_set_key__)
 (defun make-set (&rest items)
   (let ((s (make-hash-table)))
-    (puthash racket-magic-key t s)
-    (dolist (x item)
+    (puthash racket-magic-set-key t s)
+    (dolist (x items)
       (puthash x t s))
     s))
 
 (defun set? (s)
-  (gethash racket-magic-key s))
-      
+  (gethash racket-magic-set-key s))
+
 (defun set-member? (s item)
   (gethash item s))
 
@@ -220,5 +224,3 @@
 (defalias 'vector-ref 'aref)
 (defalias 'vector? 'vectorp)
 (defalias 'vector-length 'length)
-
-
