@@ -79,11 +79,9 @@
     (set! parsed-words (cdr node))
     (for ((word parsed-words))
       (set! current-token-list word)
-      (define (compile-loop)
-        (unless (null? current-token-list)
-          (compile-token (read-tok))
-          (compile-loop)))
-      (compile-loop)))
+      (while (not (null? current-token-list))
+        (compile-token (read-tok))
+               )))
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
