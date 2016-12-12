@@ -148,11 +148,9 @@
     (when (and ft (member ft names))
       (f ft)))
 
-  (define (loop)
-    (unless (null? names)
-      (f)
-      (loop)))
-  (loop)
+  (while (not (null? names))
+    (f))
+
   (if setup-code
       (cons setup-code (reverse output))
       (reverse output)))
