@@ -161,11 +161,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash tables
-(defun make-hash (alist)
+(defun make-hash (&optional alist)
   (let ((ht (make-hash-table)))
     (dolist (x alist)
       (puthash (car x) (cdr x) ht))
-    ht)) ;;TODO: do list instead of cons work?
+    ht))
 
 (defsubst hash-ref (key table)
   (gethash table key))
