@@ -517,10 +517,11 @@
  (lambda ()
    (fill-rest-with-nops)))
 
-(define (comment)
-  (unless (equal? (forth-read-char) #\))
-    (comment)))
-(add-directive! "(" comment)
+(add-directive!
+ "("
+ (lambda ()
+   (while (not (equal? (forth-read-char) #\)))
+     false)))
 
 (add-directive!
  ":"
