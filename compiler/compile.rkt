@@ -922,8 +922,7 @@
    (define addr (get-word-address word))
    (if addr
        (begin (push stack addr)
-              (pretty-display (list "tick addr: "  addr))
-              )
+              (when DEBUG? (pretty-display (list "tick addr: "  addr))))
        (error (format "' (tick): \"~a\" is not defined" word)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -961,8 +960,8 @@
 (define compiler-ops (make-hash))
 
 (define (add-compiler-word! name body)
-  (pretty-display (format "adding compiler word: '~a' = " name))
-  (pretty-display body)
+  (when DEBUG? (pretty-display (format "adding compiler word: '~a' = " name))
+        (pretty-display body))
   (hash-set! compiler-words name body))
 
 (define (def-compiler-op! name fn)
@@ -995,7 +994,7 @@
     (compile-constant! n)))
 
 (define (exec-compiler-word word)
-  (pretty-display (format "Execing compiler word ~a" word))
+  (when DEBUG? (pretty-display (format "Execing compiler word ~a" word)))
   (let ((body (hash-ref compiler-words word)))
     (define i false)
     (define (exec-body body)
