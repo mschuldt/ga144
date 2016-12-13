@@ -1,0 +1,186 @@
+
+( SRAM Control Cluster
+  AP003  http://www.greenarraychips.com/home/documents/greg/AP003-110810-SRAM.pdf )
+
+
+
+( block 270:
+    node 9 suspends while waiting for a16. it uses
+    the two lower page bits to output an 18-bit address.
+
+       a16 xx.aaaa.aaaa.aaaa.aaaa
+       p04 00.0000.0000.0000.pppp
+       a18 aa.aaaa.aaaa.aaaa.aapp
+
+    the code is written to minimize/equalize the time
+    to output the address, which must be stable
+    when node8 stores the 'start' command            )
+
+node 9 ( sram.16 address-bus )
+org 20
+: start  right b! .. data a! .. 0x3 ( mask)
+: cmd ( m) @b ( a16) 2* 2* over @b -if
+   - ( p04) and or ( a18) ! cmd ;
+   then ( p04) and or .. ( a18) ! cmd ;
+
+
+
+
+( block 272:
+    node8 is fed a stop command during start-up, then
+    suspends while waiting for a16. after starting
+    the read or write, it again suspends while
+    waiting for the stop command.
+
+    bits 4..2 of the /possibly inverted/ page value
+    are used 'as-is' to index into the start table,
+    setting two address bits, write enable, and chip
+    enable. ** note that reads and writes are swapped
+    if the page 'overflows' into bit4, with
+    disastrous results **
+
+    cmd index .lit. pin17 pin05 pin03 pin01
+    w00 .0111 2556A a19-0 a18-0 /we-0 /ce-0
+    r00 .0000 2556E a19-0 a18-0 /we-1 /ce-0
+    w01 .0110 2557A a19-0 a18-1 /we-0 /ce-0
+    r01 .0001 2557E a19-0 a18-1 /we-1 /ce-0
+    w10 .0101 3556A a19-1 a18-0 /we-0 /ce-0
+    r10 .0010 3556E a19-1 a18-0 /we-1 /ce-0
+    w11 .0100 3557A a19-1 a18-1 /we-0 /ce-0
+    r11 .0011 3557E a19-1 a18-1 /we-1 /ce-0           )
+
+node 8 ( control-pins )
+org 0
+:: r-l- 0x1F5 lit ;
+( 'start' pin control table 0-7)
+, 0x2556E ( r00) , 0x2557E ( r01)
+, 0x3556E ( r10) , 0x3557E ( r11)
+, 0x3557A ( w11) , 0x3556A ( w10)
+, 0x2557A ( w01) , 0x2556A ( w00)
+org 0x20
+
+: start r-l- b! io a!
+: cmd @b ( stop) ! a push 7 ( mask) ..
+   @b ( a16) !b @b ( +p/-p) dup !b
+   2/ 2/ and ( i3) a! .. @ ( ctrl) pop a!
+   ( start) ! cmd ;
+
+
+
+
+( block 274:
+    node7 suspends waiting for a16, passes it and
+    page/r/w to nodes 8 and 9, finally controlling
+    the data transfer and timing until sending the
+    stop command.
+
+    the literals needed for writing are loaded
+    onto the stack and used circularly to save
+    time. /read's drops are free./
+
+    ---- .lit. pin17 pin05 pin03 pin01
+    stop 3557F a19-1 a18-1 /we-1 /ce-1            )
+
+node 7 ( data-bus)
+org 0x20
+:: in 0x14555 lit ;
+:: out 0x15555 lit ;
+:: stop 0x3557F lit ;
+: start  left b! out io data stop
+   out io data stop in io a! ( in) !
+   down a! ( stop) !b
+: cmd ( /soid/) @ ( a16 ) !b @ ( +p/-p ) -if
+
+: w16 ( /soid/p-) ( +p/-p) !b
+( /- setup + 45ns) @ ( w) a push push ( data) a!
+pop ! ( io) a! ( out) ! ( 40) 13 for unext ( stop) !b
+( -/) in ! pop a! cmd ;
+
+: r16 ( /soid/p-) then ( +p/-p) !b
+( /- setup + 55ns) a push ( data) a!
+( io) drop ( out) drop ( 50) 40 for unext ( stop) !b ( -/ )
+@ ( w) pop a! ! cmd ;
+( TODO: this occupies 67 words - because of 'org 0x20' - same as ga version - how does this work on GA?)
+
+
+
+
+(   block 276:
+    node 107 full capability version.,
+    polls for master requests and delivers stimuli
+    priority is ether/108, vm/106, snorkel/207,
+    all requests are atomic. passes ex@ and ex!,
+    requests on to node 007, performs cx? locally
+    using those primitives. the command and stimul
+    us mask m is maintained on the stack.,
+    ,
+    requests are variable length messages decoded
+    as shown below where - means 18-bit inverse of
+    16 bit argument.,
+    ,
+    ex@ +p +a fetch
+    cx? -w1 +p a w2 comp-and-exch
+    ex! -p -a w store
+    mk! +0 -f m f-1 enables each master whose port
+    write bit is set in m. kills pending stimulus
+    for any disabled master. abandons old mask.,
+    f-0 adds a stimulus for each master whose port
+    write bit is set in m. caller should not post
+    a stimulus for any disabled master.            )
+
+node 107 ( interface )
+org 0
+
+: cx ( wp-) over push @ dup
+ ( a) !b over ( p) !b @b ( w) pop - ( w1) or if
+ ( ne) @ ( w2) dup or ( ff) ! ;
+( eq) then drop ( a) !b - ( -p) !b @ ( w2) !b 0xffff ! ;
+
+: cmd @ -if @  ' cx -until  ( .e!) - !b !b @ !b ;
+ then @ -if ( mixpa)
+ ( mk!) - push drop drop pop if ( mia)
+ ( stim) drop and @ over over 2* ahead swap!
+ ( mask) then drop drop @ 2* over -
+ ( both) then and or
+: re ( m) 0x15555 dup ahead swap!
+  then ( .e@) a !b ( p) !b @b ( w ) ! ;
+: cmds ( mixa) a! cmd : poll ( mix) then io a!
+ begin drop over over @ or and until
+ over over and if ( mixt) and and ( mt)
+ dup 0x1000 and if left ahead swap! then
+ drop 0x10000 over and if right ahead swap!
+ then drop ( 0x400) dup up then then
+ ( mtba) a! and or dup ! ( m)  ' re end
+ then drop 2* 2* -if right cmds ;
+ then 2* 2* 2* 2* -if left cmds ;
+ then up cmds ;
+
+
+
+
+(   block 278:
+    example code for memory master nodes.
+    memory-access words assume that addresses and
+    data are 16-bit parameters with the upper two
+    bits zero and pages are 4-bits with the upper
+    14 bits zero. p.a is thus a 20-bit address.
+
+    ex@ a p - w fetch w from p.a
+    ex! w a p store w at p.a
+    mk! w f -0 set masks from w per f.
+    cx? w a p n - f comp-and-exch
+
+    cx? compares value at p.a to n. if same, write
+    s w to p.a and returns true. otherwise, only
+    returns false. x@ and x! are 16-bit versions to
+    access the lowest 64k of available memory.
+
+    mk! sets mask from w when f is 0;
+    posts stimuli when f is 1.                        )
+
+( - user ) node 106 ( node 106, 108, or 207.)
+: x! ( wa) ( 39) dup dup or
+: ex! ( wap) : mk! ( mfp') ( 3A) - !b - !b !b ;
+: x@ ( a-w) ( 3C) dup dup or
+: ex@ ( ap-w) ( 3D) !b !b @b ;
+: cx? ( wapn-f) ( 3E) - !b !b !b !b @b ; ( 40)
