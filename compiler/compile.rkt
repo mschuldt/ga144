@@ -914,6 +914,18 @@
          (else (error (format "invalid const op type: '~a'" op))))))
 
 
+;; ' (-a) (tick) places the address of an F18 red word on the compiler's stack.
+(add-directive!
+ "'"
+ (lambda ()
+   (define word (read-tok-name))
+   (define addr (get-word-address word))
+   (if addr
+       (begin (push stack addr)
+              (pretty-display (list "tick addr: "  addr))
+              )
+       (error (format "' (tick): \"~a\" is not defined" word)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (for ((dir (list "north" "south" "east" "west")))
