@@ -16,20 +16,20 @@
 	 "../compiler/compile.rkt"
          "../compiler/assemble.rkt"
          "../compiler/bootstream.rkt"
-         "../interpreter/stack.rkt")
+         "../interpreter/stack.rkt"
+         "../rkt-to-el.rkt")
 
 (define host (new-ga144 "host"))
 (define target (new-ga144 "target"))
 
 (define code "
 node 708
-bootstream async-target
 11 22 +
 ")
 
 (define assembled (assemble (compile code)))
 ;;(define bootstream (make-sync-bootstream (compiled-nodes assembled)))
-(define bs (make-bootstream assembled))
+(define bs (make-bootstream assembled "async-target"))
 (connect-pins (get-node host 300) 0
               (get-node target 300) 0)
 (connect-pins (get-node host 300) 1
