@@ -200,14 +200,23 @@
   (loop-nodes node
     (ga-update-node-overlays node)))
 
-(defun ga-set-node-face-internal (coord idx face)
-  (let* ((node (coord->node coord))
+(defun ga-set-node-face-internal (coord idx face &optional node)
+  (let* ((node (or node (coord->node coord)))
          (faces (ga-node-faces node)))
-    (assert (and (arrayp faces) (= (length faces) ga-num-faces)))
+    ;;(assert (and (arrayp faces) (= (length faces) ga-num-faces)))
     (aset faces idx face)
     (setf (ga-node-faces node) faces)
     (ga-update-node-overlays node)
     ))
+
+(defun ga-reset-temp-faces ()
+  (let (faces)
+    (loop-nodes node
+      (setq faces (ga-node-faces node))
+      (aset faces 2 nil) ;; temp low
+      (aset faces 3 nil) ;; point
+      (aset faces 4 nil) ;; temp high
+      (setf (ga-node-faces node) faces))))
 
 (defun ga-set-node-default-face (coord face)
   (ga-set-node-face-internal coord 0 face))
@@ -283,9 +292,19 @@
                                      :faces (ga-make-face-vector (car default-faces))
                                      :region-face (cdr default-faces)
                                      :coord-overlay coord-overlay)))
-    (setq ga-current-coord 700)
+    (setq ga-current-coord 0)
     (ga-save)
     ))
+
+(defun ga-startup-reset ()
+  ;; The current position and buffer selection faces get saved with everything else
+  ;; everything could be easily restored but then everything would need to be saved
+  ;; everytime there was movement to remain consistent (or the map would have to
+  ;; be marked modified at every movement)
+  ;; Instead load everything and reset the state the user does not expect to be saved.
+  (setq ga-current-coord 0)
+  (ga-reset-temp-faces))
+
 
 (defun ga-save ()
   (interactive)
@@ -814,6 +833,7 @@ Elements of ALIST that are not conses are ignored."
           (print "Creating new ga144 map..")
           (ga-create-new))
 
+        (ga-startup-reset)
         (ga-draw-map-in-frame-limits)
         (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
