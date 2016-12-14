@@ -442,6 +442,12 @@
   (push coord ga144-region-nodes)
   (puthash coord t ga144-visited-nodes))
 
+(defun ga144-remove-node-from-region (coord)
+  (ga144-set-region-face coord 'remove)
+  (setq ga144-region-nodes (remove coord ga144-region-nodes))
+  (remhash coord ga144-visited-nodes)
+  )
+
 ;; the point node is part of the region (otherwise there is no way to select the whole map)
 ;; but it retains the normal point color instead of the region color
 ;; when the point moves it reverts back to the default color, reverting the
@@ -469,14 +475,34 @@
           (ga144-add-node-to-region coord))
         ))))
 
+(defun ga144-get-rectangle-nodes (c1 c2)
+  ;; returns a list of all nodes in the rectangle defined by corners C1 and C2
+  (let* ((y1 (/ c1 100))
+         (y2 (/ c2 100))
+         (x1 (mod c1 100))
+         (x2 (mod c2 100))
+         (bottom-left (+ (* (min y1 y2) 100)
+                         (min x1 x2)))
+         coords)
+    (dotimes (x (1+ (abs (- x1 x2))))
+      (dotimes (y (1+ (abs (- y1 y2))))
+        (push (+ (* y 100) x bottom-left) coords)))
+    coords))
+
 (defun ga144-update-rectangle-selection ()
-  ;; find all hte nodes
-  ;; if not in visited add them
-  )
+  (let ((rectangle-nodes (ga144-get-rectangle-nodes ga144-mark-coord ga144-current-coord)))
+    ;; remove nodes that are no longer part of the selection
+    (dolist (coord ga144-region-nodes)
+      (unless (member coord rectangle-nodes)
+        (ga144-remove-node-from-region coord)))
+    ;; add nodes tha are now part of the selection
+    (dolist (coord rectangle-nodes)
+      (unless (ga144-node-in-region-p coord)
+        (ga144-add-node-to-region coord)))))
+
 
 (defun ga144-clear-selection ()
   )
-
 
 (defun update-position ()
   ;;(setq ga144-modified-p t)
@@ -488,18 +514,6 @@
         (ga144-update-rectangle-selection))
     (ga144-clear-selection))
   (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
-  (message "current coord: %s" ga144-current-coord))
-
-(defun update-position ()
-  ;;(setq ga144-modified-p t)
-  ;;(ga144-move-to-node ga144-current-coord 'middle)
-  (setq ga144-prev-coord (or ga144-prev-coord 0))
-  (if ga144-mark-active
-      (if (not ga144-region-path-p)
-          (ga144-update-path-selection)
-        (ga144-update-rectangle-selection))
-    (ga144-clear-selection))
-    (move-selected-node-overlay ga144-prev-coord ga144-current-coord)
   (message "current coord: %s" ga144-current-coord))
 
 (defun ga144-draw-map-in-frame-limits()
