@@ -26,6 +26,10 @@
 (def-local ga144-region-nodes nil) ;; ordered collection of all node coordinates in the region
 (def-local ga144-region-path-p  nil) ;; t if ga144-region-path-p represents a node path
 (def-local ga144-visited-nodes nil) ;; hash table of visited nodes
+(def-local ga144-color-select-buffer nil)
+(def-local ga144-color-select-buffer-p nil)
+(def-local ga144-color-select-map-buffer nil)
+(def-local ga144-color-select-coord nil)
 
 
 (defvar ga144-auto-resize-map-on-window-change t)
@@ -651,6 +655,82 @@ Elements of ALIST that are not conses are ignored."
   (ga144-reset-region)
   (setq ga144-mark-active nil)
   (keyboard-quit))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; color selection
+
+(defun ga144-color-node (coord color)
+  (error "TODO"))
+
+(defun ga144-color-nodes (nodes color)
+  ;; nodes is a list of coordinates
+  (error "TODO"))
+
+(defun ga144-select-color-at-line ()
+  (interactive)
+  (if ga144-color-select-buffer-p
+      (let* ((start (progn (beginning-of-line) (point)))
+             (end (progn (end-of-line) (point)))
+             (str (buffer-substring-no-properties start end))
+             (name (car (split-string str "  ")))
+             (code (last (split-string str)))
+             (coord  ga144-color-select-coord))
+        (with-current-buffer ga144-color-select-map-buffer
+          (ga144-color-select-callback coord name code)))
+    (message "Not in GA144 color selection buffer")))
+
+
+(defun ga144-kill-color-select-buffer ()
+  (when ga144-color-select-buffer
+    (kill-buffer ga144-color-select-buffer)
+    (setq ga144-color-select-buffer nil)))
+
+(defun ga144-quit-color-select ()
+  (interactive)
+  (when (and ga144-color-select-buffer-p
+             ga144-color-select-map-buffer)
+    (with-current-buffer ga144-color-select-map-buffer
+      (ga144-kill-color-select-buffer))))
+
+
+(defun ga144-color-select-callback (coord str code)
+  (when t ;;; (or (eq coord ga144-current-coord)
+          ;;;   (y-or-n-p (format "Selected node from %s to %s. Apply color '%s' to node %s?"
+          ;;;                     coord ga144-current-coord str ga144-current-coord)))
+    (if (> (length ga144-region-nodes) 1)
+        (ga144-color-nodes ga144-region-nodes code)
+      (ga144-color-nodes ga144-current-coord code)))
+
+  (ga144-quit-color-select)
+  (switch-to-buffer (current-buffer)))
+
+
+(defun ga144-select-node-color ()
+  (interactive)
+  (if (and (eq major-mode 'ga144-mode)
+           (not (null ga144-current-coord)))
+
+      (let ((map-buf (current-buffer))
+            (coord ga144-current-coord))
+
+        (ga144-kill-color-select-buffer) ;;cleanup old color select buffer
+
+        (setq ga144-color-select-buffer (get-buffer-create
+                                         (concat ga144-project-name " GA144 color select" )))
+
+        (switch-to-buffer ga144-color-select-buffer)
+        (setq ga144-color-select-buffer-p t)
+        (setq ga144-color-select-map-buffer map-buf)
+        (setq ga144-color-select-coord coord)
+        (list-colors-display nil (buffer-name))
+        (use-local-map
+         (let ((map (make-sparse-keymap 'ga144-color-select-map)))
+           (define-key map (kbd "<return>") 'ga144-select-color-at-line)
+           (define-key map (kbd "q") 'ga144-quit-color-select)
+           map)))
+    (message "Not in GA144 map buffer")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq ga144-mode-map
       (let ((map (make-sparse-keymap 'ga144-mode-map)))
