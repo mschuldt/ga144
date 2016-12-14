@@ -395,6 +395,12 @@
   (interactive)
   (ga144-goto-node ga144-current-coord))
 
+(defun ga144-return-key-fn ()
+  (interactive)
+  (if (> (length ga144-region-nodes) 1)
+      (message "region nodes : %s" ga144-region-nodes)
+      (ga144-goto-current-node)))
+
 (defun ga144-goto-node (node) ;;TODO: test
   (if (ga144-valid-coord-p node)
       (let ((buffers ga144-project-aforth-buffers)
@@ -530,8 +536,10 @@
 
 (defun ga144-handle-window-size-change (frame)
   ;;TODO: fix, this needs to set the map buffer as current or local variables cannot be accessed
-  (and ga144-auto-resize-map-on-window-change
-       (ga144-draw-map-in-frame-limits)))
+;;  (and ga144-auto-resize-map-on-window-change
+;;       (ga144-draw-map-in-frame-limits))
+
+)
 
 (setq ga144-current-focus-buffer nil) ;;buffer that is currently in focus
 (setq ga144-maps nil);;maps buffer names to buffers
@@ -577,12 +585,15 @@ Elements of ALIST that are not conses are ignored."
 (setq ga144-updateing-map-focus nil)
 (setq ga444-focus-hook-call-count 0)
 
+
+;;seem to be regaining focus without getting notified
+;; the unfocused overlay from the selection is not getting removed
 (defun ga144-update-map-focus ()
   (setq ga444-focus-hook-call-count (1+ ga444-focus-hook-call-count))
-  (if ga144-updateing-map-focus
-      (message "already in update focus handler")
-    (setq ga144-updateing-map-focus t)
-    ;;(condition-case nil
+;;  (if ga144-updateing-map-focus
+;;      (message "already in update focus handler")
+;;    (setq ga144-updateing-map-focus t)
+;;    ;;(condition-case nil
     (progn
       ;; If another map was previously selected, remove focus
       (when ga144-current-focus-buffer
@@ -612,7 +623,7 @@ Elements of ALIST that are not conses are ignored."
     ;;  (error (message "Error in ga144-update-map-focus")
     ;;         (setq ga144-updateing-map-focus nil))
     ;; )
-    (setq ga144-updateing-map-focus nil)))
+    (setq ga144-updateing-map-focus nil))
 
 
 (defun ga144-kill-buffer-handler ()
@@ -730,6 +741,7 @@ Elements of ALIST that are not conses are ignored."
            map)))
     (message "Not in GA144 map buffer")))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq ga144-mode-map
@@ -754,7 +766,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "M-n") 'ga144-move-bottom-half)
         (define-key map (kbd "M-<") 'ga144-move-top)
         (define-key map (kbd "M->") 'ga144-move-bottom)
-        (define-key map (kbd "<return>") 'ga144-goto-current-node)
+        (define-key map (kbd "<return>") 'ga144-return-key-fn)
         (define-key map (kbd "C-c C-f") 'ga144-select-aforth-source)
         (define-key map (kbd "C-SPC") 'ga144-set-mark)
         (define-key map (kbd "C-x C-x") 'ga144-exchange-point-and-mark)
