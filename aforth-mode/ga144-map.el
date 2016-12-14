@@ -12,7 +12,6 @@
 (def-local ga-nodes nil)
 (def-local ga-current-coord nil)
 (def-local ga-prev-coord nil)
-(def-local ga-modified-p nil)
 (def-local ga-node-size nil)
 (def-local ga-project-aforth-files nil)
 (def-local ga-project-aforth-buffers nil)
@@ -141,11 +140,13 @@
       (setf (ga-node-coord-overlay node) o))
     ;; set aforth file overlay string
     (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
-    (read-only-mode 1)
     (ga-create-overlays node-size)
     ;; set compile status overlay string
     (overlay-put ga-project-aforth-compile-status-overlay 'after-string  ga-project-aforth-compile-status))
-  (ga-update-overlay-faces))
+  (ga-update-overlay-faces)
+  (set-buffer-modified-p t)
+  (read-only-mode 1))
+
 
 
 (defun ga-delete-overlays ()
@@ -305,7 +306,6 @@
   (setq ga-current-coord 0)
   (ga-reset-temp-faces))
 
-
 (defun ga-save ()
   (interactive)
   (let ((ga-nodes-sans-overlays (vconcat (mapcar 'copy-sequence ga-nodes)))
@@ -324,7 +324,7 @@
           (print (cdr v) (current-buffer))
           (insert ")\n\n")))))
   (message "saved in %s" ga-project-file)
-  (setq ga-modified-p nil))
+  (set-buffer-modified-p nil))
 
 (defun ga-inc-node-size ()
   (interactive)
@@ -529,7 +529,6 @@
       (unless (ga-node-in-region-p coord)
         (ga-add-node-to-region coord)))))
 
-
 (defun ga-clear-selection ()
   )
 
@@ -687,6 +686,15 @@ Elements of ALIST that are not conses are ignored."
   (setq ga-mark-active nil)
   (keyboard-quit))
 
+(defun ga-kill-map ()
+  (interactive)
+  (if (buffer-modified-p)
+      (and (yes-or-no-p "map modified, kill anyways?")
+           (kill-buffer))
+    (and (y-or-n-p "kill map?")
+         (kill-buffer))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; color selection
 
@@ -761,6 +769,8 @@ Elements of ALIST that are not conses are ignored."
            map)))
     (message "Not in GA144 map buffer")))
 
+  (interactive)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -791,8 +801,9 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-SPC") 'ga-set-mark)
         (define-key map (kbd "C-x C-x") 'ga-exchange-point-and-mark)
         (define-key map (kbd "C-g") 'ga-keyboard-quit)
-
+        (define-key map (kbd "C-x k") 'ga-kill-map)
         map))
+
 
 (define-derived-mode ga-mode nil "GA144"
   "A major mode for programming the GA144."
@@ -835,6 +846,7 @@ Elements of ALIST that are not conses are ignored."
 
         (ga-startup-reset)
         (ga-draw-map-in-frame-limits)
+        (set-buffer-modified-p nil)
         (setq truncate-lines t) ;; any line wrap will ruin the map
         (read-only-mode 1)
         (setq visible-cursor nil
