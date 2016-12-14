@@ -158,7 +158,7 @@
           overlays nil)
     (ga144-move-to-node coord nil node-size)
     (setq column (current-column)
-          face (ga144-node-face node))
+          face (ga144-get-node-face node))
     (dotimes (i node-size)
       (setq o (make-overlay (point) (+ (point) node-size)))
       (overlay-put o 'face face)
@@ -230,7 +230,7 @@
   (and (>= n 0) (< n 144)))
 
 (defun coord->index (n)
-  (assert (ga144-valid-node-index-p n))
+  (assert (ga144-valid-coord-p n))
   (+ (* (floor (/ n 100)) 18) (mod n 100)))
 
 (defun index->coord (n)
