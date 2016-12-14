@@ -524,7 +524,8 @@
         (ga-update-rectangle-selection))
     (ga-clear-selection))
   (move-selected-node-overlay ga-prev-coord ga-current-coord)
-  (message "current coord: %s" ga-current-coord))
+  ;;(message "current coord: %s" ga-current-coord)
+  )
 
 (defun ga-draw-map-in-frame-limits()
   (let ((max-size (/ (window-max-chars-per-line) 18)))
