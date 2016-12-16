@@ -103,12 +103,12 @@
   (overlay-get overlay 'aforth-id))
 
 (defsubst aforth-token-delimiter-p (c)
-  (or 
-   (eq c ?\[)
-   (eq c ?\])
-   (eq c ? )
-   (eq c ?\t)
-   (eq c ?\n)))
+  (or (eq c ?\[)
+      (eq c ?\])
+      (eq c ? )
+      (eq c ?\t)
+      (eq c ?\n)))
+
 
 (defun aforth-update-overlays (beg end)
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
