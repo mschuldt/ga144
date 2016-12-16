@@ -109,17 +109,33 @@
       (eq c ?\t)
       (eq c ?\n)))
 
+(defun aforth-comment-at-point-p (point)
+  (save-excursion
+    (goto-char point)
+    (re-search-backward "[^ \t\n]" nil :no-error);;TODO: better re
+    (if (looking-at ")")
+        nil
+      (let ((overlays (overlays-at (point)))
+            comment-p)
+        (while overlays
+          (if (overlay-get (car overlays) 'aforth-comment)
+              (setq comment-p t
+                    overlays nil)
+            (setq overlays (cdr overlays))))
+        comment-p))))
 
 (defun aforth-update-overlays (beg end)
+
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
+        (in-comment (aforth-comment-at-point-p beg))
         (tok-beg 0)
         token tok-end first
         next-token-face
-        next-token-def-p
-        )
-
+        next-token-def-p)
     (while str
-      (while (and str (not first))
+      (while (and (not in-comment)
+                  str
+                  (not first))
         (setq c (car str)
               str (cdr str)
               tok-beg (1+ tok-beg))
@@ -127,6 +143,21 @@
           (setq first c
                 tok-end tok-beg
                 tok-beg (1- tok-beg))))
+      (when (or in-comment
+                (eq first ?\())
+        (setq c nil
+              in-comment nil
+              tok-end (1+ tok-beg))
+        (while (and str
+                    (not (eq c ?\))))
+          (setq c (car str)
+                str (cdr str)
+                tok-end (1+ tok-end)))
+        (setq o (make-overlay (+ beg tok-beg) (+ beg tok-end)))
+        (overlay-put o 'face 'aforth-comment-face)
+        (overlay-put o 'aforth-comment t)
+        (setq first nil))
+
       (when first
         (setq token (list first))
         (while (and str first)
