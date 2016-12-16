@@ -703,7 +703,9 @@ Elements of ALIST that are not conses are ignored."
 
 (defun ga-color-nodes (nodes color)
   ;; nodes is a list of coordinates
-  (error "TODO"))
+  (dolist (node nodes)
+    (ga-color-node node color)))
+
 
 (defun ga-select-color-at-line ()
   (interactive)
@@ -802,6 +804,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-x C-x") 'ga-exchange-point-and-mark)
         (define-key map (kbd "C-g") 'ga-keyboard-quit)
         (define-key map (kbd "C-x k") 'ga-kill-map)
+        (define-key map (kbd "C-c b") 'bury-buffer)
         map))
 
 
