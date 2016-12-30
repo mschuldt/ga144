@@ -125,6 +125,35 @@
         comment-p))))
 
 (defun aforth-update-overlays (beg end)
+(defun aforth-current-node (&optional forward)
+  (let ((found nil)
+        (node nil)
+        (re "node[ \t\n]+\\([0-9]+\\)")
+        p)
+    (save-excursion
+      ;;(end-of-line)
+      (while (not found)
+        (if (if forward
+                (re-search-forward re nil :noerror)
+              (re-search-backward re nil :noerror))
+            (progn (setq node (match-string 1))
+                   (unless (aforth-comment-at-point-p (point))
+                     (setq p (point) 
+                           found t)))
+          (setq found t))))
+    (and node (cons (string-to-number node) p))))
+
+(defun aforth-back-to-node ()
+  (interactive)
+  (let ((point (aforth-current-node)))
+    (when point
+      (goto-char (cdr point)))))
+
+(defun aforth-goto-next-node ()
+  (interactive)
+  (let ((point (aforth-current-node :forward)))
+    (when point
+      (goto-char (cdr point)))))
 
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
         (in-comment (aforth-comment-at-point-p beg))
@@ -220,10 +249,17 @@
     index))
 
 
+(setq aforth-mode-map
+      (let ((map (make-sparse-keymap 'aforth-mode-map)))
+        (define-key map (kbd "C-M-a") 'aforth-back-to-node)
+        (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
+        map))
+
 (define-derived-mode aforth-mode prog-mode "aforth2"
   "Major mode for editing aforth files"
 
   (widen)
+  (use-local-map aforth-mode-map)
   (progn (jit-lock-register 'aforth-update-region)
          (setq aforth-buffer-words (make-hash-table)
                aforth-next-id 1))
