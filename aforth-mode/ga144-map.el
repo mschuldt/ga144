@@ -775,6 +775,19 @@ Elements of ALIST that are not conses are ignored."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun ga-check-in-map-buffer()
+  (and (boundp 'ga-nodes)
+       (not (null ga-nodes))))
+
+(defun ga-view-project-file ()
+  (interactive)
+  (assert (ga-check-in-map-buffer))
+  (let ((filename ga-project-file))
+    (switch-to-buffer (get-buffer-create (format "*%s-project-file*" ga-project-name)))
+    (insert-file-contents-literally filename))
+  (emacs-lisp-mode))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
