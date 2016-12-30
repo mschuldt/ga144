@@ -147,8 +147,6 @@
   (set-buffer-modified-p t)
   (read-only-mode 1))
 
-
-
 (defun ga-delete-overlays ()
   (let (o overlays coord face column)
     (loop-nodes node
@@ -707,7 +705,6 @@ Elements of ALIST that are not conses are ignored."
   (dolist (node nodes)
     (ga-color-node node color)))
 
-
 (defun ga-select-color-at-line ()
   (interactive)
   (if ga-color-select-buffer-p
@@ -721,7 +718,6 @@ Elements of ALIST that are not conses are ignored."
           (ga-color-select-callback coord name code)))
     (message "Not in GA144 color selection buffer")))
 
-
 (defun ga-kill-color-select-buffer ()
   (when ga-color-select-buffer
     (kill-buffer ga-color-select-buffer)
@@ -734,15 +730,14 @@ Elements of ALIST that are not conses are ignored."
     (with-current-buffer ga-color-select-map-buffer
       (ga-kill-color-select-buffer))))
 
-
 (defun ga-color-select-callback (coord str code)
   (when t ;;; (or (eq coord ga-current-coord)
           ;;;   (y-or-n-p (format "Selected node from %s to %s. Apply color '%s' to node %s?"
           ;;;                     coord ga-current-coord str ga-current-coord)))
     (when (consp code)
-        (if(= (length code) 1)
-            (setq code (car code))
-          (error (format "invalid color code: %s" code))))
+      (if(= (length code) 1)
+          (setq code (car code))
+        (error (format "invalid color code: %s" code))))
 
     (if (> (length ga-region-nodes) 1)
         (ga-color-nodes ga-region-nodes code)
@@ -750,7 +745,6 @@ Elements of ALIST that are not conses are ignored."
 
   (ga-quit-color-select)
   (switch-to-buffer (current-buffer)))
-
 
 (defun ga-select-node-color ()
   (interactive)
@@ -777,7 +771,23 @@ Elements of ALIST that are not conses are ignored."
            map)))
     (message "Not in GA144 map buffer")))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun ga-draw-arrow ()
   (interactive)
+  (error "TODO"))
+
+(defun ga-edit-node-text ()
+  (interactive)
+  (error "TODO"))
+
+(setq ga-svg-supported (require 'svg nil :no-error))
+
+(defun ga-export-as-svg ()
+  (interactive)
+  (if ga-svg-supported
+      (error "TODO")
+    (message "svg export is not supported without the svg library")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -880,8 +890,7 @@ Elements of ALIST that are not conses are ignored."
         (ga-set-map-focus t)
         (add-hook 'buffer-list-update-hook 'ga-update-map-focus)
         (add-hook 'kill-buffer-hook 'ga-kill-buffer-handler)
-        (ga-move-selected-node ga-current-coord)
-        )
+        (ga-move-selected-node ga-current-coord))
     (message "ga144-mode: invalid file format")))
 
 (defun ga-restore-node-overlays ( ga-nodes )
