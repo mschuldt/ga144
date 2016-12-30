@@ -699,7 +699,8 @@ Elements of ALIST that are not conses are ignored."
 ;; color selection
 
 (defun ga-color-node (coord color)
-  (error "TODO"))
+  (set-buffer-modified-p t)
+  (ga-set-node-default-face coord (list :background color)))
 
 (defun ga-color-nodes (nodes color)
   ;; nodes is a list of coordinates
@@ -738,9 +739,14 @@ Elements of ALIST that are not conses are ignored."
   (when t ;;; (or (eq coord ga-current-coord)
           ;;;   (y-or-n-p (format "Selected node from %s to %s. Apply color '%s' to node %s?"
           ;;;                     coord ga-current-coord str ga-current-coord)))
+    (when (consp code)
+        (if(= (length code) 1)
+            (setq code (car code))
+          (error (format "invalid color code: %s" code))))
+
     (if (> (length ga-region-nodes) 1)
         (ga-color-nodes ga-region-nodes code)
-      (ga-color-nodes ga-current-coord code)))
+      (ga-color-node ga-current-coord code)))
 
   (ga-quit-color-select)
   (switch-to-buffer (current-buffer)))
