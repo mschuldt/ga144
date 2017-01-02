@@ -450,6 +450,7 @@
         tokens)
     ;;multiple token constructs may span multiple lines, but that style is ugly and not supported
     (aforth-remove-overlays beg-line end-line)
+    (set-text-properties beg-line end-line nil)
     (setq tokens (aforth-parse-region beg-line end-line))
     (aforth-update-overlays tokens)
     (message "parsed region [%s %s] in %s seconds (%s tokens)" beg end (float-time (time-since start-time)) (length tokens)))
