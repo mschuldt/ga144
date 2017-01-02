@@ -102,7 +102,8 @@
         ((gethash token boot-descriptors-map) aforth-boot-descriptor-face)
         ((string-match "^\\(\\(0x[0-9a-fA-F]+\\)\\|\\(0b[01]+\\)\\|[0-9]+\\)$" token) aforth-number-face)
         ((string-match "&[a-zA-Z0-9]+" token)  aforth-word-reference-face)
-        
+        ;;TODO: <word>@<node> word=white @node=green
+
         ))
 
 (defun aforth-make-overlay (beg end)
@@ -169,6 +170,10 @@
   (let ((point (aforth-current-node :forward)))
     (when point
       (goto-char (cdr point)))))
+
+(defun test ()
+  (interactive)
+  (aforth-back-to-node))
 
 (defun aforth-get-token-list (beg end)
 
