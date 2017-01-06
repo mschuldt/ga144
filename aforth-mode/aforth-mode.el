@@ -307,7 +307,7 @@
              (setq next (pop! tokens))
              (setq a (aforth-parse-number next))
              (if a
-                 (push (aforth-set-token token 'directive val a start end)
+                 (push (aforth-set-token token 'directive val a start (aforth-token-end next))
                        out)
                (aforth-error (format "Expected number following token: %s, got: '%s'" val (aforth-token-value next)))))
             ((member val '(":" "::"))
