@@ -1,4 +1,5 @@
 (defstruct aforth-token type value args start end overlay subtoks)
+(defstruct aforth-node coord code)
 
 (defun aforth-set-token (old type value &optional args start end)
   (if old
@@ -211,6 +212,23 @@
                                        nil start end)
                      out))))
     (nreverse out)))
+
+(defun aforth-parse-nodes (beg end &optional tokens)
+  (let ((tokens (or tokens (aforth-parse-region beg end)))
+        nodes current-node current-code type)
+    (dolist (token tokens)
+      (setq type (aforth-token-type token))
+      (if (equal (aforth-token-value token) "node")
+          (progn (when current-node
+                   (setf (aforth-node-code current-node) (nreverse current-code))
+                   (setq nodes (cons current-node nodes)))
+                 (setq current-node (make-aforth-node :coord (aforth-token-args token))
+                       current-code nil))
+        (setq current-code (cons token current-code))))
+    (when current-node
+      (setf (aforth-node-code current-node) (nreverse current-code))
+      (setq nodes (cons current-node nodes)))
+    (nreverse nodes)))
 
 (defun aforth-parse-buffer ()
   (widen)
