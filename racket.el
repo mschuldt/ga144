@@ -174,6 +174,7 @@
 
 (defalias 'map 'mapcar)
 (defalias 'null? 'null)
+(defalias 'cons? 'consp)
 
 (defun list->set (lst)
   (let ((s (make-set)))
