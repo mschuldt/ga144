@@ -116,9 +116,8 @@
 (defun aforth-overlay-id (overlay)
   (overlay-get overlay 'aforth-id))
 
-;;TODO: make buffer local
-
 (setq aforth-parse-data (make-hash-table)) ;;map lines to token listss
+(make-variable-buffer-local 'aforth-parse-data)
 
 (defun aforth-current-node (&optional forward)
   (let ((found nil)
