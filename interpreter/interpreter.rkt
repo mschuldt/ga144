@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 ;; simulates a collection of ga144 chips
 
 (require compatibility/defmacro

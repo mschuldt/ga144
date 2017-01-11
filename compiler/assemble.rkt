@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 
 (require  "../common.rkt"
           "../rkt-to-el.rkt")

@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 
 ;; Generates code and a bootstream that dumps ROM from every node.
 

@@ -1,5 +1,5 @@
+#lang racket ;; -*- lexical-binding: t -*-
 ;;; Some utilities for working with 8-word circular stacks
-#lang racket
 
 (require "../rkt-to-el.rkt")
 

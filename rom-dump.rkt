@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 (require "rkt-to-el.rkt")
 (provide ROM-DUMP)
 (defconst ROM-DUMP (list

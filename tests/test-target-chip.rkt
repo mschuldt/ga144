@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 
 ;; tests loading a program with into the target chip through node 300
 ;; using the 2-wire connection.

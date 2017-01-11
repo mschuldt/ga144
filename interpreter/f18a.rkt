@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 
 (require compatibility/defmacro
          "stack.rkt"

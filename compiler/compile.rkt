@@ -1,4 +1,4 @@
-#lang racket
+#lang racket ;; -*- lexical-binding: t -*-
 
 ;;references:
 ;; - colorforth blocks 190-192,1404-1412
