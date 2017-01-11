@@ -212,16 +212,18 @@
 
 ;; the racket function 'set' cannot be used in elisp, use make-set instead
 
-(setq racket-magic-set-key '__racket_set_key__)
+(setq racket-magic-set-key '__racket_set_key__
+      racket-magic-set-value '__racket_set_value__)
+
 (defun make-set (&rest items)
   (let ((s (make-hash-table)))
-    (puthash racket-magic-set-key t s)
+    (puthash racket-magic-set-key racket-magic-set-value s)
     (dolist (x items)
       (puthash x t s))
     s))
 
 (defun set? (s)
-  (gethash racket-magic-set-key s))
+  (eq (gethash racket-magic-set-key s) racket-magic-set-value))
 
 (defun set-member? (s item)
   (gethash item s))
@@ -251,6 +253,7 @@
 (defalias number? 'numberp)
 (defun range (from to)
   (number-sequence from (1- to)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
