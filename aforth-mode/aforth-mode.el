@@ -62,7 +62,7 @@
                                        (:foreground "DeepPink"))
                                       (((background dark))
                                        (:foreground "DeepPink")))
-  "Default face for arrayforth boot descriptors")
+  "Default face for arrayforth references")
 
 (defface aforth-comment-face '((((background light))
                                 (:foreground "grey"))
@@ -74,7 +74,7 @@
                                      (:foreground "orange"))
                                     (((background dark))
                                      (:foreground "orange")))
-  "Default face for arrayforth boot descriptors")
+  "Default face for arrayforth remote node coordinates")
 
 
 (setq aforth-instruction-face 'aforth-instruction-face)
