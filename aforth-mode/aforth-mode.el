@@ -223,11 +223,6 @@
       (setf (aforth-token-overlay token) o)
       )))
 
-(defun aforth-parse-buffer ()
-  (widen)
-  (save-excursion
-    (aforth-parse-region (point-min) (point-max))))
-
 (defun aforth-remove-overlays (beg end)
   (dolist (o (overlays-in beg end))
     (delete-overlay o)
