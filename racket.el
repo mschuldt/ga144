@@ -208,6 +208,12 @@
     (maphash (lambda (k v)
                (push (cons k v) ret))
              hash)))
+
+(defalias 'hash-values 'hash-table-values)
+(defalias 'hash-keys 'hash-table-keys)
+
+;; raacket remove only removes the first item in the list, elisp version removes all matches
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; sets
 
