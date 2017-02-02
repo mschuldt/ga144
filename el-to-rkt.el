@@ -379,4 +379,40 @@
     (when (stringp s)
       (message "%s" s))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; file loading
+
+(setq elisp? t
+      compatibility/defmacro nil)
+
+(defun all-defined-out () nil)
+
+(defun rkt-load (file)
+  (let ((lexical-binding t)
+        (racket? nil)
+        (elisp? t)
+        (compatibility/defmacro nil)) ;; to prevent void-variable errors
+    (with-temp-buffer
+      (insert-file-contents-literally file)
+      (setq buffer-file-name file)
+      (goto-char (point-min))
+      (forward-line) ;; skip  #lang ...
+      ;; flet is _not_ semantically the same as cl-flet which does not rebind the symbol same so does not work when eval is called
+      (flet ((require (&rest files) (rkt-require files))
+             (provide (&rest syms) nil))
+        (condition-case err
+            (eval-region (point) (point-max))
+          (error (message (format "rkt-load error. file='%s', error=%s" file err)))))
+      (setq buffer-file-name nil)
+      )))
+
+(defun rkt-require (files)
+  (when (stringp files)
+    (setq files (list files)))
+  (dolist (file files)
+    (when (and (stringp file)
+               (not (equal (car (last (split-string file "/"))) "rkt-to-el.rkt")))
+      (rkt-load (concat (file-name-directory buffer-file-name) file)))))
+
+
 (provide 'el-to-rkt)
