@@ -362,4 +362,21 @@
                        (aref s ,i)))
                   args (number-sequence 1 max-args))
        )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; printing
+
+(defun rkt-format (fmt &rest args)
+  ;; incomplete but good enough!
+  (dolist (x '(("~~" . "~")
+               ("%" . "%%")
+               ("~a" . "%s")))
+    (setq fmt (replace-regexp-in-string (regexp-quote (car x)) (cdr x) fmt)))
+  (apply 'format fmt args))
+
+(defun printf (fmt &rest args)
+  (let ((s (apply 'rkt-format fmt args)))
+    (when (stringp s)
+      (message "%s" s))))
+
 (provide 'el-to-rkt)
