@@ -13,7 +13,7 @@
 
 (with-output-to-file "rom-dump.rkt"
   (lambda ()
-    (printf "#lang racket ;; -*- lexical-binding: t -*-\n(provide ROM-DUMP)\n")
+    (printf "#lang racket ;; -*- lexical-binding: t -*-\n(provide (all-defined-out))\n")
     (printf "(define ROM-DUMP (list\n")
     (for/list ((node (range 144)))
       (print (for/list ((word (range 65))) (string->number (next))))
