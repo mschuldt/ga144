@@ -8,8 +8,6 @@
 
 (provide (all-defined-out))
 
-(el-require 'cl)
-
 (defvar num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
 (defvar num-nodes 144)
 

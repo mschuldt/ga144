@@ -97,7 +97,6 @@
         ((numberp x) (number-sequence 0 (1- x)))
         (t (error "unimplemented"))))
 
-
 (defun racket-make-for-loop (spec body collect)
   (let* ((vars (mapcar 'car spec))
          (sequences (mapcar 'cadr spec))
@@ -247,10 +246,10 @@
 ;; strings
 ;;; same: make-string
 
-(defsubst 'string? 'stringp)
-(defsubst 'string-length 'length)
-(defsubst 'string->number 'string-to-number)
-(defsubst 'string-append 'concat)
+(defalias 'string? 'stringp)
+(defalias 'string-length 'length)
+(defalias 'string->number 'string-to-number)
+(defalias 'string-append 'concat)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
