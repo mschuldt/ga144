@@ -284,4 +284,73 @@
 (defalias 'mcons 'cons)
 (defalias 'mpair? 'consp)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; stucts
+
+(defun _struct-get-args (fields)
+  (let (positional optional is-opt arg)
+    (dolist (field fields)
+      (if (symbolp field)
+          (if optional
+              (error "positional arg following optional args is not allowed")
+            (push field positional))
+        ;;else
+        (assert (and (consp field)
+                     (> (length field) 1)))
+        (setq arg (pop field)
+              is-opt nil)
+
+        (dolist (opt field)
+          (unless (or (eq opt 'auto)
+                      (eq opt 'mutable)) ;;ignoring mutable optional - everything is mutable
+            (error "field option '%s' is not supported" opt))
+          (when (eq opt 'auto)
+            (setq is-opt t)))
+        (when is-opt
+          (push arg optional))
+        ))
+    (cons (nreverse positional) (nreverse optional))))
+
+(defmacro struct (name fields &rest options)
+  ;;field is either a symbol or [symbol <option>]
+  ;; <option> is 'auto' or 'mutable'
+  (let* ((struct-name (intern (symbol-name name)))
+         (_args (_struct-get-args fields))
+         (pos (car _args))
+         (opt (cdr _args))
+         (args (append pos opt))
+         (n-pos (length pos))
+         (n-opt (length opt))
+         (max-args (+ n-pos n-opt))
+         (test-name (intern (format "%s?" struct-name))))
+    ;;ignoring OPTIONS
+    `(progn
+
+       (defun ,struct-name (&rest args)
+         (let ((n-args (length args)))
+           (when (< n-args ,n-pos)
+             (error ,(format "expected at least %s args, got %%s" n-pos) n-args))
+           (when (> n-args ,max-args)
+             (error ,(format "expected at most %s args, got %%s" max-args) n-args))
+           (vconcat ,(vector struct-name) args (make-vector (- ,max-args n-args) nil))))
+
+       (defun ,test-name (thing)
+         (and (vectorp thing)
+              (= (length thing) ,(1+ max-args))
+              (eq (aref thing 0) ',struct-name)))
+
+       ,@(mapcar* (lambda (arg i)
+                    `(defun ,(intern (concat "set-" (symbol-name struct-name) "-" (symbol-name arg) "!")) (s val)
+                       (unless (,test-name s)
+                         (error ,(format "expected struct type '%s'. got this instead: %%s" struct-name) s))
+                       (aset s ,i val)))
+                  args (number-sequence 1 max-args))
+
+       ,@(mapcar* (lambda (arg i)
+                    `(defun ,(intern (concat (symbol-name struct-name) "-" (symbol-name arg))) (s)
+                       (unless (,test-name s)
+                         (error ,(format "expected struct type '%s'. got this instead: %%s" struct-name) s))
+                       (aref s ,i)))
+                  args (number-sequence 1 max-args))
+       )))
 (provide 'el-to-rkt)
