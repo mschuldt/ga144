@@ -172,7 +172,11 @@
           (setq newlist (cons e newlist))))
     (reverse newlist)))
 
-(defalias 'map 'mapcar)
+(defmacro map (fn lst)
+  (if (symbolp fn)
+      `(mapcar ',fn lst)
+    `(mapcar fn lst)))
+
 (defalias 'null? 'null)
 (defalias 'cons? 'consp)
 
