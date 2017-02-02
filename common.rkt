@@ -146,9 +146,9 @@
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
-(struct node (coord mem len [symbols #:auto] [word-dict #:auto]
-                    [a #:auto] [b #:auto] [io #:auto] [stack #:auto] [p #:auto]
-                    [address-cells #:auto] [consts #:auto])
+(struct node (coord mem len (symbols #:auto) (word-dict #:auto)
+                    (a #:auto) (b #:auto) (io #:auto) (stack #:auto) (p #:auto)
+                    (address-cells #:auto) (consts #:auto))
   #:mutable #:transparent)
 ;; 'coord' is the node coordinate this code belongs to
 ;; 'mem' is the vector of compiled words
@@ -172,7 +172,7 @@
                            ))
 (defvar default-bootstream-type "async")
 
-(define (create-node coord [mem false] [len 0])
+(define (create-node coord (mem false) (len 0))
   (let ((new (node coord mem len)))
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
@@ -218,7 +218,7 @@
     (set! tok (list->string (cons #\# (cdr (string->list tok))))))
   (string->number tok))
 
-(define (get-address name [node false])
+(define (get-address name (node false))
   (cond ((hash-has-key? names->addresses name) ;;normal address names
          (hash-ref names->addresses name))
         ((and node  ;;relative names
