@@ -141,18 +141,10 @@
 (defalias 'vector-append 'vconcat)
 (defalias 'vector-copy 'copy-sequence)
 (defalias 'vector-member 'position)
+(defalias 'list->vector 'vconcat)
 
 (defun vector->list (v)
   (mapcar 'identity v))
-
-(defun list->vector (lst)
-  (let ((v (make-vector (length lst) nil))
-        (i 0))
-    (dolist (x lst)
-      (aset v i (car lst))
-      (setq i (1+ i)
-            lst (cdr lst)))
-    v))
 
 (defun vector-map! (fn vec)
   (dotimes (i (length vec))
