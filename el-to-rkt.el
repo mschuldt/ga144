@@ -275,6 +275,15 @@
 (defalias 'vector-length 'length)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; bool
+
+(defconst false nil)
+(defconst true t)
+(defsubst void () nil)
+
+(defsubst eof 'eof) ;;functions that use this should not be called from elisp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mutable cons
 
 (defalias 'mcar  'car)
