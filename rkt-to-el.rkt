@@ -1,4 +1,4 @@
-#lang racket ;; -*- lexical-binding: t -*-
+#lang racket
 
 (require compatibility/defmacro)
 
@@ -42,4 +42,5 @@
 
 
 (define t #t)
-(define false #f)
+(define nil #f)
+

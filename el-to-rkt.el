@@ -1,3 +1,7 @@
+;; -*- lexical-binding: t -*-
+
+;; racket comparability layer
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 'define' macro
 
@@ -155,7 +159,7 @@
 ;; same: make-vector
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; lists
-(defalias 'list? listp)
+(defalias 'list? 'listp)
 
 (defun filter (func list)
   (let ((newlist ()))
@@ -253,7 +257,7 @@
 
 (defalias 'sub1 '1+)
 (defalias 'add1 '1-)
-(defalias number? 'numberp)
+(defalias 'number? 'numberp)
 (defun range (from to)
   (number-sequence from (1- to)))
 
