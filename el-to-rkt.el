@@ -274,4 +274,14 @@
 (defalias 'vector? 'vectorp)
 (defalias 'vector-length 'length)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; mutable cons
+
+(defalias 'mcar  'car)
+(defalias 'set-mcar! 'setcar)
+(defalias 'set-mcdr! 'setcdr)
+(defalias 'mcdr 'cdr)
+(defalias 'mcons 'cons)
+(defalias 'mpair? 'consp)
+
 (provide 'el-to-rkt)
