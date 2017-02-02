@@ -81,7 +81,7 @@
       (set! current-token-list word)
       (while (not (null? current-token-list))
         (compile-token (read-tok))
-               )))
+        )))
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
@@ -208,7 +208,9 @@
       (and DEBUG? (printf "          x = ~a\n" addr))
       (set! addr (and x (get-remote-addr (car x) (cdr x))))
       (and DEBUG? (printf "          (global)addr = ~a\n" addr))))
-  (if (mpair? addr) (mcar addr) addr))
+  (if (address-cell? addr)
+      (address-cell-val addr)
+      addr))
 
 
 (define (instruction? token)
@@ -359,11 +361,11 @@
         (exec-compiler-word word)
         (if addr
             (begin
-              (unless (address-fits? (if (mpair? addr) (mcar addr) addr) current-slot)
+              (unless (address-fits? (if (address-cell? addr) (address-cell-val addr) addr) current-slot)
                 (fill-rest-with-nops))
               (when DEBUG? (printf "       address = ~a\n" addr))
               (compile-call-or-jump)
-              (add-to-next-slot (if (mpair? addr)
+              (add-to-next-slot (if (address-cell? addr)
                                     addr
                                     (make-new-address-cell addr word)))
               (unless (= current-slot 0)
@@ -418,7 +420,7 @@
 (define (make-new-address-cell val [name false])
   ;; name is an optional tag, usually the name of the word, that discribes the address.)
   ;; it is use for debug only
-  (define cell (mcons val (mcons next-addr (mcons name null))))
+  (define cell (address-cell val next-addr name))
   (set! address-cells (set-add address-cells cell))
   cell)
 
@@ -428,10 +430,10 @@
     (when (vector? word)
       (when (vector? word)
         (for ((slot word))
-          (when (and (mpair? slot)
-                     (not (mcar slot))
-                     (mcar (mcdr (mcdr slot))))
-            (error (format "Undefined word: '~a' in node ~a" (mcar (mcdr (mcdr slot)))
+          (when (and (address-cell? slot)
+                     (not (address-cell-val slot))
+                     (address-cell-name slot))
+            (error (format "Undefined word: '~a' in node ~a" (address-cell-name slot)
                            (node-coord node)))))))))
 
 (define (remove-address-cells node)
@@ -454,12 +456,12 @@
     (when (vector? word)
       (for ((slot word)
             (slot-index 4))
-        (when (mpair? slot)
-          (set! addr (mcar slot))
+        (when (address-cell? slot)
+          (set! addr (address-cell-val slot))
           (when (not addr)
-            (error (format "remove-address-cells -- invalid address '~a' for '~a'" addr (mcar (mcdr (mcdr slot))))))
+            (error (format "remove-address-cells -- invalid address '~a' for '~a'" addr (address-cell-name slot))))
 
-          (if (not (address-fits? addr (sub1 slot-index) (mcar (mcdr slot))))
+          (if (not (address-fits? addr (sub1 slot-index) (address-cell-next-addr slot)))
               (begin
                 (set! new-word-index (+ word-index 1 (count word)))
                 (shift-words-down mem new-word-index)
@@ -479,10 +481,10 @@
 
 (define (increment-address address-cells from)
   (for ((cell address-cells))
-    (when (>= (mcar cell) from)
-      (set-mcar! cell (add1 (mcar cell))))
-    (when (>= (mcar (mcdr cell)) from)
-      (set-mcar! (mcdr cell) (add1 (mcar (mcdr cell)))))))
+    (when (>= (address-cell-val cell) from)
+      (set-address-cell-val! cell (add1 (address-cell-val cell))))
+    (when  (>= (address-cell-next-addr cell) from)
+      (set-address-cell-next-addr! cell (add1 (address-cell-next-addr cell))))))
 
 (define (shift-words-down memory from)
   (raise "shift-words-down ~a" current-node-coord)
@@ -532,7 +534,7 @@
           (waiting-list (get-waiting-list word)))
      (when waiting-list
        (for ((cell waiting-list))
-         (set-mcar! cell address))
+         (set-address-cell-val! cell address))
        (waiting-clear word))
 
      (when (hash-has-key? words word)
@@ -732,7 +734,7 @@
   (let* ((word (vector-ref memory slot))
          (last (and (vector? word) (find-first-empty word))))
     (if last
-        (if (and (not (mpair? thing))
+        (if (and (not (address-cell? thing))
                  (> thing (vector-ref max-slot-num last)))
             ;; TODO: move instruction to next word in this case
             (error (format "'~a' cannot fit into slot ~a" thing last))

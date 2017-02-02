@@ -164,6 +164,8 @@
 
 (struct bootstream (name start path))
 
+(struct address-cell (val next-addr name (type #:auto)) #:mutable #:transparent)
+
 (defconst bootstream-types '("async" ;; load through node 708 serial
                            "2wire" ;; load through node 300 2wire
                            "async-target" ;; in host node 708 to target node 300
