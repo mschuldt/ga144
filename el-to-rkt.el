@@ -79,13 +79,13 @@
   (let ((args (cdr form))
         local-vars name positional optional defaults)
     (dolist (a args)
-      (if (vectorp a) ;;TODO: must this be a vector? or can it be a list? prefer list
+      (if (consp a)
           (progn
             (assert (= (length a) 2))
-            (setq name (aref a 0))
+            (setq name (car a))
             (assert (symbolp name))
             (push name optional)
-            (push `(setq ,name (or ,name ,(aref a 1))) defaults))
+            (push `(setq ,name (or ,name ,(cadr a))) defaults))
         (assert (symbolp a))
         (push a positional)))
     (setq local-vars (racket-gather-local-vars body (append positional optional)))
@@ -282,7 +282,6 @@
 (defalias 'number? 'numberp)
 (defun range (from to)
   (number-sequence from (1- to)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
