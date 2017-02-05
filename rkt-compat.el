@@ -104,8 +104,9 @@
                  (not (get (car form) 'is-racket-fn)))
             (message "WARNING: 'define' attempting to overwrite function value of '%s'" (car form))
           ;; else: ok to define
-          (cons 'defun (cons (car form)  (racket-make-define-body form body)))
-          (put (car form) 'is-racket-fn t)))
+          (put (car form) 'is-racket-fn t)
+          (cons 'defun (cons (car form) (racket-make-define-body form body)))
+          ))
 
     (assert (symbolp form))
     ;;else: variable definition
@@ -114,8 +115,8 @@
              (not (get form 'is-racket-var)))
         (message "WARNING: 'define' attempting to overwrite value of '%s'" form)
       ;;else: ok to define
-      `(defvar ,form ,@body)
-      (put form 'is-racket-var t))))
+      (put form 'is-racket-var t)
+      `(defvar ,form ,@body))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; flow control
