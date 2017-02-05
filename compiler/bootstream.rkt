@@ -54,10 +54,10 @@
 ;; for the nodes later in the stream through the current node.
 ;; 'load-pump' loads the code for a given node into its ram.
 
-(define (word a [b false] [c false] [d false]) (assemble-word (vector a b c d)))
+(define (word a (b false) (c false) (d false)) (assemble-word (vector a b c d)))
 
 (define (port-pump coord dir len)
-  ;;(printf "[~a]port-pump jump direction: ~a\n" coord (get-direction coord dir))
+  ;;(printf "(~a)port-pump jump direction: ~a\n" coord (get-direction coord dir))
   (vector (word "@p" "dup" "a!" ".")
           (word "call" (get-direction coord dir))
           (word "@p" "push" "!" ".")
@@ -200,7 +200,7 @@
                   ))
   (vector-append frame1 frame2))
 
-(define (make-bootstream assembled [type default-bootstream-type])
+(define (make-bootstream assembled (type default-bootstream-type))
   (unless (member type bootstream-types)
     (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
                    type (string-join bootstream-types ", "))))
@@ -305,7 +305,7 @@ north a! io b!
   ;; [w1, ..., wn, false, ..., false] => [w1, ..., wn]
   (let ((used '())
         (word false))
-    (define (get node [index 0])
+    (define (get node (index 0))
       (set! word (vector-ref code index))
       (when word
         (set! used (cons word used))

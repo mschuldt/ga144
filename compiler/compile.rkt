@@ -137,7 +137,7 @@
     (set! names (cdr names))
     x)
 
-  (define (f [x false])
+  (define (f (x false))
     (define name (or x (pop)))
     (define ft (hash-ref fallthroughs name))
     (define body (hash-ref name->word name))
@@ -343,7 +343,7 @@
         (compile-instruction! "@p")
         (set-next-empty-word! const))))
 
-(define (compile-call! word [address false])
+(define (compile-call! word (address false))
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
   (define (compile-call-or-jump)
     (let ((next (read-tok-name)))
@@ -417,7 +417,7 @@
       (begin (vector-set! memory next-addr word)
              (set! next-addr (add1 next-addr)))))
 
-(define (make-new-address-cell val [name false])
+(define (make-new-address-cell val (name false))
   ;; name is an optional tag, usually the name of the word, that discribes the address.)
   ;; it is use for debug only
   (define cell (address-cell val next-addr name))
@@ -498,7 +498,7 @@
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
 
-(define (address-fits? destination-addr jump-slot [P false])
+(define (address-fits? destination-addr jump-slot (P false))
   ;; returns t if DESTINATION-ADDR is reachable from the current word
   ;; JUMP-SLOT is the slot of the jump/call instruction
   (set! P (or P next-addr))
@@ -556,8 +556,8 @@
 (add-directive! ;; page 23 of arrayforth users manual DB004
  ","
  (lambda ()
-   (let* ([token (read-tok-name)]
-          [data (parse-num token)])
+   (let* ((token (read-tok-name))
+          (data (parse-num token)))
      (if (not data)
          (error (format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
@@ -723,7 +723,7 @@
    (compile-if-instruction "call")))
 
 (define (add-to-slot slot thing)
-  (define (find-first-empty word [n 0])
+  (define (find-first-empty word (n 0))
     ;; find the first empty slot in WORD
     (if (< n 4)
         (if (vector-ref word n)
@@ -1040,15 +1040,15 @@
 
 (define (display-compiled compiled)
   ;;NODES is a list of node structs
-  (define (display-word word [n 0])
+  (define (display-word word (n 0))
     (if (number? word)
         (display word)
         (when (< n 4)
           (display (format "~a " (vector-ref word n)))
           (display-word word (add1 n)))))
 
-  (define (display-mem mem [index 0])
-    (let ([word (vector-ref mem index)])
+  (define (display-mem mem (index 0))
+    (let ((word (vector-ref mem index)))
       (unless (equal? word (vector false false false false))
         (display (format "~a    " index))
         (display-word word)

@@ -58,7 +58,7 @@
 
 (define (make-reader)
   (let ((stack '()))
-    (lambda ([tok false] [line -1] [col -1])
+    (lambda ((tok false) (line -1) (col -1))
       (if tok
           (set! stack (cons (token tok line col) stack))
           (if (null? stack)
@@ -123,7 +123,7 @@
   (define current-word '())
   (define current-name false)
   (define done false)
-  (define (end-word [name false])
+  (define (end-word (name false))
     (set! current-word (reverse current-word))
     (when (= (length current-word) 0)
       (syntax-error "empty node body"))

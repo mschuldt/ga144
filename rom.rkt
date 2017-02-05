@@ -111,7 +111,7 @@
                      ("-u/mod" . #x2d2) ;; 1398 ;;TODO: check
                      ))
 
-(define (rom-doc name block doc [code false])
+(define (rom-doc name block doc (code false))
   (void))
 
 (rom-doc

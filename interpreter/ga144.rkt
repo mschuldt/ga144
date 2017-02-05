@@ -16,7 +16,7 @@
 (define ga144%
   (class object%
     (super-new)
-    (init-field [name false] [interactive false])
+    (init-field (name false) (interactive false))
 
     (define time 0)
     (define breakpoint false) ;; set to t when a breakpoint is reached
@@ -29,14 +29,14 @@
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
       (for ((i 144))
-        (vector-set! nodes i (new f18a% [index i] [ga144 this])))
+        (vector-set! nodes i (new f18a% (index i) (ga144 this))))
       (vector-map (lambda (node) (send node init)) nodes))
 
     (define (index->node index)
       (vector-ref nodes index))
 
     (define/public (coord->node coord)
-      (let ([index (coord->index coord)])
+      (let ((index (coord->index coord)))
         (if (and (>= index 0)
                  (< index 144))
             (vector-ref nodes index)
@@ -91,7 +91,7 @@
 
     (define cli-active? false) ;; if true, we are in a cli session
 
-    (define/public (break [node false])
+    (define/public (break (node false))
       (set! breakpoint-node node)
       ;; set the breakpoint flag which returns control to the interpreter
       (set! breakpoint t))
@@ -105,7 +105,7 @@
       (for ((n (compiled-nodes compiled)))
         (send (coord->node (node-coord n)) load n)))
 
-    (define/public (load-bootstream bs [input-node 708])
+    (define/public (load-bootstream bs (input-node 708))
       ;;Load a bootstream through INPUT-NODE
       (send (coord->node input-node) load-bootstream bs))
 
@@ -118,7 +118,7 @@
       (set! breakpoint false)
       (set! time (add1 time))
       (define last last-active-index)
-      (define (step [index 0])
+      (define (step (index 0))
         (set! current-node (vector-ref active-nodes index))
         (send current-node step-program!)
         (when (and (< index last-active-index)
@@ -138,7 +138,7 @@
       breakpoint)
 
     ;;step program until all nodes are non-active
-    (define/public (step-program!* [max-time false])
+    (define/public (step-program!* (max-time false))
       (set! breakpoint false)
       (define (step)
         (unless (or (= last-active-index -1)
@@ -184,21 +184,21 @@
       (add1 last-active-index))
 
 
-    (define/public (display-node-states [nodes false])
+    (define/public (display-node-states (nodes false))
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
         (for ((node nodes))
           (send node display-state))))
 
-    (define/public (display-dstacks [nodes false])
+    (define/public (display-dstacks (nodes false))
       (let ((nodes (if nodes
                        (map fn:coord->node nodes)
                        (get-active-nodes))))
         (for ((node nodes))
           (send node display-dstack))))
 
-    (define/public (display-memory coord [n MEM-SIZE])
+    (define/public (display-memory coord (n MEM-SIZE))
       (send (fn:coord->node coord) display-memory n))
 
 
@@ -230,7 +230,7 @@
 
     (define/public (get-time) time)
 
-    (define/public (disassemble-memory coord [start 0] [end #xff])
+    (define/public (disassemble-memory coord (start 0) (end #xff))
       ;;  disassemble and print a nodes memory
       (send (coord->node coord) disassemble-memory start end))
 

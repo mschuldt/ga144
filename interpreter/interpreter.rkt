@@ -34,11 +34,11 @@
 (define (enter-cli-on-breakpoint x)
   (set! enter-cli-on-breakpoint? x))
 
-(define (new-ga144 [name false])
+(define (new-ga144 (name false))
   (unless name
     (set! name (format "chip~a" _counter))
     (set! _counter (add1 _counter)))
-  (let ((chip (new ga144% [name name] [interactive t])))
+  (let ((chip (new ga144% (name name) (interactive t))))
     (push chips chip)
     (hash-set! name-to-chip name chip)
     (set! num-chips (add1 num-chips))
@@ -46,13 +46,13 @@
 
 (define (compile-and-load chip
                           in
-                          [include-end-token? false]
-                          #:compiled-file [compiled-file false]
-                          #:assembled-file [assembled-file false])
-  (let* ([n 0]
-         [code 0]
-         [node 0]
-         [compiled (compile in)])
+                          (include-end-token? false)
+                          #:compiled-file (compiled-file false)
+                          #:assembled-file (assembled-file false))
+  (let* ((n 0)
+         (code 0)
+         (node 0)
+         (compiled (compile in)))
     (when compiled-file
       (with-output-to-file compiled-file
         (lambda () (display-compiled compiled))
@@ -68,7 +68,7 @@
 (define (load-file chip file)
   (call-with-input-file file (lambda (x) (compile-and-load chip x))))
 
-(define (step* [chip false])
+(define (step* (chip false))
   (define (step-all)
     (define again false)
     (define breakpoint? false)
@@ -91,7 +91,7 @@
            (enter-cli))
       (step-all)))
 
-(define (step [n 1] [chip false])
+(define (step (n 1) (chip false))
   (if chip
       (and (send chip step-program-n! n)
            (and (not cli-active?)
@@ -104,7 +104,7 @@
                   enter-cli-on-breakpoint?)
              (enter-cli)))))
 
-(define (reset! [chip false])
+(define (reset! (chip false))
   (if chip
       (send chip reset!)
       (for ((c chips))
@@ -306,7 +306,7 @@
 (def-command ex (coord inst) "execute instruction in the COORD node"
   (execute-instruction coord inst))
 
-(define (call-word coord word [args false])
+(define (call-word coord word (args false))
   (if selected-chip
       (let ((node (send selected-chip coord->node coord)))
         (when args

@@ -7,7 +7,7 @@
 
 (struct stack (sp body) #:mutable #:transparent)
 
-(define (make-stack len [init 0])
+(define (make-stack len (init 0))
   (stack 0 (make-vector len init)))
 
 ;;; Copies the given stack. This keeps mutable vectors from being
@@ -33,7 +33,7 @@
     ret-val))
 
 ;;; Returns a stack with randomized entries, each less than max-size.
-(define (random-stack [max-size #x40000])
+(define (random-stack (max-size #x40000))
   (stack 0 (vector-map! (lambda (_) (random max-size)) (make-vector 8))))
 
 (define (stack->list stack)

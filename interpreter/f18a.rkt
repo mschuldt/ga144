@@ -13,7 +13,7 @@
 (define f18a%
   (class object%
     (super-new)
-    (init-field index ga144 [active-index 0])
+    (init-field index ga144 (active-index 0))
 
     (set! active-index index);;index of this node in the 'active-nodes' vector
     (define step-count 0)
@@ -60,7 +60,7 @@
     (define debug-ports false)
     (define print-state false)
     (define print-io false)
-    (define/public (set-debug [general t] [ports false] [state false] [io false])
+    (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
       (set! print-state state)
@@ -465,7 +465,7 @@
 
     (enum (IMPED PULLDOWN SINK HIGH))
 
-    (define/public (set-gpio-handlers a [b false] [c false] [d false])
+    (define/public (set-gpio-handlers a (b false) (c false) (d false))
       (set! pin1-handler a)
       (set! pin2-handler b)
       (set! pin3-handler c)
@@ -596,7 +596,7 @@
 
     (define unext-jump-p false)
 
-    (define/public (execute! opcode [jump-addr-pos 0] [addr-mask false])
+    (define/public (execute! opcode (jump-addr-pos 0) (addr-mask false))
       (when save-history
         (if (< opcode 8)
             (set! history (cons (cons opcode jump-addr-pos) history))
@@ -957,7 +957,7 @@
             set-post-finish-port-read
             write-next)
 
-      (define (load-bootframe [index_ 0])
+      (define (load-bootframe (index_ 0))
         (set! index index_)
         (set! jump-addr (vector-ref frames index))
         (set! dest-addr (vector-ref frames (+ index 1)))
@@ -1033,7 +1033,7 @@
             (i (range #x80 #xc0)))
         (vector-set! memory i word)))
 
-    (define/public (reset! [bit 18])
+    (define/public (reset! (bit 18))
       (set! A 0)
       (set! B (cdr (assoc "io" named-addresses)))
       (set! P 0)
@@ -1072,7 +1072,7 @@
       (setup-ports))
 
     ;; Resets only p
-    (define/public (reset-p! [start false])
+    (define/public (reset-p! (start false))
       (if start
           (set! P start)
           (let ((rom (get-node-rom coord)))
@@ -1119,20 +1119,20 @@
         (vector-set! ludr-port-nodes (convert "north")
                      (if (< coord 700)
                          north
-                         (new f18a% [index 145] [ga144 ga144])))
+                         (new f18a% (index 145) (ga144 ga144))))
 
         (vector-set! ludr-port-nodes (convert "east")
                      (if (< (modulo coord 100) 17)
                          east
-                         (new f18a% [index 145] [ga144 ga144])))
+                         (new f18a% (index 145) (ga144 ga144))))
         (vector-set! ludr-port-nodes (convert "south")
                      (if (> coord 17)
                          south
-                         (new f18a% [index 145] [ga144 ga144])))
+                         (new f18a% (index 145) (ga144 ga144))))
         (vector-set! ludr-port-nodes (convert "west")
                      (if (> (modulo coord 100) 0)
                          west
-                         (new f18a% [index 145] [ga144 ga144])))))
+                         (new f18a% (index 145) (ga144 ga144))))))
 
     (define/public (get-ludr-port-nodes) ludr-port-nodes)
 
@@ -1205,7 +1205,7 @@
              (log (format "ERR: invalid breakpoint '~a'" line-or-word))
              false)))
 
-    (define (break [reason false])
+    (define (break (reason false))
       (log (format "Breakpoint: ~a "
                    (or reason (format "~x(~x)" P (region-index P)))))
       (send ga144 break this))
@@ -1231,7 +1231,7 @@
       (display-stack rstack)
       (newline))
 
-    (define/public (display-memory [n MEM-SIZE])
+    (define/public (display-memory (n MEM-SIZE))
       (let ((n (sub1 n)))
         (define (print i)
           (let ((v (vector-ref memory i)))
@@ -1310,7 +1310,7 @@
           (printf "Waiting for pin 17\n"))
         ))
 
-    (define/public (describe-io [describe false])
+    (define/public (describe-io (describe false))
       ;;set node handshake read bits
       (define io (read-io-reg))
       (printf "IO = ~a, 0x~x, 0b~b\n" io io io)
@@ -1371,9 +1371,9 @@
               (hash-ref rom-symbols index)
               false)))
 
-    (define/public (disassemble-memory [start 0] [end #xff] [show-p? t])
+    (define/public (disassemble-memory (start 0) (end #xff) (show-p? t))
       ;;  disassemble and print a node memory from START to END, inclusive
-      (define (pad-print thing [pad 20])
+      (define (pad-print thing (pad 20))
         (let* ((s (format "~a" thing))
                (len (string-length s))
                (str (string-append s (make-string (- pad len) #\ ))))
