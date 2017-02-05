@@ -328,7 +328,8 @@
     (dolist (field fields)
       (if (symbolp field)
           (if optional
-              (error "positional arg following optional args is not allowed")
+              (error "positional arg following optional args is not allowed (in definition of struct '%s')"
+                     struct-name)
             (push field positional))
         ;;else
         (assert (and (consp field)
@@ -339,7 +340,8 @@
         (dolist (opt field)
           (unless (or (eq opt 'auto)
                       (eq opt 'mutable)) ;;ignoring mutable optional - everything is mutable
-            (error "field option '%s'(type: %s) is not supported" opt (type-of opt)))
+            (error "field option '%s' is not supported  (in definition of struct '%s')"
+                   opt struct-name))
           (when (eq opt 'auto)
             (setq is-opt t)))
         (when is-opt
