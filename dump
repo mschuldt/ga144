@@ -71,7 +71,7 @@
                       (comma-join
                        (for/list ((sym (node-symbols node)))
                          (format "'~a' : {'address' : ~a, 'line' : ~a, 'col' : ~a}"
-                                 (symbol-name sym) (symbol-address sym)
+                                 (symbol-val sym) (symbol-address sym)
                                  (symbol-line sym) (symbol-col sym))))))))
     (comma-join syms)))
 
@@ -151,7 +151,7 @@
   (define (make-symbol-hash syms)
     (let ((ht (make-hash)))
       (for ((sym syms))
-        (hash-set! ht (symbol-address sym) (symbol-name sym) ))
+        (hash-set! ht (symbol-address sym) (symbol-val sym) ))
       ht))
 
   (define (get-name ht index)

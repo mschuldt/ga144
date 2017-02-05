@@ -387,17 +387,20 @@
               (eq (aref thing 0) ',struct-name)))
 
        ,@(mapcar* (lambda (arg i)
-                    `(defun ,(intern (concat "set-" (symbol-name struct-name) "-" (symbol-name arg) "!")) (s val)
-                       (unless (,test-name s)
-                         (error ,(format "expected struct type '%s'. got this instead: %%s" struct-name) s))
-                       (aset s ,i val)))
+                    (let ((name (concat "set-" (symbol-name struct-name) "-" (symbol-name arg) "!")))
+                      `(defun ,(intern name) (s val)
+                         (unless (,test-name s)
+                           (error ,(format " %s -- expected struct type '%s'. got this instead: %%s" name struct-name) s))
+                         (aset s ,i val))))
                   args (number-sequence 1 max-args))
 
        ,@(mapcar* (lambda (arg i)
-                    `(defun ,(intern (concat (symbol-name struct-name) "-" (symbol-name arg))) (s)
-                       (unless (,test-name s)
-                         (error ,(format "expected struct type '%s'. got this instead: %%s" struct-name) s))
-                       (aref s ,i)))
+                    (let ((name (concat (symbol-name struct-name) "-" (symbol-name arg))))
+                      `(defun ,(intern name) (s)
+                         (unless (,test-name s)
+                           (error ,(format " %s -- expected struct type '%s'. got this instead: %%s"
+                                           name struct-name) s))
+                         (aref s ,i))))
                   args (number-sequence 1 max-args))
        )))
 

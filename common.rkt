@@ -158,7 +158,7 @@
 ;; struct to hold compiled code
 ;; 'nodes': list of 'node' structs
 
-(struct symbol (name address line col))
+(struct symbol (val address line col))
 
 (struct token (tok line col))
 
