@@ -6,7 +6,7 @@
          "../compiler/assemble.rkt"
          "../compiler/bootstream.rkt"
          "../interpreter/stack.rkt"
-         "../rkt-to-el.rkt")
+         "../el-compat.rkt")
 
 (define chip (new-ga144 "host"))
 

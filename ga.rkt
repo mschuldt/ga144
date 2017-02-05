@@ -2,7 +2,7 @@
 
 (require compatibility/defmacro
          "compiler/compile.rkt"
-         "rkt-to-el.rkt")
+         "el-compat.rkt")
 
 (provide (all-defined-out))
 

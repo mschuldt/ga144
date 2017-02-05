@@ -7,7 +7,7 @@
          "ga144.rkt"
          "../common.rkt"
          "../compiler/compile.rkt"
-         "../rkt-to-el.rkt")
+         "../el-compat.rkt")
 
 (provide (all-defined-out))
 

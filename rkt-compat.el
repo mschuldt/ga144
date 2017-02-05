@@ -432,8 +432,8 @@
     (setq files (list files)))
   (dolist (file files)
     (when (and (stringp file)
-               (not (equal (car (last (split-string file "/"))) "rkt-to-el.rkt")))
+               (not (equal (car (last (split-string file "/"))) "el-compat.rkt")))
       (rkt-load (concat (file-name-directory buffer-file-name) file)))))
 
 
-(provide 'el-to-rkt)
+(provide 'rkt-compat)

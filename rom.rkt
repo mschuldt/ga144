@@ -1,6 +1,6 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
-(require "rkt-to-el.rkt")
+(require "el-compat.rkt")
 
 (provide (all-defined-out))
 

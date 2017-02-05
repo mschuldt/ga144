@@ -4,7 +4,7 @@
          "disassemble.rkt"
          "compile.rkt"
          "../common.rkt"
-         "../rkt-to-el.rkt")
+         "../el-compat.rkt")
 
 (provide make-bootstream-type
          make-bootstream

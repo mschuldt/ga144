@@ -1,5 +1,5 @@
 all: compiler interpreter tests
-	raco make common.rkt rom.rkt dump rkt-to-el.rkt
+	raco make common.rkt rom.rkt dump el-compat.rkt
 
 compiler: compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt
 	raco make compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt rom-dump-bootstream.rkt

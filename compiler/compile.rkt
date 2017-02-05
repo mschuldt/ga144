@@ -10,7 +10,7 @@
          "assemble.rkt"
          "disassemble.rkt"
          "../common.rkt"
-         "../rkt-to-el.rkt"
+         "../el-compat.rkt"
          )
 
 (provide compile compile-file display-compiled)
