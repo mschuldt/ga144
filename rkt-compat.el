@@ -317,8 +317,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stucts
 
-(defun _struct-get-args (fields)
-  (let (positional optional is-opt arg)
+(defmacro struct (name fields &rest options)
+  ;;field is either a symbol or [symbol <option>]
+  ;; <option> is 'auto' or 'mutable'
+  (let* ((struct-name (intern (symbol-name name)))
+         (test-name (intern (format "%s?" struct-name)))
+         pos opt positional optional is-opt arg)
+    ;;ignoring OPTIONS
+
     (dolist (field fields)
       (if (symbolp field)
           (if optional
@@ -333,27 +339,20 @@
         (dolist (opt field)
           (unless (or (eq opt 'auto)
                       (eq opt 'mutable)) ;;ignoring mutable optional - everything is mutable
-            (error "field option '%s' is not supported" opt))
+            (error "field option '%s'(type: %s) is not supported" opt (type-of opt)))
           (when (eq opt 'auto)
             (setq is-opt t)))
         (when is-opt
           (push arg optional))
         ))
-    (cons (nreverse positional) (nreverse optional))))
 
-(defmacro struct (name fields &rest options)
-  ;;field is either a symbol or [symbol <option>]
-  ;; <option> is 'auto' or 'mutable'
-  (let* ((struct-name (intern (symbol-name name)))
-         (_args (_struct-get-args fields))
-         (pos (car _args))
-         (opt (cdr _args))
-         (args (append pos opt))
-         (n-pos (length pos))
-         (n-opt (length opt))
-         (max-args (+ n-pos n-opt))
-         (test-name (intern (format "%s?" struct-name))))
-    ;;ignoring OPTIONS
+    (setq pos (nreverse positional)
+          opt (nreverse optional)
+          args (append pos opt)
+          n-pos (length pos)
+          n-opt (length opt)
+          max-args (+ n-pos n-opt))
+
     `(progn
 
        (defun ,struct-name (&rest args)
