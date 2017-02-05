@@ -6,6 +6,7 @@
 ;; 'define' macro
 
 (defun racket-gather-local-vars (form &optional exclude)
+  "collects variables defined in FORM with `define' but excludes those bound with let macros"
   (let (vars)
     (cond ((not (consp form)) nil)
 
@@ -32,32 +33,53 @@
                (setq vars (append vars (racket-gather-local-vars x exclude))))))
     (delete-dups vars)))
 
+(defsubst fn (thing)
+  "declare THING to be a function"
+  thing)
 
 (defun racket-translate-define-body (form &optional local-functions)
-  (cond ((not (consp form)) form)
+  "translates forms in the body of a Racket define macro FORM"
+  (cond ((not (consp form)) form) ;;nothing to do
         ((eq (car form) 'define)
+         ;;function or varable definition
+         ;; replace 'define' with 'setq',
          (if (consp (cadr form))
              `(setq ,(caadr form) (lambda ,@(racket-make-define-body (cadr form) (cddr form) (cons (caadr form) local-functions))))
            (cons 'setq (racket-translate-define-body (cdr form) local-functions))))
 
         ((member (car form) local-functions)
+         ;;translate call to local function -
          (cons 'funcall (cons (car form) (racket-translate-define-body (cdr form) local-functions))))
-
         (t (let (body)
              (dolist (x form)
-               (when (and (consp x)
-                          (eq (car x) 'define)
-                          (consp (cadr x)))
-                 (setq local-functions (cons (caadr x) local-functions)))
-               (push (racket-translate-define-body x local-functions) body))
+               (cond ((and (consp x)
+                           (eq (car x) 'define)
+                           (consp (cadr x)))
+                      ;; (define (f ...) ...)
+                      (setq local-functions (cons (caadr x) local-functions))
+                      (push (racket-translate-define-body x local-functions) body))
+                     ((and (consp x)
+                           (= (length x) 3)
+                           (or (eq (car x) 'define)
+                               (eq (car x) 'set!)
+                               (eq (car x) 'setq))
+                           (symbolp (cadr x))
+                           (or (eq (caaddr x) 'lambda)
+                               (eq (caaddr x) 'fn)))
+                      ;; (set! <var> <func>)
+                      (setq local-functions (cons (cadr x) local-functions))
+                      (push (list 'setq (cadr x) (racket-translate-define-body (caddr x) (cons (cadr x) local-functions))) body))
+                     ;; TODO: let bound functions
+                     (t (push (racket-translate-define-body x local-functions) body))))
              (reverse body)))))
 
-
 (defun racket-make-define-body (form body &optional local-functions)
+  ;; (define (symbol args...) BODY...)
+  ;; LOCAL-FUNCTIONS is a list of functions defined within this function
   (let ((args (cdr form))
         local-vars name positional optional defaults)
     (dolist (a args)
-      (if (vectorp a)
+      (if (vectorp a) ;;TODO: must this be a vector? or can it be a list? prefer list
           (progn
             (assert (= (length a) 2))
             (setq name (aref a 0))
@@ -76,9 +98,10 @@
       ,@body)))
 
 (defmacro define (form &rest body)
-  (if (consp form)
+  (if (consp form) ;;function definition
       (cons 'defun (cons (car form)  (racket-make-define-body form body)))
     (assert (symbolp form))
+    ;;else: variable definition
     `(defvar ,form ,@body)))
 
 
