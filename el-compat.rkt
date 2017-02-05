@@ -44,7 +44,14 @@
   x)
 
 
+;; (define rkt-require require) ;;ERROR: not at module level or top level
+;; (defmacro rkt-provide (files) ;;TODO: syntax for many args
+;;   `(provide ,@
+;;
 (define t #t)
 (define nil #f)
 
 (define (fn x) x)
+
+(define elisp? #f)
+(define racket? #t)
