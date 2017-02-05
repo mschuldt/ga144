@@ -3,9 +3,9 @@
 (require "../common.rkt"
          "../el-compat.rkt")
 
-(when elisp? (_def disassemble display-disassemble disassemble-word))
+(when elisp? (_def '(disassemble-nodes display-disassemble disassemble-word)))
 
-(provide disassemble
+(provide disassemble-nodes
          display-disassemble
          disassemble-word)
 
@@ -34,14 +34,14 @@
          (disassemble-inst word word^ to 3 0 3 false))
     to))
 
-(define (disassemble nodes)
+(define (disassemble-nodes nodes)
   ;;NODES is a list of 'node' structs
   ;;mutates the structs 'mem' field in place
   (unless (null? nodes)
     (let ((mem (node-mem (car nodes))))
       (for ((i (node-len (car nodes))))
         (vector-set! mem i (disassemble-word (vector-ref mem i)))))
-    (disassemble (cdr nodes))))
+    (disassemble-nodes (cdr nodes))))
 
 (define (display-disassemble compiled (all? false))
   ;;like `disassemble' but also prints out the disassemble and the original words
