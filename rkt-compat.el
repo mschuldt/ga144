@@ -317,6 +317,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; stucts
 
+(defun __fix (s)
+  (intern (symbol-name s)))
+
 (defmacro struct (name fields &rest options)
   ;;field is either a symbol or [symbol <option>]
   ;; <option> is 'auto' or 'mutable'
@@ -338,11 +341,11 @@
               is-opt nil)
 
         (dolist (opt field)
-          (unless (or (eq opt 'auto)
-                      (eq opt 'mutable)) ;;ignoring mutable optional - everything is mutable
+          (unless (or (eq (__fix opt) 'auto)
+                      (eq (__fix opt) 'mutable)) ;;ignoring mutable optional - everything is mutable
             (error "field option '%s' is not supported  (in definition of struct '%s')"
                    opt struct-name))
-          (when (eq opt 'auto)
+          (when (eq (__fix opt) 'auto)
             (setq is-opt t)))
         (when is-opt
           (push arg optional))
