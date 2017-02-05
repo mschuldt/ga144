@@ -11,7 +11,7 @@
 (define chip (new-ga144 "host"))
 
 ;; compile and assemble code
-(define compiled (compile (file->string "hmm_pinning_real-noopt3.aforth")))
+(define compiled (aforth-compile (file->string "hmm_pinning_real-noopt3.aforth")))
 (define assembled (assemble compiled))
 
 ;; load assembled code into chip

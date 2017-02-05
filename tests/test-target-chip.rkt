@@ -27,7 +27,7 @@ node 708
 11 22 +
 ")
 
-(define assembled (assemble (compile code)))
+(define assembled (assemble (aforth-compile code)))
 ;;(define bootstream (make-sync-bootstream (compiled-nodes assembled)))
 (define bs (make-bootstream assembled "async-target"))
 (connect-pins (get-node host 300) 0

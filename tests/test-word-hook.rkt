@@ -17,7 +17,7 @@
 then
 ")
 
-(define compiled (compile code))
+(define compiled (aforth-compile code))
 (define assembled (assemble compiled))
 
 (define node (get-node chip 705))

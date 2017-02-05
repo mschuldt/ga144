@@ -70,7 +70,7 @@
 
 ;;(printf code)
 
-(define c (compile code))
+(define c (aforth-compile code))
 (define assembled (assemble c))
 
 (define (pad-print thing [pad 20])

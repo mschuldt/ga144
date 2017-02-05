@@ -13,9 +13,9 @@
          "../el-compat.rkt"
          )
 
-(when elisp? (_def compile compile-file display-compiled))
+(when elisp? (_def '(aforth-compile compile-file display-compiled)))
 
-(provide compile compile-file display-compiled)
+(provide aforth-compile compile-file display-compiled)
 
 (define DEBUG? false)
 
@@ -49,7 +49,7 @@
 ;; the list of instructions we are currently compiling (body of the current word)
 (define current-token-list false)
 
-(define (compile in)
+(define (aforth-compile in)
   ;;IN is a port, filename or list of parsed nodes in (parse-code) format
   (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (reset!)

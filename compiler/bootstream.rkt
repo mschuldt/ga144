@@ -273,7 +273,7 @@ north a! io b!
   (define host-start (bootstream-start bootstream))
   (define host-path (bootstream-path bootstream))
   ;; Compile the host loader code
-  (define host-code (compiled-nodes (assemble (compile host-loader-code))))
+  (define host-code (compiled-nodes (assemble (aforth-compile host-loader-code))))
   (define nodes (make-node-index-map assembled))
   ;; create bootstream for host chip. The first frame loads the code to move the
   ;; bootstream to node 300, the second frame contains the target chips bootstream

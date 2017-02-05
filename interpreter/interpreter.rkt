@@ -52,7 +52,7 @@
   (let* ((n 0)
          (code 0)
          (node 0)
-         (compiled (compile in)))
+         (compiled (aforth-compile in)))
     (when compiled-file
       (with-output-to-file compiled-file
         (lambda () (display-compiled compiled))
