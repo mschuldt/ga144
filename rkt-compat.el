@@ -99,11 +99,23 @@
 
 (defmacro define (form &rest body)
   (if (consp form) ;;function definition
-      (cons 'defun (cons (car form)  (racket-make-define-body form body)))
+      (progn
+        (if (and (fboundp (car form))
+                 (not (get (car form) 'is-racket-fn)))
+            (message "WARNING: 'define' attempting to overwrite function value of '%s'" (car form))
+          ;; else: ok to define
+          (cons 'defun (cons (car form)  (racket-make-define-body form body)))
+          (put (car form) 'is-racket-fn t)))
+
     (assert (symbolp form))
     ;;else: variable definition
-    `(defvar ,form ,@body)))
 
+    (if (and (boundp form)
+             (not (get form 'is-racket-var)))
+        (message "WARNING: 'define' attempting to overwrite value of '%s'" form)
+      ;;else: ok to define
+      `(defvar ,form ,@body)
+      (put form 'is-racket-var t))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; flow control
