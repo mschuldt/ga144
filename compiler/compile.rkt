@@ -13,6 +13,8 @@
          "../el-compat.rkt"
          )
 
+(when elisp? (_def compile compile-file display-compiled))
+
 (provide compile compile-file display-compiled)
 
 (define DEBUG? false)

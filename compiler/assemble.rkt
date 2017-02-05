@@ -3,6 +3,8 @@
 (require  "../common.rkt"
           "../el-compat.rkt")
 
+(when elisp? (_def '(assemble-word assemble)))
+
 (provide assemble-word assemble)
 
 (defconst const-masks (vector #x3ffff #x3ff #xff #x7))

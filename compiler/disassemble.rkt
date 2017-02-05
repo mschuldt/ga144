@@ -3,6 +3,8 @@
 (require "../common.rkt"
          "../el-compat.rkt")
 
+(when elisp? (_def disassemble display-disassemble disassemble-word))
+
 (provide disassemble
          display-disassemble
          disassemble-word)

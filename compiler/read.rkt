@@ -3,6 +3,14 @@
 (require "../common.rkt"
          "../el-compat.rkt")
 
+(when elisp?
+  (_def '(read-token
+          forth-read
+          forth-read-no-eof
+          forth-read-char
+          parse-code
+          display-parsed-code)))
+
 (provide read-token
          forth-read
          forth-read-no-eof

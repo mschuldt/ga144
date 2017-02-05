@@ -456,4 +456,13 @@
       (rkt-load (concat (file-name-directory buffer-file-name) file)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun _def (syms)
+  (let ((code '()))
+    (dolist (sym syms)
+      (setq code (cons (list 'setq sym nil) code)))
+    (cons 'progn code)))
+
+
 (provide 'rkt-compat)

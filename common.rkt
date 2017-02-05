@@ -245,6 +245,8 @@
       (set! i (add1 i)))
     (cons 'begin code)))
 
+(define (_def syms) 0)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define & bitwise-and)
@@ -267,7 +269,6 @@
   (cdr (assoc (convert-direction coord
                                  (vector-ref dir-names dir))
               named-addresses)))
-
 
 
 (define (comma-join things)
