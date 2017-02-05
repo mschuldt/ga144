@@ -290,7 +290,7 @@
         (tok (if (token? token)
                  (token-tok token)
                  token)))
-    (cond ((setq x (get-directive tok)) (x))
+    (cond ((setq x (fn (get-directive tok))) (x))
           ((instruction? tok) (compile-instruction! tok))
           ((setq x (parse-num tok)) (compile-constant! x))
           ((word-ref? tok) (compile-word-ref! (substring tok 1)))

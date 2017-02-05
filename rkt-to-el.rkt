@@ -40,7 +40,11 @@
        (pretty-display "ERROR: pop -- list is empty")
        (begin0 (car ,list) (set! ,list (cdr ,list)))))
 
+(defmacro test-require (x)
+  x)
+
 
 (define t #t)
 (define nil #f)
 
+(define (fn x) x)
