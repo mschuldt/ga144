@@ -388,19 +388,28 @@
 
        ,@(mapcar* (lambda (arg i)
                     (let ((name (concat "set-" (symbol-name struct-name) "-" (symbol-name arg) "!")))
-                      `(defun ,(intern name) (s val)
-                         (unless (,test-name s)
-                           (error ,(format " %s -- expected struct type '%s'. got this instead: %%s" name struct-name) s))
-                         (aset s ,i val))))
+                      `(if (and (fboundp ',(intern name))
+                                (not (get ',(intern name) 'is-racket-fn)))
+                           (error ,(format "error: %s is already defined as a non rkt function" name)) ;;TODO: should be an error
+                         (put ',(intern name) 'is-racket-fn t)
+                         (defun ,(intern name) (s val)
+                           (unless (,test-name s)
+                             (error ,(format " %s -- expected struct type '%s'. got this instead: %%s" name struct-name) s))
+                           (aset s ,i val)))))
                   args (number-sequence 1 max-args))
 
        ,@(mapcar* (lambda (arg i)
                     (let ((name (concat (symbol-name struct-name) "-" (symbol-name arg))))
-                      `(defun ,(intern name) (s)
-                         (unless (,test-name s)
-                           (error ,(format " %s -- expected struct type '%s'. got this instead: %%s"
-                                           name struct-name) s))
-                         (aref s ,i))))
+                      `(if (and (fboundp ',(intern name))
+                                (not (get ',(intern name) 'is-racket-fn)))
+                           (error ,(format "error: %s is already defined as a non rkt function" name)) ;;TODO: should be an error
+
+                         (put ',(intern name) 'is-racket-fn t)
+                         (defun ,(intern name) (s)
+                           (unless (,test-name s)
+                             (error ,(format " %s -- expected struct type '%s'. got this instead: %%s"
+                                             name struct-name) s))
+                           (aref s ,i)))))
                   args (number-sequence 1 max-args))
        )))
 
