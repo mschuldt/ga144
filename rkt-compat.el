@@ -286,6 +286,10 @@
 (defalias 'string-length 'length)
 (defalias 'string->number 'string-to-number)
 (defalias 'string-append 'concat)
+(defalias 'string->list 'string-to-list)
+
+(defun list->string (lst) (mapconcat 'identity (mapcar 'byte-to-string lst) ""))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
