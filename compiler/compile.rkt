@@ -188,7 +188,7 @@
   (hash-set! waiting word false))
 
 (define (make-addr addr)
-  (bitwise-ior addr extended-arith))
+  (ior addr extended-arith))
 
 (define io-places-hash (make-hash))
 (for ((place io-places))
@@ -226,7 +226,7 @@
 (define (remote-call? token)
   ;; return (NAME . NODE) for tokens with form "NAME@NODE"
   (define m (and (string? token)
-                 (regexp-match #rx"^(.+)@([0-9]+)$" token)))
+                 (regexp-match (regexp "^(.+)@([0-9]+)$") token)))
   (and m
        (= (length m) 3)
        (cons (cadr m) (string->number (caddr m)))))

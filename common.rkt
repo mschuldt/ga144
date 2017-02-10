@@ -245,17 +245,19 @@
       (set! i (add1 i)))
     (cons 'begin code)))
 
-(define (_def syms) 0)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define & bitwise-and)
-(define ^ bitwise-xor)
-(define << arithmetic-shift)
+(define (& a b)
+  (bitwise-and a b))
+(define (^ a b)
+  (bitwise-xor a b))
+(define (<< a b)
+  (arithmetic-shift a b))
 (define (>> x n) (arithmetic-shift x (- n)))
-(define ior bitwise-ior)
-(define ~ bitwise-not)
-
+(define (ior a b)
+  (bitwise-ior a b))
+(define (~ x)
+  (bitwise-not x))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

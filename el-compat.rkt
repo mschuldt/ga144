@@ -64,3 +64,4 @@
 (define _char-newline  #\newline)
 (define _char-& #\&)
 
+(define (_def syms) 0)
