@@ -211,11 +211,11 @@
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
   (when (and (> (string-length tok) 2)
-             (eq? (string-ref tok 0) #\0)
-             (or (eq? (string-ref tok 1) #\x)
-                 (eq? (string-ref tok 1) #\b)))
+             (eq? (string-ref tok 0) _char-0)
+             (or (eq? (string-ref tok 1) _char-x)
+                 (eq? (string-ref tok 1) _char-b)))
     ;; convert format 0x... to #x...
-    (set! tok (list->string (cons #\# (cdr (string->list tok))))))
+    (set! tok (list->string (cons _char-hash (cdr (string->list tok))))))
   (string->number tok))
 
 (define (get-address name (node false))

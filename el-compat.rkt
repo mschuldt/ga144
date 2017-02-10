@@ -55,3 +55,12 @@
 
 (define elisp? #f)
 (define racket? #t)
+
+(define _char-hash #\#)
+(define _char-0 #\0)
+(define _char-x #\x)
+(define _char-b #\b)
+(define _char-close-paren #\))
+(define _char-newline  #\newline)
+(define _char-& #\&)
+

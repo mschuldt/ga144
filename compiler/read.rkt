@@ -28,7 +28,7 @@
   (define (get-first-char-in-list)
     (let ((new-char (read-char in)))
       (cond ((eof-object? new-char) new-char)
-            ((eq? new-char #\newline)
+            ((eq? new-char _char-newline)
              (set! line-number (add1 line-number))
              (set! col-number 0)
              (get-first-char-in-list))
@@ -39,7 +39,7 @@
 
   (define (iter lst)
     (if (or (eof-object? (peek-char in))
-            (eq? (peek-char in) #\newline))
+            (eq? (peek-char in) _char-newline))
         (begin (set! col-number (add1 col-number))
                lst)
         (let ((new-char (read-char in)))
@@ -59,7 +59,7 @@
 
 (define (forth-read-char)
   (let ((char (read-char)))
-    (when (eq? char #\newline)
+    (when (eq? char _char-newline)
       (set! line-number (add1 line-number))
       (set! col-number 0))
     char))
@@ -78,7 +78,7 @@
 
 (define (comment)
   ;;TODO: update line/col numbers
-  (unless (equal? (forth-read-char) #\))
+  (unless (equal? (forth-read-char) _char-close-paren)
     (comment)))
 
 (define (parse-code)

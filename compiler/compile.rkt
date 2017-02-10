@@ -221,7 +221,7 @@
 (define (word-ref? token)
   (and (string? token)
        (> (string-length token) 1)
-       (eq? (string-ref token 0) #\&)))
+       (eq? (string-ref token 0) _char-&)))
 
 (define (remote-call? token)
   ;; return (NAME . NODE) for tokens with form "NAME@NODE"
@@ -524,7 +524,7 @@
 (add-directive!
  "("
  (lambda ()
-   (while (not (equal? (forth-read-char) #\)))
+   (while (not (equal? (forth-read-char) _char-close-paren))
      false)))
 
 (add-directive!

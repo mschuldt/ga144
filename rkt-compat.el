@@ -290,6 +290,13 @@
 
 (defun list->string (lst) (mapconcat 'identity (mapcar 'byte-to-string lst) ""))
 
+(setq _char-hash ?#)
+(setq _char-0 ?0)
+(setq _char-x ?x)
+(setq _char-b ?b)
+(setq _char-close-paren ?\))
+(setq _char-newline ?\n)
+(setq _char-& ?&)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
