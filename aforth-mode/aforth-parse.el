@@ -231,8 +231,9 @@
     (nreverse nodes)))
 
 (defun aforth-parse-buffer ()
-  (widen)
   (save-excursion
-    (aforth-parse-region (point-min) (point-max))))
+    (save-restriction
+      (widen)
+      (aforth-parse-region (point-min) (point-max)))))
 
 (provide 'aforth-parse)
