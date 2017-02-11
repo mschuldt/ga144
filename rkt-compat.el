@@ -72,6 +72,7 @@
                                (eq (car x) 'set!)
                                (eq (car x) 'setq))
                            (symbolp (cadr x))
+                           (consp (caddr x))
                            (or (eq (caaddr x) 'lambda)
                                (eq (caaddr x) 'fn)))
                       ;; (set! <var> <func>)
@@ -334,7 +335,8 @@
 (defconst true t)
 (defsubst void () nil)
 
-(defsubst eof 'eof) ;;functions that use this should not be called from elisp
+(setq eof nil) ;;functions that use this should not be called from elisp
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mutable cons
