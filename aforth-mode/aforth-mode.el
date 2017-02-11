@@ -238,14 +238,7 @@
     (aforth-remove-overlays beg-line end-line)
     (set-text-properties beg-line end-line nil)
     (setq tokens (aforth-parse-region beg-line end-line))
-    (aforth-update-overlays tokens)
-    (message "parsed region [%s %s] in %s seconds (%s tokens)" beg end (float-time (time-since start-time)) (length tokens)))
-  )
-
-(defun aforth-update-region (beg end &optional _old-len)
-  (condition-case err
-      (aforth-update-region3 beg end _old-len)
-    (error (message "mbs error: %s" err))))
+    (aforth-update-overlays tokens)))
 
 (defun aforth-create-index ()
   (let* ((aforth-defining-words-regexp
