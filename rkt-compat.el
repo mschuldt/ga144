@@ -296,6 +296,7 @@
 (defalias 'string->number 'string-to-number)
 (defalias 'string-append 'concat)
 (defalias 'string->list 'string-to-list)
+(defalias 'string-ref 'aref)
 
 (defun list->string (lst) (mapconcat 'identity (mapcar 'byte-to-string lst) ""))
 
@@ -315,6 +316,12 @@
 (defalias 'number? 'numberp)
 (defun range (from to)
   (number-sequence from (1- to)))
+
+(defun quotient (n d)
+  (* (/ (floor n) (floor d)) (* (/ n n) (/ d d))))
+
+(defun remainder (n d)
+  (* (% (floor n) (floor d)) (* (/ n n) (/ d d))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
@@ -337,6 +344,14 @@
 
 (setq eof nil) ;;functions that use this should not be called from elisp
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; bitwise functions
+
+(defalias 'bitwise-and 'logand)
+(defalias 'bitwise-xor 'logxor)
+(defalias 'arithmetic-shift 'ash)
+(defalias 'bitwise-ior 'logior)
+(defalias 'bitwise-not 'lognot)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mutable cons
@@ -495,4 +510,10 @@
     (cons 'progn code)))
 
 
+(defmacro set! (var val)
+  (list 'setq var val))
+
+(defalias 'exit 'kill-emacs)
+
 (provide 'rkt-compat)
+
