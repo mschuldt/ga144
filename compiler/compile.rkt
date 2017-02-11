@@ -616,7 +616,8 @@
 (define (here)
   (fill-rest-with-nops)
   (push stack (make-addr current-addr)))
-
+(when elisp?
+  (setq here 'here))
 ;;here (-n)
 ;;forces word alignment and pushes current aligned location onto compiler stack
 (add-directive! "here" here)
@@ -693,10 +694,13 @@
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
 (define (if-directive)
   (compile-if-instruction "if"))
+(when elisp? (setq if-directive 'if-directive))
+
 (add-directive! "if" if-directive)
 
 (define (-if-directive)
   (compile-if-instruction "-if"))
+(when elisp? (setq -if-directive '-if-directive))
 
 ;;if (-r)
 ;;If T is negative, program flow continues; otherwise jumps to matching 'then'
@@ -884,9 +888,12 @@
     (err (format "node const not found'~a'" name)))
   (compile-constant! (hash-ref current-node-consts name)))
 
-(define const-ops (make-hash `(("+" . ,+)
-                               ("or" . ,bitwise-xor)
-                               )))
+(define const-ops (if elisp? (make-hash '(("+" . +)
+                                          ("or" . bitwise-xor)
+                                          ))
+                    (make-hash `(("+" . ,+)
+                                 ("or" . ,bitwise-xor)
+                                 ))))
 
 (define (lookup-const-value x)
   ;; parses x as a number or looks it up
