@@ -37,6 +37,8 @@
   "declare THING to be a function"
   thing)
 
+(setq maybe-undefined (make-hash-table))
+
 (defun racket-translate-define-body (form &optional local-functions)
   "translates forms in the body of a Racket define macro FORM"
   (cond ((not (consp form)) form) ;;nothing to do
@@ -52,6 +54,12 @@
          (cons 'funcall (cons (car form) (racket-translate-define-body (cdr form) local-functions))))
         (t (let (body)
              (dolist (x form)
+               (if (and (consp x)
+                        (>= (length x) 1)
+                        (symbolp (car x))
+                        (not (fboundp (car x))))
+                   (puthash (car x) t maybe-undefined))
+
                (cond ((and (consp x)
                            (eq (car x) 'define)
                            (consp (cadr x)))
