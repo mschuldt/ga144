@@ -44,7 +44,6 @@
 
 (define (display-disassemble compiled (all? false))
   ;;like `disassemble' but also prints out the disassemble and the original words
-  (display "<display-disassemble>")
   (define nodes (compiled-nodes compiled))
 
   (define (display-word word (n 0))

@@ -836,7 +836,6 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-c b") 'bury-buffer)
         map))
 
-
 (define-derived-mode ga-mode nil "GA144"
   "A major mode for programming the GA144."
 

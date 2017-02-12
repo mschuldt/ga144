@@ -73,3 +73,4 @@
 (define aforth-token-value true)
 (define aforth-token-start true)
 (define aforth-token-end true)
+(define subseq true)

@@ -18,13 +18,13 @@
 (define-syntax-rule (define-test name program checks ...)
   (set! tests (cons (lambda ()
 		      (printf "running test: '~a'\n" name)
-                      (let ([tests (list checks ...)]
-                            [result false]
-                            [failed '()]
-                            [compiled-file
-                             (format "test-out/~a-compiled.txt" name)]
-                            [assembled-file
-                             (format "test-out/~a-assembled.txt" name)])
+                      (let ((tests (list checks ...))
+                            (result false)
+                            (failed '())
+                            (compiled-file
+                             (format "test-out/~a-compiled.txt" name))
+                            (assembled-file
+                             (format "test-out/~a-assembled.txt" name)))
                         ;;(reset!);;TODO: fix reset
                         (delete-all-chips)
                         (set! test-chip (new-ga144))
@@ -84,9 +84,9 @@
                            var val)))))
 
 (define (check-dat coord . expect)
-  (lambda () (let* ([m (map 18bit expect)]
-                    [dstack (send (coord->node coord) get-dstack-as-list)]
-                    [s (length m)])
+  (lambda () (let* ((m (map 18bit expect))
+                    (dstack (send (coord->node coord) get-dstack-as-list))
+                    (s (length m)))
                (if (same-subset? m dstack)
                    false
                    (format "    Data stack does not match (node ~a)
@@ -97,9 +97,9 @@
                            (take dstack s))))))
 
 (define (check-ret coord . expect)
-  (lambda () (let* ([m (map 18bit expect)]
-                    [rstack (send (coord->node coord) get-rstack-as-list)]
-                    [s (length m)])
+  (lambda () (let* ((m (map 18bit expect))
+                    (rstack (send (coord->node coord) get-rstack-as-list))
+                    (s (length m)))
                (if (same-subset? m rstack)
                    false
                    (format "    Return stack does not match (node ~a)

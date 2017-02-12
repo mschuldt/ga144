@@ -178,7 +178,7 @@
          '(nil
            aforth-directive-face
            aforth-directive-face))
-        (t (error "unknown sub token type: %s" type)))  )
+        (t (error "unknown sub token type: %s" type))))
 
 (defun aforth-update-overlays (tokens)
   "list of TOKENS from `aforth-parse-region`"

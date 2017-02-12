@@ -51,6 +51,7 @@
 
 (define (aforth-compile in)
   ;;IN is a port, filename or list of parsed nodes in (parse-code) format
+  (assert (not elisp?))
   (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (reset!)
   (define port false)
@@ -74,7 +75,6 @@
             (for ((word (cdr node)))
               (printf "~a\n" (string-join (map token-tok word))))))
         #:exists 'replace)))
-
 
   (for ((node parsed-nodes))
     (start-new-node (car node))
