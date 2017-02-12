@@ -265,6 +265,11 @@
       (let ((token (car current-token-list)))
         (set! current-token-list (cdr current-token-list))
         (when token
+          (when elisp?
+            ;; translate elisp struct to racket style struct used for compilation - TODO: remove the need to do this
+            (setq token (token (aforth-token-value token)
+                               (aforth-token-start token)
+                               (aforth-token-end token))))
           (set! prev-current-tok-line current-tok-line)
           (set! prev-current-tok-col current-tok-col)
           (set! current-tok-line (token-line token))
