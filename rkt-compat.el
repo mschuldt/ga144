@@ -127,6 +127,8 @@
       (put form 'is-racket-var t)
       `(defvar ,form ,@body))))
 
+(def-edebug-spec define (sexp def-body))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; flow control
 
