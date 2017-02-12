@@ -169,7 +169,7 @@
            (while ,condition
              ,setq-form
              (push (progn ,@body) __rkt-list-ret__))
-           (reverse __rkt-list-ret__))
+           (nreverse __rkt-list-ret__))
       `(let ,let-vars
          (while ,condition
            ,setq-form
