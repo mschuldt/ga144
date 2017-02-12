@@ -65,3 +65,5 @@
 (define _char-& #\&)
 
 (define (_def syms) 0)
+
+(define make-set set)

@@ -176,7 +176,7 @@
   (let ((new (node coord mem len)))
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
-    (set-node-address-cells! new (set))
+    (set-node-address-cells! new (make-set))
     (set-node-consts! new (make-hash))
     new))
 
