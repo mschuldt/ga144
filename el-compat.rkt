@@ -67,3 +67,9 @@
 (define (_def syms) 0)
 
 (define make-set set)
+
+;;;;;;;;;;;
+;;; need to define these to something for the compiler. these functions are not called when code is executed as racket
+(define aforth-token-value true)
+(define aforth-token-start true)
+(define aforth-token-end true)
