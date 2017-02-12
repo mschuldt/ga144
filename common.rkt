@@ -210,16 +210,22 @@
 
 ;;successfully parses a token as a number, or returns false
 (define (parse-num tok)
+  (define base nil)
   (cond ((number? tok)
          tok)
         ((string? tok)
-         (when (and (> (string-length tok) 2)
-                    (eq? (string-ref tok 0) _char-0)
-                    (or (eq? (string-ref tok 1) _char-x)
-                        (eq? (string-ref tok 1) _char-b)))
-           ;; convert format 0x... to #x...
-           (set! tok (list->string (cons _char-hash (cdr (string->list tok))))))
-         (string->number tok))
+         (if (and (> (string-length tok) 2)
+                  (eq? (string-ref tok 0) _char-0)
+                  (or (and (eq? (string-ref tok 1) _char-x)
+                           (setq base 16))
+                      (and (eq? (string-ref tok 1) _char-b)
+                           (setq base 2))))
+             (if elisp?
+                 (string->number (subseq tok 2) base)
+                 ;; convert format 0x... to #x...
+                 (begin (set! tok (list->string (cons _char-hash (cdr (string->list tok)))))
+                        (string->number tok)))
+             (string->number tok)))
         (else (error (format "parse-num -- invalid arg type ~a" tok)))))
 
 (define (get-address name (node false))
