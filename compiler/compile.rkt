@@ -597,7 +597,7 @@
    ;;TODO: validate coord
    (define x (parse-num coord))
    (if (not (null? x))
-       (start-new-node )
+       (start-new-node x)
        (err (format "invalid noe number: ~a" x)))))
 
 ;;+cy

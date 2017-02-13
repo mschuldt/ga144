@@ -319,11 +319,9 @@
 (defun range (from to)
   (number-sequence from (1- to)))
 
-(defun quotient (n d)
-  (* (/ (floor n) (floor d)) (* (/ n n) (/ d d))))
-
-(defun remainder (n d)
-  (* (% (floor n) (floor d)) (* (/ n n) (/ d d))))
+(defsubst quotient (n m) (floor (/ n m)))
+(defalias 'remainder '%)
+(defalias 'modulo 'remainder)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
@@ -486,7 +484,6 @@
       (setq buffer-file-name file)
       (goto-char (point-min))
       (forward-line) ;; skip  #lang ...
-      ;; flet is _not_ semantically the same as cl-flet which does not rebind the symbol same so does not work when eval is called
       (flet ((require (&rest files) (rkt-require files))
              (provide (&rest syms) nil))
         (condition-case err
