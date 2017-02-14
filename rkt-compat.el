@@ -216,8 +216,8 @@
 
 (defmacro map (fn lst)
   (if (symbolp fn)
-      `(mapcar ',fn lst)
-    `(mapcar fn lst)))
+      `(mapcar ',fn ,lst)
+    `(mapcar ,fn ,lst)))
 
 (defalias 'null? 'null)
 (defalias 'cons? 'consp)
