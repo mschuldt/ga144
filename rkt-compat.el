@@ -127,7 +127,8 @@
                  form buffer-file-name)
       ;;else: ok to define
       (put form 'is-racket-var t)
-      `(defvar ,form ,@body))))
+      `(progn (defvar ,form nil)
+              (setq ,form ,@body)))))
 
 (def-edebug-spec define (sexp def-body))
 
