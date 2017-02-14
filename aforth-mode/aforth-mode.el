@@ -258,7 +258,7 @@
         (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
         map))
 
-(define-derived-mode aforth-mode prog-mode "aforth2"
+(define-derived-mode aforth-mode prog-mode "aforth"
   "Major mode for editing aforth files"
 
   (setq imenu-create-index-function 'aforth-create-index)
