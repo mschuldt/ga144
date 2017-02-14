@@ -8,15 +8,15 @@
 
 (provide (all-defined-out))
 
-(defvar num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
-(defvar num-nodes 144)
+(define num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
+(define num-nodes 144)
 
-(defvar opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
+(define opcodes (vector ";" "ex" "jump" "call" "unext" "next" "if"
                         "-if" "@p" "@+" "@b" "@" "!p" "!+" "!b" "!" "+*"
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                         "over" "a" "." "push" "b!" "a!"))
 
-(defvar opcode-set (list->set (vector->list opcodes)))
+(define opcode-set (list->set (vector->list opcodes)))
 
 (defconst address-required '("jump" "call" "next" "if" "-if"))
 
@@ -40,14 +40,14 @@
                           ("side" . #x185)
                           ("corner" . #x195)))
 
-(defvar addresses->names (make-hash (for/list ((x named-addresses))
+(define addresses->names (make-hash (for/list ((x named-addresses))
                                       (cons (cdr x) (car x)))))
-(defvar names->addresses (make-hash named-addresses))
+(define names->addresses (make-hash named-addresses))
 
 (define (port-name address)
   (hash-ref addresses->names address))
 
-(defvar io-places '(("---u" . #x145)
+(define io-places '(("---u" . #x145)
                     ("--l-" . #x175)
                     ("--lu" . #x165)
                     ("-d--" . #x115)
@@ -63,7 +63,7 @@
                     ("rdl-" . #x1B5)
                     ("rdlu" . #x1A5)))
 
-(defvar node-to-gpio-pins '((701 . 2)
+(define node-to-gpio-pins '((701 . 2)
                             (705 . 4)
                             (708 . 2)
                             (715 . 1)
@@ -104,15 +104,15 @@
 
 (defconst MEM-SIZE #x301)
 
-(defvar rom-ht (make-hash ROM-DUMP))
+(define rom-ht (make-hash ROM-DUMP))
 
-(defvar basic-rom-ht (make-hash basic-rom))
-(defvar analog-rom-ht (make-hash analog-rom))
-(defvar serdes-boot-rom-ht (make-hash serdes-boot-rom))
-(defvar sync-boot-rom-ht (make-hash sync-boot-rom))
-(defvar async-boot-rom-ht (make-hash async-boot-rom))
-(defvar spi-boot-rom-ht (make-hash spi-boot-rom))
-(defvar 1-wire-rom-ht (make-hash 1-wire-rom))
+(define basic-rom-ht (make-hash basic-rom))
+(define analog-rom-ht (make-hash analog-rom))
+(define serdes-boot-rom-ht (make-hash serdes-boot-rom))
+(define sync-boot-rom-ht (make-hash sync-boot-rom))
+(define async-boot-rom-ht (make-hash async-boot-rom))
+(define spi-boot-rom-ht (make-hash spi-boot-rom))
+(define 1-wire-rom-ht (make-hash 1-wire-rom))
 
 ;; from section 2.3, DB002
 (defconst analog-nodes '(709 713 717 617 117))
@@ -170,7 +170,7 @@
                            "2wire" ;; load through node 300 2wire
                            "async-target" ;; in host node 708 to target node 300
                            ))
-(defvar default-bootstream-type "async")
+(define default-bootstream-type "async")
 
 (define (create-node coord (mem false) (len 0))
   (let ((new (node coord mem len)))
@@ -310,7 +310,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options
-(defvar auto-nop-insertion false)
+(define auto-nop-insertion false)
 
-(defvar compile-0-as-dup-dup-or false)
-(defvar reorder-words-with-fallthrough false)
+(define compile-0-as-dup-dup-or false)
+(define reorder-words-with-fallthrough false)
