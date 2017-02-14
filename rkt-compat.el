@@ -236,7 +236,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash tables
 (defun make-hash (&optional alist)
-  (let ((ht (make-hash-table)))
+  (let ((ht (make-hash-table :test 'equal)))
     (dolist (x alist)
       (puthash (car x) (cdr x) ht))
     ht))
@@ -271,7 +271,7 @@
       racket-magic-set-value '__racket_set_value__)
 
 (defun make-set (&rest items)
-  (let ((s (make-hash-table)))
+  (let ((s (make-hash-table :test 'equal)))
     (puthash racket-magic-set-key racket-magic-set-value s)
     (dolist (x items)
       (puthash x t s))
