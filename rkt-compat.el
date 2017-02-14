@@ -109,26 +109,25 @@
 (defmacro define (form &rest body)
   (if (consp form) ;;function definition
       (progn
-        (if (and (fboundp (car form))
-                 (not (get (car form) 'is-racket-fn)))
-            (message "WARNING: 'define' attempting to overwrite function value of '%s' in %s"
-                     (car form) buffer-file-name)
-          ;; else: ok to define
-          (put (car form) 'is-racket-fn t)
-          (cons 'defun (cons (car form) (racket-make-define-body form body)))
-          ))
+        (when (and (fboundp (car form))
+                   (not (get (car form) 'is-racket-fn)))
+          (message "WARNING: 'define' attempting to overwrite function value of '%s' in %s"
+                   (car form) buffer-file-name))
+        ;; else: ok to define
+        (put (car form) 'is-racket-fn t)
+        (cons 'defun (cons (car form) (racket-make-define-body form body))))
 
     (assert (symbolp form))
     ;;else: variable definition
 
-    (if (and (boundp form)
-             (not (get form 'is-racket-var)))
-        (message "WARNING: 'define' attempting to overwrite value of '%s' in %s"
-                 form buffer-file-name)
-      ;;else: ok to define
-      (put form 'is-racket-var t)
-      `(progn (defvar ,form nil)
-              (setq ,form ,@body)))))
+    (when (and (boundp form)
+               (not (get form 'is-racket-var)))
+      (message "WARNING: 'define' attempting to overwrite value of '%s' in %s"
+               form buffer-file-name))
+    ;;else: ok to define
+    (put form 'is-racket-var t)
+    `(progn (defvar ,form nil)
+            (setq ,form ,@body))))
 
 (def-edebug-spec define (sexp def-body))
 
