@@ -313,8 +313,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
 
-(defalias 'sub1 '1+)
-(defalias 'add1 '1-)
+(defalias 'add1 '1+)
+(defalias 'sub1 '1-)
 (defalias 'number? 'numberp)
 (defun range (from to)
   (number-sequence from (1- to)))
