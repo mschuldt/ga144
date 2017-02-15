@@ -6,6 +6,16 @@
          "../common.rkt"
          "../el-compat.rkt")
 
+(when elisp?
+  (_def '(make-bootstream-type
+          make-bootstream
+          make-async-bootstream
+          make-sync-bootstream
+          sget-convert
+          print-bootstream
+          async-bootstream
+          sync-bootstream)))
+
 (provide make-bootstream-type
          make-bootstream
          make-async-bootstream

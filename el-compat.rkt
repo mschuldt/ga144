@@ -74,3 +74,4 @@
 (define aforth-token-start true)
 (define aforth-token-end true)
 (define subseq true)
+(define funcall true)

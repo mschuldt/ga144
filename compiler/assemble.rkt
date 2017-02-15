@@ -17,10 +17,11 @@
   ;;If the slot contains false, as unused slots do, return 0
   (let ((inst (vector-ref word slot)))
     (if (string? inst)
-        (arithmetic-shift (xor-inst (floor (/ (vector-member inst opcodes)
-                                              (if (= slot 3) 4 1)))
-                                    slot)
-                          shift)
+        (begin (assert (vector-member inst opcodes))
+               (arithmetic-shift (xor-inst (floor (/ (vector-member inst opcodes)
+                                                     (if (= slot 3) 4 1)))
+                                           slot)
+                                 shift))
         ;;slot contains an address, number, or is unused
         (or (and inst (& (vector-ref const-masks slot) inst)) 0))))
 

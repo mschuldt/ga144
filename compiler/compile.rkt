@@ -948,9 +948,12 @@
   (add-directive!
    dir
    ((lambda (dir)
-      (lambda () ((get-directive (convert-direction current-node-coord dir)))))
+      (lambda () (let ((d (get-directive (convert-direction current-node-coord dir))))
+                   (assert d)
+                   (if elisp?
+                       (funcall d)
+                       (d)))))
     dir)))
-
 
 (define (define-named-addresses!)
   (for ((addr named-addresses))
