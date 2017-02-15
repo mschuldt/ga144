@@ -598,7 +598,7 @@
    (define x (parse-num coord))
    (if (not (null? x))
        (start-new-node x)
-       (err (format "invalid noe number: ~a" x)))))
+       (err (format "invalid node number: ~a" x)))))
 
 ;;+cy
 ;;forces word alignment then turns P9 on in the location counter. Places in memory
