@@ -278,10 +278,11 @@
       (puthash x t s))
     s))
 
-(defun set? (s)
-  (eq (gethash racket-magic-set-key s) racket-magic-set-value))
+(defsubst set? (s)
+  (and (hash-table-p s)
+       (eq (gethash racket-magic-set-key s) racket-magic-set-value)))
 
-(defun set-member? (s item)
+(defsubst set-member? (s item)
   (gethash item s))
 
 (defun set->list (s)
@@ -291,6 +292,11 @@
                  (push k lst)))
              s)
     lst))
+
+(defsubst set-add (set item)
+  (assert (set? set))
+  (puthash item t set)
+  set)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; strings
