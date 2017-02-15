@@ -620,7 +620,7 @@
 
 (define (here)
   (fill-rest-with-nops)
-  (push stack (make-addr current-addr)))
+  (push (make-addr current-addr) stack))
 (when elisp?
   (setq here 'here))
 ;;here (-n)
@@ -693,7 +693,7 @@
              (not (member inst last-slot-instructions)))
     (add-to-next-slot "."))
   (add-to-next-slot inst)
-  (push stack (make-addr current-addr))
+  (push (make-addr current-addr) stack)
   (goto-next-word))
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
@@ -800,7 +800,7 @@
    (let* ((word (read-tok-name))
           (addr (get-word-address word)))
      (if addr
-         (push stack addr)
+         (push addr stack)
          (err (format "\"~a\" is not defined" word))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -870,7 +870,7 @@
          (when (and (not val)
                     (not (setq val (get-word-address tok))))
            (raise (format "invalid stack value: ~a" tok)))
-         (push stack val)
+         (push val stack)
          (set! len (sub1 len))))
      (set-node-stack! current-node (reverse stack)))))
 
@@ -938,7 +938,7 @@
    (define word (read-tok-name))
    (define addr (get-word-address word))
    (if addr
-       (begin (push stack addr)
+       (begin (push addr stack)
               (when DEBUG? (pretty-display (list "tick addr: "  addr))))
        (err (format "' (tick): \"~a\" is not defined" word)))))
 
@@ -985,10 +985,10 @@
   (hash-set! compiler-ops name fn))
 
 (define (compiler-binop op)
-  (push stack (op (pop stack) (pop stack))))
+  (push (op (pop stack) (pop stack)) stack))
 
 (define (compiler-unop op)
-  (push stack (op (pop stack))))
+  (push (op (pop stack)) stack))
 
 (def-compiler-op! "+" (lambda () (compiler-binop +)))
 (def-compiler-op! "sub" (lambda () (compiler-binop -)))
@@ -1001,7 +1001,7 @@
 (def-compiler-op!
   "dup"
   (lambda ()
-    (push stack (car stack))))
+    (push (car stack) stack)))
 
 (def-compiler-op!
   "lit"
@@ -1018,7 +1018,7 @@
       (unless (null?  body)
         (define i (car body))
         (if (number? i)
-            (push stack i)
+            (push i stack)
             ((hash-ref compiler-ops i)))
         (exec-body (cdr body))))
     (exec-body body)))

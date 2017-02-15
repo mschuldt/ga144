@@ -65,14 +65,14 @@
     (for/list ((node (compiled-nodes compiled)))
       (set! symbols (node-symbols node))
       (unless (null? symbols)
-        (push syms
-              (format "'~a' : {~a}"
+        (push (format "'~a' : {~a}"
                       (node-coord node)
                       (comma-join
                        (for/list ((sym (node-symbols node)))
                          (format "'~a' : {'address' : ~a, 'line' : ~a, 'col' : ~a}"
                                  (symbol-val sym) (symbol-address sym)
-                                 (symbol-line sym) (symbol-col sym))))))))
+                                 (symbol-line sym) (symbol-col sym)))))
+              syms)))
     (comma-join syms)))
 
 (define (assembled->json assembled)

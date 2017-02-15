@@ -32,7 +32,7 @@
                     (fn)))))
      (fn)))
 
-(defmacro push (list item)
+(defmacro push (item list)
   `(set! ,list (cons ,item ,list)))
 
 (defmacro pop (list)
