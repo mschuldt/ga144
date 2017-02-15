@@ -192,7 +192,8 @@
 (defalias 'vector-map 'mapcar)
 (defalias 'vector-append 'vconcat)
 (defalias 'vector-copy 'copy-sequence)
-(defalias 'vector-member 'position)
+(defun vector-member (item vec)
+  (cl-position item vec :test 'equal))
 (defalias 'list->vector 'vconcat)
 
 (defun vector->list (v)
