@@ -519,16 +519,24 @@
       (setq code (cons `(put ',sym 'is-racket-var t) code)))
     (cons 'progn code)))
 
-
 (defmacro set! (var val)
   (list 'setq var val))
 
-(defvar racket-commandline-mode nil)
+(defvar racket-script-mode nil "true if started run as script")
 
 (defun exist (&optonal code)
-  (if racket-commandline-mode
+  (if racket-script-mode
       (kill-emacs code)
     (signal 'racket-exit)))
+
+(defun with-output-to-file (filename function &rest options)
+  (let ((prev-output standard-output))
+    (unwind-protect
+        (with-temp-buffer
+          (setq standard-output (current-buffer))
+          (funcall function)
+          (write-file filename))
+      (setq standard-output prev-output))))
 
 (provide 'rkt-compat)
 
