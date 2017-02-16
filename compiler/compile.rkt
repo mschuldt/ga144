@@ -10,7 +10,7 @@
          "assemble.rkt"
          "disassemble.rkt"
          "../common.rkt"
-         "../el-compat.rkt"
+         "../el.rkt"
          )
 
 (when elisp? (_def '(aforth-compile compile-file display-compiled)))

@@ -17,7 +17,7 @@
          "../compiler/assemble.rkt"
          "../compiler/bootstream.rkt"
          "../interpreter/stack.rkt"
-         "../el-compat.rkt")
+         "../el.rkt")
 
 (define host (new-ga144 "host"))
 (define target (new-ga144 "target"))

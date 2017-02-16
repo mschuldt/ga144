@@ -4,7 +4,7 @@
          "stack.rkt"
          "../common.rkt"
          "../compiler/disassemble.rkt"
-         "../el-compat.rkt")
+         "../el.rkt")
 
 (provide f18a%)
 

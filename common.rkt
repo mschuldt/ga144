@@ -3,7 +3,7 @@
 (require compatibility/defmacro
          "rom.rkt"
          "rom-dump.rkt"
-         "el-compat.rkt")
+         "el.rkt")
 
 
 (provide (all-defined-out))

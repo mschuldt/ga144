@@ -4,7 +4,7 @@
          "disassemble.rkt"
          "compile.rkt"
          "../common.rkt"
-         "../el-compat.rkt")
+         "../el.rkt")
 
 (when elisp?
   (_def '(make-bootstream-type
