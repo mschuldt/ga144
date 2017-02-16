@@ -507,7 +507,7 @@
     (setq files (list files)))
   (dolist (file files)
     (when (and (stringp file)
-               (not (equal (car (last (split-string file "/"))) "el-compat.rkt")))
+               (not (equal (car (last (split-string file "/"))) "el.rkt")))
       (rkt-load (concat (file-name-directory (or buffer-file-name load-file-name)) file)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -538,5 +538,5 @@
           (write-file filename))
       (setq standard-output prev-output))))
 
-(provide 'rkt-compat)
+(provide 'rkt)
 
