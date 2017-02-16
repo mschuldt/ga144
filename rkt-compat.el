@@ -490,6 +490,7 @@
         (compatibility/defmacro nil)) ;; to prevent void-variable errors
     (with-temp-buffer
       (insert-file-contents-literally file)
+      (setq lexical-binding t)
       (setq buffer-file-name file)
       (goto-char (point-min))
       (forward-line) ;; skip  #lang ...
