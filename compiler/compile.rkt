@@ -140,6 +140,7 @@
     x)
 
   (define (f (x false))
+    (assert (not elisp?)) ;;TODO: elisp support refactoring
     (define name (or x (pop)))
     (define ft (hash-ref fallthroughs name))
     (define body (hash-ref name->word name))
@@ -397,7 +398,7 @@
       (if (hash-has-key? words word)
           (hash-ref words word)
           (err (format "remote word not found: ~a@~a (called from node ~a)"
-                         word coord current-node-coord)))
+                       word coord current-node-coord)))
       (err (format "can't find dictionary for node: ~a" coord))))
 
 (define (compile-remote-call! word coord)
@@ -441,7 +442,7 @@
                      (not (address-cell-val slot))
                      (address-cell-name slot))
             (err (format "Undefined word: '~a' in node ~a" (address-cell-name slot)
-                           (node-coord node)))))))))
+                         (node-coord node)))))))))
 
 (define (remove-address-cells node)
   ;; unwrap mcons address cells
@@ -546,11 +547,11 @@
 
      (when (hash-has-key? words word)
        (err (format "redefinition of word '~a' in node ~a"
-                      word current-node-coord)))
+                    word current-node-coord)))
      (when (equal? word "main")
        (if (node-p current-node)
            (err (format "use of /p overrides 'main' in node ~a\n"
-                          current-node-coord))
+                        current-node-coord))
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
@@ -751,11 +752,11 @@
             (err (format "'~a' cannot fit into slot ~a" thing last))
             (vector-set! word last thing))
         (err (format "add-to-slot -- slot ~a ~a: ~a"
-                       slot
-                       (if (vector? word)
-                           "is not an instruction word"
-                           "is full")
-                       word)))))
+                     slot
+                     (if (vector? word)
+                         "is not an instruction word"
+                         "is full")
+                     word)))))
 
 ;;then (r)
 ;;forces word alignment and resolves a forward transfer.
@@ -896,9 +897,9 @@
 (define const-ops (if elisp? (make-hash '(("+" . +)
                                           ("or" . bitwise-xor)
                                           ))
-                    (make-hash `(("+" . ,+)
-                                 ("or" . ,bitwise-xor)
-                                 ))))
+                      (make-hash `(("+" . ,+)
+                                   ("or" . ,bitwise-xor)
+                                   ))))
 
 (define (lookup-const-value x)
   ;; parses x as a number or looks it up
