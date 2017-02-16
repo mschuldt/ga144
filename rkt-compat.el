@@ -512,10 +512,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun _def (syms)
+(defmacro _def (syms)
   (let ((code '()))
-    (dolist (sym syms)
-      (setq code (cons (list 'setq sym nil) code)))
+    (dolist (sym (cadr syms))
+      (setq code (cons (list 'setq sym nil) code))
+      (setq code (cons `(put ',sym 'is-racket-var t) code)))
     (cons 'progn code)))
 
 
