@@ -523,7 +523,12 @@
 (defmacro set! (var val)
   (list 'setq var val))
 
-(defalias 'exit 'kill-emacs)
+(defvar racket-commandline-mode nil)
+
+(defun exist (&optonal code)
+  (if racket-commandline-mode
+      (kill-emacs code)
+    (signal 'racket-exit)))
 
 (provide 'rkt-compat)
 
