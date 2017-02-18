@@ -1,0 +1,3 @@
+#!/bin/bash
+
+emacs --quick --script aforth-main.el $@
