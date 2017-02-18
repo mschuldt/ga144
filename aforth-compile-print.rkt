@@ -91,7 +91,7 @@
   (define compiled (aforth-compile-file input-file))
   (define total 0)
   (define (percent a b)
-    (exact->inexact (* (/ a b) 100)))
+    (exact->inexact (* (/ (* a 1.0) b) 100)))
   (for ((n (compiled-nodes compiled)))
     (printf "~a  ~a~a ~a%\n"
             (node-coord n)
