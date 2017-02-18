@@ -479,7 +479,7 @@
 (defun printf (fmt &rest args)
   (let ((s (apply 'rkt-format fmt args)))
     (when (stringp s)
-      (print (format "%s" s)))))
+      (princ (format "%s" s)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; file loading
