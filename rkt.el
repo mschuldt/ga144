@@ -369,6 +369,10 @@
 (defalias 'bitwise-ior 'logior)
 (defalias 'bitwise-not 'lognot)
 
+(defun bitwise-bit-field (n start end)
+  (bitwise-and (sub1 (arithmetic-shift 1 (- end start)))
+               (arithmetic-shift n (- start))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mutable cons
 
