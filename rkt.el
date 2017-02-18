@@ -326,13 +326,17 @@
 (defalias 'add1 '1+)
 (defalias 'sub1 '1-)
 (defalias 'number? 'numberp)
-(defun range (from to)
+(defun range (from &optional to)
+  (unless to
+    (setq to from
+          from 0))
   (number-sequence from (1- to)))
 
 (defsubst quotient (n m) (floor (/ n m)))
 (defalias 'remainder '%)
 (defalias 'modulo 'remainder)
 (defalias 'exact->inexact 'identity)
+(defalias 'number->string 'number-to-string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
