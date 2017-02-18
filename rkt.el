@@ -526,7 +526,7 @@
 
 (defvar racket-script-mode nil "true if started run as script")
 
-(defun exist (&optonal code)
+(defun exit (&optional code)
   (if racket-script-mode
       (kill-emacs code)
     (signal 'racket-exit)))
