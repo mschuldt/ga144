@@ -62,8 +62,9 @@
                                         (vector-ref mem i))))))))
 
 
+
 (define (print-json input-file (bootstream-type false) (symbols? false))
-  (define compiled (aforth-compile (file->string input-file)))
+  (define compiled (aforth-compile-file input-file))
   (define compiled-json (compiled->json compiled))
   (define boot-descriptors-json (boot-descriptors->json compiled))
   (define symbols-json (symbols->json compiled))
@@ -86,8 +87,8 @@
 
   (printf "{~a}\n" (comma-join x)))
 
-(define (print-count input-file)
-  (define compiled (aforth-compile (file->string input-file)))
+(define (print-count input-file) 
+  (define compiled (aforth-compile-file input-file))
   (define total 0)
   (define (percent a b)
     (exact->inexact (* (/ a b) 100)))
@@ -102,7 +103,7 @@
           (length (compiled-nodes compiled)) total (percent total (* 64 144))))
 
 (define (print-pretty input-file (hex? false))
-  (define compiled (aforth-compile (file->string input-file)))
+  (define compiled (aforth-compile-file input-file))
   (define compiled-hash (make-hash))
   (for ((node (compiled-nodes compiled)))
     (hash-set! compiled-hash (node-coord node)

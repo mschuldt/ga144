@@ -13,9 +13,9 @@
          "../el.rkt"
          )
 
-(when elisp? (_def '(aforth-compile compile-file display-compiled)))
+(when elisp? (_def '(aforth-compile aforth-compile-file display-compiled)))
 
-(provide aforth-compile compile-file display-compiled)
+(provide aforth-compile aforth-compile-file display-compiled)
 
 (define DEBUG? false)
 
@@ -98,8 +98,9 @@
 
   (compiled (map remove-address-cells used-nodes)))
 
-(define (compile-file file)
-  (call-with-input-file file compile))
+(define (aforth-compile-file file)
+  (call-with-input-file file aforth-compile)
+)
 
 (define (reorder-with-fallthrough words)
   (define fallthroughs (make-hash))
