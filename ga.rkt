@@ -109,7 +109,7 @@
   (Comment (string-join (for/list ((x (quote (text ...))))
                           (if (equal? x 'nl)
                               "\n"
-                              (format "~a" x)))
+                              (rkt-format "~a" x)))
                         " ")))
 
 (define (write-aforth-file (chip false) [name "out.aforth"])

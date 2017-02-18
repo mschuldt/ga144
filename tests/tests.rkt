@@ -22,9 +22,9 @@
                             (result false)
                             (failed '())
                             (compiled-file
-                             (format "test-out/~a-compiled.txt" name))
+                             (rkt-format "test-out/~a-compiled.txt" name))
                             (assembled-file
-                             (format "test-out/~a-assembled.txt" name)))
+                             (rkt-format "test-out/~a-assembled.txt" name)))
                         ;;(reset!);;TODO: fix reset
                         (delete-all-chips)
                         (set! test-chip (new-ga144))
@@ -41,7 +41,7 @@
                             (set! failed (cons result failed))))
                         (if (null? failed)
                             (set! tests-passed (add1 tests-passed))
-                            (begin (display (format "FAILED: ~a: '~a'\n"
+                            (begin (display (rkt-format "FAILED: ~a: '~a'\n"
                                                     name
                                                     program))
                                    (for ((f failed))
@@ -60,7 +60,7 @@
                     (s (length expect)))
                (if (same-subset-v? expect memory)
                    false
-                   (format "    Memory does not match (node ~a)
+                   (rkt-format "    Memory does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
                            coord
@@ -76,7 +76,7 @@
                    (var (vector-ref (vector "A" "B" "P" "I" "R" "S" "t") reg-num)))
                (if (eq? val (18bit expect))
                    false
-                   (format "    Failed assertion (node ~a):
+                   (rkt-format "    Failed assertion (node ~a):
         Expected: (eq ~a ~a)
         Got:      (eq ~a ~a)\n"
                            coord
@@ -89,7 +89,7 @@
                     (s (length m)))
                (if (same-subset? m dstack)
                    false
-                   (format "    Data stack does not match (node ~a)
+                   (rkt-format "    Data stack does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
                            coord
@@ -102,7 +102,7 @@
                     (s (length m)))
                (if (same-subset? m rstack)
                    false
-                   (format "    Return stack does not match (node ~a)
+                   (rkt-format "    Return stack does not match (node ~a)
         Expected: ~a...
         Got:      ~a...\n"
                            coord
@@ -550,8 +550,8 @@ x xx +"
   (for ((test tests))
   ;;(for ((test (list (car tests))))
     (test))
-  (display (format "passed: ~a\n" tests-passed))
-  (display (format "failed: ~a\n" tests-failed)))
+  (display (rkt-format "passed: ~a\n" tests-passed))
+  (display (rkt-format "failed: ~a\n" tests-failed)))
 
 (unless (directory-exists? "test-out")
   (make-directory "test-out"))

@@ -40,4 +40,4 @@ then
 (printf "b-counter = ~a\n" b-counter)
 
 (unless (equal? b-counter (add1 loop-count))
-  (raise (format "check failed: ~a == ~a" b-counter (add1 loop-count))))
+  (raise (rkt-format "check failed: ~a == ~a" b-counter (add1 loop-count))))

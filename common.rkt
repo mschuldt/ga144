@@ -226,7 +226,7 @@
                  (begin (set! tok (list->string (cons _char-hash (cdr (string->list tok)))))
                         (string->number tok)))
              (string->number tok)))
-        (else (error (format "parse-num -- invalid arg type ~a" tok)))))
+        (else (error (rkt-format "parse-num -- invalid arg type ~a" tok)))))
 
 (define (get-address name (node false))
   (cond ((hash-has-key? names->addresses name) ;;normal address names
@@ -292,7 +292,7 @@
                        ((number? thing)
                         (number->string thing))
                        ;(else (raise "invalid thing"))
-                       (else (format "~a" thing))
+                       (else (rkt-format "~a" thing))
                        ))
                ","))
 

@@ -79,7 +79,7 @@
                                  (= (car op) 4)));; 'unext'
                     (set! op (car op)))
                   (if (cons? op)
-                      (format "~a(~a)"
+                      (rkt-format "~a(~a)"
                               (vector-ref opcodes (car op))
                               (cdr op))
                       (vector-ref opcodes op)))))
@@ -87,7 +87,7 @@
 
     (define (log msg)
       (define name (get-field name ga144))
-      (printf "[~a~a] ~a\n" (if name (format "~a." name) "") coord msg))
+      (printf "[~a~a] ~a\n" (if name (rkt-format "~a." name) "") coord msg))
 
     (define/public (set-pin! pin val)
       ;;val is false or t
@@ -248,7 +248,7 @@
            (vector-ref (vector "L" "U" "D" "R") current-writing-port)))
 
     (define (port-read port)
-      (when debug-ports (log (format "(port-read ~a)\n" port)))
+      (when debug-ports (log (rkt-format "(port-read ~a)\n" port)))
       ;;read a value from a ludr port
       ;;returns t if value is on the stack, false if we are suspended waiting for it
       (if (eq? port wake-pin-port)
@@ -281,7 +281,7 @@
                   false)))))
 
     (define (multiport-read ports)
-      (when debug-ports (log (format "(multiport-read ~a)\n" ports)))
+      (when debug-ports (log (rkt-format "(multiport-read ~a)\n" ports)))
       (let ((done false)
             (writing-node false)
             (other false))
@@ -312,7 +312,7 @@
               (set! multiport-read-ports '())
               (for ((port ports))
                 ;;(unless (vector-ref ludr-port-nodes port)
-                ;;  (raise (format "multiport-read: node ~a does not have a ~a port"
+                ;;  (raise (rkt-format "multiport-read: node ~a does not have a ~a port"
                 ;;                 coord (vector-ref port-names port))))
                 ;;TODO: this is a temp fix:
                 ;;     the current default instruction word is 'jump ludr'
@@ -329,7 +329,7 @@
 
     (define (port-write port value)
       (when debug-ports
-        (log (format "(port-write ~a  ~a)\n" port value)))
+        (log (rkt-format "(port-write ~a  ~a)\n" port value)))
       ;;writes a value to a ludr port
       (let ((reading-node (vector-ref reading-nodes port)))
         (if reading-node
@@ -349,7 +349,7 @@
       ;; "every node that intends to read the value written
       ;;  must already be doing so and suspended"
       (when debug-ports
-        (log (format "(multiport-write ~a  ~a)\n" ports value)))
+        (log (rkt-format "(multiport-write ~a  ~a)\n" ports value)))
       (let ((reading-node false))
         (for ((port ports))
           (when (setq reading-node (vector-ref reading-nodes port))
@@ -365,7 +365,7 @@
     (define/public (finish-port-read val)
       ;;called by adjacent node when it writes to a port we are reading from)
       ;;or when a pin change causes node to awaken
-      (when debug-ports (log (format "(finish-port-read  ~a)\n" val)))
+      (when debug-ports (log (rkt-format "(finish-port-read  ~a)\n" val)))
       (d-push! val)
       (when multiport-read-ports
         ;;there may be other nodes that still think we are waiting for them to write
@@ -389,12 +389,12 @@
     (define/public (receive-port-read port node)
       ;;called by adjacent node when it is reading from one of our ports
       (when debug-ports
-        (log (format "(receive-port-read ~a   ~a)" port (and node (send node str)))))
+        (log (rkt-format "(receive-port-read ~a   ~a)" port (and node (send node str)))))
       (vector-set! reading-nodes port node))
 
     (define/public (receive-port-write port value node)
       (when debug-ports
-        (log (format "(receive-port-write ~a  ~a  ~a)"
+        (log (rkt-format "(receive-port-write ~a  ~a  ~a)"
                      port value (send node str))))
       ;;called by adjacent node when it is writing to one of our ports
       (vector-set! writing-nodes port node)
@@ -474,12 +474,12 @@
 
     (define/public (set-gpio-handler pin handler)
       (when (>= pin num-gpio-pins)
-        (err (format "node ~a does not have pin ~a" coord pin)))
+        (err (rkt-format "node ~a does not have pin ~a" coord pin)))
       (cond ((= pin 0) (set! pin1-handler handler))
             ((= pin 1) (set! pin2-handler handler))
             ((= pin 2) (set! pin3-handler handler))
             ((= pin 3) (set! pin4-handler handler))
-            (else (err (format "invalid pin: ~a" pin)))))
+            (else (err (rkt-format "invalid pin: ~a" pin)))))
 
     (define (read-io-reg)
       ;;sacrifice speed here to keep reads and writes as fast as possible
@@ -526,7 +526,7 @@
       t)
 
     (define (set-io-reg val)
-      (when print-io (log (format "IO = ~a\n" val)))
+      (when print-io (log (rkt-format "IO = ~a\n" val)))
       (set! prev-IO IO)
       (set! IO val)
       (set! WD (if (= (& (>> IO 11) 1) 1) t false))
@@ -569,26 +569,26 @@
       (set! addr (& addr #x1ff))
       (when (or (< addr 0)
                 (>= addr MEM-SIZE))
-        (err (format "(read-memory ~a) out of range" addr)))
+        (err (rkt-format "(read-memory ~a) out of range" addr)))
       (if (port-addr? addr)
           (let ((x (vector-ref memory addr)))
             (if (vector? x)
                 ((vector-ref x 0))
-                (err (format "read-memory(~a) - invalid port\n" addr))))
+                (err (rkt-format "read-memory(~a) - invalid port\n" addr))))
           (d-push! (vector-ref memory (region-index addr)))))
 
     (define (set-memory! addr value)
       (set! addr (& addr #x1ff))
       (when (or (< addr 0)
                 (>= addr MEM-SIZE))
-        (err (format "(read-memory ~a) out of range" addr)))
+        (err (rkt-format "(read-memory ~a) out of range" addr)))
       (if (port-addr? addr)
           (let ((x (vector-ref memory addr)))
             (if x
                 (if (vector? x)
                     ((vector-ref x 1) value)
-                    (err (format "trying to access undefined port: 0x~x" addr)))
-                (err (format "set-memory!(~a, ~a) - invalid port\n" addr value))))
+                    (err (rkt-format "trying to access undefined port: 0x~x" addr)))
+                (err (rkt-format "set-memory!(~a, ~a) - invalid port\n" addr value))))
           (vector-set! memory (region-index addr) value)))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -664,7 +664,7 @@
         (begin (vector-set! instructions
                             _n
                             (lambda args
-                              (when debug (log (format "OPCODE: '~a'" opcode)))
+                              (when debug (log (rkt-format "OPCODE: '~a'" opcode)))
                               body ...))
                (set! _n (add1 _n))))
 
@@ -680,7 +680,7 @@
         false)
 
       (define-instruction! "jump" (addr mask)
-        (when debug (log (format "jump to ~a  ~a"
+        (when debug (log (rkt-format "jump to ~a  ~a"
                                  addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
@@ -688,7 +688,7 @@
 
       (define-instruction! "call" (addr mask)
         (when debug
-          (log (format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
+          (log (rkt-format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
@@ -712,7 +712,7 @@
 
       (define-instruction! "if" (addr mask)
         (and (= T 0)
-             (begin (when debug (log (format "If: jumping to ~a\n" addr)))
+             (begin (when debug (log (rkt-format "If: jumping to ~a\n" addr)))
                     (set! P (ior addr (& P mask))))
              false))
 
@@ -873,7 +873,7 @@
       ;;Make a fake port and port execute the code through it.
       ;;Used for loading bootstreams through a node.
       (define len (vector-length code))
-      (log (format "execute-array(): len(code)=~a" len))
+      (log (rkt-format "execute-array(): len(code)=~a" len))
       (set! P #x300)
       (define index 0)
       (vector-set! memory #x300 (vector
@@ -894,7 +894,7 @@
       ;; only used for externally calling words from the debugger
       (if (hash-has-key? symbols word)
           (let ((addr (symbol-address (hash-ref symbols word))))
-            (log (format "call-word!: ~a -> ~a\n" word addr))
+            (log (rkt-format "call-word!: ~a -> ~a\n" word addr))
             ((vector-ref instructions 3) addr 0)
             (set! step-fn step0)
             (when suspended
@@ -913,7 +913,7 @@
       (define (write-next)
         (if (< index last)
             (begin
-              ;;(log (format "(write-next) index = ~a (last=~a)" index last))
+              ;;(log (rkt-format "(write-next) index = ~a (last=~a)" index last))
               (set! word (vector-ref frames index))
               (set! index (add1 index))
               (set-memory! dest-addr word))
@@ -1140,7 +1140,7 @@
       (set! active-index index))
 
     (define/public (str)
-      (format "<node ~a>" coord))
+      (rkt-format "<node ~a>" coord))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; breakpoints
@@ -1168,7 +1168,7 @@
           false))
       (define addr (get-breakpoint-address line-or-word))
       (when addr
-        (log (format "setting breakpoint for '~a' at word ~a\n" line-or-word addr))
+        (log (rkt-format "setting breakpoint for '~a' at word ~a\n" line-or-word addr))
         (vector-set! breakpoints addr break-fn)))
 
     (define/public (unset-breakpoint line-or-word)
@@ -1192,22 +1192,22 @@
              (if (hash-has-key? symbols line-or-word)
                  (symbol-address (hash-ref symbols line-or-word))
                  (begin
-                   (log (format "ERR: no record of word '~a'" line-or-word))
+                   (log (rkt-format "ERR: no record of word '~a'" line-or-word))
                    false)))
             ((number? line-or-word)
              (if (and (>= line-or-word 0)
                       (< line-or-word MEM-SIZE))
                  line-or-word
                  (begin
-                   (log (format "ERR: invalid address '~a'" line-or-word))
+                   (log (rkt-format "ERR: invalid address '~a'" line-or-word))
                    false)))
             (else
-             (log (format "ERR: invalid breakpoint '~a'" line-or-word))
+             (log (rkt-format "ERR: invalid breakpoint '~a'" line-or-word))
              false)))
 
     (define (break (reason false))
-      (log (format "Breakpoint: ~a "
-                   (or reason (format "~x(~x)" P (region-index P)))))
+      (log (rkt-format "Breakpoint: ~a "
+                   (or reason (rkt-format "~x(~x)" P (region-index P)))))
       (send ga144 break this))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1374,7 +1374,7 @@
     (define/public (disassemble-memory (start 0) (end #xff) (show-p? t))
       ;;  disassemble and print a node memory from START to END, inclusive
       (define (pad-print thing (pad 20))
-        (let* ((s (format "~a" thing))
+        (let* ((s (rkt-format "~a" thing))
                (len (string-length s))
                (str (string-append s (make-string (- pad len) #\ ))))
           (printf str)))
@@ -1393,11 +1393,11 @@
           (when ind
             (let* ((addr (vector-ref dis (add1 ind)))
                    (name (get-memory-name (region-index addr))))
-              (vector-set! dis (add1 ind) (format "~a(~a)" addr name))))
+              (vector-set! dis (add1 ind) (rkt-format "~a(~a)" addr name))))
           (define slot-i (get-current-slot-index))
 
           (when (and (equal? i P) show-p?)
-            (vector-set! dis slot-i (format "{{~a}}" (vector-ref dis slot-i))))
+            (vector-set! dis slot-i (rkt-format "{{~a}}" (vector-ref dis slot-i))))
           (printf "~a\n" dis))))
 
     (define/public (disassemble-local)

@@ -33,16 +33,16 @@
                                      (from (cons false ports))
                                      (i (range 144)))
                             (string-join
-                             (list (format "node ~a" coord)
-                                   (format "~a b! " (port-name to))
+                             (list (rkt-format "node ~a" coord)
+                                   (rkt-format "~a b! " (port-name to))
                                    ;; pump rom from other nodes through this one
                                    (if from
-                                       (format "~a a!\n ~a for @ !b unext"
-                                               (port-name from) (sub1 (* i 65)))
+                                       (rkt-format "~a a!\n ~a for @ !b unext"
+                                                   (port-name from) (sub1 (* i 65)))
                                        "")
                                    ;; send this nodes ID and its ROM
                                    "0x80 a!"
-                                   (format "~a !b" coord)
+                                   (rkt-format "~a !b" coord)
                                    "63 for @+ !b unext warm") "\n"))
                           "\n"))
 
@@ -74,7 +74,7 @@
 (define assembled (assemble c))
 
 (define (pad-print thing [pad 20])
-  (let* ((s (format "~a" thing))
+  (let* ((s (rkt-format "~a" thing))
          (len (string-length s))
          (str (string-append s (make-string (- pad len) #\ ))))
     (printf str)))

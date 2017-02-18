@@ -12,54 +12,54 @@
 (define (compiled->json compiled)
   (comma-join
    (for/list ((node (compiled-nodes compiled)))
-     (format "'~a' : [~a]"
-             (node-coord node)
-             (comma-join (let ((mem (node-mem node)))
-                           (for/list ((i (range (node-len node))))
-                             (let ((word (vector-ref mem i)))
-                               (if (vector? word)
-                                   (format "[~a]"
-                                           (comma-join (for/list ((w word))
-                                                         (format "'~a'" w))))
-                                   word)))))))))
+     (rkt-format "'~a' : [~a]"
+                 (node-coord node)
+                 (comma-join (let ((mem (node-mem node)))
+                               (for/list ((i (range (node-len node))))
+                                 (let ((word (vector-ref mem i)))
+                                   (if (vector? word)
+                                       (rkt-format "[~a]"
+                                                   (comma-join (for/list ((w word))
+                                                                 (rkt-format "'~a'" w))))
+                                       word)))))))))
 
 (define (boot-descriptors->json compiled)
   (comma-join
    (for/list ((node (compiled-nodes compiled)))
-     (format " '~a' : {~a}"
-             (node-coord node)
-             (comma-join (list (format "'a' : ~a" (or (node-a node) "None"))
-                               (format "'b' : ~a" (or (node-b node) "None"))
-                               (format "'io' : ~a"(or (node-io node) "None"))
-                               (format "'p' : ~a" (or (node-p node) "None"))
-                               (format "\n'stack' : ~a \n"
-                                       (if (node-stack node)
-                                           (format "[~a]"
-                                                   (comma-join (node-stack node)))
-                                           "None"))))))))
+     (rkt-format " '~a' : {~a}"
+                 (node-coord node)
+                 (comma-join (list (rkt-format "'a' : ~a" (or (node-a node) "None"))
+                                   (rkt-format "'b' : ~a" (or (node-b node) "None"))
+                                   (rkt-format "'io' : ~a"(or (node-io node) "None"))
+                                   (rkt-format "'p' : ~a" (or (node-p node) "None"))
+                                   (rkt-format "\n'stack' : ~a \n"
+                                               (if (node-stack node)
+                                                   (rkt-format "[~a]"
+                                                               (comma-join (node-stack node)))
+                                                   "None"))))))))
 (define (symbols->json compiled)
   (let ((syms '())
         (symbols false))
     (for/list ((node (compiled-nodes compiled)))
       (set! symbols (node-symbols node))
       (unless (null? symbols)
-        (push (format "'~a' : {~a}"
-                      (node-coord node)
-                      (comma-join
-                       (for/list ((sym (node-symbols node)))
-                         (format "'~a' : {'address' : ~a, 'line' : ~a, 'col' : ~a}"
-                                 (symbol-val sym) (symbol-address sym)
-                                 (symbol-line sym) (symbol-col sym)))))
+        (push (rkt-format "'~a' : {~a}"
+                          (node-coord node)
+                          (comma-join
+                           (for/list ((sym (node-symbols node)))
+                             (rkt-format "'~a' : {'address' : ~a, 'line' : ~a, 'col' : ~a}"
+                                         (symbol-val sym) (symbol-address sym)
+                                         (symbol-line sym) (symbol-col sym)))))
               syms)))
     (comma-join syms)))
 
 (define (assembled->json assembled)
   (comma-join (for/list ((node (compiled-nodes assembled)))
-                (format "'~a' : [~a]"
-                        (node-coord node)
-                        (comma-join (let ((mem (node-mem node)))
-                                      (for/list ((i (range (node-len node))))
-                                        (vector-ref mem i))))))))
+                (rkt-format "'~a' : [~a]"
+                            (node-coord node)
+                            (comma-join (let ((mem (node-mem node)))
+                                          (for/list ((i (range (node-len node))))
+                                            (vector-ref mem i))))))))
 
 
 
@@ -73,17 +73,17 @@
 
   (define bootstream (sget-convert (make-bootstream assembled (or (bootstream-type) default-bootstream-type))))
 
-  (define x (list (format "'file' : '~a'\n" input-file)
-                  (format "'compiled': {~a}\n" compiled-json)
-                  (format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
-                  (format "'assembled': {~a}\n" assembled-json)))
+  (define x (list (rkt-format "'file' : '~a'\n" input-file)
+                  (rkt-format "'compiled': {~a}\n" compiled-json)
+                  (rkt-format "'boot-descriptors' : {~a}\n" boot-descriptors-json)
+                  (rkt-format "'assembled': {~a}\n" assembled-json)))
 
   (when (symbols?)
-    (set! x (append x (list (format "'symbols': {~a}\n" symbols-json)))))
+    (set! x (append x (list (rkt-format "'symbols': {~a}\n" symbols-json)))))
 
   (when (bootstream-type)
-    (set! x (append x (list (format "'bootstream' : [~a] "
-                                    (comma-join bootstream))))))
+    (set! x (append x (list (rkt-format "'bootstream' : [~a] "
+                                        (comma-join bootstream))))))
 
   (printf "{~a}\n" (comma-join x)))
 
@@ -117,7 +117,7 @@
 
 
   (define (pad-print thing (pad 20))
-    (let* ((s (format "~a" thing))
+    (let* ((s (rkt-format "~a" thing))
            (len (string-length s))
            (str (string-append s (make-string (- pad len) _char-space))))
       (printf str)))
@@ -140,7 +140,7 @@
 
   (set! hex? (hex?))
   (define (n val)
-    (format (if hex? "~x" "~a") val))
+    (rkt-format (if hex? "~x" "~a") val))
 
   (for ((node (compiled-nodes assembled)))
     (define coord (node-coord node))
@@ -158,5 +158,5 @@
         (when name (printf "~a:\n" name))
         (printf "~a    " (n i))
         (pad-print (make-pretty word))
-        (pad-print (format "~a" (n (vector-ref asm i))) 13)
+        (pad-print (rkt-format "~a" (n (vector-ref asm i))) 13)
         (printf "~a\n" (make-pretty (disassemble-word (vector-ref asm i))))))))

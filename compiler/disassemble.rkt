@@ -51,7 +51,7 @@
       (for ((n 4))
         (set! inst (vector-ref word n))
         (when inst
-          (display (format "~a " inst))))))
+          (display (rkt-format "~a " inst))))))
 
   (define (dis-mem mem)
     (define i 0)
@@ -59,7 +59,7 @@
                 (or all?
                     (vector-ref mem i)))
       (begin
-        (display (format "~a    " i))
+        (display (rkt-format "~a    " i))
         (define word (vector-ref mem i))
         (define dis (disassemble-word word))
         (display (~a word #:min-width 6 #:align 'right #:left-pad-string " "))
@@ -69,5 +69,5 @@
         (set! i (add1 i)))))
 
   (for ((node nodes))
-    (display (format "\nnode ~a\n" (node-coord node)))
+    (display (rkt-format "\nnode ~a\n" (node-coord node)))
     (dis-mem (node-mem node))))

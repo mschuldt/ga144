@@ -11,7 +11,7 @@
 
 
 (define loop-count 10)
-(define code (format "node 705
+(define code (rkt-format "node 705
 , 444
 , 555
 , 666
@@ -50,6 +50,6 @@ then
 (step*) ;;finish program
 
 (unless (equal? inc-counter (add1 loop-count))
-  (raise (format "check failed: ~a == ~a" inc-counter (add1 loop-count))))
+  (raise (rkt-format "check failed: ~a == ~a" inc-counter (add1 loop-count))))
 
 

@@ -36,7 +36,7 @@
 
 (define (new-ga144 (name false))
   (unless name
-    (set! name (format "chip~a" _counter))
+    (set! name (rkt-format "chip~a" _counter))
     (set! _counter (add1 _counter)))
   (let ((chip (new ga144% (name name) (interactive t))))
     (push chip chips)
@@ -140,7 +140,7 @@
        (hash-set! _commands ,command-name
                   ,(if (> num-params 0)
                        `(lambda (args)
-                          (when DEBUG (printf ,(format "[[~a]]\n" command-name)))
+                          (when DEBUG (printf ,(rkt-format "[[~a]]\n" command-name)))
                           (define (next-arg)
                             (let ((val (car args)))
                               (set! args (cdr args))
@@ -378,9 +378,9 @@
 
 (define (get-help-string command)
   (if (hash-has-key? _help command)
-      (string-append (format "~a command usage:\n    " command)
+      (string-append (rkt-format "~a command usage:\n    " command)
                      (string-join (hash-ref _help command) "\n    "))
-      (format "can't find '~a'" command)))
+      (rkt-format "can't find '~a'" command)))
 
 (define (test)
   (printf "test success!\n"))
@@ -402,18 +402,18 @@
                          (list (get-field name selected-chip))
                          '()))
            (selected (if selected-node
-                         (cons (format "~a" (send selected-node get-coord))
+                         (cons (rkt-format "~a" (send selected-node get-coord))
                                selected)
                          false))
            (selected (if selected
-                         (format "(~a)" (string-join (reverse selected) "."))
+                         (rkt-format "(~a)" (string-join (reverse selected) "."))
                          "")))
       (printf "~a>>> " selected))
     (let* ((input (read-line stdin)))
       (when (or (eof-object? input)
                 (= (string-length input) 0))
         (set! input last-command)
-        (pretty-display (format "[~a]" input)))
+        (pretty-display (rkt-format "[~a]" input)))
       (when input
         (let* ((split (string-split (string-trim input)))
                (len (length split))

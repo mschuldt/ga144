@@ -22,7 +22,7 @@
 (define col-number 0)
 
 (define (syntax-error msg)
-  (raise (format "[~a:~a]syntax error: ~a" line-number col-number msg )))
+  (raise (rkt-format "[~a:~a]syntax error: ~a" line-number col-number msg )))
 
 (define (read-token in)
   (define (get-first-char-in-list)
@@ -115,7 +115,7 @@
           ((equal? tok "bootstream")
            (forth-read) ;;TODO: ignoring for now
            (read-loop))
-          (else (syntax-error (format "don't know what to do with '~a'" tok)))))
+          (else (syntax-error (rkt-format "don't know what to do with '~a'" tok)))))
 
   (read-loop)
   (reverse nodes))

@@ -76,3 +76,5 @@
 (define aforth-token-end true)
 (define subseq true)
 (define funcall true)
+
+(define rkt-format format)

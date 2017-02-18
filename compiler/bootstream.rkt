@@ -31,28 +31,28 @@
 
 ;;path1 from DB004 page 31
 (defconst path1 (let ((NENW (append (cons N (make-list 16 E))
-                                  (cons N (make-list 16 W)))))
-                (append (make-list 9 E)
-                        (make-list 7 S)
-                        (make-list 17 W)
-                        NENW NENW NENW
-                        (cons N (make-list 7 E))
-                        (list false))))
+                                    (cons N (make-list 16 W)))))
+                  (append (make-list 9 E)
+                          (make-list 7 S)
+                          (make-list 17 W)
+                          NENW NENW NENW
+                          (cons N (make-list 7 E))
+                          (list false))))
 
 ;;path0 from DB004 page 31
 (defconst target-sync-path (let ((SWSE (append (cons S (make-list 16 W))
-                                             (cons S (make-list 16 E))))
-                               (SW (cons S (make-list 17 W))))
-                           (append (make-list 4 N)
-                                   (make-list 17 E)
-                                   SWSE SWSE SW
-                                   (cons S (make-list 17 E))
-                                   SW
-                                   (list false))))
+                                               (cons S (make-list 16 E))))
+                                 (SW (cons S (make-list 17 W))))
+                             (append (make-list 4 N)
+                                     (make-list 17 E)
+                                     SWSE SWSE SW
+                                     (cons S (make-list 17 E))
+                                     SW
+                                     (list false))))
 
 ;; the host-sync-path only goes from 708 to 300
 (defconst host-sync-path (cons S (append (make-list 8 W)
-                                       (make-list 3 S))))
+                                         (make-list 3 S))))
 
 (defconst async-bootstream (bootstream "async" 708 path1))
 (defconst sync-bootstream (bootstream "sync" 300 target-sync-path))
@@ -212,8 +212,8 @@
 
 (define (make-bootstream assembled (type default-bootstream-type))
   (unless (member type bootstream-types)
-    (error (format "Invalid bootstream type: ~a  (Options: ~a)\n"
-                   type (string-join bootstream-types ", "))))
+    (error (rkt-format "Invalid bootstream type: ~a  (Options: ~a)\n"
+                       type (string-join bootstream-types ", "))))
 
   (define nodes (compiled-nodes assembled))
   (cond ((equal? type "async")
@@ -235,7 +235,7 @@
 wire")
   ;; host-loader-code moves the target chips bootstream from the host chip's
   ;; node 708 to node 300 and sends it to the target chip using the async port.
-  (define host-loader-code (format "
+  (define host-loader-code (rkt-format "
 node 608 north a! west b! ~a
 node 607 east a! west b! ~a
 node 606 east a! west b! ~a

@@ -398,9 +398,9 @@
   (if words
       (if (hash-has-key? words word)
           (hash-ref words word)
-          (err (format "remote word not found: ~a@~a (called from node ~a)"
+          (err (rkt-format "remote word not found: ~a@~a (called from node ~a)"
                        word coord current-node-coord)))
-      (err (format "can't find dictionary for node: ~a" coord))))
+      (err (rkt-format "can't find dictionary for node: ~a" coord))))
 
 (define (compile-remote-call! word coord)
   (when DEBUG? (printf "     compile-remote-call!(~a, ~a)\n" word coord))
@@ -411,7 +411,7 @@
 (define (compile-word-ref! word)
   (let ((addr (get-word-address word)))
     (unless addr
-      (raise (format "[TODO] reference to undefined word: ~a" word)))
+      (raise (rkt-format "[TODO] reference to undefined word: ~a" word)))
     (compile-constant! addr)))
 
 (define (fill-rest-with-nops)
@@ -442,7 +442,7 @@
           (when (and (address-cell? slot)
                      (not (address-cell-val slot))
                      (address-cell-name slot))
-            (err (format "Undefined word: '~a' in node ~a" (address-cell-name slot)
+            (err (rkt-format "Undefined word: '~a' in node ~a" (address-cell-name slot)
                          (node-coord node)))))))))
 
 (define (remove-address-cells node)
@@ -468,7 +468,7 @@
         (when (address-cell? slot)
           (set! addr (address-cell-val slot))
           (when (not addr)
-            (err (format "remove-address-cells -- invalid address '~a' for '~a'" addr (address-cell-name slot))))
+            (err (rkt-format "remove-address-cells -- invalid address '~a' for '~a'" addr (address-cell-name slot))))
 
           (if (not (address-fits? addr (sub1 slot-index) (address-cell-next-addr slot)))
               (begin
@@ -477,7 +477,7 @@
                 (increment-address (node-address-cells node) new-word-index)
                 (set! call-inst (vector-ref word (sub1 slot-index)))
                 (unless (member call-inst '("call" "jump" "next" "-if" "if"))
-                  (err (format "invalid call instruction: '~a'" call-inst)))
+                  (err (rkt-format "invalid call instruction: '~a'" call-inst)))
                 ;; remove call from old word
                 (vector-set! word (sub1 slot-index) ".")
                 (vector-set! word slot-index ".")
@@ -547,11 +547,11 @@
        (waiting-clear word))
 
      (when (hash-has-key? words word)
-       (err (format "redefinition of word '~a' in node ~a"
+       (err (rkt-format "redefinition of word '~a' in node ~a"
                     word current-node-coord)))
      (when (equal? word "main")
        (if (node-p current-node)
-           (err (format "use of /p overrides 'main' in node ~a\n"
+           (err (rkt-format "use of /p overrides 'main' in node ~a\n"
                         current-node-coord))
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
@@ -568,7 +568,7 @@
    (let* ((token (read-tok-name))
           (data (parse-num token)))
      (if (not data)
-         (err (format "invalid token: ~a" token))
+         (err (rkt-format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
 
 (define (start-new-node coord)
@@ -600,7 +600,7 @@
    (define x (parse-num coord))
    (if (not (null? x))
        (start-new-node x)
-       (err (format "invalid node number: ~a" x)))))
+       (err (rkt-format "invalid node number: ~a" x)))))
 
 ;;+cy
 ;;forces word alignment then turns P9 on in the location counter. Places in memory
@@ -750,9 +750,9 @@
         (if (and (not (address-cell? thing))
                  (> thing (vector-ref max-slot-num last)))
             ;; TODO: move instruction to next word in this case
-            (err (format "'~a' cannot fit into slot ~a" thing last))
+            (err (rkt-format "'~a' cannot fit into slot ~a" thing last))
             (vector-set! word last thing))
-        (err (format "add-to-slot -- slot ~a ~a: ~a"
+        (err (rkt-format "add-to-slot -- slot ~a ~a: ~a"
                      slot
                      (if (vector? word)
                          "is not an instruction word"
@@ -803,7 +803,7 @@
           (addr (get-word-address word)))
      (if addr
          (push addr stack)
-         (err (format "\"~a\" is not defined" word))))))
+         (err (rkt-format "\"~a\" is not defined" word))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Boot descriptors
@@ -811,12 +811,12 @@
 
 (define (set-register-helper name set-fn)
   (unless current-node
-    (raise (format "must select node before '~a'" name)))
+    (raise (rkt-format "must select node before '~a'" name)))
   (let* ((n (read-tok-name))
          (addr (or (get-address n current-node-coord)
                    (get-word-address n))))
     (unless addr
-      (raise (format "unknown address for compiler directive '~a': ~a" name n)))
+      (raise (rkt-format "unknown address for compiler directive '~a': ~a" name n)))
     (set-fn current-node addr)))
 
 ;; /b (a)
@@ -863,7 +863,7 @@
      (when (or (not len)
                (< len 0)
                (> len 10))
-       (raise (format "invalid number for /stack item count: '~a'" len)))
+       (raise (rkt-format "invalid number for /stack item count: '~a'" len)))
 
      (while (> len 0)
        (begin
@@ -871,7 +871,7 @@
          (set! val (and tok (string->number tok)))
          (when (and (not val)
                     (not (setq val (get-word-address tok))))
-           (raise (format "invalid stack value: ~a" tok)))
+           (raise (rkt-format "invalid stack value: ~a" tok)))
          (push val stack)
          (set! len (sub1 len))))
      (set-node-stack! current-node (reverse stack)))))
@@ -885,14 +885,14 @@
 
 (define (define-const name val)
   (when (hash-has-key? current-node-consts name)
-    (err (format "redefining node const '~a'" name)))
+    (err (rkt-format "redefining node const '~a'" name)))
   (hash-set! current-node-consts name val))
 
 (define (node-const? name)
   (hash-has-key? current-node-consts name))
 (define (compile-node-const name)
   (unless (hash-has-key? current-node-consts name)
-    (err (format "node const not found'~a'" name)))
+    (err (rkt-format "node const not found'~a'" name)))
   (compile-constant! (hash-ref current-node-consts name)))
 
 (define const-ops (if elisp? (make-hash '(("+" . +)
@@ -916,11 +916,11 @@
      (define left-tok (read-tok-name))
      (define left (lookup-const-value left-tok))
      (unless left
-       (err (format "invalid const param for op ~a: '~a'" op-name left-tok)))
+       (err (rkt-format "invalid const param for op ~a: '~a'" op-name left-tok)))
      (define right-tok (read-tok-name))
      (define right (lookup-const-value right-tok))
      (unless right
-       (err (format "invalid const param for op ~a: '~a'" op-name right-tok)))
+       (err (rkt-format "invalid const param for op ~a: '~a'" op-name right-tok)))
      (define-const name (bitwise-and (apply op (list left right)) #x3ffff)))
 
    (define name (read-tok-name))
@@ -930,7 +930,7 @@
    (cond (op-n (define-const name op-n))
          ((hash-has-key? const-ops op)
           (read-apply-op name op))
-         (else (err (format "invalid const op type: '~a'" op))))))
+         (else (err (rkt-format "invalid const op type: '~a'" op))))))
 
 
 ;; ' (-a) (tick) places the address of an F18 red word on the compiler's stack.
@@ -942,7 +942,7 @@
    (if addr
        (begin (push addr stack)
               (when DEBUG? (pretty-display (list "tick addr: "  addr))))
-       (err (format "' (tick): \"~a\" is not defined" word)))))
+       (err (rkt-format "' (tick): \"~a\" is not defined" word)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -967,8 +967,8 @@
 (define (err msg)
   (printf "ERROR")
   (when (and current-tok-line current-tok-col)
-    (printf (format "[~a:~a]" current-tok-line current-tok-col)))
-  (printf (format " ~a\n" msg))
+    (printf (rkt-format "[~a:~a]" current-tok-line current-tok-col)))
+  (printf (rkt-format " ~a\n" msg))
   (when current-token
     (printf "  (while compiling token '~a')\n" current-token))
   (exit 1))
@@ -982,7 +982,7 @@
 (define compiler-ops (make-hash))
 
 (define (add-compiler-word! name body)
-  (when DEBUG? (pretty-display (format "adding compiler word: '~a' = " name))
+  (when DEBUG? (pretty-display (rkt-format "adding compiler word: '~a' = " name))
         (pretty-display body))
   (hash-set! compiler-words name body))
 
@@ -1016,7 +1016,7 @@
     (compile-constant! n)))
 
 (define (exec-compiler-word word)
-  (when DEBUG? (pretty-display (format "Execing compiler word ~a" word)))
+  (when DEBUG? (pretty-display (rkt-format "Execing compiler word ~a" word)))
   (let ((body (hash-ref compiler-words word)))
     (define i false)
     (define (exec-body body)
@@ -1040,7 +1040,7 @@
           (x false))
      ;; Allow redefinition of compiler words
      ;;  (when (hash-has-key? compiler-words word)
-     ;;    (err (format "redefinition of compiler word '~a' in node ~a"
+     ;;    (err (rkt-format "redefinition of compiler word '~a' in node ~a"
      ;;                   word current-node-coord)))
      (define (read-body)
        (set! tok (read-tok-name))
@@ -1050,7 +1050,7 @@
                ;;TODO:DOING: doe snot  recognize 'lit' is it defined? are hte string key comparison working?
                ((hash-has-key? compiler-ops tok)
                 (set! body (cons tok body)))
-               (else (err (format "Unsupported compiler word op: ~a" tok))))
+               (else (err (rkt-format "Unsupported compiler word op: ~a" tok))))
          (read-body)))
      (read-body)
      (add-compiler-word! name (reverse body)))))
@@ -1063,13 +1063,13 @@
     (if (number? word)
         (display word)
         (when (< n 4)
-          (display (format "~a " (vector-ref word n)))
+          (display (rkt-format "~a " (vector-ref word n)))
           (display-word word (add1 n)))))
 
   (define (display-mem mem (index 0))
     (let ((word (vector-ref mem index)))
       (unless (equal? word (vector false false false false))
-        (display (format "~a    " index))
+        (display (rkt-format "~a    " index))
         (display-word word)
         (newline)
         (when (< index num-words)
@@ -1077,7 +1077,7 @@
 
   (define (display-node nodes)
     (unless (null? nodes)
-      (pretty-display (format "\nnode ~a" (node-coord (car nodes))))
+      (pretty-display (rkt-format "\nnode ~a" (node-coord (car nodes))))
       (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
   (display-node (compiled-nodes compiled)))
