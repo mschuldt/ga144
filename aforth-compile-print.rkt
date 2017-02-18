@@ -62,7 +62,7 @@
                                         (vector-ref mem i))))))))
 
 
-(define (print-json input-file [bootstream-type false] [symbols? false])
+(define (print-json input-file (bootstream-type false) (symbols? false))
   (define compiled (aforth-compile (file->string input-file)))
   (define compiled-json (compiled->json compiled))
   (define boot-descriptors-json (boot-descriptors->json compiled))
@@ -101,7 +101,7 @@
   (printf "Total: ~a nodes, ~a words, ~a%\n"
           (length (compiled-nodes compiled)) total (percent total (* 64 144))))
 
-(define (print-pretty input-file [hex? false])
+(define (print-pretty input-file (hex? false))
   (define compiled (aforth-compile (file->string input-file)))
   (define compiled-hash (make-hash))
   (for ((node (compiled-nodes compiled)))
@@ -115,10 +115,10 @@
   (define name false)
 
 
-  (define (pad-print thing [pad 20])
+  (define (pad-print thing (pad 20))
     (let* ((s (format "~a" thing))
            (len (string-length s))
-           (str (string-append s (make-string (- pad len) #\ ))))
+           (str (string-append s (make-string (- pad len) _char-space))))
       (printf str)))
 
   (define (make-pretty thing)

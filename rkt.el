@@ -318,6 +318,7 @@
 (setq _char-close-paren ?\))
 (setq _char-newline ?\n)
 (setq _char-& ?&)
+(setq _char-space ?\ )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; numbers
@@ -331,6 +332,7 @@
 (defsubst quotient (n m) (floor (/ n m)))
 (defalias 'remainder '%)
 (defalias 'modulo 'remainder)
+(defalias 'exact->inexact 'identity)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions

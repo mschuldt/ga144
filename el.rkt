@@ -63,6 +63,7 @@
 (define _char-close-paren #\))
 (define _char-newline  #\newline)
 (define _char-& #\&)
+(define _char-space #\ )
 
 (define (_def syms) 0)
 
