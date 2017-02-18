@@ -476,7 +476,9 @@
   ;; incomplete but good enough!
   (dolist (x '(("~~" . "~")
                ("%" . "%%")
-               ("~a" . "%s")))
+               ("~a" . "%s")
+               ("~x" . "%x")
+               ))
     (setq fmt (replace-regexp-in-string (regexp-quote (car x)) (cdr x) fmt)))
   (apply 'format fmt args))
 
