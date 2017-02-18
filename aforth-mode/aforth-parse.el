@@ -237,3 +237,4 @@
       (aforth-parse-region (point-min) (point-max)))))
 
 (provide 'aforth-parse)
+(require 'aforth-mode)
