@@ -1,5 +1,8 @@
 (setq debug-on-error t)
 
+(require 'profiler)
+(profiler-start 'cpu)
+
 (add-to-list 'load-path "~/a/projects/ga144/aforth-mode") ;;TODO: remove
 (add-to-list 'load-path "~/a/projects/ga144/")
 
@@ -49,5 +52,10 @@
   (if pretty?
       (print-pretty in-file hex?)
     (print-json in-file bootstream-type symbols?)))
+
+
+;; view profile with M-x profiler-find-profile
+(profiler-report)
+(profiler-report-write-profile "profile")
 
 (kill-emacs 0)
