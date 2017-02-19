@@ -3,3 +3,5 @@ test-out/
 compiled/
 TAGS
 _*
+*.elc
+*~
