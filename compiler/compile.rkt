@@ -216,7 +216,6 @@
       (address-cell-val addr)
       addr))
 
-
 (define (instruction? token)
   (set-member? opcode-set token))
 
@@ -271,16 +270,12 @@
   (define-named-addresses!))
 
 (define (read-tok)
+  (assert (not elisp?))
   (if (null? current-token-list)
       false
       (let ((token (car current-token-list)))
         (set! current-token-list (cdr current-token-list))
         (when token
-          (when elisp?
-            ;; translate elisp struct to racket style struct used for compilation - TODO: remove the need to do this
-            (setq token (token (aforth-token-value token)
-                               (aforth-token-start token)
-                               (aforth-token-end token))))
           (set! prev-current-tok-line current-tok-line)
           (set! prev-current-tok-col current-tok-col)
           (set! current-tok-line (token-line token))
@@ -288,6 +283,7 @@
         token)))
 
 (define (unread-tok tok)
+  (assert (not elisp?))
   (set! current-token-list (cons (token tok current-tok-line current-tok-col)
                                  current-token-list))
   (set! current-tok-line prev-current-tok-line)
@@ -370,7 +366,9 @@
       (if (and next (equal? next ";"))
           (add-to-next-slot "jump")
           (begin (add-to-next-slot "call")
-                 (and next (unread-tok next))))))
+                 (when next
+                   (if elisp? (unread-last-tok)
+                       (unread-tok next)))))))
   (let* ((compiler-word-p (compiler-word? word))
          (addr (and (not compiler-word-p)
                     (or address (get-word-address word))))
@@ -397,7 +395,6 @@
               (add-to-next-slot cell)
               (unless (= current-slot 0)
                 (goto-next-word)))))))
-
 ;;TODO:
 ;; support for calling remote words in nodes that are defined later in the program
 
@@ -940,7 +937,7 @@ effect as though a program had executed code 30 20 10"
  "const"
  nil
  (lambda ()
-   (err "'const' directive is deprecated")
+   ;; (err "'const' directive is deprecated") ;;TODO: remove tests
    (define (read-apply-op name op-name)
      (define op (hash-ref const-ops op-name))
      (define left-tok (read-tok-name))

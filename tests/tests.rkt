@@ -3,7 +3,8 @@
 (require compatibility/defmacro
          "../interpreter/interpreter.rkt"
          "../common.rkt"
-         "../interpreter/stack.rkt")
+         "../interpreter/stack.rkt"
+         "../el.rkt")
 
 (define (18bit n)
   (if (number? n)

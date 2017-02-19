@@ -74,6 +74,7 @@
 (define aforth-token-value true)
 (define aforth-token-start true)
 (define aforth-token-end true)
+(define aforth-token-type true)
 (define subseq true)
 (define funcall true)
 (define require true)
@@ -81,5 +82,7 @@
 (define insert true)
 (define write-file true)
 (define message true)
+(define concat true)
+(define unread-last-tok true)
 
 (define rkt-format format)
