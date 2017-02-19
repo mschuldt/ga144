@@ -496,22 +496,47 @@
 (defun all-defined-out () nil)
 
 (defun rkt-load (file)
-  (let ((lexical-binding t)
-        (racket? nil)
-        (elisp? t)
-        (compatibility/defmacro nil)) ;; to prevent void-variable errors
+  (let* ((lexical-binding t)
+         (racket? nil)
+         (elisp? t)
+         (compatibility/defmacro nil) ;; to prevent void-variable errors
+         (compiled-filename (concat file ".elc"))
+         (use-byte-compiled (file-exists-p compiled-filename)))
+
     (with-temp-buffer
-      (insert-file-contents-literally file)
       (setq lexical-binding t)
       (setq buffer-file-name file)
-      (goto-char (point-min))
-      (forward-line) ;; skip  #lang ...
+      (unless use-byte-compiled
+        (insert-file-contents-literally file)
+        (goto-char (point-min))
+        (forward-line)) ;; skip  #lang ...
       (flet ((require (&rest files) (rkt-require files))
              (provide (&rest syms) nil))
         (condition-case err
-            (eval-region (point) (point-max))
+            (if use-byte-compiled
+                (load-file compiled-filename)
+              (eval-region (point) (point-max)))
           (error (message (format "rkt-load error. file='%s', error=%s" file err)))))
       (setq buffer-file-name nil)
+      )))
+
+(defun rkt-byte-compile (file)
+  (let ((lexical-binding t)
+        (racket? nil)
+        (elisp? t)
+        (compatibility/defmacro nil) ;; to prevent void-variable errors
+        (compiled-filename (concat file ".el")))
+
+    (with-temp-buffer
+      (insert-file-contents-literally file)
+      (setq lexical-binding t)
+      (goto-char (point-min))
+      (kill-line)
+      (flet ((require (&rest files) nil) ;;TODO: have require recursively byte compile
+             (provide (&rest syms) nil))
+        (write-file compiled-filename)
+        (byte-compile-file compiled-filename)
+        (delete-file compiled-filename))
       )))
 
 (defun rkt-require (files)
@@ -551,4 +576,3 @@
       (setq standard-output prev-output))))
 
 (provide 'rkt)
-
