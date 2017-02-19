@@ -14,6 +14,7 @@
 (setq in-file nil)
 (setq byte-compile? nil)
 (setq profile? nil)
+(setq create-docs? nil)
 
 (require 'arg-parser)
 
@@ -33,6 +34,8 @@
                (setq byte-compile? t))
               (("--profile") nil "save cpu profile data in file INFILE_profile"
                (setq profile? t))
+              (("--create-docs") nil "generate documentation"
+               (setq create-docs? t))
               (position (file) "aforth file"
                         (setq in-file file))
               )
@@ -60,6 +63,11 @@
   (dolist (file (set->list rkt-loaded-files))
     (rkt-byte-compile (expand-file-name file)))
   (message "byte-compile time: %s" (float-time (time-since _start-time)))
+  (exit))
+
+(when create-docs?
+  (require 'vc-git)
+  (write-directive-docs "compiler-directives")
   (exit))
 
 (progn ;;for .rkt compatibility
