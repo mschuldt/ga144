@@ -519,7 +519,7 @@
                (provide (&rest syms) nil))
           (condition-case err
               (if use-byte-compiled
-                  (load-file compiled-filename)
+                  (load (expand-file-name compiled-filename) nil t)
                 (eval-region (point) (point-max)))
             (error (message (format "rkt-load error. file='%s', error=%s" file err)))))
         (setq buffer-file-name nil)
