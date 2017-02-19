@@ -258,6 +258,7 @@
                (push (cons k v) ret))
              hash)))
 
+(require 'subr-x)
 (defalias 'hash-values 'hash-table-values)
 (defalias 'hash-keys 'hash-table-keys)
 
