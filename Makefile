@@ -7,7 +7,7 @@ compiler: compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt com
 interpreter: interpreter/interpreter.rkt interpreter/stack.rkt interpreter/ga144.rkt interpreter/f18a.rkt
 	raco make interpreter/interpreter.rkt interpreter/stack.rkt interpreter/ga144.rkt interpreter/f18a.rkt
 
-tests: tests//tests.rkt
+tests: tests/tests.rkt
 	raco make tests/tests.rkt
 
 .PHONY: clean check
