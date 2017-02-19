@@ -45,7 +45,7 @@
 (require 'cl)
 (put 'flet 'byte-obsolete-info nil) ;;prevent message "‘flet’ is an obsolete macro.."
 (require 'rkt)
-(rkt-require "aforth-compile-print.rkt")
+(rkt-require "ga-compile-print.rkt")
 (require 'aforth-compile)
 (require 'ga144-load)
 

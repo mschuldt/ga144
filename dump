@@ -2,7 +2,7 @@
 ;; -*- scheme  -*-
 #lang racket
 
-(require "aforth-compile-print.rkt"
+(require "ga-compile-print.rkt"
          "el.rkt")
 
 (define bootstream-type (make-parameter false))
