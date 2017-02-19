@@ -547,28 +547,30 @@
 
 (op-doc ")" "End comment")
 
-(add-directive!
- ":"
- "Begin word definition"
- (lambda ()
-   (fill-rest-with-nops)
-   (let* ((word (read-tok-name))
-          (address (make-addr current-addr))
-          (waiting-list (get-waiting-list word)))
-     (when waiting-list
-       (for ((cell waiting-list))
-         (set-address-cell-val! cell address))
-       (waiting-clear word))
+(define (start-word-def (word false))
+  (fill-rest-with-nops)
+  (let* ((word (or word (read-tok-name)))
+         (address (make-addr current-addr))
+         (waiting-list (get-waiting-list word)))
+    (when waiting-list
+      (for ((cell waiting-list))
+        (set-address-cell-val! cell address))
+      (waiting-clear word))
 
-     (when (hash-has-key? words word)
-       (err (rkt-format "redefinition of word '~a' in node ~a"
-                        word current-node-coord)))
-     (when (equal? word "main")
-       (if (node-p current-node)
-           (err (rkt-format "use of /p overrides 'main' in node ~a\n"
-                            current-node-coord))
-           (set-node-p! current-node (make-addr current-addr))))
-     (add-word! word address))))
+    (when (hash-has-key? words word)
+      (err (rkt-format "redefinition of word '~a' in node ~a"
+                       word current-node-coord)))
+    (when (equal? word "main")
+      (if (node-p current-node)
+          (err (rkt-format "use of /p overrides 'main' in node ~a\n"
+                           current-node-coord))
+          (set-node-p! current-node (make-addr current-addr))))
+    (add-word! word address)))
+(when elisp?
+  (setq start-word-def 'start-word-def))
+
+(add-directive! ":" "Begin word definition" start-word-def)
+(add-directive! 'word-def nil start-word-def)
 
 (add-directive!
  ".."
@@ -1057,32 +1059,38 @@ effect as though a program had executed code 30 20 10"
 (define (compiler-word? word)
   (hash-has-key? compiler-words word))
 
+
+(define (start-compiler-word-def (name false))
+  (let* ((name (or name (read-tok-name)))
+         (body '())
+         (tok false)
+         (x false))
+    ;; Allow redefinition of compiler words
+    ;;  (when (hash-has-key? compiler-words word)
+    ;;    (err (rkt-format "redefinition of compiler word '~a' in node ~a"
+    ;;                   word current-node-coord)))
+    (define (read-body)
+      (set! tok (read-tok-name))
+      (unless (equal? tok ";")
+        (cond ((setq x (parse-num tok))
+               (set! body (cons x body)))
+              ;;TODO:DOING: doe snot  recognize 'lit' is it defined? are hte string key comparison working?
+              ((hash-has-key? compiler-ops tok)
+               (set! body (cons tok body)))
+              (else (err (rkt-format "Unsupported compiler word op: ~a" tok))))
+        (read-body)))
+    (read-body)
+    (add-compiler-word! name (reverse body))))
+(when elisp? (setq start-compiler-word-def 'start-compiler-word-def))
+
 (add-directive!
  "::"
  (rkt-format "Define a compiler directive. Words defined with :: with execute immediately during compilation
 Only the following words are supported in the body of a compiler word:
 ~a" (string-join (hash-keys compiler-ops) ", "))
- (lambda ()
-   (let* ((name (read-tok-name))
-          (body '())
-          (tok false)
-          (x false))
-     ;; Allow redefinition of compiler words
-     ;;  (when (hash-has-key? compiler-words word)
-     ;;    (err (rkt-format "redefinition of compiler word '~a' in node ~a"
-     ;;                   word current-node-coord)))
-     (define (read-body)
-       (set! tok (read-tok-name))
-       (unless (equal? tok ";")
-         (cond ((setq x (parse-num tok))
-                (set! body (cons x body)))
-               ;;TODO:DOING: doe snot  recognize 'lit' is it defined? are hte string key comparison working?
-               ((hash-has-key? compiler-ops tok)
-                (set! body (cons tok body)))
-               (else (err (rkt-format "Unsupported compiler word op: ~a" tok))))
-         (read-body)))
-     (read-body)
-     (add-compiler-word! name (reverse body)))))
+ start-compiler-word-def)
+
+(add-directive! 'compile-def nil start-word-def)
 
 (set! _no-compiler-op-def true)
 
