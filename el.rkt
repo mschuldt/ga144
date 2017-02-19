@@ -76,5 +76,10 @@
 (define aforth-token-end true)
 (define subseq true)
 (define funcall true)
+(define require true)
+(define with-temp-buffer true)
+(define insert true)
+(define write-file true)
+(define message true)
 
 (define rkt-format format)

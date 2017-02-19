@@ -1112,3 +1112,19 @@ Only the following words are supported in the body of a compiler word:
       (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
   (display-node (compiled-nodes compiled)))
+
+(define (write-directive-docs filename)
+  ;;TODO
+  (assert elisp?)
+  (with-temp-buffer
+    (for ((doc op-docs))
+      (insert (format "%s\n%s\n\n" (car doc) (cdr doc))))
+    (write-file (concat filename ".txt"))
+
+    )
+  (with-temp-buffer
+    (for ((doc op-docs))
+      (insert (format "* %s\n%s\n" (car doc) (cdr doc))))
+    (write-file (concat filename ".org"))
+    )
+  )
