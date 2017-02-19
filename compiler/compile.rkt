@@ -423,6 +423,12 @@
       (raise (rkt-format "[TODO] reference to undefined word: ~a" word)))
     (compile-constant! addr)))
 
+(define (compile-remote-word-ref! word coord)
+  (let ((addr (get-remote-addr word coord)))
+    (unless addr
+      (raise (rkt-format "reference to undefined word: ~a" word)))
+    (compile-constant! addr)))
+
 (define (fill-rest-with-nops)
   (unless (= current-slot 0)
     (add-to-next-slot ".")
