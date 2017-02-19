@@ -36,11 +36,18 @@
                (setq count? t))
               (("-x" "--hex") nil  "print numbers in hexadecimal format"
                (setq hex? t))
+              (("--byte-compile") nil  "byte compile .rkt files"
+               (setq byte-compile? t))
               (position (file) "aforth file"
                         (setq in-file file))
               )
             (cdddr command-line-args) t)
 
+(when byte-compile?
+  (require 'vc-git) ;; for vc-git-root, because basic-save-buffer calls vc-after-save, but why?
+  (dolist (file (set->list rkt-loaded-files))
+    (rkt-byte-compile (expand-file-name file)))
+  (exit))
 
 (progn ;;for .rkt compatibility
   (defun bootstream-type () bootstream-type)
