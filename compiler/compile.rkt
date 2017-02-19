@@ -1,4 +1,4 @@
-#lang racket ;; -*- lexical-binding: t -*-
+#lang racket ;; -*- lexical-binding: t  -*-
 
 ;;references:
 ;; - colorforth blocks 190-192,1404-1412
@@ -235,8 +235,17 @@
 
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
-(define (add-directive! name code)
+
+(define op-docs '())
+
+(define (op-doc name doc)
+  (set! op-docs (cons (cons name doc) op-docs)))
+
+(define (add-directive! name doc code)
+  (when doc
+    (op-doc name doc))
   (hash-set! directives name code))
+
 (define (get-directive name)
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
@@ -525,17 +534,22 @@
 
 (add-directive!
  eof
+ nil
  (lambda ()
    (fill-rest-with-nops)))
 
 (add-directive!
  "("
+ "Start comment"
  (lambda ()
    (while (not (equal? (forth-read-char) _char-close-paren))
      false)))
 
+(op-doc ")" "End comment")
+
 (add-directive!
  ":"
+ "Begin word definition"
  (lambda ()
    (fill-rest-with-nops)
    (let* ((word (read-tok-name))
@@ -556,14 +570,14 @@
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
-
-;;forces word alignment
 (add-directive!
  ".."
+ "forces word alignment"
  (lambda () (fill-rest-with-nops)))
 
 (add-directive! ;; page 23 of arrayforth users manual DB004
  ","
+ "compile word literal" ;;TODO
  (lambda ()
    (let* ((token (read-tok-name))
           (data (parse-num token)))
@@ -590,10 +604,10 @@
   (set! current-node-consts (node-consts current-node))
   (org 0))
 
-;;node (nn)
-;;starts compilation for the given node with number in yyxx notation
+
 (add-directive!
  "node"
+ "(nn) starts compilation for the given node with number in yyxx notation"
  (lambda ()
    (define coord (read-tok-name))
    ;;TODO: validate coord
@@ -602,20 +616,18 @@
        (start-new-node x)
        (err (rkt-format "invalid node number: ~a" x)))))
 
-;;+cy
-;;forces word alignment then turns P9 on in the location counter. Places in memory
-;;subsequently defined will be run in Extended Arithmetic Mode if reached by
-;;jump, call, execute or return to those places.
 (add-directive!
  "+cy"
+"forces word alignment then turns P9 on in the location counter. Places in memory
+subsequently defined will be run in Extended Arithmetic Mode if reached by
+jump, call, execute or return to those places."
  (lambda ()
    (fill-rest-with-nops)
    (set! extended-arith #x200)))
 
-;;-cy
-;;forces word alignment then turns P9 off in the location counter
 (add-directive!
  "-cy"
+ "forces word alignment then turns P9 off in the location counter"
  (lambda ()
    (fill-rest-with-nops)
    (set! extended-arith 0)))
@@ -625,22 +637,26 @@
   (push (make-addr current-addr) stack))
 (when elisp?
   (setq here 'here))
-;;here (-n)
-;;forces word alignment and pushes current aligned location onto compiler stack
-(add-directive! "here" here)
-;;begin (-a)
-;;forces word alignment and saves here to be used as a transfer destination.
-(add-directive! "begin" here)
 
-;;for (-a) (n)
-;;pushes n onto the return stack, forces word alignment and saves 'here' to be
-;;used as a transfer destination by the directive that ends the loop.
-;;There are times when it is useful to decompose this directive's actions so
-;;that the pushing of the loop count and the start of the loop itself may be
-;;separated by such things as initialization code or a word definition. In this
-;;case you may write "push <other things> begin".
+(add-directive!
+ "here"
+ "(-n) forces word alignment and pushes current aligned location onto compiler stack"
+ here)
+
+(add-directive!
+ "begin"
+ "(-a) forces word alignment and saves here to be used as a transfer destination."
+ here)
+
 (add-directive!
  "for"
+"for (-a) (n)
+pushes n onto the return stack, forces word alignment and saves 'here' to be
+used as a transfer destination by the directive that ends the loop.
+There are times when it is useful to decompose this directive's actions so
+that the pushing of the loop count and the start of the loop itself may be
+separated by such things as initialization code or a word definition. In this
+case you may write 'push <other things> begin'"
  (lambda ()
    (compile-instruction! "push")
    (here)))
@@ -654,37 +670,45 @@
     (unless (= current-slot 0)
       (goto-next-word))))
 
-;;next (a)
-;;ends a loop with conditional transfer to the address a. If R is zero when next
-;;is executed, the return stack is popped and program flow continues. Otherwise
-;;R is decremented by one and control is transferred to a.
-(add-directive! "next" (lambda () (compile-next-type "next")))
-;; end (a)
-;; unconditionally jumps to a
-(add-directive! "end" (lambda () (compile-next-type "jump")))
-;;until (a)
-;;If T is nonzero, program flow continues; otherwise jumps to a.
-;;Typically used as a conditional exit at the end of a loop.
-(add-directive! "until" (lambda () (compile-next-type "if")))
-;;-until (a)
-;;If T is negative, program flow continues; otherwise jumps to a. Used like 'until'
-(add-directive! "-until" (lambda () (compile-next-type "-if")))
+(add-directive!
+ "next"
+ "(a) ends a loop with conditional transfer to the address a. If R is zero when next
+is executed, the return stack is popped and program flow continues. Otherwise
+R is decremented by one and control is transferred to a."
+ (lambda () (compile-next-type "next")))
 
-;;unext (a)
-;;ends a micronext loop. Since the loop occurs entirely within a single
-;;instruction word, the address is superfluous; it is present only so that the
-;;form "<n> for ... unext" may be written. The micronext opcode may be compiled
-;;into any of the four slots.
+(add-directive!
+ "end"
+ "(a) unconditionally jumps to a"
+ (lambda () (compile-next-type "jump")))
+
+
+(add-directive!
+ "until"
+ "(a) If T is nonzero, program flow continues; otherwise jumps to a.
+Typically used as a conditional exit at the end of a loop."
+ (lambda () (compile-next-type "if")))
+
+(add-directive!
+ "-until"
+ "(a) If T is negative, program flow continues; otherwise jumps to a. Used like 'until'"
+ (lambda () (compile-next-type "-if")))
+
+
 (add-directive!
  "unext"
+ "(a) ends a micronext loop. Since the loop occurs entirely within a single
+instruction word, the address is superfluous; it is present only so that the
+form \"<n> for ... unext\" may be written. The micronext opcode may be compiled
+into any of the four slots."
  (lambda ()
    (compile-instruction! "unext")
    (pop stack)))
 
-;;*next (ax-x)
-;;equivalent to 'swap next'
+
 (add-directive!
  "*next"
+ "(ax-x) equivalent to 'swap next'"
  (lambda ()
    (swap stack)
    (compile-next-type "next")))
@@ -703,35 +727,36 @@
   (compile-if-instruction "if"))
 (when elisp? (setq if-directive 'if-directive))
 
-(add-directive! "if" if-directive)
+(add-directive!
+ "if"
+ nil ;;TODO:
+ if-directive)
 
 (define (-if-directive)
   (compile-if-instruction "-if"))
 (when elisp? (setq -if-directive '-if-directive))
 
-;;if (-r)
-;;If T is negative, program flow continues; otherwise jumps to matching 'then'
-(add-directive! "-if" -if-directive)
+(add-directive!
+ "-if"
+ "(-r) If T is negative, program flow continues; otherwise jumps to matching 'then'"
+ -if-directive)
 
-;;zif (-r)
-;;If R is zero, pops the return stack and program flow continues;
-;;otherwise decrements R and jumps to matching 'then'
 (add-directive!
  "zif"
+ "(-r) If R is zero, pops the return stack and program flow continues;
+otherwise decrements R and jumps to matching 'then'"
  (lambda ()
    (compile-if-instruction "next")))
 
-;;ahead (-r)
-;;jumps to matching 'then'
 (add-directive!
  "ahead"
+ "(-r) jumps to matching 'then'"
  (lambda ()
    (compile-if-instruction "jump")))
 
-;;leap (-r)
-;;compiles a call to matching 'then'
 (add-directive!
  "leap"
+ "(-r) compiles a call to matching 'then'"
  (lambda ()
    (compile-if-instruction "call")))
 
@@ -759,45 +784,42 @@
                          "is full")
                      word)))))
 
-;;then (r)
-;;forces word alignment and resolves a forward transfer.
 (add-directive!
  "then"
+ "(r) forces word alignment and resolves a forward transfer."
  (lambda ()
    (fill-rest-with-nops)
    (add-to-slot (pop stack) (make-new-address-cell current-addr "then"))))
 
-;;org (n)
-;;sets the compiler's location counter to a given address at
-;;which following code will be compiled into
 (add-directive!
  "org"
+ "(n) sets the compiler's location counter to a given address at
+which following code will be compiled into"
  (lambda ()
    (let ((n (parse-num (read-tok-name))))
      ;;TODO: validate n
      (unless n (err "invalid address for 'org'"))
      (org n))))
 
-;;while (x-rx)
-;;equivalent to 'if swap'. Typically used as a conditional exit from within a loop
 (add-directive!
  "while"
+ "(x-rx) equivalent to 'if swap'. Typically used as a conditional exit from within a loop"
  (lambda ()
    (if-directive)
    (swap stack)))
 
-;;-while (x-rx)
-;;equivalent to '-if swap'. Typically used as a conditional exit from within a loop
 (add-directive!
  "-while"
+ "(x-rx) equivalent to '-if swap'. Typically used as a conditional exit from within a loop"
  (lambda ()
    (-if-directive)
    (swap stack)))
 
-;;' (-a)
-;;(tick) places the address of an F18 red word on the compiler's stack.
+
 (add-directive!
- "`"
+ "`"  ;;TODO:
+ "' (-a)
+(tick) places the address of an F18 red word on the compiler's stack."
  (lambda ()
    (let* ((word (read-tok-name))
           (addr (get-word-address word)))
@@ -819,42 +841,39 @@
       (raise (rkt-format "unknown address for compiler directive '~a': ~a" name n)))
     (set-fn current-node addr)))
 
-;; /b (a)
-;; Specifies an initial value for register B.
-;; Default value is the address of the IO register, as at reset.
 (add-directive!
  "/b"
+ "(a) Specifies an initial value for register B.
+Default value is the address of the IO register, as at reset."
  (lambda ()
    (set-register-helper "/b" set-node-b!)))
-;; /a (n)
-;; Specifies an initial value for register A.
-;; Default value is unspecified, as at reset.
+
 (add-directive!
  "/a"
+ "(n) Specifies an initial value for register A.
+Default value is unspecified, as at reset."
  (lambda ()
    (set-register-helper "/a" set-node-a!)))
 
-;;/io (n)
-;;Specifies a value to be loaded into the IO register.
 (add-directive!
  "/io"
+ "(n) Specifies a value to be loaded into the IO register."
  (lambda ()
    (set-register-helper "/io" set-node-io!)))
 
-;;/p (a)
-;;Specifies an initial value for register P. Default value is xA9 which is
-;;the routine warm in every node's ROM.
 (add-directive!
  "/p"
+ "(a) Specifies an initial value for register P. Default value is xA9 which is
+the routine warm in every node's ROM."
  (lambda ()
    (set-register-helper "/p" set-node-p!)))
 
-;; /stack n <n values>
-;; Specifies up to ten values to be pushed onto the data stack, with the
-;; rightmost value on top. For example 30 20 10 3 /stack produces the same
-;; effect as though a program had executed code 30 20 10
 (add-directive!
  "/stack"
+ "/stack n <n values>
+Specifies up to ten values to be pushed onto the data stack, with the
+rightmost value on top. For example 30 20 10 3 /stack produces the same
+effect as though a program had executed code 30 20 10"
  (lambda ()
    (let* ((tok (read-tok-name))
           (len (and tok (string->number tok)))
@@ -878,6 +897,7 @@
 
 (add-directive!
  "swap!"
+ nil ;;TODO
  (lambda ()
    (swap stack)))
 
@@ -910,7 +930,9 @@
 
 (add-directive!
  "const"
+ nil
  (lambda ()
+   (err "'const' directive is deprecated")
    (define (read-apply-op name op-name)
      (define op (hash-ref const-ops op-name))
      (define left-tok (read-tok-name))
@@ -932,10 +954,9 @@
           (read-apply-op name op))
          (else (err (rkt-format "invalid const op type: '~a'" op))))))
 
-
-;; ' (-a) (tick) places the address of an F18 red word on the compiler's stack.
 (add-directive!
  "'"
+ "' (-a) (tick) places the address of an F18 red word on the compiler's stack."
  (lambda ()
    (define word (read-tok-name))
    (define addr (get-word-address word))
@@ -949,6 +970,7 @@
 (for ((dir (list "north" "south" "east" "west")))
   (add-directive!
    dir
+   "address for the left/right/up/down directional port"
    ((lambda (dir)
       (lambda () (let ((d (get-directive (convert-direction current-node-coord dir))))
                    (assert d)
@@ -961,6 +983,7 @@
   (for ((addr named-addresses))
     (add-directive!
      (car addr)
+     (format "Compile the address for the ~a port" (car addr))
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
 
 
@@ -986,7 +1009,10 @@
         (pretty-display body))
   (hash-set! compiler-words name body))
 
+(define _no-compiler-op-def false)
+
 (define (def-compiler-op! name fn)
+  (assert (not _no-compiler-op-def))
   (hash-set! compiler-ops name fn))
 
 (define (compiler-binop op)
@@ -1033,6 +1059,9 @@
 
 (add-directive!
  "::"
+ (rkt-format "Define a compiler directive. Words defined with :: with execute immediately during compilation
+Only the following words are supported in the body of a compiler word:
+~a" (string-join (hash-keys compiler-ops) ", "))
  (lambda ()
    (let* ((name (read-tok-name))
           (body '())
@@ -1054,6 +1083,8 @@
          (read-body)))
      (read-body)
      (add-compiler-word! name (reverse body)))))
+
+(set! _no-compiler-op-def true)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
