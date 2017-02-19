@@ -100,7 +100,7 @@
 
 (define (aforth-compile-file file)
   (call-with-input-file file aforth-compile)
-)
+  )
 
 (define (reorder-with-fallthrough words)
   (define fallthroughs (make-hash))
@@ -408,7 +408,7 @@
       (if (hash-has-key? words word)
           (hash-ref words word)
           (err (rkt-format "remote word not found: ~a@~a (called from node ~a)"
-                       word coord current-node-coord)))
+                           word coord current-node-coord)))
       (err (rkt-format "can't find dictionary for node: ~a" coord))))
 
 (define (compile-remote-call! word coord)
@@ -452,7 +452,7 @@
                      (not (address-cell-val slot))
                      (address-cell-name slot))
             (err (rkt-format "Undefined word: '~a' in node ~a" (address-cell-name slot)
-                         (node-coord node)))))))))
+                             (node-coord node)))))))))
 
 (define (remove-address-cells node)
   ;; unwrap mcons address cells
@@ -562,11 +562,11 @@
 
      (when (hash-has-key? words word)
        (err (rkt-format "redefinition of word '~a' in node ~a"
-                    word current-node-coord)))
+                        word current-node-coord)))
      (when (equal? word "main")
        (if (node-p current-node)
            (err (rkt-format "use of /p overrides 'main' in node ~a\n"
-                        current-node-coord))
+                            current-node-coord))
            (set-node-p! current-node (make-addr current-addr))))
      (add-word! word address))))
 
@@ -618,7 +618,7 @@
 
 (add-directive!
  "+cy"
-"forces word alignment then turns P9 on in the location counter. Places in memory
+ "forces word alignment then turns P9 on in the location counter. Places in memory
 subsequently defined will be run in Extended Arithmetic Mode if reached by
 jump, call, execute or return to those places."
  (lambda ()
@@ -650,7 +650,7 @@ jump, call, execute or return to those places."
 
 (add-directive!
  "for"
-"for (-a) (n)
+ "for (-a) (n)
 pushes n onto the return stack, forces word alignment and saves 'here' to be
 used as a transfer destination by the directive that ends the loop.
 There are times when it is useful to decompose this directive's actions so
@@ -778,11 +778,11 @@ otherwise decrements R and jumps to matching 'then'"
             (err (rkt-format "'~a' cannot fit into slot ~a" thing last))
             (vector-set! word last thing))
         (err (rkt-format "add-to-slot -- slot ~a ~a: ~a"
-                     slot
-                     (if (vector? word)
-                         "is not an instruction word"
-                         "is full")
-                     word)))))
+                         slot
+                         (if (vector? word)
+                             "is not an instruction word"
+                             "is full")
+                         word)))))
 
 (add-directive!
  "then"
