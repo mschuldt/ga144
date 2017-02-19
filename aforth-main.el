@@ -1,4 +1,5 @@
 (setq debug-on-error t)
+(setq load-start-time (current-time))
 
 (require 'profiler)
 (profiler-start 'cpu)
@@ -23,6 +24,7 @@
 (setq count? nil)
 (setq hex? nil)
 (setq in-file nil)
+(setq byte-compile? nil)
 
 (parse-args '((("-b" "--bootstream") nil "include bootstream"
                (setq bootstream? t))
@@ -43,10 +45,14 @@
               )
             (cdddr command-line-args) t)
 
+(message "load time: %s" (float-time (time-since load-start-time)))
+
 (when byte-compile?
+  (setq _start-time (current-time))
   (require 'vc-git) ;; for vc-git-root, because basic-save-buffer calls vc-after-save, but why?
   (dolist (file (set->list rkt-loaded-files))
     (rkt-byte-compile (expand-file-name file)))
+  (message "byte-compile time: %s" (float-time (time-since _start-time)))
   (exit))
 
 (progn ;;for .rkt compatibility
@@ -54,12 +60,15 @@
   (defun symbols? () symbols?)
   (defun hex? () hex?))
 
+(setq _start-time (current-time))
+
 (if count?
     (print-count in-file)
   (if pretty?
       (print-pretty in-file hex?)
     (print-json in-file bootstream-type symbols?)))
 
+(message "compile time: %s" (float-time (time-since _start-time)))
 
 ;; view profile with M-x profiler-find-profile
 (profiler-report)
