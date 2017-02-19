@@ -499,8 +499,9 @@
 (setq rkt-loaded-files (make-set))
 
 (defun rkt-load (file)
-  (unless (set-member? rkt-loaded-files file)
-    (set-add rkt-loaded-files file)
+  ;; use file-name-nondirectory to avoid .. in directory names producing different paths
+  (unless (set-member? rkt-loaded-files (file-name-nondirectory file))
+    (set-add rkt-loaded-files (file-name-nondirectory file))
 
     (let* ((lexical-binding t)
            (racket? nil)
