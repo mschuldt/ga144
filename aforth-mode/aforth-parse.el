@@ -161,13 +161,16 @@
                  (string-match "^\\([0-9]+\\)$" val))
              (push (aforth-set-token token 'number (string-to-number (match-string 1 val)) nil start end)
                    out))
+
+            ((or (set-member? aforth-directive-map val)
+                 (set-member? aforth-port-map val)
+                 (equal val "next"))
+             (push (aforth-set-token token 'directive val nil start end)
+                   out))
+
             ((set-member? aforth-instruction-map val)
              (push token out))
 
-            ((or (set-member? aforth-directive-map val)
-                 (set-member? aforth-port-map val))
-             (push (aforth-set-token token 'directive val nil start end)
-                   out))
             ((set-member? boot-descriptors-map val)
              (push (aforth-set-token token 'boot-descriptor val nil start end)
                    out))
