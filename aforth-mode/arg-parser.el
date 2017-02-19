@@ -1,7 +1,4 @@
 (defun verify-commandline-spec (spec)
-  ;;TODO: structure as a list of predicate functions that are called, returning a string error or nil for ok
-  ;;     while there is no error keep calling the next function on the next list item
-  ;;    if there is an error print the useage and exist
   (let ((spec-checkers '((lambda (x) (unless (eq x 'position)
                                        (let (ret)
                                          (dolist (name x)
@@ -26,15 +23,6 @@
         (setq error-str (funcall fn item))))
     (when error-str
       (error "command-line option spec error: '%s', form='%s" error-str current-form))))
-
-(defun create-help-msg (spec)
-  (let (short)
-    (dolist (s spec)
-      (if (eq (car s) 'position)
-          (setq short (cons (symbol-name (caadr s)) short))
-        (setq short (cons (caar s) short))))
-    ;;TODO: optional types, dipslay long version
-    (mapconcat 'identity (nreverse short) " ")))
 
 (defmacro popn (lst n)
   "remove and return the first N items of list LST as a list"
@@ -80,23 +68,5 @@
             (funcall fn a)
           (error "unexpected positional arg: %s" a)))
       )))
-
-(when nil
-  (let ((spec '((("-a" "--aa") (a) "aaa" (setq A a))
-                (("-b" "--bb") nil "bbb" (setq B t))
-                (position (x) "ccc" (setq C x))
-                (("-d" "--dd") (x y) "ddd" (setq D (cons x y)))
-                (position (x) "eee" (setq E x))))
-        args '( ( ("1" "2")
-                  . (nil nil "1" (nil . nil) "2" ) )
-                
-                )
-        A B C D E command-line-args args)
-    
-    (dolist (x args)
-      (setq command-line-args (car x)
-            expect (cdr x))
-      (parse-args spec)
-      (assert (equal (list A B C D E) expect)))))
 
 (provide 'arg-parser)
