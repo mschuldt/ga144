@@ -17,7 +17,9 @@
   ;;If the slot contains false, as unused slots do, return 0
   (let ((inst (vector-ref word slot)))
     (if (string? inst)
-        (begin (assert (vector-member inst opcodes))
+        (begin (unless (vector-member inst opcodes)
+                 (printf "attempt to assemble invalid opcode: '~a'\n" inst)
+                 (exit 1))
                (arithmetic-shift (xor-inst (floor (/ (vector-member inst opcodes)
                                                      (if (= slot 3) 4 1)))
                                            slot)
