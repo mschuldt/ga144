@@ -1,3 +1,5 @@
+(require 'cl)
+
 (defun verify-commandline-spec (spec)
   (let ((spec-checkers '((lambda (x) (unless (eq x 'position)
                                        (let (ret)
