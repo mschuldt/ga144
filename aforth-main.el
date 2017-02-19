@@ -1,12 +1,12 @@
 (setq debug-on-error t)
 
-(add-to-list 'load-path "~/a/projects/ga144/aforth-mode")
+(add-to-list 'load-path "~/a/projects/ga144/aforth-mode") ;;TODO: remove
 (add-to-list 'load-path "~/a/projects/ga144/")
 
 (require 'cl)
 (put 'flet 'byte-obsolete-info nil) ;;prevent message "‘flet’ is an obsolete macro.."
 (require 'rkt)
-(rkt-require "../aforth-compile-print.rkt")
+(rkt-require "aforth-compile-print.rkt")
 (require 'aforth-compile)
 (require 'ga144-load)
 (require 'arg-parser)
