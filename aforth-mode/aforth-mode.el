@@ -153,12 +153,9 @@
   (interactive)
   (aforth-back-to-node))
 
-
-
-(defsubst pop! (lst)
-  (prog1 (car lst)
-    (setcar lst (cadr lst))
-    (setcdr lst (cddr lst))))
+(defmacro pop! (lst)
+  `(prog1 (car ,lst)
+     (setq ,lst (cdr ,lst))))
 
 (defun aforth-make-error (message token)
   )
