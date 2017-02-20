@@ -124,7 +124,7 @@
       (string-to-number (match-string 1 val)))))
 
 
-(defun aforth-parse-region (beg end &optional tokens)
+(defun aforth-parse-region (beg end &optional tokens no-comments)
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
   (let ((tokens (or tokens (aforth-toekenize-region beg end)))
         next type out token)
@@ -138,7 +138,8 @@
       (cond ((not (stringp val)) ;;TODO: should not raise an error, only return error objects. otherwise region fontification gets messed up
              (error "expected string for :val field in token: %s" token))
             ((eq type 'comment)
-             (push token out))
+             (unless no-comments
+               (push token out)))
             ((member val '("org" "node"))
              (setq next (pop! tokens))
              (setq a (aforth-parse-number next))
@@ -216,8 +217,8 @@
                      out))))
     (nreverse out)))
 
-(defun aforth-parse-nodes (beg end &optional tokens)
-  (let ((tokens (or tokens (aforth-parse-region beg end)))
+(defun aforth-parse-nodes (beg end &optional tokens no-comments)
+  (let ((tokens (or tokens (aforth-parse-region beg end nil no-comments)))
         nodes current-node current-code type)
     (dolist (token tokens)
       (setq type (aforth-token-type token))

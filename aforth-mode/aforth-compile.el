@@ -12,7 +12,7 @@
 (defun aforth-compile-buffer (&optional buffer)
   (setq buffer (or buffer (current-buffer)))
   (reset!)
-  (dolist (node (aforth-parse-nodes (point-min) (point-max)))
+  (dolist (node (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
     (start-new-node (aforth-node-coord node))
     (setq current-token-list (aforth-node-code node))
     (while current-token-list
