@@ -792,11 +792,16 @@ otherwise decrements R and jumps to matching 'then'"
                              "is full")
                          word)))))
 
+(define (check-stack stack len)
+  (unless (>= (length stack) len)
+    (err "compiler stack underflow.")))
+
 (add-directive!
  "then"
  "(r) forces word alignment and resolves a forward transfer."
  (lambda ()
    (fill-rest-with-nops)
+   (check-stack stack 1)
    (add-to-slot (pop stack) (make-new-address-cell current-addr "then"))))
 
 (define (org-directive (addr false))
