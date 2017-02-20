@@ -74,12 +74,16 @@
                          (token-tok token) current-addr current-slot next-addr))
     (cond ((or (eq token-type 'word-def)
                (eq token-type 'compile-def))
-           (assert (setq func (get-directive token-type)))
+           (setq func (get-directive token-type))
+           (unless func
+             (err (format "Expected directive for: '%s, token=%s'\n" token-type token)))
            (funcall func token-val))
 
           ((or (eq token-type 'directive)
                (eq token-type 'boot-descriptor))
-           (assert (setq func (get-directive token-val)))
+           (setq func (get-directive token-val))
+           (unless func
+             (err (format "Expected directive for: '%s, token=%s'\n" token-val token)))
 	   (unless (listp token-args)
 	     (setq token-args (list token-args)))
            (apply func token-args))
