@@ -14,10 +14,11 @@
 (setq aforth-directive-list '("start" "for" "begin" "then" "here"
                               "while"  "reclaim" "leap"
                               ".." "#swap" "-while" "," "-until"
-                              "---u" "--l-" "--lu" "-d--" "-d-u"
-                              "-dl-" "-dlu" "r---" "r--u" "r-l-"
-                              "r-lu" "rd--" "rd-u" "rdl-" "rdlu"
                               "node" "org" "::"))
+
+(setq io-place-names '("---u" "--l-" "--lu" "-d--" "-d-u"
+                       "-dl-" "-dlu" "r---" "r--u" "r-l-"
+                       "r-lu" "rd--" "rd-u" "rdl-" "rdlu"))
 
 (setq boot-descriptors-list '("/b" "/a" "/io" "/p" "/stack"))
 
@@ -34,7 +35,7 @@
 (setq aforth-port-map (list-to-set aforth-port-list))
 (setq aforth-directive-map (list-to-set aforth-directive-list))
 (setq boot-descriptors-map (list-to-set boot-descriptors-list))
-
+(setq io-place-names-map (list-to-set io-place-names))
 
 (defface aforth-instruction-face '((((background light)) (:foreground "green"))
                                    (((background dark)) (:foreground "green")))
@@ -100,7 +101,9 @@
         ((gethash token aforth-instruction-map) aforth-instruction-face)
         ((gethash token aforth-port-map) aforth-instruction-face)
         ((gethash token aforth-directive-map) aforth-directive-face)
-        ((gethash token boot-descriptors-map) aforth-boot-descriptor-face)
+        ((or (gethash token boot-descriptors-map)
+             (gethash token io-place-names-map))
+         aforth-boot-descriptor-face)
         ((string-match "^\\(\\(0x[0-9a-fA-F]+\\)\\|\\(0b[01]+\\)\\|[0-9]+\\)$" token) aforth-number-face)
         ((string-match "&[a-zA-Z0-9]+" token)  aforth-word-reference-face)
         ;;TODO: <word>@<node> word=white @node=green
