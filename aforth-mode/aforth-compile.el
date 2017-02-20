@@ -80,6 +80,8 @@
           ((or (eq token-type 'directive)
                (eq token-type 'boot-descriptor))
            (assert (setq fn (get-directive token-val)))
+	   (unless (listp token-args)
+	     (setq token-args (list token-args)))
            (apply fn token-args))
 
           ((setq fn (get-directive token-type))

@@ -799,15 +799,19 @@ otherwise decrements R and jumps to matching 'then'"
    (fill-rest-with-nops)
    (add-to-slot (pop stack) (make-new-address-cell current-addr "then"))))
 
+(define (org-directive (addr false))
+  (let ((n (or addr (parse-num (read-tok-name)))))
+    ;;TODO: validate n
+    (unless n (err "invalid address for 'org'"))
+    (org n)))
+
+(when elisp? (setq org-directive 'org-directive))
+
 (add-directive!
  "org"
  "(n) sets the compiler's location counter to a given address at
 which following code will be compiled into"
- (lambda ()
-   (let ((n (parse-num (read-tok-name))))
-     ;;TODO: validate n
-     (unless n (err "invalid address for 'org'"))
-     (org n))))
+ org-directive)
 
 (add-directive!
  "while"
