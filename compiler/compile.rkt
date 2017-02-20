@@ -226,11 +226,14 @@
 
 (define (remote-call? token)
   ;; return (NAME . NODE) for tokens with form "NAME@NODE"
-  (define m (and (string? token)
-                 (regexp-match (regexp "^(.+)@([0-9]+)$") token)))
-  (and m
-       (= (length m) 3)
-       (cons (cadr m) (string->number (caddr m)))))
+  ;; regexp-match is not defined in elisp and remote calls are parsed separately
+  ;; so just return false as a simple workaround
+  (unless elisp?
+    (define m (and (string? token)
+                   (regexp-match (regexp "^(.+)@([0-9]+)$") token)))
+    (and m
+         (= (length m) 3)
+         (cons (cadr m) (string->number (caddr m))))))
 
 ;; compiler directive - words executed at compile time
 (define directives (make-hash));;directive names -> functions
