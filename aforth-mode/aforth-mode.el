@@ -11,14 +11,20 @@
 (setq aforth-port-list '("up" "left" "down" "right" "io"
                          "north" "east" "south" "west"))
 
+;;TODO: this should import the directives collection from compiler.rkt
 (setq aforth-directive-list '("start" "for" "begin" "then" "here"
                               "while"  "reclaim" "leap"
                               ".." "#swap" "-while" "," "-until"
-                              "node" "org" "::"))
+                              "until" "node" "org" "::" "'" "end"
+                              "*next" "zif" "ahead" "swap!"
+                              "right" "down" "left" "up" "io" "ldata"
+                              "data" "warp" "center" "top" "side" "corner"
+                              ))
 
 (setq io-place-names '("---u" "--l-" "--lu" "-d--" "-d-u"
                        "-dl-" "-dlu" "r---" "r--u" "r-l-"
                        "r-lu" "rd--" "rd-u" "rdl-" "rdlu"))
+
 
 (setq boot-descriptors-list '("/b" "/a" "/io" "/p" "/stack"))
 
