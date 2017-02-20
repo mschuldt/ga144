@@ -76,7 +76,7 @@
 (define aforth-token-end true)
 (define aforth-token-type true)
 (define subseq true)
-(define funcall true)
+(define (funcall fn) (fn))
 (define require true)
 (define with-temp-buffer true)
 (define insert true)

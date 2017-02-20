@@ -1068,7 +1068,7 @@ effect as though a program had executed code 30 20 10"
              (set! body (cdr body))
              (if (number? i)
                  (push i stack)
-                 ((hash-ref compiler-ops i)))))
+                 (funcall (hash-ref compiler-ops i)))))
     ))
 
 (define (compiler-word? word)
