@@ -1102,7 +1102,7 @@ Only the following words are supported in the body of a compiler word:
 ~a" (string-join (hash-keys compiler-ops) ", "))
  start-compiler-word-def)
 
-(add-directive! 'compile-def nil start-word-def)
+(add-directive! 'compile-def nil start-compiler-word-def)
 
 (set! _no-compiler-op-def true)
 
