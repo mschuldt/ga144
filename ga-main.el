@@ -15,6 +15,7 @@
 (setq byte-compile? nil)
 (setq profile? nil)
 (setq create-docs? nil)
+(setq test? nil)
 
 (require 'arg-parser)
 
@@ -36,6 +37,8 @@
                (setq profile? t))
               (("--create-docs") nil "generate documentation"
                (setq create-docs? t))
+              (("--test") nil "run tests"
+               (setq test? t))
               (position (file) "aforth file"
                         (setq in-file file))
               )
@@ -54,7 +57,6 @@
 
 (setq racket-script-mode t)
 
-
 (message "load time: %s" (float-time (time-since load-start-time)))
 
 (when byte-compile?
@@ -68,6 +70,13 @@
 (when create-docs?
   (require 'vc-git)
   (write-directive-docs "compiler-directives")
+  (exit))
+
+(when test?
+  (rkt-require "tests/test-compiler.rkt")
+  (message (if (run-compiler-tests)
+               "ok"
+             "fail"))
   (exit))
 
 (progn ;;for .rkt compatibility
