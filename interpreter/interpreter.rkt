@@ -140,7 +140,7 @@
        (hash-set! _commands ,command-name
                   ,(if (> num-params 0)
                        `(lambda (args)
-                          (when DEBUG (printf ,(rkt-format "[[~a]]\n" command-name)))
+                          (when DEBUG (printf ,(format "[[~a]]\n" command-name)))
                           (define (next-arg)
                             (let ((val (car args)))
                               (set! args (cdr args))
