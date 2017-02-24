@@ -17,7 +17,7 @@
 (define (trim-mem mem)
   (map (lambda (x) (if (vector? x) (vector->list x) x))
        (filter (lambda (x) (not (or (equal? x (vector false false false false))
-                                    (equal? x #f))))
+                                    (equal? x false))))
                (vector->list mem))))
 
 
@@ -28,6 +28,7 @@
   (define node false)
   (define expect false)
   (define mem false)
+  (define ok true)
   (for ((test compiler-tests))
     (set! code (car test))
     (assert (string? code))
@@ -41,4 +42,9 @@
       (set! expect (cdr x))
       (set! mem (hash-ref compiled-hash node))
       (when (not (equal? mem expect))
-        (printf "failed '~a', got ~a, expected ~a " code mem expect)))))
+        (printf "failed: '~a'\n" code)
+        (printf "     got: ~a\n" mem)
+        (printf "expected: ~a\n" expect)
+        (set! ok false))))
+  ok)
+
