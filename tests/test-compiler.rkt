@@ -87,4 +87,6 @@
         (set! ok false))))
   ok)
 
-(run-compiler-tests)
+(unless elisp?
+  (printf "running compiler checks...\n")
+  (printf "~a\n" (if (run-compiler-tests) "ok" "failed")))

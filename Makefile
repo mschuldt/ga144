@@ -20,4 +20,5 @@ clean:
 	find . -type f -name "*rkt.elc" -exec rm {} \;
 
 check:
+	racket tests/test-compiler.rkt
 	racket tests/tests.rkt
