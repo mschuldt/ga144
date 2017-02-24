@@ -14,8 +14,17 @@
     ;;("node 1 " (1 ))
     ))
 
+(define (fix-word word)
+  (when  (vector? word)
+    (set! word (vector->list word)))
+
+  (if (list? word)
+      (map (lambda (x) (if (equal? x false) "." x))
+           word)
+      word))
+
 (define (trim-mem mem)
-  (map (lambda (x) (if (vector? x) (vector->list x) x))
+  (map fix-word
        (filter (lambda (x) (not (or (equal? x (vector false false false false))
                                     (equal? x false))))
                (vector->list mem))))
@@ -48,3 +57,4 @@
         (set! ok false))))
   ok)
 
+(run-compiler-tests)
