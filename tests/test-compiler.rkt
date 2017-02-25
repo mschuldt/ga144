@@ -39,6 +39,43 @@
                                      ("call" 373 "." ".")
                                      ("call" 357 "." ".")
                                      ("call" 277 "." ".")))
+    ("node 1 100 0x100 0b101" (1 ("@p" "@p" "@p" ".") 100 256 5))
+    ("node 1 + ( comment ) ( comment) +" (1 ("+" "+" "." ".")))
+    ("node 1 + .. + .  + .. ." (1 ("+" "." "." ".")
+                                  ("+" "." "+" ".")
+                                  ("." "." "." ".")))
+    ("node 1 1 , 2 3" (1 ("@p" "@p" "." ".")
+                         1 2 3))
+    ("node 1 0 2 + + here 5 next" (1 ("@p" "@p" "+" "+")
+                                     0 2
+                                     ("@p" "next" 3 ".") 5))
+    ("node 1 3 for 2/ next + + 3 for dup dup dup dup dup next" (1 ("@p" "push" "." ".")
+                                                                  3
+                                                                  ("2/" "next" 2 ".")
+                                                                  ("+" "+" "@p" ".")
+                                                                  3
+                                                                  ("push" "." "." ".")
+                                                                  ("dup" "dup" "dup" "dup")
+                                                                  ("dup" "next" 6 ".")))
+    ("node 1 3 for 2* unext" (1 ("@p" "push" "." ".")
+                                3
+                                ("2*" "unext" "." ".")))
+    ("node 1 0 if dup then +" (1 ("@p" "if" 3 ".")
+                                 0
+                                 ("dup" "." "." ".")
+                                 ("+" "." "." ".")))
+    ("node 1 0 -if dup then +" (1 ("@p" "-if" 3 ".")
+                                  0
+                                  ("dup" "." "." ".")
+                                  ("+" "." "." ".")))
+    ("node 1 :: aaa dup 1 + + lit ; :: bbb 5 aaa ; + bbb +" (1 ("+" "@p" "+" ".")
+                                                               11))
+    ("node 1 :: five  5 lit ; five five" (1 ("@p" "@p" "." ".")
+                                            5 5))
+    ("node 1 warm node 5 warm node 104 warm ; "
+     (1 ("call" 169 "." "."))
+     (5 ("call" 169 "." "."))
+     (104 ("jump" 169 "." ".")))
     ;;("node 1 " (1 ))
     ))
 
@@ -56,7 +93,6 @@
        (filter (lambda (x) (not (or (equal? x (vector false false false false))
                                     (equal? x false))))
                (vector->list mem))))
-
 
 (define (run-compiler-tests)
   (define code false)
