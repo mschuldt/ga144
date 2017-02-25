@@ -690,7 +690,6 @@ R is decremented by one and control is transferred to a."
  "(a) unconditionally jumps to a"
  (lambda () (compile-next-type "jump")))
 
-
 (add-directive!
  "until"
  "(a) If T is nonzero, program flow continues; otherwise jumps to a.
@@ -702,7 +701,6 @@ Typically used as a conditional exit at the end of a loop."
  "(a) If T is negative, program flow continues; otherwise jumps to a. Used like 'until'"
  (lambda () (compile-next-type "-if")))
 
-
 (add-directive!
  "unext"
  "(a) ends a micronext loop. Since the loop occurs entirely within a single
@@ -712,7 +710,6 @@ into any of the four slots."
  (lambda ()
    (compile-instruction! "unext")
    (pop stack)))
-
 
 (add-directive!
  "*next"
@@ -1064,16 +1061,17 @@ effect as though a program had executed code 30 20 10"
     (define i false)
 
     (while (not (null? body))
-      (begin (define i (car body))
+      (begin (set! i (car body))
              (set! body (cdr body))
-             (if (number? i)
-                 (push i stack)
-                 (funcall (hash-ref compiler-ops i)))))
+             (cond ((number? i)
+                    (push i stack))
+                   ((compiler-word? i)
+                    (exec-compiler-word i))
+                   (t (funcall (hash-ref compiler-ops i))))))
     ))
 
 (define (compiler-word? word)
   (hash-has-key? compiler-words word))
-
 
 (define (start-compiler-word-def (name false))
   (let* ((name (or name (read-tok-name)))
@@ -1086,7 +1084,8 @@ effect as though a program had executed code 30 20 10"
     ;;                   word current-node-coord)))
     (while (and (setq tok (read-tok-name))
                 (not (equal? tok ";")))
-      (cond ((hash-has-key? compiler-ops tok)
+      (cond ((or (hash-has-key? compiler-ops tok)
+                 (compiler-word? tok))
              (set! body (cons tok body)))
             ((setq x (parse-num tok))
              (set! body (cons x body)))
