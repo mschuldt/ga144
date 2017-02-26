@@ -1055,6 +1055,8 @@ effect as though a program had executed code 30 20 10"
     ;;assert number
     (compile-constant! n)))
 
+(add-directive!  "lit"  ""  (lambda () (err "'lit' is a compiler directive.")))
+
 (define (exec-compiler-word word)
   (when DEBUG? (pretty-display (rkt-format "Execing compiler word ~a" word)))
   (let ((body (hash-ref compiler-words word)))
