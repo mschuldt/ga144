@@ -242,7 +242,7 @@
         tokens)
     ;;multiple token constructs may span multiple lines, but that style is ugly and not supported. syntax coloring may break
     (aforth-remove-overlays beg-line end-line)
-    (set-text-properties beg-line end-line nil)
+    (with-silent-modifications (set-text-properties beg-line end-line nil))
     (setq tokens (aforth-parse-region beg-line end-line))
     (aforth-update-overlays tokens)))
 
@@ -274,9 +274,7 @@
          (setq aforth-buffer-words (make-hash-table)
                aforth-next-id 1))
   ;;(jit-lock-unregister 'aforth-update-region))
-
   (setq imenu-create-index-function 'aforth-create-index)
-
   (aforth-update-region (point-min) (point-max))
   (run-hooks 'aforth-mode-hook))
 
