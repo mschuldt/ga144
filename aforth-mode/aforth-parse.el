@@ -116,13 +116,18 @@
             tok-end 0))
     (reverse tokens)))
 
-(defun aforth-parse-number (token)
-  (let ((val (aforth-token-value token)))
-    (when (or (string-match "^0x\\([0-9a-fA-F]+\\)$" val)
-              (string-match "^0b\\([01]+\\)$" val)
-              (string-match "^\\([0-9]+\\)$" val))
-      (string-to-number (match-string 1 val)))))
-
+(define (aforth-parse-number tok)
+  (let ((str (if (stringp tok) tok
+               (aforth-token-value tok)))
+        base)
+    (if (and (> (string-length str) 2)
+             (eq? (string-ref str 0) _char-0)
+             (or (and (eq? (string-ref str 1) _char-x)
+                      (setq base 16))
+                 (and (eq? (string-ref str 1) _char-b)
+                      (setq base 2))))
+        (string-to-number (subseq str 2) base)
+      (string-to-number str))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
@@ -160,7 +165,7 @@
             ((or (string-match "^0x\\([0-9a-fA-F]+\\)$" val)
                  (string-match "^0b\\([01]+\\)$" val)
                  (string-match "^\\([0-9]+\\)$" val))
-             (push (aforth-set-token token 'number (string-to-number (match-string 1 val)) nil start end)
+             (push (aforth-set-token token 'number (aforth-parse-number val) nil start end)
                    out))
 
             ((or (set-member? aforth-directive-map val)
@@ -194,7 +199,7 @@
 
                (setq token (aforth-set-token token (if is-ref 'r-reference 'r-call)
                                              m1
-                                             (string-to-number m2)
+                                             (aforth-parse-number m2)
                                              start end))
 
                (setq subtoks (list (cons tstart m1-end)
