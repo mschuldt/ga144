@@ -1,3 +1,4 @@
+(require 'cl)
 (defstruct aforth-token type value args start end overlay subtoks)
 (defstruct aforth-node coord code)
 
@@ -116,15 +117,15 @@
             tok-end 0))
     (reverse tokens)))
 
-(define (aforth-parse-number tok)
+(defun aforth-parse-number (tok)
   (let ((str (if (stringp tok) tok
                (aforth-token-value tok)))
         base)
-    (if (and (> (string-length str) 2)
-             (eq? (string-ref str 0) _char-0)
-             (or (and (eq? (string-ref str 1) _char-x)
+    (if (and (> (length str) 2)
+             (eq (aref str 0) ?0)
+             (or (and (eq (aref str 1) ?x)
                       (setq base 16))
-                 (and (eq? (string-ref str 1) _char-b)
+                 (and (eq (aref str 1) ?b)
                       (setq base 2))))
         (string-to-number (subseq str 2) base)
       (string-to-number str))))
