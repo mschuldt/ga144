@@ -5,3 +5,6 @@ TAGS
 _*
 *.elc
 *~
+
+.emacs.desktop
+.emacs.desktop.lock
