@@ -119,4 +119,7 @@
     (insert-file-contents-literally filename)
     (aforth-compile-buffer)))
 
+(defmacro compiler-binop(op)
+  `(push (funcall ',op (pop stack) (pop stack)) stack))
+
 (provide 'aforth-compile)

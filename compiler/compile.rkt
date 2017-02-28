@@ -1032,10 +1032,6 @@ effect as though a program had executed code 30 20 10"
 (define (compiler-binop op)
   (push (op (pop stack) (pop stack)) stack))
 
-(when elisp?
-  (defmacro compiler-binop(op)
-    `(push (funcall ',op (pop stack) (pop stack)) stack)))
-
 (define (compiler-unop op)
   (push (op (pop stack)) stack))
 
