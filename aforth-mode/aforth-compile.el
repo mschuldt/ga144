@@ -106,7 +106,7 @@
            (error "TODO: compiling remote references")
            )
           ((eq token-type 'reference)
-           (compile-remote-word-ref! token-val token-args))
+           (compile-word-ref! token-val))
 
           ((eq token-type 'call)
            (compile-call! token-val))
