@@ -259,6 +259,26 @@
 	  (setq index (cons (cons (match-string 1) (point)) index))))
     index))
 
+(setq aforth-map-buffer nil)
+(make-variable-buffer-local 'aforth-map-buffer)
+
+;; document project layout assumptions:
+;;   currently everything is in a single directory (maps and sources)
+
+(defun aforth-open-tmp-map-view ()
+  "Opens a temporary map for viewing the current aforth buffer."
+  (when (eq major-mode 'aforth-mode)
+    ;;TODO:
+    (message "*** Map view not implemented *** Create a map for this file first")))
+
+(defun aforth-goto-map ()
+  "open the GA144 map for the current aforth-file"
+  (interactive)
+  (when (eq major-mode 'aforth-mode)
+    (if aforth-map-buffer
+        (switch-to-buffer aforth-map-buffer)
+      (aforth-open-tmp-map-view))))
+
 (defun aforth-save-buffer ()
   "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
   (interactive)
@@ -274,13 +294,11 @@
         (define-key map (kbd "C-M-a") 'aforth-back-to-node)
         (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
         (define-key map (kbd "C-c v") 'aforth-goto-map)
+        (define-key map (kbd "C-x C-s") 'aforth-save-buffer)
         map))
 
 (define-derived-mode aforth-mode prog-mode "aforth"
   "Major mode for editing aforth files"
-
-  (setq imenu-create-index-function 'aforth-create-index)
-  (widen)
   (use-local-map aforth-mode-map)
   (progn (jit-lock-register 'aforth-update-region)
          (setq aforth-buffer-words (make-hash-table)
