@@ -259,10 +259,21 @@
 	  (setq index (cons (cons (match-string 1) (point)) index))))
     index))
 
+(defun aforth-save-buffer ()
+  "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
+  (interactive)
+  (when (and aforth-map-buffer
+             (buffer-modified-p))
+    (let ((_compiled (aforth-compile-buffer)))
+      (with-current-buffer aforth-map-buffer
+        (ga-update-compilation-data  _compiled))))
+  (save-buffer))
+
 (setq aforth-mode-map
       (let ((map (make-sparse-keymap 'aforth-mode-map)))
         (define-key map (kbd "C-M-a") 'aforth-back-to-node)
         (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
+        (define-key map (kbd "C-c v") 'aforth-goto-map)
         map))
 
 (define-derived-mode aforth-mode prog-mode "aforth"
