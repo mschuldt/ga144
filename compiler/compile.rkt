@@ -17,7 +17,7 @@
 
 (provide aforth-compile aforth-compile-file display-compiled)
 
-(define DEBUG? false)
+(define DEBUG? false) ;;does not work in elisp
 
 (define nodes false) ;;node# -> code struct
 (define used-nodes '())
@@ -197,21 +197,25 @@
   (hash-set! io-places-hash (car place) (make-addr (cdr place))))
 
 ;;TODO: initial scan should resolve tail calls and collect word names
-(define (get-word-address name)
+(define (get-word-address name (coord false))
   (and DEBUG? (printf "       get-word-address(~a)\n" name))
-  (define addr (or (and (hash-has-key? words name)
-                        (hash-ref words name))
-                   (and (hash-has-key? io-places-hash name)
-                        (hash-ref io-places-hash name))
-                   (and (hash-has-key? rom name)
-                        (hash-ref rom name))))
-  (and DEBUG? (printf "          addr = ~a\n" addr))
-  (when (not addr)
-    ;; if name is not found locally, check if it is a remote call
-    (let ((x (remote-call? name)))
-      (and DEBUG? (printf "          x = ~a\n" addr))
-      (set! addr (and x (get-remote-addr (car x) (cdr x))))
-      (and DEBUG? (printf "          (global)addr = ~a\n" addr))))
+  (define addr false)
+  (if coord
+      (set! addr (get-remote-addr name coord))
+      (begin
+        (set! addr (or (and (hash-has-key? words name)
+                            (hash-ref words name))
+                       (and (hash-has-key? io-places-hash name)
+                            (hash-ref io-places-hash name))
+                       (and (hash-has-key? rom name)
+                            (hash-ref rom name))))
+        (and DEBUG? (printf "          addr = ~a\n" addr))
+        (when (not addr)
+          ;;this is only needed for racket version support
+          (let ((x (remote-call? name)))
+            (and DEBUG? (printf "          x = ~a\n" addr))
+            (set! addr (and x (get-remote-addr (car x) (cdr x))))
+            (and DEBUG? (printf "          (global)addr = ~a\n" addr))))))
   (if (address-cell? addr)
       (address-cell-val addr)
       addr))
@@ -351,7 +355,7 @@
 
 (define (compile-constant! const)
   (when DEBUG? (printf "    compile-constant!(~a)\n" const))
-  (if (and (= const 0)
+  (if (and (eq? const 0)
            compile-0-as-dup-dup-or)
       (begin (compile-instruction! "dup")
              (compile-instruction! "dup")

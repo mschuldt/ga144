@@ -28,10 +28,9 @@
   (setq current-tok-line nil
         current-tok-col nil)
 
-  (map check-for-undefined-words used-nodes)
+  (mapc 'check-for-undefined-words used-nodes)
 
-  (compiled (map remove-address-cells used-nodes)))
-
+  (compiled (mapcar 'remove-address-cells used-nodes)))
 
 (defun aforth-compile (code) ;;shadows racket version
   (with-temp-buffer
@@ -103,8 +102,8 @@
            (compile-remote-call! token-val token-args))
 
           ((eq token-type 'r-reference)
-           (error "TODO: compiling remote references")
-           )
+           (compile-remote-word-ref! token-val token-args))
+
           ((eq token-type 'reference)
            (compile-word-ref! token-val))
 
