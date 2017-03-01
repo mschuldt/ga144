@@ -98,8 +98,8 @@
 
 (defun ga-move-to-node (coord &optional middle node-size)
   (goto-char 1)
-  (let ((row (- 7 (coord->row coord)))
-        (col (coord->col coord))
+  (let ((row (- 7 (ga-coord->row coord)))
+        (col (ga-coord->col coord))
         (node-size (or node-size ga-node-size)))
     (forward-line (+ (* row  node-size) (if middle (/ node-size 2) 0)))
     (forward-char (+ (* col node-size) (if middle (floor (/ node-size 2)) 0)))))
@@ -200,7 +200,7 @@
     (ga-update-node-overlays node)))
 
 (defun ga-set-node-face-internal (coord idx face &optional node)
-  (let* ((node (or node (coord->node coord)))
+  (let* ((node (or node (ga-coord->node coord)))
          (faces (ga-node-faces node)))
     ;;(assert (and (arrayp faces) (= (length faces) ga-num-faces)))
     (aset faces idx face)
@@ -233,7 +233,7 @@
   (ga-set-node-face-internal coord 4 face))
 
 (defun ga-set-region-face (coord &optional remove)
-  (let ((node (coord->node coord)))
+  (let ((node (ga-coord->node coord)))
     (ga-set-node-face-internal coord 2 (if remove nil (ga-node-region-face node)))))
 
 (defstruct ga-node coord special-function node-type text color overlays region-face faces coord-overlay)
@@ -241,25 +241,25 @@
 (defun ga-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
 
-(defun coord->index (n)
+(defun ga-coord->index (n)
   (assert (ga-valid-coord-p n))
   (+ (* (floor (/ n 100)) 18) (mod n 100)))
 
-(defun index->coord (n)
+(defun ga-index->coord (n)
   (assert (ga-valid-node-index-p n))
   (+ (* (floor (/ n 18)) 100) (mod n 18)))
 
-(defun coord->row (coord)
+(defun ga-coord->row (coord)
   (assert (ga-valid-coord-p coord))
   (floor (/ coord 100)))
 
-(defun coord->col (coord)
+(defun ga-coord->col (coord)
   (assert (ga-valid-coord-p coord))
   (mod coord 100))
 
-(defun coord->node (coord)
+(defun ga-coord->node (coord)
   (assert (ga-valid-coord-p coord))
-  (aref ga-nodes (coord->index coord)))
+  (aref ga-nodes (ga-coord->index coord)))
 
 (defun ga-get-node-type (coord)
   )
@@ -282,7 +282,7 @@
   (let (faces coord coord-overlay default region-face)
     (setq ga-nodes (make-vector 144 nil))
     (dotimes (i 144)
-      (setq coord (index->coord i))
+      (setq coord (ga-index->coord i))
       (setq coord-overlay (make-overlay 0 0 ))
       (setq default-faces (ga-get-node-default-faces coord))
       (overlay-put coord-overlay 'face ga-node-coord-face)
