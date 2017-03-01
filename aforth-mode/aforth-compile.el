@@ -3,6 +3,8 @@
 ;; elisp aforth-compiler entrance
 
 (add-to-list 'load-path "~/a/projects/ga144")
+(add-to-list 'load-path "~/a/projects/ga144/aforth-mode")
+
 (require 'rkt)
 (require 'aforth-parse)
 
@@ -10,27 +12,27 @@
 (rkt-require "../compiler/bootstream.rkt")
 
 (defun aforth-compile-buffer (&optional buffer)
-  (setq buffer (or buffer (current-buffer)))
-  (reset!)
-  (dolist (node (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
-    (start-new-node (aforth-node-coord node))
-    (setq current-token-list (aforth-node-code node))
-    (while current-token-list
-      (compile-token (read-tok))))
+  (with-current-buffer (or buffer (current-buffer))
+    (reset!)
+    (dolist (node (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
+      (start-new-node (aforth-node-coord node))
+      (setq current-token-list (aforth-node-code node))
+      (while current-token-list
+	(compile-token (read-tok))))
 
-  (when memory
-    (fill-rest-with-nops) ;;make sure last instruction is full
-    (set-node-len! current-node (sub1 next-addr)))
+    (when memory
+      (fill-rest-with-nops) ;;make sure last instruction is full
+      (set-node-len! current-node (sub1 next-addr)))
 
-  (when DEBUG? (display-compiled (compiled used-nodes)))
+    (when DEBUG? (display-compiled (compiled used-nodes)))
 
-  ;; errors from this point on are not associated with line numbers
-  (setq current-tok-line nil
-        current-tok-col nil)
+    ;; errors from this point on are not associated with line numbers
+    (setq current-tok-line nil
+	  current-tok-col nil)
 
-  (mapc 'check-for-undefined-words used-nodes)
+    (mapc 'check-for-undefined-words used-nodes)
 
-  (compiled (mapcar 'remove-address-cells used-nodes)))
+    (compiled (mapcar 'remove-address-cells used-nodes))))
 
 (defun aforth-compile (code) ;;shadows racket version
   (with-temp-buffer
