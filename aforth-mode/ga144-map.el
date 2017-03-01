@@ -13,9 +13,11 @@
 (def-local ga-current-coord nil)
 (def-local ga-prev-coord nil)
 (def-local ga-node-size nil)
+(def-local ga-project-aforth-file nil) ;; top level aforth project file
+(def-local ga-project-aforth-buffer nil)
+;; list of source files for searching. Currently thi sis
 (def-local ga-project-aforth-files nil)
 (def-local ga-project-aforth-buffers nil)
-(def-local ga-project-aforth-file nil)
 (def-local ga-project-aforth-file-overlay nil)
 (def-local ga-has-unsaved-changes nil)
 (def-local ga-project-aforth-compile-status nil)
@@ -446,23 +448,20 @@
   (if (eq major-mode 'ga-mode)
       (let ((f (read-file-name "Set GA source: ")))
         (if f
-            (progn (setq ga-project-aforth-file f)
-                   (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None")))
+            (ga-set-aforth-source f)
           (message "GA144 aforth source not set")))
-
     (message "Not in a GA144 project %s" major-mode)))
 
 (defun ga-reset-region ()
   (dolist (coord ga-region-nodes)
     (ga-set-region-face coord 'remove)
-    ;;(ga-set-node-overlay node (ga-node-face (coord->node node)))
+    ;;(ga-set-node-overlay node (ga-node-face (ga-coord->node node)))
     )
   (setq ga-region-nodes nil)
   (clrhash ga-visited-nodes))
 
 (defun ga-node-in-region-p (coord)
   (gethash coord ga-visited-nodes))
-
 
 (defun ga-add-node-to-region (coord)
   (ga-set-region-face coord)
@@ -848,8 +847,10 @@ Elements of ALIST that are not conses are ignored."
         (setq ga-project-name (file-name-base buffer-file-name))
         (assert ga-project-name)
         (assert (not (string= ga-project-name "nil")))
+        ;; open all files associated with this map, collect their buffers
         (setq ga-project-aforth-files (ga-aforth-files (file-name-directory  buffer-file-name)))
         (setq ga-project-aforth-buffers (mapcar 'ga-get-project-file-buffer ga-project-aforth-files))
+        ;; set buffer local variables defaults
         (setq ga-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga-node-size ga-default-node-size)
         (setq ga-project-aforth-compile-status "Unknown")
@@ -885,6 +886,9 @@ Elements of ALIST that are not conses are ignored."
               ga-region-nodes nil
               ga-region-path-p nil
               ga-visited-nodes (make-hash-table))
+        (when ga-project-aforth-file
+          ;;need to call ga-set-aforth-source so that it can update varous things
+          (ga-set-aforth-source ga-project-aforth-file))
         (add-hook 'window-size-change-functions 'ga-handle-window-size-change)
         (ga-set-map-focus t)
         (add-hook 'buffer-list-update-hook 'ga-update-map-focus)
