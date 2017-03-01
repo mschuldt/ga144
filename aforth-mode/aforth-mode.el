@@ -242,7 +242,8 @@
         tokens)
     ;;multiple token constructs may span multiple lines, but that style is ugly and not supported. syntax coloring may break
     (aforth-remove-overlays beg-line end-line)
-    (with-silent-modifications (set-text-properties beg-line end-line nil))
+    ;;  this line still seems to be making things slow for some reason:
+    ;;(with-silent-modifications (set-text-properties beg-line end-line nil))
     (setq tokens (aforth-parse-region beg-line end-line))
     (aforth-update-overlays tokens)))
 
