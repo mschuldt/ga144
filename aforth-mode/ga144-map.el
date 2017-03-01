@@ -640,49 +640,20 @@ Elements of ALIST that are not conses are ignored."
         (setq tail  tail-cdr))))
   alist)
 
-(setq ga-updateing-map-focus nil)
-(setq ga444-focus-hook-call-count 0)
-
-
-;;seem to be regaining focus without getting notified
-;; the unfocused overlay from the selection is not getting removed
 (defun ga-update-map-focus ()
-  (setq ga444-focus-hook-call-count (1+ ga444-focus-hook-call-count))
-  ;;  (if ga-updateing-map-focus
-  ;;      (message "already in update focus handler")
-  ;;    (setq ga-updateing-map-focus t)
-  ;;    ;;(condition-case nil
-  (progn
-    ;; If another map was previously selected, remove focus
-    (when ga-current-focus-buffer
+  (when (eq (window-buffer (selected-window))
+	    (current-buffer))
+    ;; selected window has current buffer
+    (when (and ga-current-focus-buffer
+	       (not (eq ga-current-focus-buffer
+			(current-buffer))))
+      ;; current map lost focus
       (ga-set-map-buffer-focus ga-current-focus-buffer nil)
       (setq ga-current-focus-buffer nil))
-    ;;    (message "updating focus: major-mode='%s' buffer-name='%s'"
-    ;;             major-mode (buffer-name))
-    ;; if the current buffer is a ga-map, add focus
     (when (eq major-mode 'ga-mode)
-      (unless ga-maps
-        (setq ga-maps (ga-rescan-buffers-for-maps)))
-
-      (let ((curr (cdr (assoc (buffer-name) ga-maps))))
-
-        (unless (equal curr (current-buffer))
-          ;; The name of the current buffer maps to a different ga map buffer
-          ;; This would be a bug, no sure how to recover, just delete all mappings)
-          ;; for that buffer name and hope things will be alright.
-          (message "Bug: ga map buffer mismatch in ga-update-map-focus")
-          (message " debug info: (current-buffer) = %s" (current-buffer))
-          (message " debug info: ga144-maps = %s" ga-maps)
-          (setq ga-maps (assoc-delete-all (buffer-name) ga-maps)))
-
-        (when curr
-          (ga-set-map-buffer-focus curr t)
-          (setq ga-current-focus-buffer curr)))))
-  ;;  (error (message "Error in ga-update-map-focus")
-  ;;         (setq ga-updateing-map-focus nil))
-  ;; )
-  (setq ga-updateing-map-focus nil))
-
+      ;; set focus on new map
+      (ga-set-map-focus t)
+      (setq ga-current-focus-buffer (current-buffer)))))
 
 (defun ga-kill-buffer-handler ()
   (when (eq (cdr (assoc (buffer-name) ga-maps)) (current-buffer))
@@ -732,7 +703,6 @@ Elements of ALIST that are not conses are ignored."
            (kill-buffer))
     (and (y-or-n-p "kill map?")
          (kill-buffer))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; color selection
