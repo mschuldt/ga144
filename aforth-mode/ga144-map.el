@@ -31,7 +31,10 @@
 (def-local ga-color-select-buffer-p nil)
 (def-local ga-color-select-map-buffer nil)
 (def-local ga-color-select-coord nil)
-
+(def-local ga-parse-data nil)
+(def-local ga-compilation-data nil)
+(def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
+(def-local ga-assembled-data nil)
 
 (defvar ga-auto-resize-map-on-window-change t)
 
@@ -441,6 +444,37 @@
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
 
+(defun ga-update-compilation-data (&optional compilation-data)
+  (if compilation-data
+      (setq ga-compilation-data compilation-data)
+    (when ga-project-aforth-file
+      (unless ga-project-aforth-buffer
+	(setq ga-get-project-file-buffer ga-project-aforth-file))
+      (if ga-project-aforth-buffer
+	  (setq ga-compilation-data (aforth-compile-buffer ga-project-aforth-buffer))
+	(error "unable to retrieve project aforth buffer")))
+    ;;TODO: maybe assemble, bootstream
+    )
+  (setq ga-compilation-data-changed t))
+
+(defun ga-set-aforth-source (file)
+  (setq ga-project-aforth-file file)
+  (setq ga-project-aforth-buffer (ga-get-project-file-buffer file))
+  ;; set aforth-map-buffer in the aforth buffer to point to the buffer of this map
+  (let ((this-buffer (current-buffer)))
+    (if ga-project-aforth-buffer
+        (with-current-buffer ga-project-aforth-buffer
+          ;;todo: warn if value is different
+          (when (and (not (null aforth-map-buffer))
+                     (not (eq aforth-map-buffer this-buffer)))
+            (message "Warning: buffer '%s' appears to already be assocated with  another map buffer: %s (setting to '%s')"
+                     (current-buffer) aforth-map-buffer this-buffer))
+
+          (setq aforth-map-buffer this-buffer))
+      (error "unable to get buffer for project source file '%s'"  file)))
+
+  (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
+  (ga-update-compilation-data))
 
 (defun ga-select-aforth-source ()
   ;;select the aforth source file for the current ga project
