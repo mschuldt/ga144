@@ -444,6 +444,14 @@
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
 
+(defun ga-goto-source-buffer ()
+  "switch to the aforth source buffer"
+  (interactive)
+  (if ga-project-aforth-buffer
+      (switch-to-buffer ga-project-aforth-buffer)
+    (message "aforth source buffer not set")))
+
+
 (defun ga-update-compilation-data (&optional compilation-data)
   (if compilation-data
       (setq ga-compilation-data compilation-data)
@@ -867,6 +875,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-g") 'ga-keyboard-quit)
         (define-key map (kbd "C-x k") 'ga-kill-map)
         (define-key map (kbd "C-c b") 'bury-buffer)
+	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
         map))
 
 (define-derived-mode ga-mode nil "GA144"
