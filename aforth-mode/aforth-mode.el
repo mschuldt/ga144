@@ -279,14 +279,17 @@
         (switch-to-buffer aforth-map-buffer)
       (aforth-open-tmp-map-view))))
 
-(defun aforth-save-buffer ()
-  "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
-  (interactive)
+(defun aforth-compile-and-update-map ()
   (when (and aforth-map-buffer
              (buffer-modified-p))
     (let ((_compiled (aforth-compile-buffer)))
       (with-current-buffer aforth-map-buffer
-        (ga-update-compilation-data  _compiled))))
+        (ga-update-compilation-data  _compiled)))))
+
+(defun aforth-save-buffer ()
+  "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
+  (interactive)
+  (aforth-compile-and-update-map)
   (save-buffer))
 
 (setq aforth-mode-map
@@ -294,7 +297,7 @@
         (define-key map (kbd "C-M-a") 'aforth-back-to-node)
         (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
         (define-key map (kbd "C-c v") 'aforth-goto-map)
-        (define-key map (kbd "C-x C-s") 'aforth-save-buffer)
+        ;;(define-key map (kbd "C-x C-s") 'aforth-save-buffer)
         map))
 
 (define-derived-mode aforth-mode prog-mode "aforth"
@@ -306,6 +309,9 @@
   ;;(jit-lock-unregister 'aforth-update-region))
   (setq imenu-create-index-function 'aforth-create-index)
   (aforth-update-region (point-min) (point-max))
+
+  (add-hook 'write-contents-functions 'aforth-compile-and-update-map)
+
   (run-hooks 'aforth-mode-hook))
 
 (add-to-list 'auto-mode-alist '("\\.aforth\\'" . aforth-mode))
