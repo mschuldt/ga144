@@ -47,7 +47,7 @@
             (setq overlays (cddr overlays))))
         comment-p))))
 
-(defun aforth-toekenize-region (beg end)
+(defun aforth-tokenize-region (beg end)
 
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
         (tok-beg 0)
@@ -132,7 +132,7 @@
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
-  (let ((tokens (or tokens (aforth-toekenize-region beg end)))
+  (let ((tokens (or tokens (aforth-tokenize-region beg end)))
         next type out token)
     (while tokens
       (setq token (car tokens)
