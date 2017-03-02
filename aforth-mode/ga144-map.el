@@ -109,6 +109,10 @@
     (forward-line (+ (* row  node-size) (if middle (/ node-size 2) 0)))
     (forward-char (+ (* col node-size) (if middle (floor (/ node-size 2)) 0)))))
 
+(defun ga-set-compilation-status (status)
+  (setq ga-project-aforth-compile-status status)
+  (overlay-put ga-project-aforth-compile-status-overlay 'after-string  status))
+
 (defun ga-draw-map (node-size)
   (read-only-mode -1)
   (erase-buffer)
@@ -125,12 +129,14 @@
       (insert s)
       (move-overlay ga-project-aforth-file-overlay p (point)))
     ;;compile status overlay
-    (let ((s "Compilation status: ") p)
+    (let ((s "Compilation status:                   ")
+	  p)
       (insert "\n" (- (* node-size 8) (1+ (length s))))
       (beginning-of-line)
       (setq p (point))
       (insert s)
       (move-overlay ga-project-aforth-compile-status-overlay p (point)))
+    (insert "\n")
 
     ;; set map overlays
     (loop-nodes node
@@ -146,8 +152,9 @@
     ;; set aforth file overlay string
     (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
     (ga-create-overlays node-size)
-    ;; set compile status overlay string
-    (overlay-put ga-project-aforth-compile-status-overlay 'after-string  ga-project-aforth-compile-status))
+    ;;;; set compile status overlay string
+    ;;(ga-set-compilation-status ga-project-aforth-compile-status)
+    )
   (ga-update-overlay-faces)
   (set-buffer-modified-p t)
   (read-only-mode 1))
@@ -451,15 +458,19 @@
       (switch-to-buffer ga-project-aforth-buffer)
     (message "aforth source buffer not set")))
 
+(defun ga-set-compilation-data (data)
+  (setq ga-compilation-data data)
+  (ga-set-compilation-status (format "compiled %s" (float-time (current-time)))) ;;TODO: real status
+  )
 
 (defun ga-update-compilation-data (&optional compilation-data)
   (if compilation-data
-      (setq ga-compilation-data compilation-data)
+      (ga-set-compilation-data compilation-data)
     (when ga-project-aforth-file
       (unless ga-project-aforth-buffer
 	(setq ga-get-project-file-buffer ga-project-aforth-file))
       (if ga-project-aforth-buffer
-	  (setq ga-compilation-data (aforth-compile-buffer ga-project-aforth-buffer))
+	  (ga-set-compilation-data (aforth-compile-buffer ga-project-aforth-buffer))
 	(error "unable to retrieve project aforth buffer")))
     ;;TODO: maybe assemble, bootstream
     )
@@ -866,8 +877,8 @@ Elements of ALIST that are not conses are ignored."
         ;; set buffer local variables defaults
         (setq ga-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga-node-size ga-default-node-size)
-        (setq ga-project-aforth-compile-status "Unknown")
         (setq ga-project-aforth-compile-status-overlay (make-overlay 0 1))
+	(ga-set-compilation-status "Unknown")
 
         (let ((buffer-name (format "*GA144-%s*" ga-project-name)))
           (when (get-buffer buffer-name)
