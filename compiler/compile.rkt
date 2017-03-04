@@ -88,7 +88,7 @@
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
 
-  (when DEBUG? (display-compiled (compiled used-nodes)))
+  (when DEBUG? (display-compiled (compiled used-nodes false)))
 
   ;; errors from this point on are not associated with line numbers
   (set! current-tok-line false)
@@ -96,7 +96,7 @@
 
   (map check-for-undefined-words used-nodes)
 
-  (compiled (map remove-address-cells used-nodes)))
+  (compiled (map remove-address-cells used-nodes) false))
 
 (define (aforth-compile-file file)
   (call-with-input-file file aforth-compile)
@@ -1004,8 +1004,11 @@ effect as though a program had executed code 30 20 10"
      (format "Compile the address for the ~a port" (car addr))
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
 
-
 (define (err msg)
+  (when elisp?
+    (set 'aforth-error-message msg)
+    (throw 'aforth-error nil))
+
   (printf "ERROR")
   (when (and current-tok-line current-tok-col)
     (printf (rkt-format "[~a:~a]" current-tok-line current-tok-col)))

@@ -169,7 +169,6 @@
 (defun aforth-make-error (message token)
   )
 
-
 (defun aforth-error (msg)
   (message "aforth-error: %s" msg)
   (error msg))

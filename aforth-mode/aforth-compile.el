@@ -13,28 +13,39 @@
 
 (defun aforth-compile-buffer (&optional buffer)
   (with-current-buffer (or buffer (current-buffer))
-    (reset!)
-    (dolist (node (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
-      (start-new-node (aforth-node-coord node))
-      (setq current-token-list (aforth-node-code node))
-      (while current-token-list
-	(compile-token (read-tok))))
+    (let (parsed-nodes ret)
+      (reset!)
+      (catch 'aforth-error
+        (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
+        (setq aforth-compile-stage "compiling")
+        (dolist (node parsed-nodes)
+          (setq aforth-current-node (aforth-node-coord node))
+          (start-new-node aforth-current-node)
+          (setq current-token-list (aforth-node-code node))
 
-    (when memory
-      (fill-rest-with-nops) ;;make sure last instruction is full
-      (set-node-len! current-node (sub1 next-addr)))
+          (while current-token-list
+            (setq aforth-current-token (read-tok))
+            (compile-token aforth-current-token)))
+        (when memory
+          (fill-rest-with-nops) ;;make sure last instruction is full
+          (set-node-len! current-node (sub1 next-addr)))
 
-    (when DEBUG? (display-compiled (compiled used-nodes)))
+        (when DEBUG? (display-compiled (compiled used-nodes)))
 
-    ;; errors from this point on are not associated with line numbers
-    (setq current-tok-line nil
-	  current-tok-col nil)
+        ;; errors from this point on are not associated with line numbers
+        (setq current-tok-line nil
+              current-tok-col nil)
 
-    (mapc 'check-for-undefined-words used-nodes)
+        (setq aforth-compile-stage "checking")
+        (mapc 'check-for-undefined-words used-nodes)
 
-    (compiled (mapcar 'remove-address-cells used-nodes))))
+        (setq aforth-compile-stage "finalizing")
+        (setq ret (compiled (mapcar 'remove-address-cells used-nodes) nil)))
+      (or ret
+          (compiled nil (aforth-get-error-data))))))
 
 (defun aforth-compile (code) ;;shadows racket version
+  (setq aforth-compile-input-type 'string)
   (with-temp-buffer
     (insert code)
     (aforth-compile-buffer)))
@@ -116,6 +127,7 @@
     (setq current-token nil)))
 
 (defun aforth-compile-file (filename)
+  (setq aforth-compile-input-type 'file)
   (with-temp-buffer
     (insert-file-contents-literally filename)
     (aforth-compile-buffer)))

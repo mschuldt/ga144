@@ -61,10 +61,17 @@
                                           (for/list ((i (range (node-len node))))
                                             (vector-ref mem i))))))))
 
-
+(define (elisp-maybe-print-and-exit compiled)
+  ;; temporary method of dealing with the error types returned from the elisp version
+  (printf "elisp-maybe-print-and-exit ~a\n" compiled)
+  (when (and elisp?
+             (compiled-error-info compiled))
+    (aforth-print-error-data compiled)
+    (exit)))
 
 (define (print-json input-file (bootstream-type false) (symbols? false))
   (define compiled (aforth-compile-file input-file))
+  (elisp-maybe-print-and-exit compiled)
   (define compiled-json (compiled->json compiled))
   (define boot-descriptors-json (boot-descriptors->json compiled))
   (define symbols-json (symbols->json compiled))
@@ -89,6 +96,7 @@
 
 (define (print-count input-file) 
   (define compiled (aforth-compile-file input-file))
+  (elisp-maybe-print-and-exit compiled)
   (define total 0)
   (define (percent a b)
     (exact->inexact (* (/ (* a 1.0) b) 100)))
@@ -104,6 +112,7 @@
 
 (define (print-pretty input-file (hex? false))
   (define compiled (aforth-compile-file input-file))
+  (elisp-maybe-print-and-exit compiled)
   (define compiled-hash (make-hash))
   (for ((node (compiled-nodes compiled)))
     (hash-set! compiled-hash (node-coord node)

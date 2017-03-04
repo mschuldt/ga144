@@ -84,5 +84,9 @@
 (define message true)
 (define concat true)
 (define unread-last-tok true)
+(define aforth-print-error-data true)
+(define error-data-p true)
+(define throw true)
+(define aforth-error-message true)
 
 (define rkt-format format)

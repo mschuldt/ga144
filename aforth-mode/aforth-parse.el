@@ -1,6 +1,16 @@
 (require 'cl)
 (defstruct aforth-token type value args start end overlay subtoks)
 (defstruct aforth-node coord code)
+(defstruct error-data message stage node line col input-type token)
+
+(setq aforth-error-message nil)
+(setq aforth-current-node nil)
+(setq aforth-current-token nil)
+(setq aforth-compile-stage nil)
+(setq aforth-parse-current-file nil)
+(setq aforth-parse-current-buffer nil)
+(setq aforth-parse-currrent-point nil)
+(setq aforth-compile-input-type nil)
 
 (defun aforth-set-token (old type value &optional args start end)
   (if old
@@ -48,13 +58,15 @@
         comment-p))))
 
 (defun aforth-tokenize-region (beg end)
-
+  (setq aforth-compile-stage "tokenizing")
+  (setq aforth-parse-currrent-point beg)
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
         (tok-beg 0)
         (tokens '())
         token tok-end first
         next-token-face
-        next-token-def-p)
+        next-token-def-p
+        aforth-reading-node)
 
     (while str
       ;;whitespace
@@ -79,8 +91,10 @@
                 str (cdr str)
                 token (cons c token)
                 tok-end (1+ tok-end)))
+        (setq value (concat (reverse token)))
+
         (push (make-aforth-token :type 'comment
-                                 :value (concat (reverse token))
+                                 :value value
                                  :start (+ beg tok-beg)
                                  :end (+ beg tok-end))
               tokens)
@@ -100,11 +114,18 @@
         (when (> tok-end tok-beg)
           (setq token (concat (reverse token))
                 next-token-face nil)
+
           (push (make-aforth-token :type 'op
                                    :value token
                                    :start (+ beg tok-beg)
                                    :end (+ beg tok-end))
                 tokens)
+          (cond ((equal token "node")
+                 (setq aforth-reading-node t))
+                (aforth-reading-node
+                 (setq aforth-current-node token
+                       aforth-reading-node nil)))
+
           (let ((buf (buffer-substring (+ beg tok-beg ) (+ beg tok-end))))
             (unless (equal token buf)
               (assert (format "TOKEN '%s' DOES NOT MATCH BUFFER '%s'" token buf))))
@@ -131,28 +152,32 @@
       (string-to-number str))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
+  (setq aforth-compile-stage "parsing")
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
   (let ((tokens (or tokens (aforth-tokenize-region beg end)))
         next type out token)
     (while tokens
       (setq token (car tokens)
+            aforth-current-token token
             tokens (cdr tokens)
             type (aforth-token-type token)
             val (aforth-token-value token)
             start (aforth-token-start token)
             end (aforth-token-end token))
       (cond ((not (stringp val)) ;;TODO: should not raise an error, only return error objects. otherwise region fontification gets messed up
-             (error "expected string for :val field in token: %s" token))
+             (aforth-compile-error (format "expected string for :val field in token: %s" token)))
             ((eq type 'comment)
              (unless no-comments
                (push token out)))
             ((member val '("org" "node"))
              (setq next (pop! tokens))
              (setq a (aforth-parse-number next))
+             (when (equal val "node")
+               (setq aforth-current-node a))
              (if a
                  (push (aforth-set-token token 'directive val a start (aforth-token-end next))
                        out)
-               (aforth-error (format "Expected number following token: %s, got: '%s'" val (aforth-token-value next)))))
+               (aforth-compile-error (format "Expected number following token: %s, got: '%s'" val (aforth-token-value next)))))
             ((member val '(":" "::"))
              (setq next (pop! tokens))
              (setq name (aforth-token-value next))
@@ -162,7 +187,7 @@
                                          name nil start (aforth-token-end next))
 
                        out)
-               (aforth-error (format "Expected definition name" val))))
+               (aforth-compile-error (format "Expected definition name" val))))
             ((or (string-match "^0x\\([0-9a-fA-F]+\\)$" val)
                  (string-match "^0b\\([01]+\\)$" val)
                  (string-match "^\\([0-9]+\\)$" val))
@@ -224,8 +249,10 @@
     (nreverse out)))
 
 (defun aforth-parse-nodes (beg end &optional tokens no-comments)
+  (aforth-begin-parse)
   (let ((tokens (or tokens (aforth-parse-region beg end nil no-comments)))
         nodes current-node current-code type)
+    (setq aforth-compile-stage "parsing nodes")
     (dolist (token tokens)
       (setq type (aforth-token-type token))
       (if (equal (aforth-token-value token) "node")
@@ -241,10 +268,61 @@
     (nreverse nodes)))
 
 (defun aforth-parse-buffer ()
+  (aforth-begin-parse)
   (save-excursion
     (save-restriction
       (widen)
       (aforth-parse-region (point-min) (point-max)))))
+
+(defun aforth-parse-string (str)
+  (with-temp-buffer
+    (insert str)
+    (aforth-parse-buffer)))
+
+(defun aforth-begin-parse ()
+  ;; clears old global parse state
+  (setq aforth-parse-current-file buffer-file-name
+        aforth-parse-current-buffer (current-buffer)
+        aforth-error-message nil
+        aforth-current-node nil
+        aforth-current-token nil
+        aforth-compile-stage nil
+        aforth-parse-buffer nil))
+
+(defun aforth-get-error-data ()
+  (let ((point (cond (aforth-current-token
+                      (aforth-token-start aforth-current-token))
+                     (aforth-parse-currrent-point aforth-parse-currrent-point)
+                     (t 0)))
+        line col)
+    (unless (numberp point) (setq point 0))
+    (with-current-buffer aforth-parse-current-buffer
+      (widen)
+      (setq col (current-column))
+      (beginning-of-line)
+      (setq line (count-lines 1 point)))
+
+    (make-error-data :message aforth-error-message
+                     :node (cond ((numberp aforth-current-node)
+                                  aforth-current-node)
+                                 ((stringp aforth-current-node)
+                                  (aforth-parse-number aforth-current-node)))
+                     :stage (or aforth-compile-stage "")
+                     :line line
+                     :col col
+                     :token aforth-current-token)))
+
+(defun aforth-print-error-data (compiled)
+  (let ((data (compiled-error-info compiled)))
+    (message "Error: %s" (error-data-message data))
+    (message "Node %s, Line %s" (error-data-node data) (error-data-line data))
+    (when (error-data-stage data)
+      (message "While %s" (error-data-stage data)))))
+
+(defun aforth-compile-error (msg)
+  (setq aforth-error-message msg)
+  (throw 'aforth-error nil))
+
 
 (provide 'aforth-parse)
 (require 'aforth-mode)
