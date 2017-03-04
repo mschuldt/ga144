@@ -311,17 +311,12 @@ north a! io b!
                                 new)))))
   (reverse new))
 
-(define (get-used-portion code)
-  ;; [w1, ..., wn, false, ..., false] => [w1, ..., wn]
-  (let ((used '())
-        (word false))
-    (define (get node (index 0))
-      (set! word (vector-ref code index))
-      (when word
-        (set! used (cons word used))
-        (get node (add1 index))))
-    (get code)
-    (list->vector (reverse used))))
+(define (get-used-portion mem)
+  ;; trim empty words from end of memory vector
+  (let ((mem (reverse (vector->list  mem))))
+    (while (not (car mem))
+      (set! mem (cdr mem)))
+    (list->vector (reverse mem))))
 
 (define (print-bootstream bs)
   (for ((word bs))
