@@ -184,7 +184,7 @@
              (if a
                  (push (aforth-set-token token 'directive val a start (aforth-token-end next))
                        out)
-               (aforth-compile-error (format "Expected number following token: %s, got: '%s'" val (aforth-token-value next)))))
+               (aforth-compile-error (format "Invalid %s argument '%s'" val (aforth-token-value next)))))
             ((member val '(":" "::"))
              (setq next (pop! tokens))
              (setq name (aforth-token-value next))
@@ -305,9 +305,14 @@
     (unless (numberp point) (setq point 0))
     (with-current-buffer aforth-parse-current-buffer
       (widen)
+      (goto-char point)
       (setq col (current-column))
-      (beginning-of-line)
-      (setq line (count-lines 1 point)))
+      ;;(message (buffer-substring (progn (beginning-of-line) (point))
+      ;;                           (progn (end-of-line) (point))))
+      ;;(message (concat (make-string (- point (progn (beginning-of-line) (point)) 1) ? )
+      ;;                 "^"))
+      (end-of-line)
+      (setq line (count-lines 1 (point))))
 
     (make-error-data :message aforth-error-message
                      :node (cond ((numberp aforth-current-node)
@@ -322,9 +327,13 @@
 (defun aforth-print-error-data (compiled)
   (let ((data (compiled-error-info compiled)))
     (message "Error: %s" (error-data-message data))
-    (message "Node %s, Line %s" (error-data-node data) (error-data-line data))
-    (when (error-data-stage data)
-      (message "While %s" (error-data-stage data)))))
+    (when (error-data-node data)
+      (message "Node: %s" (error-data-node data)))
+    (when (error-data-line data)
+      (message "Line: %s" (error-data-line data)))
+    ;;(when (error-data-stage data)
+    ;;  (message "While %s" (error-data-stage data)))
+    ))
 
 (defun aforth-compile-error (msg)
   (setq aforth-error-message msg)

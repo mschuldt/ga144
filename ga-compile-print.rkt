@@ -63,7 +63,6 @@
 
 (define (elisp-maybe-print-and-exit compiled)
   ;; temporary method of dealing with the error types returned from the elisp version
-  (printf "elisp-maybe-print-and-exit ~a\n" compiled)
   (when (and elisp?
              (compiled-error-info compiled))
     (aforth-print-error-data compiled)
