@@ -139,17 +139,24 @@
     (reverse tokens)))
 
 (defun aforth-parse-number (tok)
-  (let ((str (if (stringp tok) tok
-               (aforth-token-value tok)))
-        base)
-    (if (and (> (length str) 2)
-             (eq (aref str 0) ?0)
-             (or (and (eq (aref str 1) ?x)
-                      (setq base 16))
-                 (and (eq (aref str 1) ?b)
-                      (setq base 2))))
-        (string-to-number (subseq str 2) base)
-      (string-to-number str))))
+  (let* ((str (if (stringp tok) tok
+                (aforth-token-value tok)))
+         (base 10)
+         (str (if (and (> (length str) 2)
+                       (eq (aref str 0) ?0)
+                       (or (and (eq (aref str 1) ?x)
+                                (setq base 16))
+                           (and (eq (aref str 1) ?b)
+                                (setq base 2))))
+                  (subseq str 2)
+                str))
+         n)
+    (if (string-match "^0+$" str)
+        0
+      (setq n (string-to-number str base))
+      (if (= n 0)
+          nil
+        n))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
