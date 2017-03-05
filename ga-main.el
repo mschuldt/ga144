@@ -1,6 +1,8 @@
-
+;; -*- lexical-binding: t -*-
 (add-to-list 'load-path "~/a/projects/ga144/aforth-mode") ;;TODO: remove
 (add-to-list 'load-path "~/a/projects/ga144/")
+
+(setq gc-cons-threshold most-positive-fixnum)
 
 (setq debug-on-error t)
 (setq load-start-time (current-time))
