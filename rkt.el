@@ -545,6 +545,7 @@
       (setq lexical-binding t)
       (goto-char (point-min))
       (kill-line)
+      (insert ";; -*- lexical-binding: t  -*-")
       (flet ((require (&rest files) nil) ;;TODO: have require recursively byte compile
              (provide (&rest syms) nil))
         (write-file compiled-filename)
