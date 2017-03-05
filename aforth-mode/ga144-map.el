@@ -478,13 +478,13 @@
 (defun ga-set-compilation-data (data)
   (setq ga-compilation-data data
         ga-error-data (compiled-error-info data))
-  (unless ga-error-data
-    (setq ga-assembly-data (assemble data))
-    (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
-    (ga-update-node-usage-colors ga-node-usage))
-
-  (ga-set-compilation-status (format "compiled %s" (float-time (current-time)))) ;;TODO: real status
-  )
+  (if ga-error-data
+      (progn
+        (setq ga-assembly-data (assemble data))
+        (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
+        (ga-update-node-usage-colors ga-node-usage)
+        (ga-set-compilation-status "Ok"))
+    (ga-set-compilation-status  (format "FAIL: %s" (error-data-message ga-error-data)))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
   (if compilation-data
