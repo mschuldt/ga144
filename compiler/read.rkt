@@ -25,7 +25,7 @@
   (raise (rkt-format "[~a:~a]syntax error: ~a" line-number col-number msg )))
 
 (define (read-token in)
-    (assert (not elisp?))
+  (assert (not elisp?))
   (define (get-first-char-in-list)
     (let ((new-char (read-char in)))
       (cond ((eof-object? new-char) new-char)
