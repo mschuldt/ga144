@@ -71,6 +71,9 @@
                             (((background dark)) (:background "gold2")))
   "default ga node region face 2")
 
+(defface ga-selected-used-node-face '((((background light)) (:background "green"))
+                                      (((background dark)) (:background "green")))
+  "default face for selected used nodes")
 
 (setq ga-node-coord-face 'ga-node-coord-face)
 (setq ga-default-face-1 'ga-default-face-1)
@@ -79,6 +82,7 @@
 (setq ga-unfocused-face 'ga-unfocused-face)
 (setq ga-region-face-1 'ga-region-face-1)
 (setq ga-region-face-2 'ga-region-face-2)
+(setq ga-selected-used-node-face 'ga-selected-used-node-face)
 
 
 (defun ga-get-project-file-buffer (filepath)
@@ -200,12 +204,16 @@
   ;; get the current face to display
   (let ((faces (ga-node-faces node)))
     (assert (and (arrayp faces) (= (length faces) ga-num-faces)))
-    (or (aref faces 4) ;; tmp high
-        (aref faces 3) ;; point
-        (aref faces 2) ;; tmp low
-        (aref faces 1) ;; base
-        (aref faces 0) ;; default
-        )))
+    (if (and (aref faces 5)
+             (aref faces 2))
+        ga-selected-used-node-face
+      (or (aref faces 4) ;; tmp high
+          (aref faces 3) ;; point
+          (aref faces 2) ;; tmp low  ( region selection )
+          (aref faces 5) ;; node usage
+          (aref faces 1) ;; base
+          (aref faces 0) ;; default
+          ))))
 
 (defun ga-update-node-overlays (node)
   (let ((face (ga-get-node-face node)))
@@ -249,6 +257,9 @@
 (defun ga-set-node-tmp-high-face (coord face)
   (ga-set-node-face-internal coord 4 face))
 
+(defun ga-set-node-usage-face (coord face)
+  (ga-set-node-face-internal coord 5 face))
+
 (defun ga-set-region-face (coord &optional remove)
   (let ((node (ga-coord->node coord)))
     (ga-set-node-face-internal coord 2 (if remove nil (ga-node-region-face node)))))
@@ -288,7 +299,7 @@
         (cons ga-default-face-1 ga-region-face-1)
       (cons ga-default-face-2 ga-region-face-2))))
 
-(setq ga-num-faces 5)
+(setq ga-num-faces 6)
 
 (defun ga-make-face-vector (default-face)
   (let ((v (make-vector ga-num-faces nil)))
@@ -502,18 +513,26 @@
 
 (setq ga-node-overflow-color "#ff00ff")
 
+(defun ga-set-usage-color (node color)
+  (when color
+    (setq color (list :background color)))
+  (ga-set-node-usage-face node color))
+
 (defun ga-update-node-usage-colors (usage)
   ;; USAGE format: ((code . word-count)...)
   (let (n)
+    (loop-nodes node
+      ;;reset node colors
+      (ga-set-usage-color (ga-node-coord node) nil))
     (dolist (node usage)
       (if (> (cdr node) 64)
-          (ga-color-node (car node) ga-node-overflow-color)
+          (ga-set-usage-color (car node) ga-node-overflow-color)
         (setq n (+ (floor (* (/ (cdr node) 64.0) 240)) 15))
-        (ga-color-node (car node)
-                       (format "#ff%s%s"
-                               (to-hex-str (- 255 n))
-                               (to-hex-str (- 255 n))
-                               ))))))
+        (ga-set-usage-color (car node)
+                            (format "#ff%s%s"
+                                    (to-hex-str (- 255 n))
+                                    (to-hex-str (- 255 n))
+                                    ))))))
 
 (defun ga-set-aforth-source (file)
   (setq ga-project-aforth-file file)
