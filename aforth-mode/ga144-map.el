@@ -118,21 +118,25 @@
   (read-only-mode -1)
   (erase-buffer)
   (goto-char 1)
-  (let (x coord l o)
+  (let (x coord l o n)
     ;; insert map chars
     (dotimes (_ (* node-size 8))
       (insert (make-string (* node-size 18) ? ) "\n" ))
     ;; aforth file chars and overlay
     (let ((s "source file: ") p)
-      (insert "\n" (- (* node-size 8) (1+ (length s))))
+      (setq n (- (* node-size 8) (1+ (length s)))
+            n (> n 0) n 0)
+      (insert "\n" (make-string n ? ))
       (beginning-of-line)
       (setq p (point))
       (insert s)
       (move-overlay ga-project-aforth-file-overlay p (point)))
     ;;compile status overlay
-    (let ((s "Compilation status:                   ")
+    (let ((s "Compilation status:")
 	  p)
-      (insert "\n" (- (* node-size 8) (1+ (length s))))
+      (setq n (- (* node-size 8) (1+ (length s)))
+            n (> n 0) n 0)
+      (insert "\n" (make-string n ? ))
       (beginning-of-line)
       (setq p (point))
       (insert s)
@@ -305,7 +309,8 @@
                                      :region-face (cdr default-faces)
                                      :coord-overlay coord-overlay)))
     (setq ga-current-coord 0)
-    (ga-save)
+    (unless ga-map-view-mode
+      (ga-save))
     ))
 
 (defun ga-startup-reset ()
@@ -870,7 +875,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "<down>") 'ga-move-down)
         (define-key map (kbd "<left>") 'ga-move-left)
         (define-key map (kbd "<right>") 'ga-move-right)
-        (define-key map (kbd "C-x C-s") 'ga-save)
+        ;;(define-key map (kbd "C-x C-s") 'ga-save)
         (define-key map (kbd "C-e") 'ga-move-right-end)
         (define-key map (kbd "C-a") 'ga-move-left-end)
         (define-key map (kbd "C-b") 'ga-move-left)
@@ -893,45 +898,69 @@ Elements of ALIST that are not conses are ignored."
 	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
         map))
 
+(defun ga-open-map-for-file (filename)
+  (let* ((buffer-name (format "*GA144-%s*" (file-name-base filename)))
+         (buf (get-buffer buffer-name)))
+    (or buf
+        (progn
+          (setq buf (get-buffer-create buffer-name))
+          (with-current-buffer buf
+            (setq ga-map-view-mode t)
+            (setq ga-project-aforth-files filename)
+            (ga-mode)
+            (ga-set-aforth-source filename))
+          buf))))
+
 (define-derived-mode ga-mode nil "GA144"
   "A major mode for programming the GA144."
 
   (use-local-map ga-mode-map)
   (setq show-trailing-whitespace nil)
 
-  (if (string-match "ga144$" buffer-file-name)
+  (when (not buffer-file-name)
+    (setq ga-map-view-mode t))
+
+  (message "mbs: ga144 mode, ga-project-aforth-files = %s" ga-project-aforth-files)
+
+  (if (or ga-map-view-mode
+          (string-match "ga144$" buffer-file-name))
       (progn
-        (setq ga-project-file buffer-file-name)
-        (setq ga-project-name (file-name-base buffer-file-name))
-        (assert ga-project-name)
-        (assert (not (string= ga-project-name "nil")))
+        (unless ga-map-view-mode
+          (setq ga-project-file buffer-file-name)
+          (setq ga-project-name (file-name-base buffer-file-name))
+          (assert ga-project-name)
+          (assert (not (string= ga-project-name "nil"))))
         ;; open all files associated with this map, collect their buffers
-        (setq ga-project-aforth-files (ga-aforth-files (file-name-directory  buffer-file-name)))
-        (setq ga-project-aforth-buffers (mapcar 'ga-get-project-file-buffer ga-project-aforth-files))
+        (unless ga-map-view-mode
+          (setq ga-project-aforth-files (ga-aforth-files (file-name-directory  buffer-file-name)))
+          (setq ga-project-aforth-buffers (mapcar 'ga-get-project-file-buffer ga-project-aforth-files)))
         ;; set buffer local variables defaults
         (setq ga-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga-node-size ga-default-node-size)
         (setq ga-project-aforth-compile-status-overlay (make-overlay 0 1))
 	(ga-set-compilation-status "Unknown")
 
-        (let ((buffer-name (format "*GA144-%s*" ga-project-name)))
-          (when (get-buffer buffer-name)
-            (kill-buffer buffer-name))
-          (rename-buffer buffer-name)
-          (push (cons buffer-name (current-buffer)) ga-maps))
+        (if ga-map-view-mode
+            (push (cons (buffer-name) (current-buffer)) ga-maps)
+          (let ((buffer-name (format "*GA144-%s*" ga-project-name)))
+            (when (get-buffer buffer-name)
+              (kill-buffer buffer-name))
+            (rename-buffer buffer-name)
+            (push (cons buffer-name (current-buffer)) ga-maps)))
 
         (setq buffer-file-name nil
               ga-nodes nil
               ga-nodes-sans-overlays nil
               ga-current-coord nil)
-        (eval-buffer)
+        (unless ga-map-view-mode
+          (eval-buffer)
 
-        (when ga-nodes-sans-overlays
-          (setq ga-nodes (ga-restore-node-overlays ga-nodes-sans-overlays)))
+          (when ga-nodes-sans-overlays
+            (setq ga-nodes (ga-restore-node-overlays ga-nodes-sans-overlays))))
 
         (if ga-nodes
             (message "Loading GA144 project map...")
-          (print "Creating new ga144 map..")
+          (unless ga-map-view-mode (print "Creating new ga144 map.."))
           (ga-create-new))
 
         (ga-startup-reset)

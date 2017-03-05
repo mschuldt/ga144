@@ -260,24 +260,19 @@
     index))
 
 (setq aforth-map-buffer nil)
+(setq aforth-created-map nil)
 (make-variable-buffer-local 'aforth-map-buffer)
-
-;; document project layout assumptions:
-;;   currently everything is in a single directory (maps and sources)
-
-(defun aforth-open-tmp-map-view ()
-  "Opens a temporary map for viewing the current aforth buffer."
-  (when (eq major-mode 'aforth-mode)
-    ;;TODO:
-    (message "*** Map view not implemented *** Open or create a map for this file first")))
 
 (defun aforth-goto-map ()
   "open the GA144 map for the current aforth-file"
   (interactive)
   (when (eq major-mode 'aforth-mode)
-    (if aforth-map-buffer
-        (switch-to-buffer aforth-map-buffer)
-      (aforth-open-tmp-map-view))))
+
+    (when (or (not aforth-map-buffer)
+              (not (buffer-live-p aforth-map-buffer)))
+      (setq aforth-map-buffer (ga-open-map-for-file buffer-file-name)
+            aforth-created-map t)))
+  (switch-to-buffer-other-window aforth-map-buffer))
 
 (defun aforth-compile-and-update-map ()
   (when (and aforth-map-buffer
@@ -292,6 +287,12 @@
   (interactive)
   (save-buffer)
   (aforth-compile-and-update-map))
+
+(defun aforth-buffer-cleanup ()
+  (when (and aforth-created-map
+             aforth-map-buffer
+             (buffer-live-p aforth-map-buffer))
+    (kill-buffer aforth-map-buffer)))
 
 (setq aforth-mode-map
       (let ((map (make-sparse-keymap 'aforth-mode-map)))
@@ -312,6 +313,7 @@
   (aforth-update-region (point-min) (point-max))
 
   (add-hook 'write-contents-functions 'aforth-compile-and-update-map)
+  (add-hook 'kill-buffer-hook 'aforth-buffer-cleanup)
 
   (run-hooks 'aforth-mode-hook))
 
