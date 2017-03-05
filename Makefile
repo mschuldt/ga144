@@ -17,7 +17,7 @@ clean:
 	rm -rf interpreter/compiled/
 	rm -rf compiler/compiled/
 	rm -rf interpreter/test-out
-	find . -type f -name "*rkt.elc" -exec rm {} \;
+	find . -type f -name "*.elc" -exec rm {} \;
 
 check:
 	racket tests/test-compiler.rkt

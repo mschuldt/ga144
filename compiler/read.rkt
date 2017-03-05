@@ -25,6 +25,7 @@
   (raise (rkt-format "[~a:~a]syntax error: ~a" line-number col-number msg )))
 
 (define (read-token in)
+    (assert (not elisp?))
   (define (get-first-char-in-list)
     (let ((new-char (read-char in)))
       (cond ((eof-object? new-char) new-char)
@@ -82,6 +83,7 @@
     (comment)))
 
 (define (parse-code)
+    (assert (not elisp?))
   ;;returns list of cons: ((NODE . CODELIST)...))
   ;;first item is list of code before the first node. boot descriptors etc
   ;;CODELIST is a list of type struct token.
@@ -125,7 +127,7 @@
   ;;returns a list of token lists, one for each word
   ;;if a word does not contain and ending ; then it is
   ;;merged with the next word
-
+  (assert (not elisp?))
   (define words '())
   (define last false)
   (define current-word '())
@@ -177,12 +179,14 @@
   (reverse words))
 
 (define (forth-read-no-eof)
+    (assert (not elisp?))
   (let ((res (forth-read)))
     (if (eof-object? res)
         (error "Unexpected EOF")
         res)))
 
 (define (display-parsed-code parsed-nodes)
+    (assert (not elisp?))
   ;; (display-parsed-code (parse-code))
   (for/list ((node parsed-nodes))
     (printf "_____________________ node ~a ___________________\n" (car node))
