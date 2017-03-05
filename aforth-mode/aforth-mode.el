@@ -288,8 +288,8 @@
 (defun aforth-save-buffer ()
   "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
   (interactive)
-  (aforth-compile-and-update-map)
-  (save-buffer))
+  (save-buffer)
+  (aforth-compile-and-update-map))
 
 (setq aforth-mode-map
       (let ((map (make-sparse-keymap 'aforth-mode-map)))
