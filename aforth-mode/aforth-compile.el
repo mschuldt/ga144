@@ -30,7 +30,7 @@
           (fill-rest-with-nops) ;;make sure last instruction is full
           (set-node-len! current-node (sub1 next-addr)))
 
-        (when DEBUG? (display-compiled (compiled used-nodes)))
+        (when DEBUG? (display-compiled (compiled used-nodes nil)))
 
         ;; errors from this point on are not associated with line numbers
         (setq current-tok-line nil
@@ -40,7 +40,10 @@
         (mapc 'check-for-undefined-words used-nodes)
 
         (setq aforth-compile-stage "finalizing")
-        (setq ret (compiled (mapcar 'remove-address-cells used-nodes) nil)))
+        (setq used-nodes (mapcar 'remove-address-cells used-nodes))
+        ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
+        (setq ret (compiled used-nodes nil)))
+
       (or ret
           (compiled nil (aforth-get-error-data))))))
 
@@ -134,5 +137,12 @@
 
 (defmacro compiler-binop(op)
   `(push (funcall ',op (pop stack) (pop stack)) stack))
+
+(defun aforth-trim-memory (node)
+  (let ((mem (vector->list (nreverse (node-mem node)))))
+    (while (equal (car mem) [nil nil nil nil])
+      (setq mem (cdr mem)))
+    (set-node-mem! node (list->vector (nreverse mem)))
+    node))
 
 (provide 'aforth-compile)

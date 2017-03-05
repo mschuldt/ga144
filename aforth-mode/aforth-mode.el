@@ -1,5 +1,6 @@
 (require 'jit-lock)
 (require 'aforth-parse)
+(require 'ga144-map)
 
 (defvar aforth-mode-hook nil)
 
@@ -268,7 +269,7 @@
   "Opens a temporary map for viewing the current aforth buffer."
   (when (eq major-mode 'aforth-mode)
     ;;TODO:
-    (message "*** Map view not implemented *** Create a map for this file first")))
+    (message "*** Map view not implemented *** Open or create a map for this file first")))
 
 (defun aforth-goto-map ()
   "open the GA144 map for the current aforth-file"

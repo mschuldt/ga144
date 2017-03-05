@@ -428,7 +428,7 @@
     (compile-constant! addr)))
 
 (define (compile-remote-word-ref! word coord)
-  (let ((addr (get-remote-addr word coord)))
+  (let ((addr (get-word-address word coord)))
     (unless addr
       (raise (rkt-format "reference to undefined word: ~a" word)))
     (compile-constant! addr)))
