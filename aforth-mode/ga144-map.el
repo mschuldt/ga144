@@ -456,7 +456,7 @@
   "switch to the aforth source buffer"
   (interactive)
   (if ga-project-aforth-buffer
-      (switch-to-buffer ga-project-aforth-buffer)
+      (switch-to-buffer-other-window ga-project-aforth-buffer)
     (message "aforth source buffer not set")))
 
 (defun ga-set-compilation-data (data)
