@@ -283,7 +283,8 @@
              (buffer-modified-p))
     (let ((_compiled (aforth-compile-buffer)))
       (with-current-buffer aforth-map-buffer
-        (ga-update-compilation-data  _compiled)))))
+        (ga-update-compilation-data  _compiled)))
+    nil))
 
 (defun aforth-save-buffer ()
   "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
