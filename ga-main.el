@@ -19,6 +19,13 @@
 
 (require 'arg-parser)
 
+(defun ga-print-help-and-exit ()
+  (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
+  (kill-emacs))
+
+(when (< (length command-line-args) 4)
+  (ga-print-help-and-exit))
+
 (parse-args '((("-b" "--bootstream") nil "include bootstream"
                (setq bootstream? t))
               (("--bootstream-type") (type) "bootstream type"
@@ -39,6 +46,8 @@
                (setq create-docs? t))
               (("--test") nil "run tests"
                (setq test? t))
+              (("-h") nil "print usage"
+               (ga-print-help-and-exit))
               (position (file) "aforth file"
                         (setq in-file file))
               )
