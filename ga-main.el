@@ -70,11 +70,35 @@
 
 (message "load time: %s" (float-time (time-since load-start-time)))
 
+(defun ga-byte-compile-files ()
+  (setq lexical-binding t)
+  (dolist (file '("compiler/bootstream.rkt"
+                  "compiler/assemble.rkt"
+                  "compiler/compile.rkt"
+                  "compiler/disassemble.rkt"
+                  "ga-compile-print.rkt"
+                  "common.rkt"
+                  "rom.rkt"
+                  "rom-dump.rkt"
+                  ))
+    (rkt-byte-compile (expand-file-name file)))
+
+  (dolist (file '("ga-main.el"
+                  "aforth-mode/aforth-compile.el"
+                  "aforth-mode/aforth-mode.el"
+                  "aforth-mode/ga144-map.el"
+                  "aforth-mode/aforth-parse.el"
+                  "rkt.el"
+                  ))
+    (byte-compile-file (expand-file-name file))))
+
 (when byte-compile?
   (setq _start-time (current-time))
   (require 'vc-git) ;; for vc-git-root, because basic-save-buffer calls vc-after-save, but why?
-  (dolist (file (set->list rkt-loaded-files))
-    (rkt-byte-compile (expand-file-name file)))
+
+  ;;(dolist (file (set->list rkt-loaded-files))
+  ;;  (rkt-byte-compile (expand-file-name file)))
+  (ga-byte-compile-files)
   (message "byte-compile time: %s" (float-time (time-since _start-time)))
   (exit))
 
