@@ -35,6 +35,7 @@
 (def-local ga-compilation-data nil)
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
 (def-local ga-assembled-data nil)
+(def-local ga-node-usage nil)
 
 (defvar ga-auto-resize-map-on-window-change t)
 
@@ -459,7 +460,13 @@
     (message "aforth source buffer not set")))
 
 (defun ga-set-compilation-data (data)
-  (setq ga-compilation-data data)
+  (setq ga-compilation-data data
+        ga-error-data (compiled-error-info data))
+  (unless ga-error-data
+    (setq ga-assembly-data (assemble data))
+    (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
+    (ga-update-node-usage-colors ga-node-usage))
+
   (ga-set-compilation-status (format "compiled %s" (float-time (current-time)))) ;;TODO: real status
   )
 
@@ -475,6 +482,33 @@
     ;;TODO: maybe assemble, bootstream
     )
   (setq ga-compilation-data-changed t))
+
+(defun ga-calculate-node-usage (assembled)
+  (let ((nodes (compiled-nodes assembled))
+        usage)
+    (dolist (node nodes)
+      (push (cons (node-coord node)
+                  (length (filter 'identity (vector->list (node-mem node)))))
+            usage))
+    usage))
+
+(defun to-hex-str (n)
+  (format "%x%s" n (if (< n 15) "0" "")))
+
+(setq ga-node-overflow-color "#ff00ff")
+
+(defun ga-update-node-usage-colors (usage)
+  ;; USAGE format: ((code . word-count)...)
+  (let (n)
+    (dolist (node usage)
+      (if (> (cdr node) 64)
+          (ga-color-node (car node) ga-node-overflow-color)
+        (setq n (+ (floor (* (/ (cdr node) 64.0) 240)) 15))
+        (ga-color-node (car node)
+                       (format "#ff%s%s"
+                               (to-hex-str (- 255 n))
+                               (to-hex-str (- 255 n))
+                               ))))))
 
 (defun ga-set-aforth-source (file)
   (setq ga-project-aforth-file file)
@@ -595,7 +629,7 @@
   ;;(message "current coord: %s" ga-current-coord)
   )
 
-(defun ga-draw-map-in-frame-limits()
+(defun ga-draw-map-in-frame-limits ()
   (let ((max-size (/ (window-max-chars-per-line) 18)))
     (if (> ga-node-size max-size)
         ;; renders the map as large as possible but does not set ga-node-size so the change is not persistent
