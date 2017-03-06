@@ -281,17 +281,20 @@
 
     (when (not aforth-map-buffer)
       (setq aforth-map-buffer (ga-open-map-for-file buffer-file-name)
-            aforth-created-map t)))
-  (switch-to-buffer-other-window aforth-map-buffer))
+            aforth-created-map t))
+    (switch-to-buffer-other-window aforth-map-buffer)))
 
 (defun aforth-compile-and-update-map ()
-  (aforth-check-map-buffer)
-  (when (and aforth-map-buffer
-             (buffer-modified-p))
-    (let ((_compiled (aforth-compile-buffer)))
-      (with-current-buffer aforth-map-buffer
-        (ga-update-compilation-data  _compiled)))
-    nil))
+  (condition-case nil
+      (begin
+       (aforth-check-map-buffer)
+       (when (and aforth-map-buffer
+                  (buffer-modified-p))
+         (let ((_compiled (aforth-compile-buffer)))
+           (with-current-buffer aforth-map-buffer
+             (ga-update-compilation-data  _compiled)))))
+    (error (message "Error compiling buffer")))
+  nil)
 
 (defun aforth-save-buffer ()
   "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
