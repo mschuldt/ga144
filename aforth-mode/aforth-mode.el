@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (require 'jit-lock)
 (require 'aforth-parse)
 (require 'ga144-map)
