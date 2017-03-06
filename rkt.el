@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t -*-
 
-;; racket comparability layer
+;; racket compatibility layer
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 'define' macro
