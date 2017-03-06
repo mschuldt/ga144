@@ -13,13 +13,15 @@
 
 (defun aforth-compile-buffer (&optional buffer)
   (with-current-buffer (or buffer (current-buffer))
-    (let (parsed-nodes ret)
+    (let (parsed-nodes ret locations)
       (reset!)
       (catch 'aforth-error
         (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
         (setq aforth-compile-stage "compiling")
         (dolist (node parsed-nodes)
           (setq aforth-current-node (aforth-node-coord node))
+          (push (cons aforth-current-node (aforth-node-location node))
+                locations)
           (start-new-node aforth-current-node)
           (setq current-token-list (aforth-node-code node))
 
@@ -42,7 +44,7 @@
         (setq aforth-compile-stage "finalizing")
         (setq used-nodes (mapcar 'remove-address-cells used-nodes))
         ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
-        (setq ret (compiled used-nodes nil)))
+        (setq ret (compiled used-nodes nil locations)))
 
       (or ret
           (compiled nil (aforth-get-error-data))))))

@@ -36,6 +36,7 @@
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
 (def-local ga-assembled-data nil)
 (def-local ga-node-usage nil)
+(def-local ga-node-locations nil)
 
 (defvar ga-auto-resize-map-on-window-change t)
 
@@ -447,7 +448,7 @@
       (message "region nodes : %s" ga-region-nodes)
     (ga-goto-current-node)))
 
-(defun ga-goto-node (node) ;;TODO: test
+(defun ga-goto-node (node)
   (if (ga-valid-coord-p node)
       (let ((buffers ga-project-aforth-buffers)
             buff point found-buff)
@@ -468,6 +469,16 @@
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
 
+(defun ga-goto-node (node)
+  (if (ga-valid-coord-p node)
+      (let ((point (cdr (assoc node ga-node-locations))))
+        (if point
+            (progn
+              (switch-to-buffer-other-window ga-project-aforth-buffer)
+              (goto-char point))
+          (message "no source for node %s" node)))
+    (message "Error: invalid node: %s" node)))
+
 (defun ga-goto-source-buffer ()
   "switch to the aforth source buffer"
   (interactive)
@@ -479,12 +490,13 @@
   (setq ga-compilation-data data
         ga-error-data (compiled-error-info data))
   (if ga-error-data
-      (progn
-        (setq ga-assembly-data (assemble data))
-        (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
-        (ga-update-node-usage-colors ga-node-usage)
-        (ga-set-compilation-status "Ok"))
-    (ga-set-compilation-status  (format "FAIL: %s" (error-data-message ga-error-data)))))
+      (ga-set-compilation-status  (format "FAIL: %s" (error-data-message ga-error-data)))
+    (progn
+      (setq ga-assembly-data (assemble data))
+      (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
+      (setq ga-node-locations (compiled-node-locations data))
+      (ga-update-node-usage-colors ga-node-usage)
+      (ga-set-compilation-status "Ok"))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
   (if compilation-data

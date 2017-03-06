@@ -154,7 +154,7 @@
 ;;       the remaining words in mem are all #f
 ;; 'symbols' a list of symbol structs
 
-(struct compiled (nodes (error-info #:auto)) #:mutable #:transparent)
+(struct compiled (nodes (error-info #:auto) (node-locations #:auto) ) #:mutable #:transparent)
 ;; struct to hold compiled code
 ;; 'nodes': list of 'node' structs
 ;; 'error-info': struct error-info

@@ -1,6 +1,6 @@
 (require 'cl)
 (defstruct aforth-token type value args start end overlay subtoks)
-(defstruct aforth-node coord code)
+(defstruct aforth-node coord code location)
 (defstruct error-data message stage node line col input-type token)
 
 (setq aforth-error-message nil)
@@ -266,7 +266,9 @@
           (progn (when current-node
                    (setf (aforth-node-code current-node) (nreverse current-code))
                    (setq nodes (cons current-node nodes)))
-                 (setq current-node (make-aforth-node :coord (aforth-token-args token))
+                 (setq current-node (make-aforth-node :coord (aforth-token-args token)
+                                                      :location (aforth-token-start token))
+
                        current-code nil))
         (setq current-code (cons token current-code))))
     (when current-node
