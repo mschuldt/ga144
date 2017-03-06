@@ -746,7 +746,11 @@ Elements of ALIST that are not conses are ignored."
       ;; There are no more maps so there is no need to track focus, and
       ;; if the hook is not removed we will end up iterating through all buffers with ga-rescan-buffers-for-maps
       (remove-hook 'buffer-list-update-hook 'ga-update-map-focus)
-      )))
+      ))
+
+  (when ga-project-aforth-buffer
+    (with-current-buffer ga-project-aforth-buffer
+      (setq aforth-map-buffer nil))))
 
 (defun ga-set-mark ()
   (interactive)
@@ -779,7 +783,8 @@ Elements of ALIST that are not conses are ignored."
 
 (defun ga-kill-map ()
   (interactive)
-  (if (buffer-modified-p)
+  (if (and (not ga-map-view-mode)
+           (buffer-modified-p))
       (and (yes-or-no-p "map modified, kill anyways?")
            (kill-buffer))
     (and (y-or-n-p "kill map?")
