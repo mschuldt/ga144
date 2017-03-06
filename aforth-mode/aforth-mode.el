@@ -263,18 +263,24 @@
 (setq aforth-created-map nil)
 (make-variable-buffer-local 'aforth-map-buffer)
 
+(defun aforth-check-map-buffer ()
+  (when (and aforth-map-buffer
+             (not (buffer-live-p aforth-map-buffer)))
+    (setq aforth-map-buffer nil)))
+
 (defun aforth-goto-map ()
   "open the GA144 map for the current aforth-file"
   (interactive)
   (when (eq major-mode 'aforth-mode)
+    (aforth-check-map-buffer)
 
-    (when (or (not aforth-map-buffer)
-              (not (buffer-live-p aforth-map-buffer)))
+    (when (not aforth-map-buffer)
       (setq aforth-map-buffer (ga-open-map-for-file buffer-file-name)
             aforth-created-map t)))
   (switch-to-buffer-other-window aforth-map-buffer))
 
 (defun aforth-compile-and-update-map ()
+  (aforth-check-map-buffer)
   (when (and aforth-map-buffer
              (buffer-modified-p))
     (let ((_compiled (aforth-compile-buffer)))
@@ -289,6 +295,7 @@
   (aforth-compile-and-update-map))
 
 (defun aforth-buffer-cleanup ()
+  (aforth-check-map-buffer)
   (when (and aforth-created-map
              aforth-map-buffer
              (buffer-live-p aforth-map-buffer))
