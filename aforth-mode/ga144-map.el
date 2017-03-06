@@ -899,6 +899,23 @@ Elements of ALIST that are not conses are ignored."
     (switch-to-buffer (get-buffer-create (format "*%s-project-file*" ga-project-name)))
     (insert-file-contents-literally filename))
   (emacs-lisp-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun ga-goto-first-non-empty-node ()
+  ;; move selected node to first non-empty node on the current row
+  (interactive)
+  (let* ((coord (* (/ ga-current-coord 100) 100))
+         (max (+ coord 18))
+         found)
+    (while (and (null found)
+                (< coord max))
+      (setq found (assoc coord ga-node-locations))
+      (when (not found)
+        (incf coord)))
+    (when found
+      (ga-set-selected-node coord))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -911,7 +928,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "<down>") 'ga-move-down)
         (define-key map (kbd "<left>") 'ga-move-left)
         (define-key map (kbd "<right>") 'ga-move-right)
-        ;;(define-key map (kbd "C-x C-s") 'ga-save)
+        (define-key map (kbd "C-x C-s") 'ga-save)
         (define-key map (kbd "C-e") 'ga-move-right-end)
         (define-key map (kbd "C-a") 'ga-move-left-end)
         (define-key map (kbd "C-b") 'ga-move-left)
@@ -932,6 +949,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-x k") 'ga-kill-map)
         (define-key map (kbd "C-c b") 'bury-buffer)
 	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
+        (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
         map))
 
 (defun ga-open-map-for-file (filename)
