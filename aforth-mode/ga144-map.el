@@ -336,23 +336,24 @@
 
 (defun ga-save ()
   (interactive)
-  (let ((ga-nodes-sans-overlays (vconcat (mapcar 'copy-sequence ga-nodes)))
-        node)
-    (dotimes (i 144)
-      (setq node (aref ga-nodes-sans-overlays i))
-      (setf (ga-node-overlays node) nil)
-      (setf (ga-node-coord-overlay node) nil))
+  (unless ga-map-view-mode
+    (let ((ga-nodes-sans-overlays (vconcat (mapcar 'copy-sequence ga-nodes)))
+          node)
+      (dotimes (i 144)
+        (setq node (aref ga-nodes-sans-overlays i))
+        (setf (ga-node-overlays node) nil)
+        (setf (ga-node-coord-overlay node) nil))
 
-    (let ((print-level nil)
-          (print-length nil)
-          (values (mapcar (lambda (x) (cons x (eval x))) ga-persistent-variables))) ;;the values are buffer-local
-      (with-temp-file ga-project-file
-        (dolist (v values)
-          (insert "(setq " (symbol-name (car v)))
-          (print (cdr v) (current-buffer))
-          (insert ")\n\n")))))
-  (message "saved in %s" ga-project-file)
-  (set-buffer-modified-p nil))
+      (let ((print-level nil)
+            (print-length nil)
+            (values (mapcar (lambda (x) (cons x (eval x))) ga-persistent-variables))) ;;the values are buffer-local
+        (with-temp-file ga-project-file
+          (dolist (v values)
+            (insert "(setq " (symbol-name (car v)))
+            (print (cdr v) (current-buffer))
+            (insert ")\n\n")))))
+    (message "saved in %s" ga-project-file)
+    (set-buffer-modified-p nil)))
 
 (defun ga-inc-node-size ()
   (interactive)
