@@ -551,6 +551,7 @@
 (defun ga-set-aforth-source (file)
   (setq ga-project-aforth-file file)
   (setq ga-project-aforth-buffer (ga-get-project-file-buffer file))
+  (add-to-list 'ga-project-aforth-buffers (ga-get-project-file-buffer file))
   ;; set aforth-map-buffer in the aforth buffer to point to the buffer of this map
   (let ((this-buffer (current-buffer)))
     (if ga-project-aforth-buffer
@@ -1048,3 +1049,6 @@ Elements of ALIST that are not conses are ignored."
   ga-nodes)
 
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga-mode))
+
+(provide 'ga144-map)
+

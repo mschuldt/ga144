@@ -1,7 +1,10 @@
 ;; -*- lexical-binding: t -*-
 
+(require 'cl)
+(require 'gv)
 (require 'jit-lock)
 (require 'aforth-parse)
+(require 'aforth-compile)
 (require 'ga144-map)
 
 (defvar aforth-mode-hook nil)
