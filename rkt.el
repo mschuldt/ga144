@@ -503,11 +503,10 @@
     (message "Error: rkt-load -- file does not exist: %s" file)
     (exit 0))
 
-  ;; use file-name-nondirectory to avoid .. in directory names producing different paths
-  (when (or (not (set-member? rkt-loaded-files (file-name-nondirectory file)))
+  (when (or (not (set-member? rkt-loaded-files (file-truename file)))
             (not racket-script-mode)) ;; always reload when working interactively
 
-    (set-add rkt-loaded-files (file-name-nondirectory file))
+    (set-add rkt-loaded-files (file-truename file))
 
     (let* ((lexical-binding t)
            (racket? nil)
