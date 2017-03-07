@@ -7,6 +7,10 @@
 (setq debug-on-error t)
 (setq load-start-time (current-time))
 
+(require 'cl)
+(require 'gv)
+(put 'flet 'byte-obsolete-info nil) ;;prevent message "‘flet’ is an obsolete macro.."
+
 (setq bootstream? nil)
 (setq bootstream-type "async")
 (setq symbols? nil)
@@ -19,14 +23,14 @@
 (setq create-docs? nil)
 (setq test? nil)
 
-(require 'arg-parser)
-
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
   (kill-emacs))
 
 (when (< (length command-line-args) 4)
   (ga-print-help-and-exit))
+
+(load "aforth-mode/arg-parser" nil t)
 
 (parse-args '((("-b" "--bootstream") nil "include bootstream"
                (setq bootstream? t))
@@ -59,15 +63,13 @@
   (require 'profiler)
   (profiler-start 'cpu))
 
-(require 'cl)
-(put 'flet 'byte-obsolete-info nil) ;;prevent message "‘flet’ is an obsolete macro.."
-(require 'rkt)
-(rkt-require "ga-compile-print.rkt")
-(require 'aforth-compile)
-(require 'ga144-load)
+;(require 'aforth-compile)
+;(require 'ga-serial)
 
 (setq racket-script-mode t)
 
+(load "ga-loadup.el")
+(ga-compiler-loadup)
 (message "load time: %s" (float-time (time-since load-start-time)))
 
 (defun ga-byte-compile-files ()
@@ -80,6 +82,7 @@
                   "common.rkt"
                   "rom.rkt"
                   "rom-dump.rkt"
+                  "tests/test-compiler.rkt"
                   ))
     (rkt-byte-compile (expand-file-name file)))
 
@@ -88,7 +91,9 @@
                   "aforth-mode/aforth-mode.el"
                   "aforth-mode/ga144-map.el"
                   "aforth-mode/aforth-parse.el"
+                  "aforth-mode/arg-parser.el"
                   "rkt.el"
+                  "ga-loadup.el"
                   ))
     (byte-compile-file (expand-file-name file))))
 
