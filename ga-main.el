@@ -92,6 +92,15 @@
                   ))
     (byte-compile-file (expand-file-name file))))
 
+(defun ga-main-exit ()
+  (when profile?
+    (let ((profile-filename (concat "_profile_" (or in-file ""))))
+      (profiler-report)
+      (profiler-report-write-profile profile-filename)
+      (message "saved profile data in file: '%s', view with M-x profiler-find-profile" profile-filename)
+      ))
+  (exit))
+
 (when byte-compile?
   (setq _start-time (current-time))
   (require 'vc-git) ;; for vc-git-root, because basic-save-buffer calls vc-after-save, but why?
@@ -100,19 +109,20 @@
   ;;  (rkt-byte-compile (expand-file-name file)))
   (ga-byte-compile-files)
   (message "byte-compile time: %s" (float-time (time-since _start-time)))
-  (exit))
+  (ga-main-exit))
+
 
 (when create-docs?
   (require 'vc-git)
   (write-directive-docs "compiler-directives")
-  (exit))
+  (ga-main-exit))
 
 (when test?
   (rkt-require "tests/test-compiler.rkt")
   (message (if (run-compiler-tests)
                "ok"
              "fail"))
-  (exit))
+  (ga-main-exit))
 
 (progn ;;for .rkt compatibility
   (defun bootstream-type () bootstream-type)
@@ -129,11 +139,7 @@
 
 (message "compile time: %s" (float-time (time-since _start-time)))
 
-(when profile?
-  (let ((profile-filename (concat "_profile_" (or in-file ""))))
-    (profiler-report)
-    (profiler-report-write-profile profile-filename)
-    (message "saved profile data in file: '%s', view with M-x profiler-find-profile" profile-filename)
-    ))
 
-(exit)
+
+
+(ga-main-exit)
