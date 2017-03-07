@@ -256,12 +256,27 @@
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
 
+
+(define (get-node coord)
+  ;; returns the node for COORDinate, creating if it does not exist
+  (let* ((index (coord->index coord))
+         (node (vector-ref nodes index)))
+
+    (if node
+        node
+        (begin
+          (set! node (create-node coord
+                                  (list->vector (for/list ((_ num-words))
+                                                  (make-vector 4 false)))))
+          (vector-set! nodes index node)
+          node))))
+
 (define (reset!)
   (set! nodes (make-vector num-nodes false))
-  (for ((i num-nodes))
-    (vector-set! nodes i (create-node (index->coord i)
-                                      (list->vector (for/list ((_ num-words))
-                                                      (make-vector 4 false))))))
+  ;;(for ((i num-nodes))
+  ;;  (vector-set! nodes i (create-node (index->coord i)
+  ;;                                    (list->vector (for/list ((_ num-words))
+  ;;                                                    (make-vector 4 false))))))
   (set! used-nodes '())
   (set! last-inst false)
   (set! stack '())
@@ -406,7 +421,7 @@
 ;; support for calling remote words in nodes that are defined later in the program
 
 (define (get-remote-addr word coord)
-  (define node (vector-ref nodes (coord->index coord))) ;;TODO: validate COORD
+  (define node (get-node coord)) ;;TODO: validate COORD
   (define words (node-word-dict node))
   (if words
       (if (hash-has-key? words word)
@@ -604,7 +619,7 @@
   (define index (coord->index coord))
   ;;TODO: validate 'node'
   ;;assert (node-coord node) == coord
-  (set! current-node (vector-ref nodes index))
+  (set! current-node (get-node coord))
   (set! memory (node-mem current-node))
   (set! words (node-word-dict current-node))
   (set! address-cells (node-address-cells current-node))
