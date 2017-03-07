@@ -256,18 +256,22 @@
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
 
-
 (define (get-node coord)
   ;; returns the node for COORDinate, creating if it does not exist
   (let* ((index (coord->index coord))
-         (node (vector-ref nodes index)))
+         (node (vector-ref nodes index))
+         (i 0)
+         mem)
 
     (if node
         node
         (begin
-          (set! node (create-node coord
-                                  (list->vector (for/list ((_ num-words))
-                                                  (make-vector 4 false)))))
+          (set! mem (make-vector num-words false))
+          (while (< i num-words)
+            (begin
+              (vector-set! mem i (make-vector 4 false))
+              (set! i (1+ i))))
+          (set! node (create-node coord mem ))
           (vector-set! nodes index node)
           node))))
 
