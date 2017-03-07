@@ -522,11 +522,14 @@
           (insert-file-contents-literally file)
           (goto-char (point-min))
           (forward-line)) ;; skip  #lang ...
-        (flet ((require (&rest files) (rkt-require files))
+        ;; require from loaded files is disabled because it is so slow - load them manually
+        (flet (;;(require (&rest files) (rkt-require files))
+               (require (&rest files) nil)
                (provide (&rest syms) nil))
           (condition-case err
               (if use-byte-compiled
-                  (load (expand-file-name compiled-filename) nil t)
+                  ;;(load (expand-file-name compiled-filename) nil t)
+                  (load compiled-filename nil t)
                 (eval-region (point) (point-max)))
             (error (message (format "rkt-load error. file='%s', error=%s" file err)))))
         (setq buffer-file-name nil)
