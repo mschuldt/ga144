@@ -88,7 +88,7 @@
     (fill-rest-with-nops) ;;make sure last instruction is full
     (set-node-len! current-node (sub1 next-addr)))
 
-  (when DEBUG? (display-compiled (compiled used-nodes false)))
+  (when DEBUG? (display-compiled (compiled used-nodes)))
 
   ;; errors from this point on are not associated with line numbers
   (set! current-tok-line false)
@@ -96,7 +96,7 @@
 
   (map check-for-undefined-words used-nodes)
 
-  (compiled (map remove-address-cells used-nodes) false))
+  (compiled (map remove-address-cells used-nodes)))
 
 (define (aforth-compile-file file)
   (call-with-input-file file aforth-compile)
@@ -261,7 +261,7 @@
   (let* ((index (coord->index coord))
          (node (vector-ref nodes index))
          (i 0)
-         mem)
+         (mem false))
 
     (if node
         node
@@ -270,7 +270,7 @@
           (while (< i num-words)
             (begin
               (vector-set! mem i (make-vector 4 false))
-              (set! i (1+ i))))
+              (set! i (add1 i))))
           (set! node (create-node coord mem ))
           (vector-set! nodes index node)
           node))))
