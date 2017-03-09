@@ -499,6 +499,8 @@
 (setq rkt-loaded-files (make-set))
 
 (defun rkt-load (file)
+  (setq file (concat (file-name-directory (or buffer-file-name load-file-name)) file))
+
   (unless (file-exists-p file)
     (message "Error: rkt-load -- file does not exist: %s" file)
     (exit 0))
@@ -561,7 +563,7 @@
   (dolist (file files)
     (when (and (stringp file)
                (not (equal (car (last (split-string file "/"))) "el.rkt")))
-      (rkt-load (concat (file-name-directory (or buffer-file-name load-file-name)) file)))))
+      (rkt-load file))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
