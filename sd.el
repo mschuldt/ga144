@@ -1,6 +1,14 @@
 (require 'cl)
 
 (defstruct sd buffer length data-length data overlays offset)
+;;            1      2      3           4    5         6
+;; because: Symbol’s function definition is void: \(setf\ sd-data-len\)
+(defun set-sd-data-len! (sd x)
+  (aset sd 3 x))
+(defun set-sd-data! (sd x)
+  (aset sd 4 x))
+(defun set-sd-offset! (sd x)
+  (aset sd 6 x))
 
 (setq sd-display-list nil)
 
@@ -61,8 +69,8 @@ WIDTH - width of display in characters
 
 (defun sd-set-data (sd data)
   "set the display DATA array"
-  (setf (sd-data sd) data)
-  (setf (sd-data-len sd) (length data))
+  (set-sd-data! sd data)
+  (set-sd-data-len! sd (length data))
   (sd-update sd))
 
 (defun sd-move-to_ (sd curr new)
@@ -70,7 +78,7 @@ WIDTH - width of display in characters
         new (min new (sd-data-length sd)))
 
   (when (not (= new curr))
-    (setf (sd-offset sd) new)
+    (set-tsd-offset! sd new)
     (sd-update sd)))
 
 (defun sd-center-on (sd n)
