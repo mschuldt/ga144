@@ -159,7 +159,7 @@
       (insert s)
       (setq o (ga-node-coord-overlay node))
       (move-overlay o (- (point) l) (point))
-      (setf (ga-node-coord-overlay node) o))
+      (set-ga-node-coord-overlay! node o)) ;
     ;; set aforth file overlay string
     (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
     (ga-create-overlays node-size)
@@ -175,7 +175,7 @@
     (loop-nodes node
       (dolist (o (ga-node-overlays node))
         (delete-overlay o))
-      (setf (ga-node-overlays node) nil))))
+      (set-ga-node-overlays! node nil))))
 
 (defun ga-create-overlays (node-size)
   (ga-delete-overlays)
@@ -193,7 +193,7 @@
         (forward-line)
         (beginning-of-line)
         (forward-char column)))
-    (setf (ga-node-overlays node) overlays)))
+    (set-ga-node-overlays! node overlays)))
 
 (defmacro loop-nodes (var &rest body)
   (declare (indent 1) (debug (symbolp body)))
@@ -231,7 +231,7 @@
          (faces (ga-node-faces node)))
     ;;(assert (and (arrayp faces) (= (length faces) ga-num-faces)))
     (aset faces idx face)
-    (setf (ga-node-faces node) faces)
+    (set-ga-node-faces! node faces)
     (ga-update-node-overlays node)
     ))
 
@@ -242,7 +242,7 @@
       (aset faces 2 nil) ;; temp low
       (aset faces 3 nil) ;; point
       (aset faces 4 nil) ;; temp high
-      (setf (ga-node-faces node) faces))))
+      (set-ga-node-faces! node faces))))
 
 (defun ga-set-node-default-face (coord face)
   (ga-set-node-face-internal coord 0 face))
@@ -267,6 +267,16 @@
     (ga-set-node-face-internal coord 2 (if remove nil (ga-node-region-face node)))))
 
 (defstruct ga-node coord special-function node-type text color overlays region-face faces coord-overlay)
+;;                 1     2                3         4    5     6        7           8     9
+;; work around for errors like:
+;;   Symbol’s function definition is void: \(setf\ ga-node-coord-overlay\)
+;; internet says (require 'cl) should have fixed this but it doesn't
+(defun set-ga-node-overlays! (node x)
+  (aset node 6 x))
+(defun set-ga-node-faces! (node x)
+  (aset node 8 x))
+(defun set-ga-node-coord-overlay! (node x)
+  (aset node 9 x))
 
 (defun ga-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
@@ -342,8 +352,8 @@
           node)
       (dotimes (i 144)
         (setq node (aref ga-nodes-sans-overlays i))
-        (setf (ga-node-overlays node) nil)
-        (setf (ga-node-coord-overlay node) nil))
+        (set-ga-node-overlays! node nil)
+        (set-ga-node-coord-overlay! node nil))
 
       (let ((print-level nil)
             (print-length nil)
@@ -1045,7 +1055,7 @@ Elements of ALIST that are not conses are ignored."
     (loop-nodes node
       (setq o (make-overlay 0 0))
       (overlay-put o 'face ga-node-coord-face)
-      (setf (ga-node-coord-overlay node) o)))
+      (set-ga-node-coord-overlay! node o)))
   ga-nodes)
 
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga-mode))
