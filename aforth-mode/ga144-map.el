@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t -*-
 (require 'cl)
 (require 'gv)
+(load "sd")
 
 (defmacro def-local (name &optional default docs)
   `(progn (defvar ,name ,default, docs)
@@ -34,10 +35,16 @@
 (def-local ga-color-select-coord nil)
 (def-local ga-parse-data nil)
 (def-local ga-compilation-data nil)
+(def-local ga-compiled-nodes nil) ;; hash mapping nodes to compiled node memory array
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
 (def-local ga-assembled-data nil)
 (def-local ga-node-usage nil)
 (def-local ga-node-locations nil)
+(def-local ga-ram-display nil)
+
+(setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
+;; maps nodes to their current position in their ram display window
+(def-local ga-node-ram-display-position nil)
 
 (defvar ga-auto-resize-map-on-window-change t)
 
@@ -124,10 +131,12 @@
   (read-only-mode -1)
   (erase-buffer)
   (goto-char 1)
-  (let (x coord l o n)
+  (let ((map-height (* node-size 8))
+        (map-width (* node-size 18))
+        x coord l o n)
     ;; insert map chars
-    (dotimes (_ (* node-size 8))
-      (insert (make-string (* node-size 18) ? ) "\n" ))
+    (dotimes (_ map-height)
+      (insert (make-string map-width ? ) "\n" ))
     ;; aforth file chars and overlay
     (let ((s "source file: ") p)
       (setq n (- (* node-size 8) (1+ (length s)))
@@ -165,6 +174,13 @@
     (ga-create-overlays node-size)
     ;;;; set compile status overlay string
     ;;(ga-set-compilation-status ga-project-aforth-compile-status)
+
+    (when ga-ram-display
+      (sd-remove ga-ram-display))
+    (setq ga-ram-display (sd-create ga-empty-node-ram-display-data
+                                    1 (+ map-width 3) ;; line column position
+                                    map-height ;; display length
+                                    27)) ;; display width
     )
   (ga-update-overlay-faces)
   (set-buffer-modified-p t)
@@ -439,6 +455,7 @@
   (assert (ga-valid-coord-p coord))
   (setq ga-prev-coord ga-current-coord
         ga-current-coord coord)
+  (ga-update-ram-display-node)
   (update-position))
 
 (defun ga-move-selected-node (n)
@@ -499,15 +516,22 @@
     (message "aforth source buffer not set")))
 
 (defun ga-set-compilation-data (data)
-  (setq ga-compilation-data data
-        ga-error-data (compiled-error-info data))
+  (setq ga-error-data (compiled-error-info data))
   (if ga-error-data
       (ga-set-compilation-status  (format "FAIL: %s" (error-data-message ga-error-data)))
     (progn
+      (setq ga-compilation-data data)
+      (setq ga-compiled-nodes (let ((ht (make-hash-table)))
+                                (dolist (node (compiled-nodes data))
+                                  (puthash (node-coord node)
+					   (vector-copy (node-mem node))ht))
+                                ht))
       (setq ga-assembly-data (assemble data))
       (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
       (setq ga-node-locations (compiled-node-locations data))
       (ga-update-node-usage-colors ga-node-usage)
+
+      (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord))
       (ga-set-compilation-status "Ok"))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
@@ -557,6 +581,40 @@
                                     (to-hex-str (- 255 n))
                                     (to-hex-str (- 255 n))
                                     ))))))
+
+(defun ga-create-ram-display-data (coord)
+  "create an array of ram display data for node COORD"
+  (let* ((mem (gethash coord ga-compiled-nodes))
+         data word str)  ;;TODO: cache the ram data
+    (if mem
+        (progn (setq data (make-vector 64 nil))
+               (dotimes (i 64)
+		 (setq str (format "%s" (aref mem i)))
+		 (aset data i str)
+                 ;; (aset data i (mapconcat (lambda (x) (cond ((stringp x) x)
+                 ;;                                           ((numberp x) (number-to-string x))
+                 ;;                                           ((null x) "~")
+                 ;;                                           (t (error "invalid compiled word: '%s'" x))))
+                 ;;                         (vector->list (aref mem i))
+                 ;;                         " "))
+		 )
+	       data)
+      ga-empty-node-ram-display-data)))
+
+
+(defun ga-update-ram-display-node ()
+  "Updates the ram display with the compiled data from the current selected node.
+Called after ga-current-node is set"
+  ;;(assert ga-ram-display)
+  (when (and ga-ram-display
+	     ga-current-coord
+             ga-compiled-nodes)
+    ;; save the position of the previous node
+    (aset ga-node-ram-display-position (coord->index ga-prev-coord) (sd-offset ga-ram-display))
+    ;; swap data to current node
+    (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord))
+    ;; restore position of current node
+    (sd-move-to ga-ram-display (aref ga-node-ram-display-position (coord->index ga-current-coord)))))
 
 (defun ga-set-aforth-source (file)
   (setq ga-project-aforth-file file)
@@ -987,8 +1045,6 @@ Elements of ALIST that are not conses are ignored."
   (when (not buffer-file-name)
     (setq ga-map-view-mode t))
 
-  (message "mbs: ga144 mode, ga-project-aforth-files = %s" ga-project-aforth-files)
-
   (if (or ga-map-view-mode
           (string-match "ga144$" buffer-file-name))
       (progn
@@ -1005,6 +1061,7 @@ Elements of ALIST that are not conses are ignored."
         (setq ga-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga-node-size ga-default-node-size)
         (setq ga-project-aforth-compile-status-overlay (make-overlay 0 1))
+        (setq ga-node-ram-display-position (make-vector 144 0))
 	(ga-set-compilation-status "Unknown")
 
         (if ga-map-view-mode
