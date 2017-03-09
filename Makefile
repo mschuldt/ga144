@@ -1,11 +1,11 @@
 all: compiler interpreter tests
 	raco make common.rkt rom.rkt dump el.rkt
 
-compiler: compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt
-	raco make compiler/assemble.rkt compiler/bootstream.rkt compiler/compile.rkt compiler/disassemble.rkt compiler/read.rkt rom-dump-bootstream.rkt
+compiler: assemble.rkt bootstream.rkt compile.rkt disassemble.rkt read.rkt
+	raco make assemble.rkt bootstream.rkt compile.rkt disassemble.rkt read.rkt rom-dump-bootstream.rkt
 
-interpreter: interpreter/interpreter.rkt interpreter/stack.rkt interpreter/ga144.rkt interpreter/f18a.rkt
-	raco make interpreter/interpreter.rkt interpreter/stack.rkt interpreter/ga144.rkt interpreter/f18a.rkt
+interpreter: interpreter.rkt stack.rkt ga144.rkt f18a.rkt
+	raco make interpreter.rkt stack.rkt ga144.rkt f18a.rkt
 
 tests: tests/tests.rkt
 	raco make tests/tests.rkt
@@ -14,9 +14,7 @@ tests: tests/tests.rkt
 
 clean:
 	rm -rf compiled/
-	rm -rf interpreter/compiled/
-	rm -rf compiler/compiled/
-	rm -rf interpreter/test-out
+	rm -rf test-out
 	find . -type f -name "*.elc" -exec rm {} \;
 
 check:

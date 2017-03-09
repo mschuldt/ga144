@@ -1,11 +1,11 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
 (require compatibility/defmacro
-         "../interpreter/interpreter.rkt"
-	 "../compiler/compile.rkt"
-         "../compiler/assemble.rkt"
-         "../compiler/bootstream.rkt"
-         "../interpreter/stack.rkt"
+         "../interpreter.rkt"
+	 "../compile.rkt"
+         "../assemble.rkt"
+         "../bootstream.rkt"
+         "../stack.rkt"
          "../el.rkt")
 
 (define chip (new-ga144 "host"))

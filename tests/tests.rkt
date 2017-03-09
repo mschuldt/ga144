@@ -1,9 +1,9 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
 (require compatibility/defmacro
-         "../interpreter/interpreter.rkt"
+         "../interpreter.rkt"
          "../common.rkt"
-         "../interpreter/stack.rkt"
+         "../stack.rkt"
          "../el.rkt")
 
 (define (18bit n)

@@ -9,8 +9,8 @@
 (require "read.rkt"
          "assemble.rkt"
          "disassemble.rkt"
-         "../common.rkt"
-         "../el.rkt"
+         "common.rkt"
+         "el.rkt"
          )
 
 (when elisp? (_def '(aforth-compile aforth-compile-file display-compiled)))

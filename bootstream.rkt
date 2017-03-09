@@ -3,8 +3,8 @@
 (require "assemble.rkt"
          "disassemble.rkt"
          "compile.rkt"
-         "../common.rkt"
-         "../el.rkt")
+         "common.rkt"
+         "el.rkt")
 
 (when elisp?
   (_def '(make-bootstream-type

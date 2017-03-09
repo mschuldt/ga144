@@ -2,9 +2,9 @@
 
 (require compatibility/defmacro
          "stack.rkt"
-         "../common.rkt"
-         "../compiler/disassemble.rkt"
-         "../el.rkt")
+         "common.rkt"
+         "disassemble.rkt"
+         "el.rkt")
 
 (provide f18a%)
 

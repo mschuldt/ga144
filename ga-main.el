@@ -1,6 +1,4 @@
 ;; -*- lexical-binding: t -*-
-(add-to-list 'load-path "~/a/projects/ga144/aforth-mode") ;;TODO: remove
-(add-to-list 'load-path "~/a/projects/ga144/")
 
 (setq gc-cons-threshold most-positive-fixnum)
 
@@ -30,7 +28,7 @@
 (when (< (length command-line-args) 4)
   (ga-print-help-and-exit))
 
-(load "aforth-mode/arg-parser" nil t)
+(load "arg-parser" nil t)
 
 (parse-args '((("-b" "--bootstream") nil "include bootstream"
                (setq bootstream? t))
@@ -74,10 +72,10 @@
 
 (defun ga-byte-compile-files ()
   (setq lexical-binding t)
-  (dolist (file '("compiler/bootstream.rkt"
-                  "compiler/assemble.rkt"
-                  "compiler/compile.rkt"
-                  "compiler/disassemble.rkt"
+  (dolist (file '("bootstream.rkt"
+                  "assemble.rkt"
+                  "compile.rkt"
+                  "disassemble.rkt"
                   "ga-compile-print.rkt"
                   "common.rkt"
                   "rom.rkt"
@@ -87,11 +85,11 @@
     (rkt-byte-compile (expand-file-name file)))
 
   (dolist (file '("ga-main.el"
-                  "aforth-mode/aforth-compile.el"
-                  "aforth-mode/aforth-mode.el"
-                  "aforth-mode/ga144-map.el"
-                  "aforth-mode/aforth-parse.el"
-                  "aforth-mode/arg-parser.el"
+                  "aforth-compile.el"
+                  "aforth-mode.el"
+                  "ga144-map.el"
+                  "aforth-parse.el"
+                  "arg-parser.el"
                   "rkt.el"
                   "ga-loadup.el"
                   ))

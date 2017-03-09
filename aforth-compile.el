@@ -3,15 +3,14 @@
 ;; elisp aforth-compiler entrance
 
 (add-to-list 'load-path "~/a/projects/ga144")
-(add-to-list 'load-path "~/a/projects/ga144/aforth-mode")
 
 (require 'rkt)
 (require 'aforth-parse)
 
-(rkt-require "../compiler/compile.rkt")
-(rkt-require "../compiler/bootstream.rkt")
+(rkt-require "compile.rkt")		;
+(rkt-require "bootstream.rkt")
 
-(defun aforth-compile-buffer (&optional buffer)
+(defun aforth-compile-buffer (&optional buffer) ;
   (with-current-buffer (or buffer (current-buffer))
     (let (parsed-nodes ret locations)
       (reset!)

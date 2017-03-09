@@ -2,12 +2,12 @@
 ;; simulates a collection of ga144 chips
 
 (require compatibility/defmacro
-         "../compiler/assemble.rkt"
-         "../compiler/disassemble.rkt"
+         "assemble.rkt"
+         "disassemble.rkt"
          "ga144.rkt"
-         "../common.rkt"
-         "../compiler/compile.rkt"
-         "../el.rkt")
+         "common.rkt"
+         "compile.rkt"
+         "el.rkt")
 
 (provide (all-defined-out))
 

@@ -2,8 +2,8 @@
 
 (require compatibility/defmacro
          "../common.rkt"
-         "../compiler/compile.rkt"
-         "../compiler/assemble.rkt"
+         "../compile.rkt"
+         "../assemble.rkt"
          "../el.rkt")
 
 (define compiler-tests

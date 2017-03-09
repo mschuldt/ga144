@@ -1,10 +1,10 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
 (require "common.rkt"
-         "compiler/compile.rkt"
-         "compiler/assemble.rkt"
-         "compiler/bootstream.rkt"
-         "compiler/disassemble.rkt"
+         "compile.rkt"
+         "assemble.rkt"
+         "bootstream.rkt"
+         "disassemble.rkt"
          "el.rkt")
 
 (provide (all-defined-out))

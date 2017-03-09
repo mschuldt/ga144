@@ -2,9 +2,9 @@
 
 ;; Generates code and a bootstream that dumps ROM from every node.
 
-(require "compiler/compile.rkt"
-         "compiler/bootstream.rkt"
-         "compiler/assemble.rkt"
+(require "compile.rkt"
+         "bootstream.rkt"
+         "assemble.rkt"
          "common.rkt"
          "el.rkt")
 

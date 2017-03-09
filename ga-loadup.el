@@ -12,6 +12,7 @@
         (rkt-load file)))))
 
 (defun ga-el-load (file)
+  
   (load file nil t))
 
 (defun ga-compiler-loadup ()
@@ -21,20 +22,20 @@
   (ga-rkt-load "rom.rkt")
   (ga-rkt-load "rom-dump.rkt")
   (ga-rkt-load "common.rkt")
-  (ga-rkt-load "compiler/compile.rkt")
-  (ga-rkt-load "compiler/bootstream.rkt")
-  (ga-rkt-load "compiler/assemble.rkt")
-  (ga-rkt-load "compiler/disassemble.rkt")
+  (ga-rkt-load "compile.rkt")
+  (ga-rkt-load "bootstream.rkt")
+  (ga-rkt-load "assemble.rkt")
+  (ga-rkt-load "disassemble.rkt")
   (ga-rkt-load "ga-compile-print.rkt")
   (ga-rkt-load "tests/test-compiler.rkt")
 
 
   (ga-el-load "rkt")
-  (ga-el-load "aforth-mode/aforth-parse")
-  (ga-el-load "aforth-mode/aforth-mode")
-  (ga-el-load "aforth-mode/arg-parser")
+  (ga-el-load "aforth-parse")
+  (ga-el-load "aforth-mode")
+  (ga-el-load "arg-parser")
 
-  (ga-el-load "aforth-mode/aforth-compile"))
+  (ga-el-load "aforth-compile"))
 
 
 (provide 'ga-loadup)

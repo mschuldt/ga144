@@ -1,7 +1,7 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
-(require  "../common.rkt"
-          "../el.rkt")
+(require  "common.rkt"
+          "el.rkt")
 
 (when elisp? (_def '(assemble-word assemble)))
 
