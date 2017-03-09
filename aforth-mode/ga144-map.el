@@ -138,7 +138,7 @@
       (insert s)
       (move-overlay ga-project-aforth-file-overlay p (point)))
     ;;compile status overlay
-    (let ((s "Compilation status:")
+    (let ((s "Compilation status: ")
 	  p)
       (setq n (- (* node-size 8) (1+ (length s)))
             n (> n 0) n 0)

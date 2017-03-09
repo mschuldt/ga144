@@ -1,4 +1,7 @@
+;; -*- lexical-binding: t -*-
+
 (require 'cl)
+(require 'gv)
 (defstruct aforth-token type value args start end overlay subtoks)
 (defstruct aforth-node coord code location)
 (defstruct error-data message stage node line col input-type token)
