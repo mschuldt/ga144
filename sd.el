@@ -63,23 +63,28 @@ WIDTH - width of display in characters
   (let* ((data (sd-data sd))
          (offset (sd-offset sd))
          (overlays (sd-overlays sd)))
-
     (dotimes (i (sd-length sd))
       (overlay-put (aref overlays i) 'after-string (aref data (+ i offset))))))
 
 (defun sd-set-data (sd data)
   "set the display DATA array"
+  (assert data)
   (set-sd-data! sd data)
   (set-sd-data-len! sd (length data))
   (sd-update sd))
 
 (defun sd-move-to_ (sd curr new)
   (setq new (max 0 new)
-        new (min new (sd-data-length sd)))
+        new (min new (- (sd-data-length sd)
+                        (sd-length sd))))
 
   (when (not (= new curr))
-    (set-tsd-offset! sd new)
+    (set-sd-offset! sd new)
     (sd-update sd)))
+
+(defun sd-move-to (sd offset)
+  (sd-move-to_ sd (sd-offset sd) offset)
+  (sd-update sd))
 
 (defun sd-center-on (sd n)
   (sd-move-to_ sd
