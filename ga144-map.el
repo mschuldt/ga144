@@ -616,6 +616,16 @@ Called after ga-current-node is set"
     ;; restore position of current node
     (sd-move-to ga-ram-display (aref ga-node-ram-display-position (coord->index ga-current-coord)))))
 
+(defun ga-move-ram-view-down ()
+  (interactive)
+  (when ga-ram-display
+    (sd-move-down ga-ram-display)))
+
+(defun ga-move-ram-view-up ()
+  (interactive)
+  (when ga-ram-display
+    (sd-move-up ga-ram-display)))
+
 (defun ga-set-aforth-source (file)
   (setq ga-project-aforth-file file)
   (setq ga-project-aforth-buffer (ga-get-project-file-buffer file))
@@ -1020,6 +1030,8 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-x k") 'ga-kill-map)
         (define-key map (kbd "C-c b") 'bury-buffer)
 	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
+        (define-key map (kbd "<") 'ga-move-ram-view-down)
+        (define-key map (kbd ">") 'ga-move-ram-view-up)
         (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
         map))
 
