@@ -582,14 +582,45 @@
                                     (to-hex-str (- 255 n))
                                     ))))))
 
+(defun ga-format-inst (inst)
+  (cond ((stringp inst)
+         (put-text-property 0 (length inst) 'font-lock-face '(:foreground "green") inst)
+         inst)
+        ((number? inst)
+         (setq inst (number-to-string inst))
+         (put-text-property 0 (length inst) 'font-lock-face '(:foreground "red") inst)
+         inst)
+        ((null inst) "~")))
+
+(defun ga-format-word (i word)
+  (let* ((a " ")
+         (b a)
+         (c a)
+         (d a))
+    ;; empty words are [nil nil nil nil]
+    ;; addresses are numbers (call N, if N,...)
+    ;; nil may come after numbers
+    (cond ((number? word)
+           (setq a word))
+          ((vector? word)
+           (setq a (ga-format-inst (aref word 0)))
+           (when (aref word 1)
+             (setq b (ga-format-inst (aref word 1)))
+             (when (aref word 2)
+               (setq c (ga-format-inst (aref word 2)))
+               (when (aref word 3)
+                 (setq d (ga-format-inst (aref word 3)))))))
+          (t (error "unknow type for compiled word: '%s'"  word)))
+    (format "%2s  %-5s %-5s %-5s %-5s" i a b c d)))
+
 (defun ga-create-ram-display-data (coord)
   "create an array of ram display data for node COORD"
   (let* ((mem (gethash coord ga-compiled-nodes))
          data word str)  ;;TODO: cache the ram data
     (if mem
         (progn (setq data (make-vector 64 nil))
-               (dotimes (i 64)
-		 (setq str (format "%s" (aref mem i)))
+               (dotimes (i (min 64 (length mem)))
+                 (setq str (ga-format-word i (aref mem i)))
 		 (aset data i str)
                  ;; (aset data i (mapconcat (lambda (x) (cond ((stringp x) x)
                  ;;                                           ((numberp x) (number-to-string x))
