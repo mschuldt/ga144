@@ -39,8 +39,10 @@
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
 (def-local ga-assembled-data nil)
 (def-local ga-node-usage nil)
+(def-local ga-node-usage-hash nil)
 (def-local ga-node-locations nil)
 (def-local ga-ram-display nil)
+(def-local ga-current-node-display nil)
 
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
@@ -125,7 +127,17 @@
 
 (defun ga-set-compilation-status (status)
   (setq ga-project-aforth-compile-status status)
-  (overlay-put ga-project-aforth-compile-status-overlay 'after-string  status))
+  (overlay-put ga-project-aforth-compile-status-overlay 'after-string status))
+
+(setq ga-current-node-display-format "node %s  (%s/64, %s%%)")
+
+(defun ga-current-node-display-fn (_ _)
+  (let ((s (format "node %s" ga-current-coord))
+        (n (gethash ga-current-coord ga-node-usage-hash)))
+    (put-text-property 0 (length s) 'font-lock-face '(:foreground "yellow") s)
+    (if n
+        (format "%s  %s words, %s%%" s n (/ (* n 100) 64))
+      s)))
 
 (defun ga-draw-map (node-size)
   (read-only-mode -1)
@@ -185,6 +197,7 @@
                                     1 (+ map-width 3) ;; line column position
                                     map-height ;; display length
                                     27)) ;; display width
+    (sd-set-display-function ga-ram-display 0 'ga-current-node-display-fn)
     )
   (ga-update-overlay-faces)
   (set-buffer-modified-p t)
@@ -519,6 +532,12 @@
       (switch-to-buffer-other-window ga-project-aforth-buffer)
     (message "aforth source buffer not set")))
 
+(defun ga-alist->hash (alist)
+  (let ((ht (make-hash-table :test 'eq)))
+    (dolist (x alist)
+      (puthash (car x) (cdr x) ht))
+    ht))
+
 (defun ga-set-compilation-data (data)
   (setq ga-error-data (compiled-error-info data))
   (if ga-error-data
@@ -532,10 +551,11 @@
                                 ht))
       (setq ga-assembly-data (assemble data))
       (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
+      (setq ga-node-usage-hash (ga-alist->hash ga-node-usage))
       (setq ga-node-locations (compiled-node-locations data))
       (ga-update-node-usage-colors ga-node-usage)
-
-      (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord))
+      (when ga-ram-display
+        (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord)))
       (ga-set-compilation-status "Ok"))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
