@@ -656,7 +656,6 @@
 	       data)
       ga-empty-node-ram-display-data)))
 
-
 (defun ga-update-ram-display-node ()
   "Updates the ram display with the compiled data from the current selected node.
 Called after ga-current-node is set"
@@ -860,10 +859,12 @@ Elements of ALIST that are not conses are ignored."
 (defun ga-update-map-focus ()
   (when (eq (window-buffer (selected-window))
 	    (current-buffer))
+    (when (not (buffer-live-p ga-current-focus-buffer))
+      (setq ga-current-focus-buffer nil))
     ;; selected window has current buffer
     (when (and ga-current-focus-buffer
-	       (not (eq ga-current-focus-buffer
-			(current-buffer))))
+               (not (eq ga-current-focus-buffer
+                        (current-buffer))))
       ;; current map lost focus
       (ga-set-map-buffer-focus ga-current-focus-buffer nil)
       (setq ga-current-focus-buffer nil))
@@ -1185,4 +1186,3 @@ Elements of ALIST that are not conses are ignored."
 (add-to-list 'auto-mode-alist '("\\.ga144$" . ga-mode))
 
 (provide 'ga144-map)
-
