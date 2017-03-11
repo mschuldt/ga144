@@ -90,3 +90,5 @@
 (define aforth-error-message true)
 
 (define rkt-format format)
+(define token-start false)
+(define token-end false)

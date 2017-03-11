@@ -5,7 +5,6 @@
 ;; - DB001 F18A Technology Reference
 ;; - DB004 arrayForth User's Manual, section 5
 
-
 (require "read.rkt"
          "assemble.rkt"
          "disassemble.rkt"
@@ -48,6 +47,15 @@
 (define parsed-words false)
 ;; the list of instructions we are currently compiling (body of the current word)
 (define current-token-list false)
+
+;; if true create a mapping from compiled instructions to buffer positions
+(define save-buffer-mappings false)
+(define buffer-mappings false)
+(define current-word-buffer-mapping false)
+(define current-token-buffer-position false)
+
+(when elisp?
+  (set! save-buffer-mappings true))
 
 (define (aforth-compile in)
   ;;IN is a port, filename or list of parsed nodes in (parse-code) format
@@ -256,22 +264,29 @@
   (and (hash-has-key? directives name)
        (hash-ref directives name)))
 
+(define (create-memory-array)
+  (let ((mem (make-vector num-words false))
+        (i 0))
+    (while (< i num-words)
+      (begin
+        (vector-set! mem i (make-vector 4 false))
+        (set! i (add1 i))))
+    mem))
+
 (define (get-node coord)
   ;; returns the node for COORDinate, creating if it does not exist
   (let* ((index (coord->index coord))
          (node (vector-ref nodes index))
-         (i 0)
-         (mem false))
+         (mem false)
+         (buf-map false))
 
     (if node
         node
         (begin
-          (set! mem (make-vector num-words false))
-          (while (< i num-words)
-            (begin
-              (vector-set! mem i (make-vector 4 false))
-              (set! i (add1 i))))
-          (set! node (create-node coord mem ))
+          (set! mem (create-memory-array))
+          (when save-buffer-mappings
+            (set! buf-map (create-memory-array)))
+          (set! node (create-node coord mem buf-map))
           (vector-set! nodes index node)
           node))))
 
@@ -285,14 +300,23 @@
   (set! last-inst false)
   (set! stack '())
   (set! memory false)
+  (set! buffer-mappings false)
+  (set! current-word-buffer-mapping false)
+  (set! current-token-buffer-position false)
   (set! current-word false)
   (set! current-addr false)
   (set! next-addr false)
   (set! words (make-hash))
   (set! rom false)
   (set! waiting (make-hash))
+  (set! current-tok-line 0)
+  (set! current-tok-col 0)
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
+  (set! current-token-list false)
+  (set! address-cells false)
+  (set! extended-arith 0)
+  (set! current-node false)
   (define-named-addresses!))
 
 (define (read-tok)
@@ -324,6 +348,7 @@
 
 (define (compile-token token)
   (set! current-token (token-tok token))
+  (assert (not elisp?))
   (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
                        (token-tok token) current-addr current-slot next-addr))
   (let ((x false)
@@ -345,6 +370,8 @@
   (set! current-addr n)
   (set! next-addr (add1 n))
   (set! current-word (vector-ref memory n))
+  (when save-buffer-mappings
+    (set! current-word-buffer-mapping (vector-ref buffer-mappings n)))
   (set! current-slot 0))
 
 (define (goto-next-word) (org next-addr))
@@ -354,6 +381,8 @@
   (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
   (unless current-word (err "You probably forgot to use 'node' first"))
   (vector-set! current-word current-slot inst)
+  (when save-buffer-mappings
+    (vector-set! current-word-buffer-mapping current-slot current-token-buffer-position))
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
     (goto-next-word))
@@ -460,8 +489,12 @@
 (define (set-next-empty-word! word)
   (if (= current-slot 0)
       (begin (vector-set! memory current-addr word)
+             (when save-buffer-mappings
+               (vector-set! buffer-mappings current-addr current-token-buffer-position))
              (org next-addr))
       (begin (vector-set! memory next-addr word)
+             (when save-buffer-mappings
+               (vector-set! buffer-mappings next-addr current-token-buffer-position))
              (set! next-addr (add1 next-addr)))))
 
 (define (make-new-address-cell val (name false))
@@ -540,7 +573,10 @@
   (set! next-addr (add1 next-addr))
   (set! current-word (vector-ref memory current-addr))
   (for ((i (reverse (range from next-addr))))
-    (vector-set! memory (add1 i) (vector-ref memory i))))
+    (vector-set! memory (add1 i) (vector-ref memory i)))
+  (when save-buffer-mappings
+    (for ((i (reverse (range from next-addr))))
+      (vector-set! buffer-mappings (add1 i) (vector-ref buffer-mappings i)))))
 
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
@@ -625,6 +661,7 @@
   ;;assert (node-coord node) == coord
   (set! current-node (get-node coord))
   (set! memory (node-mem current-node))
+  (set! buffer-mappings (node-buffer-map current-node))
   (set! words (node-word-dict current-node))
   (set! address-cells (node-address-cells current-node))
   (set! rom (get-node-rom coord))
@@ -634,7 +671,6 @@
   (set! current-node-coord coord)
   (set! current-node-consts (node-consts current-node))
   (org 0))
-
 
 (add-directive!
  "node"
@@ -798,13 +834,16 @@ otherwise decrements R and jumps to matching 'then'"
         false))
   (define max-slot-num (vector 262144 8192 256 8))
   (let* ((word (vector-ref memory slot))
+         (buf-map (and save-buffer-mappings (vector-ref buffer-mappings slot)))
          (last (and (vector? word) (find-first-empty word))))
     (if last
         (if (and (not (address-cell? thing))
                  (> thing (vector-ref max-slot-num last)))
             ;; TODO: move instruction to next word in this case
             (err (rkt-format "'~a' cannot fit into slot ~a" thing last))
-            (vector-set! word last thing))
+            (begin
+              (vector-set! word last thing)
+              (and buf-map (vector-set! buf-map last thing))))
         (err (rkt-format "add-to-slot -- slot ~a ~a: ~a"
                          slot
                          (if (vector? word)

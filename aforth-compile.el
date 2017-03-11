@@ -85,6 +85,8 @@
         (token-val (aforth-token-value token))
         (token-args (aforth-token-args token))
         func)
+    (setq current-token-buffer-position (cons (aforth-token-start token)
+                                              (aforth-token-end token)))
     (setq current-token token)
     (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
                          (token-tok token) current-addr current-slot next-addr))
@@ -128,6 +130,7 @@
            (compile-call! token-val))
 
           (t (error "unrecognized token type: %s" token)))
+    (setq current-token-buffer-position nil)
     (setq current-token nil)))
 
 (defun aforth-compile-file (filename)

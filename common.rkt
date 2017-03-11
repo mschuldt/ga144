@@ -144,7 +144,7 @@
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
-(struct node (coord mem len (symbols #:auto) (word-dict #:auto)
+(struct node (coord mem buffer-map len (symbols #:auto) (word-dict #:auto)
                     (a #:auto) (b #:auto) (io #:auto) (stack #:auto) (p #:auto)
                     (address-cells #:auto) (consts #:auto))
   #:mutable #:transparent)
@@ -173,8 +173,8 @@
                            ))
 (define default-bootstream-type "async")
 
-(define (create-node coord (mem false) (len 0))
-  (let ((new (node coord mem len)))
+(define (create-node coord (mem false) (buffer-map false) (len 0))
+  (let ((new (node coord mem buffer-map len)))
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
     (set-node-address-cells! new (make-set))
