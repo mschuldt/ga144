@@ -1,7 +1,7 @@
 (require 'cl)
 
-(defstruct sd buffer length data-length data overlays offset)
-;;            1      2      3           4    5         6
+(defstruct sd buffer length data-length data overlays offset display-functions)
+;;            1      2      3           4    5         6     7
 ;; because: Symbol’s function definition is void: \(setf\ sd-data-len\)
 (defun set-sd-data-len! (sd x)
   (aset sd 3 x))
@@ -53,6 +53,7 @@ WIDTH - width of display in characters
                       :data-length data-len
                       :data data
                       :overlays overlays
+                      :display-functions (make-vector data-len nil)
                       :offset 0))
     (push sd sd-display-list)
     (sd-update sd)
@@ -62,9 +63,15 @@ WIDTH - width of display in characters
   "update display overlays"
   (let* ((data (sd-data sd))
          (offset (sd-offset sd))
-         (overlays (sd-overlays sd)))
+         (overlays (sd-overlays sd))
+         (fn-array (sd-display-functions sd))
+         fn row)
     (dotimes (i (sd-length sd))
-      (overlay-put (aref overlays i) 'after-string (aref data (+ i offset))))))
+      (setq fn (aref fn-array i)
+            row (aref data (+ i offset)))
+      (when fn
+        (setq row (funcall fn i row)))
+      (overlay-put (aref overlays i) 'after-string row))))
 
 (defun sd-set-data (sd data)
   "set the display DATA array"
@@ -107,6 +114,16 @@ WIDTH - width of display in characters
           (delete-overlay o))
         (sd-overlays sd))
   (setq sd-display-list (remove sd sd-display-list)))
+
+(defun sd-set-display-function (sd line function)
+  ;;FUNCTION accepts two args: 'line' and 'data'.
+  ;; 'index' is the line of the display being updated
+  ;; 'data' is the data that is to be displayed on that line
+  ;; the function must return a string, which would replace 'data' on the display
+  ;; by default function is the identity function
+  (let ((fn-array (sd-display-functions sd)))
+    (assert (and (>= line 0) (<= line (sd-length sd))))
+    (aset fn-array line function)))
 
 (defun sd-delete-all ()
   "global cleanup off all displays"
