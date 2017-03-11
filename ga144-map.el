@@ -170,7 +170,11 @@
       (move-overlay o (- (point) l) (point))
       (set-ga-node-coord-overlay! node o)) ;
     ;; set aforth file overlay string
-    (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
+    (overlay-put ga-project-aforth-file-overlay 'after-string
+                 (or (and ga-project-aforth-buffer
+                          (with-current-buffer ga-project-aforth-buffer
+                            (buffer-name)))
+                     "None"))
     (ga-create-overlays node-size)
     ;;;; set compile status overlay string
     ;;(ga-set-compilation-status ga-project-aforth-compile-status)
