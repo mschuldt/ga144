@@ -642,10 +642,11 @@
   (let* ((mem (gethash coord ga-compiled-nodes))
          data word str)  ;;TODO: cache the ram data
     (if mem
-        (progn (setq data (make-vector 64 nil))
+        ;; reserve the first line in the display for node coord and usage
+        (progn (setq data (make-vector 65 nil))
                (dotimes (i (min 64 (length mem)))
                  (setq str (ga-format-word i (aref mem i)))
-		 (aset data i str)
+		 (aset data (1+ i) str)
                  ;; (aset data i (mapconcat (lambda (x) (cond ((stringp x) x)
                  ;;                                           ((numberp x) (number-to-string x))
                  ;;                                           ((null x) "~")
