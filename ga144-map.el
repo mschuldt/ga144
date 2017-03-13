@@ -1,7 +1,7 @@
 ;; -*- lexical-binding: t -*-
 (require 'cl)
 (require 'gv)
-(load "sd")
+(load "sd" nil t)
 
 (defmacro def-local (name &optional default docs)
   `(progn (defvar ,name ,default, docs)

@@ -66,7 +66,7 @@
 
 (setq racket-script-mode t)
 
-(load "ga-loadup.el")
+(load "ga-loadup.el" nil t)
 (ga-compiler-loadup)
 (message "load time: %s" (float-time (time-since load-start-time)))
 
