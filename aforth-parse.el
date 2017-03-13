@@ -346,4 +346,4 @@
 
 
 (provide 'aforth-parse)
-(require 'aforth-mode)
+;;(require 'aforth-mode)

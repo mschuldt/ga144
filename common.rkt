@@ -28,17 +28,17 @@
 (defconst instructions-using-rest-of-word '(";" "ex"))
 
 (defconst named-addresses '(("right" . #x1D5)
-                          ("down" . #x115)
-                          ("left" . #x175)
-                          ("up" . #x145)
-                          ("io" . #x15D)
-                          ("ldata" . #x171)
-                          ("data" . #x141)
-                          ("warp" . #x157)
-                          ("center" . #x1A5)
-                          ("top" . #x1B5)
-                          ("side" . #x185)
-                          ("corner" . #x195)))
+                            ("down" . #x115)
+                            ("left" . #x175)
+                            ("up" . #x145)
+                            ("io" . #x15D)
+                            ("ldata" . #x171)
+                            ("data" . #x141)
+                            ("warp" . #x157)
+                            ("center" . #x1A5)
+                            ("top" . #x1B5)
+                            ("side" . #x185)
+                            ("corner" . #x195)))
 
 (define addresses->names (make-hash (for/list ((x named-addresses))
                                       (cons (cdr x) (car x)))))
@@ -168,9 +168,9 @@
 (struct address-cell (val next-addr name (type #:auto)) #:mutable #:transparent)
 
 (defconst bootstream-types '("async" ;; load through node 708 serial
-                           "2wire" ;; load through node 300 2wire
-                           "async-target" ;; in host node 708 to target node 300
-                           ))
+                             "2wire" ;; load through node 300 2wire
+                             "async-target" ;; in host node 708 to target node 300
+                             ))
 (define default-bootstream-type "async")
 
 (define (create-node coord (mem false) (buffer-map false) (len 0))

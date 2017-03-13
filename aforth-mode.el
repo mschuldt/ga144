@@ -293,7 +293,7 @@
          (let ((_compiled (aforth-compile-buffer)))
            (with-current-buffer aforth-map-buffer
              (ga-update-compilation-data  _compiled)))))
-    (error (message "Error compiling buffer")))
+    (error (message "Error compiling buffer:")))
   nil)
 
 (defun aforth-save-buffer ()

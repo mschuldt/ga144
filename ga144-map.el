@@ -1089,6 +1089,7 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "C-x C-x") 'ga-exchange-point-and-mark)
         (define-key map (kbd "C-g") 'ga-keyboard-quit)
         (define-key map (kbd "C-x k") 'ga-kill-map)
+        ;;(define-key map (kbd "q") 'ga-kill-map)
         (define-key map (kbd "C-c b") 'bury-buffer)
 	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
         (define-key map (kbd "<") 'ga-move-ram-view-down)
