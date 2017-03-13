@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+
+from sys import argv
+import subprocess
+from serial import Serial
+
+def write(bs, serial):
+    serial.write(bs)
+
+#18bit words transmitted using 4 bytes with format:
+#     upper2 middle8 lower8 wordcode
+#
+# wordcodes:
+#  0: receive 18 bit word
+#  1: exit
+def listen(port, speed, serial, verbose=True):
+    if verbose:
+        print "Listening. port={}, speed={}".format(port, speed)
+
+    def read_n( n ):
+        x = [ord(serial.read( 1 )) for _ in range( n ) ]
+        x.reverse()
+        word = 0
+        for byte in x:
+            word = ( word << 8 ) | byte
+            n -= 1
+        return word
+
+    while True:
+        n = read_n( 1 )
+        if n  == 1:
+            print "[exit]"
+            return
+        if n == 0:
+            n = read_n( 3 )
+            print n & 0x3ffff
+        else:
+            print "ERROR -- unknown code:", s
+
+def run_command(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    x = p.communicate()[0]
+    return x.strip()
+
+default_speed = 460800
+bootstream_types = [ "async", "2wire", "async-target" ]
+bootstream_type = "async"
+
+def print_usage_and_exist():
+    print "usage: ./ga-load filename port [--speed (default: {})] [--bootstream (default: {})] [--no-listen]".format(default_speed, bootstream_type)
+    exit(1)
+
+if __name__ == "__main__":
+
+    #speed = 921600
+    if len(argv) not in [3, 4, 5, 7]:
+        print_usage_and_exist()
+
+    filename = argv[1]
+    port = argv[2]
+
+    speed = default_speed
+
+    argv = argv[3:]
+    serial_listen = True
+    if "--no-listen" in argv:
+        arg.remove("--no-listen")
+        serial_listen = False
+    if not (len(argv) % 2 == 0):
+        print_usage_and_exist()
+
+    while argv:
+        arg = argv.pop(0)
+        if arg == "--speed" or arg == "-s":
+            speed = int(argv.pop(0))
+        elif arg == "--bootstream" or arg == "-b":
+            bootstream_type = argv.pop(0)
+            if bootstream_type not in bootstream_types:
+                print "invalid bootstream type:", bootstream_type
+                exit(1)
+        else:
+            print "invalid option: ", arg
+
+    cmd = "./ga --bootstream-type {} --only-bootstream {}".format(bootstream_type, filename)
+    bootstream = run_command(cmd).split(" ")
+    host = Serial(port, speed)
+    # target chip serial for resetting
+    target = None #Serial("/dev/ttyUSB4", 921600)
+    write("".join(map(lambda x: chr(int(x)), bootstream)), host)
+    if serial_listen:
+        listen(port, speed, host)
+        host.close()
+
+
+# ./ga-load test.aforth /dev/ttyUSB3 --speed 460800 --bootstream async-target
