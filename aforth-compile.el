@@ -2,8 +2,6 @@
 
 ;; elisp aforth-compiler entrance
 
-(add-to-list 'load-path "~/a/projects/ga144")
-
 (require 'rkt)
 (require 'aforth-parse)
 
@@ -148,5 +146,11 @@
       (setq mem (cdr mem)))
     (set-node-mem! node (list->vector (nreverse mem)))
     node))
+
+(defun compile-file-to-bootstream (file bootstream-type)
+  (let* ((compiled (aforth-compile-file file))
+         (assembled (assemble compiled))
+         (bootstream (make-bootstream assembled bootstream-type)))
+    (sget-convert bootstream)))
 
 (provide 'aforth-compile)

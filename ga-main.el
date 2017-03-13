@@ -20,6 +20,7 @@
 (setq profile? nil)
 (setq create-docs? nil)
 (setq test? nil)
+(setq only-bootstream? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -34,6 +35,8 @@
                (setq bootstream? t))
               (("--bootstream-type") (type) "bootstream type"
                (setq bootstream-type type))
+              (("--only-bootstream") nil "only output loadable bootstream"
+               (setq only-bootstream? t))
               (("-s" "--symbols") nil "include symboltable"
                (setq symbols? t))
               (("-p" "--pretty") nil "print in human readable"
@@ -68,7 +71,7 @@
 
 (load "ga-loadup.el" nil t)
 (ga-compiler-loadup)
-(message "load time: %s" (float-time (time-since load-start-time)))
+(unless only-bootstream? (message "load time: %s" (float-time (time-since load-start-time))))
 
 (defun ga-byte-compile-files ()
   (setq lexical-binding t)
@@ -133,6 +136,10 @@
   (defun hex? () hex?))
 
 (setq _start-time (current-time))
+
+(when only-bootstream?
+  (princ (mapconcat 'number-to-string (compile-file-to-bootstream in-file bootstream-type) " ") standard-output)
+  (ga-main-exit))
 
 (if count?
     (print-count in-file)
