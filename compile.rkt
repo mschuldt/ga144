@@ -913,9 +913,12 @@ which following code will be compiled into"
   (let* ((n (read-tok-name))
          (addr (or (get-address n current-node-coord)
                    (get-word-address n))))
-    (unless addr
+    (unless (and addr
+                 (number? addr))
       (raise (rkt-format "unknown address for compiler directive '~a': ~a" name n)))
-    (set-fn current-node addr)))
+    (if elisp?
+        (funcall set-fn current-node addr)
+        (set-fn current-node addr))))
 
 (add-directive!
  "/b"
