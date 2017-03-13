@@ -139,6 +139,14 @@
         (format "%s  %s words, %s%%" s n (/ (* n 100) 64))
       s)))
 
+(defun ga-set-source-buffer-overlay (&optional name)
+  (overlay-put ga-project-aforth-file-overlay 'after-string
+               (or (or name
+                       (and ga-project-aforth-buffer
+                            (with-current-buffer ga-project-aforth-buffer
+                              (buffer-name))))
+                   "None")))
+
 (defun ga-draw-map (node-size)
   (read-only-mode -1)
   (erase-buffer)
@@ -182,11 +190,7 @@
       (move-overlay o (- (point) l) (point))
       (set-ga-node-coord-overlay! node o)) ;
     ;; set aforth file overlay string
-    (overlay-put ga-project-aforth-file-overlay 'after-string
-                 (or (and ga-project-aforth-buffer
-                          (with-current-buffer ga-project-aforth-buffer
-                            (buffer-name)))
-                     "None"))
+    (ga-set-source-buffer-overlay)
     (ga-create-overlays node-size)
     ;;;; set compile status overlay string
     ;;(ga-set-compilation-status ga-project-aforth-compile-status)
@@ -698,7 +702,7 @@ Called after ga-current-node is set"
           (setq aforth-map-buffer this-buffer))
       (error "unable to get buffer for project source file '%s'"  file)))
 
-  (overlay-put ga-project-aforth-file-overlay 'after-string (or ga-project-aforth-file "None"))
+  (ga-set-source-buffer-overlay)
   (ga-update-compilation-data))
 
 (defun ga-select-aforth-source ()
