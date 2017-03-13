@@ -234,7 +234,10 @@
          (hash-ref names->addresses name))
         ((and node  ;;relative names
               (member name '("north" "south" "east" "west")))
-         (convert-direction node name))
+         (cdr (assoc (convert-direction node name) named-addresses)))
+        ((and node
+              (assoc name named-addresses))
+         (cdr (assoc name named-addresses)))
         (else (parse-num name)))) ;; literals and word addresses
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
