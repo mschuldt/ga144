@@ -452,7 +452,8 @@
                          (defun ,(intern name) (s val)
                            (unless (,test-name s)
                              (error ,(format " %s -- expected struct type '%s'. got this instead: %%s" name struct-name) s))
-                           (aset s ,i val)))))
+                           (aset s ,i val))
+                         (setq ,(intern name) ',(intern name)))))
                   args (number-sequence 1 max-args))
 
        ,@(mapcar* (lambda (arg i)
@@ -466,7 +467,8 @@
                            (unless (,test-name s)
                              (error ,(format " %s -- expected struct type '%s'. got this instead: %%s"
                                              name struct-name) s))
-                           (aref s ,i)))))
+                           (aref s ,i))
+                         (setq ,(intern name) ',(intern name)))))
                   args (number-sequence 1 max-args))
        )))
 
