@@ -86,8 +86,7 @@
     (setq current-token-buffer-position (cons (aforth-token-start token)
                                               (aforth-token-end token)))
     (setq current-token token)
-    (when DEBUG? (printf "compile-token(~a) [~a  ~a  ~a]\n"
-                         (token-tok token) current-addr current-slot next-addr))
+    (when DEBUG2? (printf "compile-token: ~a  ~a  ~a\n" token-val token-type token-args))
     (cond ((or (eq token-type 'word-def)
                (eq token-type 'compile-def))
            (setq func (get-directive token-type))
@@ -152,5 +151,10 @@
          (assembled (assemble compiled))
          (bootstream (make-bootstream assembled bootstream-type)))
     (sget-convert bootstream)))
+
+(defun aforth-parse-string (str &optional no-comments)
+  (with-temp-buffer
+    (insert str)
+    (aforth-parse-nodes (point-min) (point-max) nil no-comments)))
 
 (provide 'aforth-compile)
