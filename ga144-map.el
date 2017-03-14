@@ -587,7 +587,7 @@
 (defun to-hex-str (n)
   (format "%s%x" (if (< n 16) "0" "") n))
 
-(setq ga-node-overflow-color "#ff00ff")
+(setq ga-node-overflow-color "#9b30ff")
 
 (defun ga-set-usage-color (node color)
   (when color
