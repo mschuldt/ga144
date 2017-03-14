@@ -145,6 +145,10 @@
   (let* ((str (if (stringp tok) tok
                 (aforth-token-value tok)))
          (base 10)
+         (neg (when (and (> (length str) 0)
+                         (eq (aref str 0) ?-))
+                (setq str (subseq str 1))
+                t))
          (str (if (and (> (length str) 2)
                        (eq (aref str 0) ?0)
                        (or (and (eq (aref str 1) ?x)
@@ -159,7 +163,8 @@
       (setq n (string-to-number str base))
       (if (= n 0)
           nil
-        n))))
+        (if neg (- n)
+          n)))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
@@ -200,7 +205,7 @@
                (aforth-compile-error (format "Expected definition name" val))))
             ((or (string-match "^0x\\([0-9a-fA-F]+\\)$" val)
                  (string-match "^0b\\([01]+\\)$" val)
-                 (string-match "^\\([0-9]+\\)$" val))
+                 (string-match "^\\(-?[0-9]+\\)$" val))
              (push (aforth-set-token token 'number (aforth-parse-number val) nil start end)
                    out))
 
