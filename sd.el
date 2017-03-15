@@ -77,7 +77,10 @@ WIDTH - width of display in characters
   "set the display DATA array"
   (assert data)
   (set-sd-data! sd data)
-  (set-sd-data-len! sd (length data))
+  (let ((data-len (length data))
+        (offset (sd-offset sd)))
+    (set-sd-data-len! sd data-len)
+    (set-sd-offset! sd (max (min offset (- data-len (sd-length sd))) 0)))
   (sd-update sd))
 
 (defun sd-move-to_ (sd curr new)
