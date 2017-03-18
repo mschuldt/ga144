@@ -17,7 +17,6 @@
 (provide aforth-compile aforth-compile-file display-compiled)
 
 (define DEBUG? false) ;;does not work in elisp
-(define DEBUG2? false)
 
 (define nodes false) ;;node# -> code struct
 (define used-nodes '())
@@ -654,7 +653,6 @@
          (set-next-empty-word! data)))))
 
 (define (start-new-node coord)
-  (when DEBUG2? (printf "start new node; ~a\n" coord))
   (when memory ;;make sure last instruction is full
     (fill-rest-with-nops)
     (set-node-len! current-node (sub1 next-addr)))

@@ -86,7 +86,6 @@
     (setq current-token-buffer-position (cons (aforth-token-start token)
                                               (aforth-token-end token)))
     (setq current-token token)
-    (when DEBUG2? (printf "compile-token: ~a  ~a  ~a\n" token-val token-type token-args))
     (cond ((or (eq token-type 'word-def)
                (eq token-type 'compile-def))
            (setq func (get-directive token-type))
