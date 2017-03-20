@@ -595,4 +595,249 @@
           (write-file filename))
       (setq standard-output prev-output))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; classes
+
+(let ((vars '(class-type-index
+              object-type-index
+              object-method-mapping-index
+              object-field-mapping-index
+              object-n-special-fields ))
+      (i 0))
+  (dolist (var vars)
+    (set var i)
+    (setq i (1+ i))))
+
+
+(defun get-param-syms (arglist)
+  (remove '&rest (remove '&optional arglist)))
+
+(defun convert-let-form (type bindings body)
+  (let ((exclude (append (mapcar (lambda (x) (if (consp x) (car x) x)) bindings) exclude)))
+    (list type bindings (mapcar (lambda (x) (replace-variable-references x mappings exclude)) body))))
+
+(defun replace-variable-references (form mappings &optional exclude)
+  (let (x)
+    (pcase form
+      (`(setq ,var ,value)
+       (setq x (assoc var mappings))
+       (if (and x (not (member var exclude)))
+           `(aset self ,(cdr x) ,(replace-variable-references value mappings exclude))
+         form))
+
+      (`(lambda () . ,body);;TODO: can this case be combined with
+       `(lambda () ,@(mapcar (lambda (x) (replace-variable-references x mappings exclude)) body)))
+
+      (`(lambda ,params . ,body)
+       (let ((exclude (append (get-param-syms params) exclude)))
+         `(lambda ,params ,@(mapcar (lambda (x) (replace-variable-references x mappings exclude)) body))))
+
+      (`(let ,bindings . ,body) (convert-let-form 'let bindings body))
+      (`(let* ,bindings . ,body) (convert-let-form 'let* bindings body))
+
+      ((pred listp)
+       (mapcar (lambda (x) (replace-variable-references x mappings exclude)) form))
+
+      ((pred symbolp)
+       (setq x (assoc form mappings))
+       (if (and x (not (member form exclude)))
+           `(aref self ,(cdr x))
+         form))
+      (_ form)
+      )
+    )
+  )
+
+(defun replace-method-calls (mappings form)
+  (macroexpand-all
+   `(cl-macrolet (,@mappings) ,form)))
+
+(setq anon-class-counter 0)
+
+(defun make-arg-sym (base)
+  (concat-sym "__optional__" base))
+
+(defun rkt-alist->hash (alist)
+  (let ((ht (make-hash-table :test 'eq)))
+    (dolist (x alist)
+      (puthash (car x) (cdr x) ht))
+    ht))
+
+(defmacro class (super &rest body)
+  (let* ((class-name (intern (format "class%s" (incf anon-class-counter))))
+         (attr-start-index object-n-special-fields)
+         public-methods private-methods method-start-index attributes
+         trans-methods init-forms new-method-names init-fields len
+         class-vec method-name-map name)
+
+    (dolist (form body)
+      (pcase form
+        (`(init-field . ,fields) (setq init-fields fields))
+        (`(define ,name ,body)
+         (if (symbolp name)
+             (progn (push name attributes)
+                    ;; use seq instead of define here or the 'define' macro will let-bind
+                    ;; 'name' and it wont get replaced with the self reference later
+                    (push `(setq ,name ,body) init-forms))
+           (push form private-methods)))
+        (`(define/public ,name . ,body)
+         (push form public-methods))
+        ('(super-new) nil)
+        (_ (push form init-forms))))
+
+    ;;args don't work with the init method and the 'define' macro because
+    ;;the arguments are also fields and the (setq <arg> (or <arg> <default>))
+    ;;code that gets generated
+    ;;the initial reference needs to come from argument symbol, not the object array
+    ;;create a temp arg value to get around this for
+    (push `(define (__init__ ,@(mapcar (lambda (x) (if (consp x)
+                                                       (cons (make-arg-sym (car x)) (cdr x))
+                                                     (make-arg-sym x)))
+                                       init-fields))
+             ,@(mapcar (lambda (x) (if (consp x)
+                                       (list 'setq (car x) (make-arg-sym (car x)))
+                                     (list 'setq x (make-arg-sym x))))
+                       init-fields)
+             ,@(reverse init-forms))
+          private-methods)
+
+    (setq attributes (append (mapcar (lambda (x) (if (consp x) (car x) x))
+                                     init-fields)  ;;; xxx
+                             attributes)
+          method-start-index (+ attr-start-index (length attributes))
+          methods (append private-methods public-methods)
+          method-names (mapcar 'caadr methods)
+          new-method-names (mapcar (lambda (x)
+                                     (concat-sym class-name "-" x))
+                                   method-names)
+          len (+ method-start-index (length methods))
+          var-indices (number-sequence attr-start-index method-start-index)
+          method-indices (number-sequence method-start-index
+                                          (+ method-start-index (length methods)))
+          var-mappings (mapcar* 'cons attributes var-indices)
+          method-call-mappings (mapcar* (lambda (name new-name i)
+                                          (list name '(&rest args)  (list '\` (list new-name 'self (list '\,@ 'args)))))
+                                        method-names new-method-names method-indices)
+          _method-call-mappings method-call-mappings
+          class-vec (make-vector len nil)
+          method-map (rkt-alist->hash (mapcar* 'cons method-names new-method-names)))
+
+    (dolist (method methods)
+      (setq name (car new-method-names)
+            ;; need to expand the 'define' method so that all the generated 'setq's are visible
+            body (macroexpand-all (cons 'define (cons (cons name (cons 'self (cdadr method))) (cddr method))) )
+            ;;args (cdadr body)
+            args (cadr body)
+            ;;;;body (cons 'progn (cddr body))
+            ;; body (replace-method-calls setter-mappings body)
+            body (replace-method-calls method-call-mappings body)
+            body (replace-variable-references body var-mappings)
+            new-method-names (cdr new-method-names))
+      (push body trans-methods))
+
+    (aset class-vec class-type-index class-name)
+    (aset class-vec object-method-mapping-index method-map)
+    (aset class-vec object-field-mapping-index var-mappings)
+    ;;TODO: only export define/public
+
+    `(progn ,@trans-methods
+            ,class-vec
+            )))
+
+(defun new (type &rest args)
+  (let ((obj (vector-copy type)))
+    (set-object-type obj (class-type type))
+    (send_ obj '__init__ args)
+    obj))
+
+(defsubst class-type (obj)
+  (aref obj class-type-index))
+
+(defsubst object-type (obj)
+  (aref obj object-type-index))
+
+(defsubst set-object-type (obj type)
+  (aset obj object-type-index type))
+
+(defmacro send (obj method &rest args)
+  `(send_ ,obj ',method ',args))
+
+(defun send_ (obj method args)
+  (let* ((methods (aref obj object-method-mapping-index))
+         (fn (gethash method methods)))
+    (if fn
+        (apply fn obj args)
+      (error (format "object type %s does not define method '%s'"
+                     (class-type obj) method )))))
+
+(defmacro get-field (field obj)
+  `(get-field_ ',field ,obj))
+
+(defun get-field_ (field obj)
+  (let ((index (get-field-index field obj)))
+    (when index
+      (aref obj index))))
+
+(defmacro set-field (field obj value)
+  `(set-field_ ',field ,obj ,value))
+
+(defun set-field_ (field obj value)
+  (let ((index (get-field-index field obj)))
+    (when index
+      (aset obj index value))))
+
+(defun get-field-index (field obj)
+  (let* ((fields (aref obj object-field-mapping-index))
+         (fd (assoc field fields)))
+    (if fd
+        (cdr fd)
+      (error "object type %s does not define field '%s'"
+             (class-type obj) field))))
+
+(defun concat-sym (&rest args)
+  (intern (apply 'concat (mapcar (lambda (x) (if (stringp x) x (symbol-name x))) args))))
+
+
+(defun rkt-classes-test ()
+  (let* ((test-class (class object$
+                            (super-new)
+                            (init-field a b (c 1) (d "s"))
+                            (define x (+ 1 a))
+                            (define order t)
+                            (assert order)
+                            (define order nil)
+                            (define (get-a-internal)
+                              a)
+                            (define (get-x-internal)
+                              x)
+                            (define/public (inc-a)
+                              (set! a (+ a 1)))
+                            (define/public (set-x val)
+                              (set! x val))
+                            (define/public (double-x)
+                              (set! x (+ x (get-x-internal))))o
+                              (define/public (get-a)
+                                (get-a-internal))
+                              (define/public (get-x)
+                                x)))
+         (obj1 (new test-class 11 22))
+         (obj2 (new test-class 12 22 33 "S")))
+
+    (assert (= (send obj1 get-x) 12))
+    (assert (= (send obj2 get-x) 13))
+
+    (send obj1 double-x)
+    (assert (= (send obj1 get-x) 24))
+
+    (send obj1 inc-a)
+    (assert (= (send obj1 get-a) 12))
+    (assert (= (send obj2 get-a) 12))
+
+    (assert (= (get-field b obj1) 22))
+    (set-field b obj1 111)
+    (assert (= (get-field b obj1) 111))
+    ))
+;; (rkt-classes-test)
+
 (provide 'rkt)
