@@ -1,5 +1,7 @@
 ;; -*- lexical-binding: t -*-
 
+(add-to-list 'load-path "~/ga144")
+
 (setq gc-cons-threshold most-positive-fixnum)
 
 (setq debug-on-error t)
