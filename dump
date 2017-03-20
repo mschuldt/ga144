@@ -2,8 +2,8 @@
 ;; -*- scheme  -*-
 #lang racket
 
-(require "ga-compile-print.rkt"
-         "el.rkt")
+(require "src/ga-compile-print.rkt"
+         "src/el.rkt")
 
 (define bootstream-type (make-parameter false))
 (define symbols? (make-parameter false))

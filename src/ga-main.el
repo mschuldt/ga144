@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t -*-
 
-(add-to-list 'load-path "~/ga144")
+(add-to-list 'load-path "~/ga144/src/")
 
 (setq gc-cons-threshold most-positive-fixnum)
 
@@ -77,26 +77,26 @@
 
 (defun ga-byte-compile-files ()
   (setq lexical-binding t)
-  (dolist (file '("bootstream.rkt"
-                  "assemble.rkt"
-                  "compile.rkt"
-                  "disassemble.rkt"
-                  "ga-compile-print.rkt"
-                  "common.rkt"
-                  "rom.rkt"
-                  "rom-dump.rkt"
+  (dolist (file '("src/bootstream.rkt"
+                  "src/assemble.rkt"
+                  "src/compile.rkt"
+                  "src/disassemble.rkt"
+                  "src/ga-compile-print.rkt"
+                  "src/common.rkt"
+                  "src/rom.rkt"
+                  "src/rom-dump.rkt"
                   "tests/test-compiler.rkt"
                   ))
     (rkt-byte-compile (expand-file-name file)))
 
-  (dolist (file '("ga-main.el"
-                  "aforth-compile.el"
-                  "aforth-mode.el"
-                  "ga144-map.el"
-                  "aforth-parse.el"
-                  "arg-parser.el"
-                  "rkt.el"
-                  "ga-loadup.el"
+  (dolist (file '("src/ga-main.el"
+                  "src/aforth-compile.el"
+                  "src/aforth-mode.el"
+                  "src/ga144-map.el"
+                  "src/aforth-parse.el"
+                  "src/arg-parser.el"
+                  "src/rkt.el"
+                  "src/ga-loadup.el"
                   ))
     (byte-compile-file (expand-file-name file))))
 
@@ -126,7 +126,7 @@
   (ga-main-exit))
 
 (when test?
-  (rkt-require "tests/test-compiler.rkt")
+  (rkt-require "../tests/test-compiler.rkt")
   (message (if (run-compiler-tests)
                "ok"
              "fail"))

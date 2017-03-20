@@ -11,13 +11,13 @@
 ;; over 2-wire to the target chip, loading code for the target chip.
 
 (require compatibility/defmacro
-         "../common.rkt"
-         "../interpreter.rkt"
-	 "../compile.rkt"
-         "../assemble.rkt"
-         "../bootstream.rkt"
-         "../stack.rkt"
-         "../el.rkt")
+         "../src/common.rkt"
+         "../src/interpreter.rkt"
+	 "../src/compile.rkt"
+         "../src/assemble.rkt"
+         "../src/bootstream.rkt"
+         "../src/stack.rkt"
+         "../src/el.rkt")
 
 (define host (new-ga144 "host"))
 (define target (new-ga144 "target"))
