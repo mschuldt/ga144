@@ -1,10 +1,10 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
 (require compatibility/defmacro
-         "../interpreter.rkt"
-         "../common.rkt"
-         "../stack.rkt"
-         "../el.rkt")
+         "../src/interpreter.rkt"
+         "../src/common.rkt"
+         "../src/stack.rkt"
+         "../src/el.rkt")
 
 (define (18bit n)
   (if (number? n)

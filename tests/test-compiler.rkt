@@ -1,10 +1,10 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
 (require compatibility/defmacro
-         "../common.rkt"
-         "../compile.rkt"
-         "../assemble.rkt"
-         "../el.rkt")
+         "../src/common.rkt"
+         "../src/compile.rkt"
+         "../src/assemble.rkt"
+         "../src/el.rkt")
 
 (define compiler-tests
   '(("node 1 " (1 ))

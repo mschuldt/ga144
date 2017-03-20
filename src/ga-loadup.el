@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t -*-
 
-(add-to-list 'load-path "~/a/projects/ga144")
+(add-to-list 'load-path "~/ga144/src")
 (setq byte-compiled-p (file-exists-p "ga-main.elc"))
 
 (defun ga-rkt-load (file)
@@ -28,8 +28,7 @@
   (ga-rkt-load "assemble.rkt")
   (ga-rkt-load "disassemble.rkt")
   (ga-rkt-load "ga-compile-print.rkt")
-  (ga-rkt-load "tests/test-compiler.rkt")
-
+  (ga-rkt-load "../tests/test-compiler.rkt")
 
   (ga-el-load "rkt")
   (ga-el-load "aforth-parse")

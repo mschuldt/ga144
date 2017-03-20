@@ -1,11 +1,11 @@
 all: compiler interpreter tests
-	raco make common.rkt rom.rkt dump el.rkt
+	raco make src/common.rkt src/rom.rkt dump src/el.rkt
 
-compiler: assemble.rkt bootstream.rkt compile.rkt disassemble.rkt read.rkt
-	raco make assemble.rkt bootstream.rkt compile.rkt disassemble.rkt read.rkt rom-dump-bootstream.rkt
+compiler: src/assemble.rkt src/bootstream.rkt src/compile.rkt src/disassemble.rkt src/read.rkt
+	raco make src/assemble.rkt src/bootstream.rkt src/compile.rkt src/disassemble.rkt src/read.rkt src/rom-dump-bootstream.rkt
 
-interpreter: interpreter.rkt stack.rkt ga144.rkt f18a.rkt
-	raco make interpreter.rkt stack.rkt ga144.rkt f18a.rkt
+interpreter: src/interpreter.rkt src/stack.rkt src/ga144.rkt src/f18a.rkt
+	raco make src/interpreter.rkt src/stack.rkt src/ga144.rkt src/f18a.rkt
 
 tests: tests/tests.rkt
 	raco make tests/tests.rkt
