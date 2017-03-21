@@ -6,6 +6,7 @@
          "disassemble.rkt"
          "el.rkt")
 
+(when elisp? (_def '(f18a%)))
 (provide f18a%)
 
 (defvar save-history t)
@@ -125,7 +126,7 @@
     (define Uw (<< 1 9))
 
     (define memory false)
-    (define instructions (make-vector 35))
+    (define instructions (make-vector 35 false))
 
     (define blocking-read false)
     (define blocking-write false)
@@ -1113,7 +1114,7 @@
             (north (send ga144 coord->node (+ coord 100)))
             (south (send ga144 coord->node (- coord 100)))
             (east (send ga144 coord->node (+ coord 1))))
-        (set! ludr-port-nodes (make-vector 4))
+        (set! ludr-port-nodes (make-vector 4 false))
 
         ;;TEMPORARY FIX: create new dummy nodes around the edges of the chip
         (vector-set! ludr-port-nodes (convert "north")
@@ -1224,12 +1225,12 @@
     (define/public (display-dstack)
       (printf "|d> ~x ~x" T S)
       (display-stack dstack)
-      (newline))
+      (printf "\n"))
 
     (define (display-rstack)
       (printf "|r> ~x" R)
       (display-stack rstack)
-      (newline))
+      (printf "\n"))
 
     (define/public (display-memory (n MEM-SIZE))
       (let ((n (sub1 n)))
@@ -1241,7 +1242,7 @@
               (print (add1 i)))))
         (printf "node ~a memory: " coord)
         (print 0)
-        (newline)))
+        (printf "\n")))
 
     (define/public (display-all)
       (display-state)
@@ -1376,7 +1377,7 @@
       (define (pad-print thing (pad 20))
         (let* ((s (rkt-format "~a" thing))
                (len (string-length s))
-               (str (string-append s (make-string (- pad len) #\ ))))
+               (str (string-append s (make-string (- pad len) _char-space))))
           (printf str)))
       (let ((word false)
             (name false))
