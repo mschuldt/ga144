@@ -613,9 +613,9 @@
 (defun get-param-syms (arglist)
   (remove '&rest (remove '&optional arglist)))
 
-(defun convert-let-form (type bindings body)
+(defun convert-let-form (type bindings body mappings exclude)
   (let ((exclude (append (mapcar (lambda (x) (if (consp x) (car x) x)) bindings) exclude)))
-    (list type bindings (mapcar (lambda (x) (replace-variable-references x mappings exclude)) body))))
+    (cons type (cons bindings (mapcar (lambda (x) (replace-variable-references x mappings exclude)) body)))))
 
 (defun replace-variable-references (form mappings &optional exclude)
   (let (x)
@@ -633,8 +633,8 @@
        (let ((exclude (append (get-param-syms params) exclude)))
          `(lambda ,params ,@(mapcar (lambda (x) (replace-variable-references x mappings exclude)) body))))
 
-      (`(let ,bindings . ,body) (convert-let-form 'let bindings body))
-      (`(let* ,bindings . ,body) (convert-let-form 'let* bindings body))
+      (`(let ,bindings . ,body) (convert-let-form 'let bindings body mappings exclude))
+      (`(let* ,bindings . ,body) (convert-let-form 'let* bindings body mappings exclude))
 
       ((pred listp)
        (mapcar (lambda (x) (replace-variable-references x mappings exclude)) form))
@@ -644,10 +644,7 @@
        (if (and x (not (member form exclude)))
            `(aref self ,(cdr x))
          form))
-      (_ form)
-      )
-    )
-  )
+      (_ form))))
 
 (defun replace-method-calls (mappings form)
   (macroexpand-all
