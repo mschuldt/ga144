@@ -623,7 +623,7 @@
       (`(setq ,var ,value)
        (setq x (assoc var mappings))
        (if (and x (not (member var exclude)))
-           `(aset self ,(cdr x) ,(replace-variable-references value mappings exclude))
+           `(aset this ,(cdr x) ,(replace-variable-references value mappings exclude))
          form))
 
       (`(lambda () . ,body);;TODO: can this case be combined with
@@ -642,7 +642,7 @@
       ((pred symbolp)
        (setq x (assoc form mappings))
        (if (and x (not (member form exclude)))
-           `(aref self ,(cdr x))
+           `(aref this ,(cdr x))
          form))
       (_ form))))
 
@@ -675,7 +675,7 @@
          (if (symbolp name)
              (progn (push name attributes)
                     ;; use seq instead of define here or the 'define' macro will let-bind
-                    ;; 'name' and it wont get replaced with the self reference later
+                    ;; 'name' and it wont get replaced with the 'this' reference later
                     (push `(setq ,name ,body) init-forms))
            (push form private-methods)))
         (`(define/public ,name . ,body)
@@ -714,7 +714,7 @@
                                           (+ method-start-index (length methods)))
           var-mappings (mapcar* 'cons attributes var-indices)
           method-call-mappings (mapcar* (lambda (name new-name i)
-                                          (list name '(&rest args)  (list '\` (list new-name 'self (list '\,@ 'args)))))
+                                          (list name '(&rest args)  (list '\` (list new-name 'this (list '\,@ 'args)))))
                                         method-names new-method-names method-indices)
           _method-call-mappings method-call-mappings
           class-vec (make-vector len nil)
@@ -723,7 +723,7 @@
     (dolist (method methods)
       (setq name (car new-method-names)
             ;; need to expand the 'define' method so that all the generated 'setq's are visible
-            body (macroexpand-all (cons 'define (cons (cons name (cons 'self (cdadr method))) (cddr method))) )
+            body (macroexpand-all (cons 'define (cons (cons name (cons 'this (cdadr method))) (cddr method))) )
             ;;args (cdadr body)
             args (cadr body)
             ;;;;body (cons 'progn (cddr body))
