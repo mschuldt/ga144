@@ -11,6 +11,11 @@
 
 (defvar save-history t)
 
+(define (new-f18a index_ ga144_)
+  (if elisp?
+      (new f18a% index_ ga144_)
+      (new f18a% (index index_) (ga144 ga144_))))
+
 (define f18a%
   (class object%
     (super-new)
@@ -1120,20 +1125,20 @@
         (vector-set! ludr-port-nodes (convert "north")
                      (if (< coord 700)
                          north
-                         (new f18a% (index 145) (ga144 ga144))))
+                         (new-f18a 145 ga144)))
 
         (vector-set! ludr-port-nodes (convert "east")
                      (if (< (modulo coord 100) 17)
                          east
-                         (new f18a% (index 145) (ga144 ga144))))
+                         (new-f18a 145 ga144)))
         (vector-set! ludr-port-nodes (convert "south")
                      (if (> coord 17)
                          south
-                         (new f18a% (index 145) (ga144 ga144))))
+                         (new-f18a 145 ga144)))
         (vector-set! ludr-port-nodes (convert "west")
                      (if (> (modulo coord 100) 0)
                          west
-                         (new f18a% (index 145) (ga144 ga144))))))
+                         (new-f18a 145 ga144)))))
 
     (define/public (get-ludr-port-nodes) ludr-port-nodes)
 

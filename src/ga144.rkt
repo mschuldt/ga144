@@ -13,6 +13,11 @@
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
 
+(define (new-ga144 name_ (interactive_ false))
+  (if elisp?
+      (new ga144% name_ interactive_)
+      (new ga144% (name name_) (interactive interactive_))))
+
 (define ga144%
   (class object%
     (super-new)
@@ -29,7 +34,7 @@
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
       (for ((i 144))
-        (vector-set! nodes i (new f18a% (index i) (ga144 this))))
+        (vector-set! nodes i (new-f18a i this)))
       (vector-map (lambda (node) (send node init)) nodes))
 
     (define (index->node index)
