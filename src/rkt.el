@@ -597,7 +597,6 @@
           (write-file filename))
       (setq standard-output prev-output))))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; classes
 

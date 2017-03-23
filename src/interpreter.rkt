@@ -38,7 +38,7 @@
   (unless name
     (set! name (rkt-format "chip~a" _counter))
     (set! _counter (add1 _counter)))
-  (let ((chip (new-ga144 name t)))
+  (let ((chip (make-ga144 name t)))
     (push chip chips)
     (hash-set! name-to-chip name chip)
     (set! num-chips (add1 num-chips))

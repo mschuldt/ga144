@@ -13,9 +13,9 @@
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
 
-(define (new-ga144 name_ (interactive_ false))
+(define (make-ga144 name_ (interactive_ false))
   (if elisp?
-      (new ga144% name_ interactive_)
+      (funcall 'new ga144% name_ interactive_)
       (new ga144% (name name_) (interactive interactive_))))
 
 (define ga144%

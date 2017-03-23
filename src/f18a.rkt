@@ -7,13 +7,13 @@
          "el.rkt")
 
 (when elisp? (_def '(f18a%)))
-(provide f18a%)
+(provide (all-defined-out))
 
 (defvar save-history t)
 
 (define (new-f18a index_ ga144_)
   (if elisp?
-      (new f18a% index_ ga144_)
+      (funcall 'new f18a% index_ ga144_) ;;why funcall? so the racket compiler does not notice...
       (new f18a% (index index_) (ga144 ga144_))))
 
 (define f18a%
@@ -86,8 +86,8 @@
                     (set! op (car op)))
                   (if (cons? op)
                       (rkt-format "~a(~a)"
-                              (vector-ref opcodes (car op))
-                              (cdr op))
+                                  (vector-ref opcodes (car op))
+                                  (cdr op))
                       (vector-ref opcodes op)))))
       (error msg))
 
@@ -401,7 +401,7 @@
     (define/public (receive-port-write port value node)
       (when debug-ports
         (log (rkt-format "(receive-port-write ~a  ~a  ~a)"
-                     port value (send node str))))
+                         port value (send node str))))
       ;;called by adjacent node when it is writing to one of our ports
       (vector-set! writing-nodes port node)
       (vector-set! port-vals port value))
@@ -608,10 +608,10 @@
             (set! history (cons (cons opcode jump-addr-pos) history))
             (set! history (cons opcode history))))
       (if (< opcode 8)
-          ((vector-ref instructions opcode)
-           (bitwise-bit-field I 0 jump-addr-pos)
-           addr-mask)
-          ((vector-ref instructions opcode))))
+          (apply (vector-ref instructions opcode)
+                 (list (bitwise-bit-field I 0 jump-addr-pos)
+                       addr-mask))
+          (funcall (vector-ref instructions opcode))))
 
     (define (step0-helper)
       (set! I (d-pop!))
@@ -662,101 +662,118 @@
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instructions
-    (define (init-instructions)
-      (define _n 0)
-      ;; Define a new instruction. An instruction can
-      ;; abort the rest of the current word by returning false.
-      (define-syntax-rule (define-instruction! opcode args body ...)
-        (begin (vector-set! instructions
-                            _n
-                            (lambda args
-                              (when debug (log (rkt-format "OPCODE: '~a'" opcode)))
-                              body ...))
-               (set! _n (add1 _n))))
 
-      (define-instruction! ";" (_ __)
+    (define _n 0)
+    ;; Define a new instruction. An instruction can
+    ;; abort the rest of the current word by returning false.
+
+    (define (define-instruction! opcode fn)
+      (begin (vector-set! instructions
+                          _n
+                          ;;(when debug (log ,(rkt-format "OPCODE: '~a'" opcode)))
+                          fn)
+             (set! _n (add1 _n))))
+
+    (define-instruction! ";"
+      (lambda (_ __)
         (set! P R)
         (r-pop!)
-        false)
+        false))
 
-      (define-instruction! "ex" (_ __)
+    (define-instruction! "ex"
+      (lambda (_ __)
         (define temp P)
         (set! P R)
         (set! R temp)
-        false)
+        false))
 
-      (define-instruction! "jump" (addr mask)
+    (define-instruction! "jump"
+      (lambda (addr mask)
         (when debug (log (rkt-format "jump to ~a  ~a"
-                                 addr (or (get-memory-name addr) ""))))
+                                     addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (set! P (ior addr (& P mask)))
-        false)
+        false))
 
-      (define-instruction! "call" (addr mask)
+    (define-instruction! "call"
+      (lambda (addr mask)
         (when debug
           (log (rkt-format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
         (set! extended-arith? (bitwise-bit-set? addr 9))
         (r-push! P)
         (set! P (ior addr (& P mask)))
-        false)
+        false))
 
-      (define-instruction! "unext" (_ __)
+    (define-instruction! "unext"
+      (lambda (_ __)
         (if (= R 0)
             (r-pop!)
             (begin (set! R (sub1 R))
                    (set! unext-jump-p t)
                    (set! step-fn step0)
-                   false)))
+                   false))))
 
-      (define-instruction! "next" (addr mask)
+    (define-instruction! "next"
+      (lambda (addr mask)
         (if (= R 0)
             (begin (r-pop!)
                    false)
             (begin (set! R (sub1 R))
                    (set! P (ior addr (& P mask)))
-                   false)))
+                   false))))
 
-      (define-instruction! "if" (addr mask)
+    (define-instruction! "if"
+      (lambda (addr mask)
         (and (= T 0)
              (begin (when debug (log (rkt-format "If: jumping to ~a\n" addr)))
                     (set! P (ior addr (& P mask))))
-             false))
+             false)))
 
-      (define-instruction! "-if" (addr mask)
+    (define-instruction! "-if"
+      (lambda (addr mask)
         (and (not (bitwise-bit-set? T 17))
              (set! P (ior addr (& P mask)))
-             false))
+             false)))
 
-      (define-instruction! "@p" ()
+    (define-instruction! "@p"
+      (lambda ()
         (read-memory P)
-        (set! P (incr P)))
+        (set! P (incr P))))
 
-      (define-instruction! "@+" () ; fetch-plus
+    (define-instruction! "@+" ; fetch-plus
+      (lambda ()
         (read-memory (& A #x1ff))
-        (set! A (incr A)))
+        (set! A (incr A))))
 
-      (define-instruction! "@b" () ;fetch-b
+    (define-instruction! "@b" ;fetch-b
+      (lambda ()
         (read-memory B)
-        t)
+        t))
 
-      (define-instruction! "@" (); fetch a
-        (read-memory (& A #x1ff)) t)
+    (define-instruction! "@" ; fetch a
+      (lambda ()
+        (read-memory (& A #x1ff)) t))
 
-      (define-instruction! "!p" () ; store p
+    (define-instruction! "!p" ; store p
+      (lambda ()
         (set-memory! P (d-pop!))
-        (set! P (incr P)) t)
+        (set! P (incr P)) t))
 
-      (define-instruction! "!+" () ;store plus
+    (define-instruction! "!+" ;store plus
+      (lambda ()
         (set-memory! A (d-pop!))
-        (set! A (incr A)) t)
+        (set! A (incr A)) t))
 
-      (define-instruction! "!b" (); store-b
-        (set-memory! B (d-pop!)) t)
+    (define-instruction! "!b" ; store-b
+      (lambda ()
+        (set-memory! B (d-pop!)) t))
 
-      (define-instruction! "!" (); store
-        (set-memory! (& A #x1ff)  (d-pop!)) t)
+    (define-instruction! "!" ; store
+      (lambda ()
+        (set-memory! (& A #x1ff)  (d-pop!)) t))
 
-      (define-instruction! "+*" () ; multiply-step
+    (define-instruction! "+*" ; multiply-step
+      (lambda ()
         ;;case 1 - If bit A0 is zero
         ;;  Treats T:A as a single 36 bit register and shifts it right by one
         ;;  bit. The most signficicant bit (T17) is kept the same.
@@ -780,58 +797,71 @@
                   (t0  (& T #x1)))
               (set! T (ior t17 (>> T 1)))
               (set! A (ior (<< t0 17)
-                           (>> A 1))))))
+                           (>> A 1)))))))
 
-      (define-instruction! "2*" ()
-        (set! T (18bit (<< T 1))))
+    (define-instruction! "2*"
+      (lambda ()
+        (set! T (18bit (<< T 1)))))
 
-      (define-instruction! "2/" ()
-        (set! T (>> T 1)))
+    (define-instruction! "2/"
+      (lambda ()
+        (set! T (>> T 1))))
 
-      (define-instruction! "-" () ;not
-        (set! T (18bit (bitwise-not T))))
+    (define-instruction! "-" ;not
+      (lambda ()
+        (set! T (18bit (bitwise-not T)))))
 
-      (define-instruction! "+" ()
+    (define-instruction! "+"
+      (lambda ()
         (if extended-arith?
             (let ((sum (+ (d-pop!) (d-pop!) carry-bit)))
               (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
               (d-push! (18bit sum)))
-            (d-push! (18bit (+ (d-pop!) (d-pop!))))))
+            (d-push! (18bit (+ (d-pop!) (d-pop!)))))))
 
-      (define-instruction! "and" ()
-        (d-push! (& (d-pop!) (d-pop!))))
+    (define-instruction! "and"
+      (lambda ()
+        (d-push! (& (d-pop!) (d-pop!)))))
 
-      (define-instruction! "or" ()
-        (d-push! (^ (d-pop!) (d-pop!))))
+    (define-instruction! "or"
+      (lambda ()
+        (d-push! (^ (d-pop!) (d-pop!)))))
 
-      (define-instruction! "drop" ()
-        (d-pop!))
+    (define-instruction! "drop"
+      (lambda ()
+        (d-pop!)))
 
-      (define-instruction! "dup" ()
-        (d-push! T))
+    (define-instruction! "dup"
+      (lambda ()
+        (d-push! T)))
 
-      (define-instruction! "pop" ()
-        (d-push! (r-pop!)))
+    (define-instruction! "pop"
+      (lambda ()
+        (d-push! (r-pop!))))
 
-      (define-instruction! "over" ()
-        (d-push! S))
+    (define-instruction! "over"
+      (lambda ()
+        (d-push! S)))
 
-      (define-instruction! "a" ()  ; read a
-        (d-push! A));;??
+    (define-instruction! "a" ; read a
+      (lambda ()
+        (d-push! A)));;??
 
-      (define-instruction! "." ()
-        (void))
+    (define-instruction! "."
+      (lambda ()
+        (void)))
 
-      (define-instruction! "push" ()
-        (r-push! (d-pop!)))
+    (define-instruction! "push"
+      (lambda ()
+        (r-push! (d-pop!))))
 
-      (define-instruction! "b!" () ;; store into b
-        (set! B (& (d-pop!) #x1ff)))
+    (define-instruction! "b!" ;; store into b
+      (lambda ()
+        (set! B (& (d-pop!) #x1ff))))
 
-      (define-instruction! "a!" () ;store into a
+    (define-instruction! "a!" ;store into a
+      (lambda ()
         (set! A (d-pop!))))
-
-    (init-instructions)
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; public methods
@@ -901,7 +931,7 @@
       (if (hash-has-key? symbols word)
           (let ((addr (symbol-address (hash-ref symbols word))))
             (log (rkt-format "call-word!: ~a -> ~a\n" word addr))
-            ((vector-ref instructions 3) addr 0)
+            (funcall (vector-ref instructions 3) addr 0)
             (set! step-fn step0)
             (when suspended
               (wakeup))
@@ -1093,7 +1123,7 @@
     ;; returns false when P = 0, else t
     (define/public (step-program!)
       (set! step-count (add1 step-count))
-      (step-fn)
+      (funcall step-fn)
       (when print-state (send ga144 display-node-states (list coord)))
       )
 
@@ -1213,7 +1243,7 @@
 
     (define (break (reason false))
       (log (rkt-format "Breakpoint: ~a "
-                   (or reason (rkt-format "~x(~x)" P (region-index P)))))
+                       (or reason (rkt-format "~x(~x)" P (region-index P)))))
       (send ga144 break this))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
