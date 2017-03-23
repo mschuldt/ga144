@@ -115,7 +115,9 @@
                    (car form) buffer-file-name))
         ;; else: ok to define
         (put (car form) 'is-racket-fn t)
-        (cons 'defun (cons (car form) (racket-make-define-body form body))))
+        `(progn ,(cons 'defun (cons (car form) (racket-make-define-body form body)))
+                (setq ,(car form) ',(car form))))
+
 
     (assert (symbolp form))
     ;;else: variable definition
@@ -613,37 +615,41 @@
 (defun get-param-syms (arglist)
   (remove '&rest (remove '&optional arglist)))
 
-(defun convert-let-form (type bindings body mappings exclude)
+(defun convert-let-form (type bindings body v-map f-map exclude)
   (let ((exclude (append (mapcar (lambda (x) (if (consp x) (car x) x)) bindings) exclude)))
-    (cons type (cons bindings (mapcar (lambda (x) (replace-variable-references x mappings exclude)) body)))))
+    (cons type (cons bindings (mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body)))))
 
-(defun replace-variable-references (form mappings &optional exclude)
+(defun replace-variable-references (form v-map f-map &optional exclude)
   (let (x)
     (pcase form
       (`(setq ,var ,value)
-       (setq x (assoc var mappings))
+       (setq x (assoc var v-map))
        (if (and x (not (member var exclude)))
-           `(aset this ,(cdr x) ,(replace-variable-references value mappings exclude))
+           `(aset this ,(cdr x) ,(replace-variable-references value v-map f-map exclude))
          form))
 
       (`(lambda () . ,body);;TODO: can this case be combined with
-       `(lambda () ,@(mapcar (lambda (x) (replace-variable-references x mappings exclude)) body)))
+       `(lambda () ,@(mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body)))
 
       (`(lambda ,params . ,body)
        (let ((exclude (append (get-param-syms params) exclude)))
-         `(lambda ,params ,@(mapcar (lambda (x) (replace-variable-references x mappings exclude)) body))))
+         `(lambda ,params ,@(mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body))))
 
-      (`(let ,bindings . ,body) (convert-let-form 'let bindings body mappings exclude))
-      (`(let* ,bindings . ,body) (convert-let-form 'let* bindings body mappings exclude))
+      (`(let ,bindings . ,body) (convert-let-form 'let bindings body v-map f-map exclude))
+      (`(let* ,bindings . ,body) (convert-let-form 'let* bindings body v-map f-map exclude))
 
       ((pred listp)
-       (mapcar (lambda (x) (replace-variable-references x mappings exclude)) form))
+       (mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) form))
 
       ((pred symbolp)
-       (setq x (assoc form mappings))
-       (if (and x (not (member form exclude)))
-           `(aref this ,(cdr x))
-         form))
+       (cond ((and (setq x (assoc form v-map))
+                   (not (member form exclude)))
+              `(aref this ,(cdr x)))
+
+             ((and (setq x (assoc form f-map))
+                   (not (member form exclude)))
+              (cdr x))
+             (t form)))
       (_ form))))
 
 (defun replace-method-calls (mappings form)
@@ -713,6 +719,7 @@
           method-indices (number-sequence method-start-index
                                           (+ method-start-index (length methods)))
           var-mappings (mapcar* 'cons attributes var-indices)
+          method-mappings (mapcar* 'cons method-names new-method-names)
           method-call-mappings (mapcar* (lambda (name new-name i)
                                           (list name '(&rest args)  (list '\` (list new-name 'this (list '\,@ 'args)))))
                                         method-names new-method-names method-indices)
@@ -729,7 +736,7 @@
             ;;;;body (cons 'progn (cddr body))
             ;; body (replace-method-calls setter-mappings body)
             body (replace-method-calls method-call-mappings body)
-            body (replace-variable-references body var-mappings)
+            body (replace-variable-references body var-mappings method-mappings)
             new-method-names (cdr new-method-names))
       (push body trans-methods))
 
@@ -795,6 +802,7 @@
 (defun concat-sym (&rest args)
   (intern (apply 'concat (mapcar (lambda (x) (if (stringp x) x (symbol-name x))) args))))
 
+(defmacro define/public ()) ;;just for the syntax colors
 
 (defun rkt-classes-test ()
   (let* ((test-class (class object$
@@ -813,16 +821,20 @@
                             (define/public (set-x val)
                               (set! x val))
                             (define/public (double-x)
-                              (set! x (+ x (get-x-internal))))o
-                              (define/public (get-a)
-                                (get-a-internal))
-                              (define/public (get-x)
-                                x)))
+                              (set! x (+ x (get-x-internal))))
+                            (define/public (get-a)
+                              (get-a-internal))
+                            (define/public (get-x)
+                              x)
+                            (define/public (test-call)
+                              (funcall get-x this ))
+                            ))
          (obj1 (new test-class 11 22))
          (obj2 (new test-class 12 22 33 "S")))
 
     (assert (= (send obj1 get-x) 12))
     (assert (= (send obj2 get-x) 13))
+    (assert (= (send obj2 test-call) 13))
 
     (send obj1 double-x)
     (assert (= (send obj1 get-x) 24))
@@ -835,6 +847,7 @@
     (set-field b obj1 111)
     (assert (= (get-field b obj1) 111))
     ))
+
 ;; (rkt-classes-test)
 
 (provide 'rkt)
