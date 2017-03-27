@@ -616,7 +616,16 @@
 
 (defun convert-let-form (type bindings body v-map f-map exclude)
   (let ((exclude (append (mapcar (lambda (x) (if (consp x) (car x) x)) bindings) exclude)))
-    (cons type (cons bindings (mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body)))))
+    (cons type (cons (mapcar (lambda (x)
+                               ;; TODO: this will not work in all cases, such as
+                               ;; (setq b 1)
+                               ;; (let ((a (1+ b)) (b 3)) ...)
+                               (if (listp x)
+                                   (list (car x)
+                                         (replace-variable-references (cadr x) v-map f-map exclude))
+                                 x))
+                             bindings)
+                     (mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body)))))
 
 (defun replace-variable-references (form v-map f-map &optional exclude)
   (let (x)
