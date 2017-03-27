@@ -674,194 +674,201 @@
                           fn)
              (set! _n (add1 _n))))
 
-    (define-instruction! ";"
-      (lambda (_ __)
-        (set! P R)
-        (r-pop!)
-        false))
+    
+    (define (init-instructions)
+      ;; `init-instructions` is seporated as its own method to keep the size of the __init__ method
+      ;; down which avoids this error:
+      ;;       "edebug-match-specs: Too deep - perhaps infinite loop in spec?"
+      (define-instruction! ";"
+        (lambda (_ __)
+          (set! P R)
+          (r-pop!)
+          false))
 
-    (define-instruction! "ex"
-      (lambda (_ __)
-        (define temp P)
-        (set! P R)
-        (set! R temp)
-        false))
+      (define-instruction! "ex"
+        (lambda (_ __)
+          (define temp P)
+          (set! P R)
+          (set! R temp)
+          false))
 
-    (define-instruction! "jump"
-      (lambda (addr mask)
-        (when debug (log (rkt-format "jump to ~a  ~a"
-                                     addr (or (get-memory-name addr) ""))))
-        (set! extended-arith? (bitwise-bit-set? addr 9))
-        (set! P (ior addr (& P mask)))
-        false))
+      (define-instruction! "jump"
+        (lambda (addr mask)
+          (when debug (log (rkt-format "jump to ~a  ~a"
+                                       addr (or (get-memory-name addr) ""))))
+          (set! extended-arith? (bitwise-bit-set? addr 9))
+          (set! P (ior addr (& P mask)))
+          false))
 
-    (define-instruction! "call"
-      (lambda (addr mask)
-        (when debug
-          (log (rkt-format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
-        (set! extended-arith? (bitwise-bit-set? addr 9))
-        (r-push! P)
-        (set! P (ior addr (& P mask)))
-        false))
+      (define-instruction! "call"
+        (lambda (addr mask)
+          (when debug
+            (log (rkt-format "calling: ~a  ~a" addr (or (get-memory-name addr) ""))))
+          (set! extended-arith? (bitwise-bit-set? addr 9))
+          (r-push! P)
+          (set! P (ior addr (& P mask)))
+          false))
 
-    (define-instruction! "unext"
-      (lambda (_ __)
-        (if (= R 0)
-            (r-pop!)
-            (begin (set! R (sub1 R))
-                   (set! unext-jump-p t)
-                   (set! step-fn step0)
-                   false))))
+      (define-instruction! "unext"
+        (lambda (_ __)
+          (if (= R 0)
+              (r-pop!)
+              (begin (set! R (sub1 R))
+                     (set! unext-jump-p t)
+                     (set! step-fn step0)
+                     false))))
 
-    (define-instruction! "next"
-      (lambda (addr mask)
-        (if (= R 0)
-            (begin (r-pop!)
-                   false)
-            (begin (set! R (sub1 R))
-                   (set! P (ior addr (& P mask)))
-                   false))))
+      (define-instruction! "next"
+        (lambda (addr mask)
+          (if (= R 0)
+              (begin (r-pop!)
+                     false)
+              (begin (set! R (sub1 R))
+                     (set! P (ior addr (& P mask)))
+                     false))))
 
-    (define-instruction! "if"
-      (lambda (addr mask)
-        (and (= T 0)
-             (begin (when debug (log (rkt-format "If: jumping to ~a\n" addr)))
-                    (set! P (ior addr (& P mask))))
-             false)))
+      (define-instruction! "if"
+        (lambda (addr mask)
+          (and (= T 0)
+               (begin (when debug (log (rkt-format "If: jumping to ~a\n" addr)))
+                      (set! P (ior addr (& P mask))))
+               false)))
 
-    (define-instruction! "-if"
-      (lambda (addr mask)
-        (and (not (bitwise-bit-set? T 17))
-             (set! P (ior addr (& P mask)))
-             false)))
+      (define-instruction! "-if"
+        (lambda (addr mask)
+          (and (not (bitwise-bit-set? T 17))
+               (set! P (ior addr (& P mask)))
+               false)))
 
-    (define-instruction! "@p"
-      (lambda ()
-        (read-memory P)
-        (set! P (incr P))))
+      (define-instruction! "@p"
+        (lambda ()
+          (read-memory P)
+          (set! P (incr P))))
 
-    (define-instruction! "@+" ; fetch-plus
-      (lambda ()
-        (read-memory (& A #x1ff))
-        (set! A (incr A))))
+      (define-instruction! "@+" ; fetch-plus
+        (lambda ()
+          (read-memory (& A #x1ff))
+          (set! A (incr A))))
 
-    (define-instruction! "@b" ;fetch-b
-      (lambda ()
-        (read-memory B)
-        t))
+      (define-instruction! "@b" ;fetch-b
+        (lambda ()
+          (read-memory B)
+          t))
 
-    (define-instruction! "@" ; fetch a
-      (lambda ()
-        (read-memory (& A #x1ff)) t))
+      (define-instruction! "@" ; fetch a
+        (lambda ()
+          (read-memory (& A #x1ff)) t))
 
-    (define-instruction! "!p" ; store p
-      (lambda ()
-        (set-memory! P (d-pop!))
-        (set! P (incr P)) t))
+      (define-instruction! "!p" ; store p
+        (lambda ()
+          (set-memory! P (d-pop!))
+          (set! P (incr P)) t))
 
-    (define-instruction! "!+" ;store plus
-      (lambda ()
-        (set-memory! A (d-pop!))
-        (set! A (incr A)) t))
+      (define-instruction! "!+" ;store plus
+        (lambda ()
+          (set-memory! A (d-pop!))
+          (set! A (incr A)) t))
 
-    (define-instruction! "!b" ; store-b
-      (lambda ()
-        (set-memory! B (d-pop!)) t))
+      (define-instruction! "!b" ; store-b
+        (lambda ()
+          (set-memory! B (d-pop!)) t))
 
-    (define-instruction! "!" ; store
-      (lambda ()
-        (set-memory! (& A #x1ff)  (d-pop!)) t))
+      (define-instruction! "!" ; store
+        (lambda ()
+          (set-memory! (& A #x1ff)  (d-pop!)) t))
 
-    (define-instruction! "+*" ; multiply-step
-      (lambda ()
-        ;;case 1 - If bit A0 is zero
-        ;;  Treats T:A as a single 36 bit register and shifts it right by one
-        ;;  bit. The most signficicant bit (T17) is kept the same.
-        ;;case 2 - If bit A0 is one
-        ;;  Sums T and S and concatenates the result with A, shifting
-        ;;  everything to the right by one bit to replace T:A
-        (if (= (& A 1) 1)
-            ;;case 2:
-            (let* ((sum (if extended-arith?
-                            (let ((sum (+ T S carry-bit)))
-                              (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
-                              sum)
-                            (+ T S)))
-                   (sum17 (& sum #x20000))
-                   (result (ior (<< sum 17)
-                                (>> A 1))))
-              (set! A (bitwise-bit-field result 0 18))
-              (set! T (ior sum17 (bitwise-bit-field result 18 36))))
-            ;;case 2:
-            (let ((t17 (& T #x20000))
-                  (t0  (& T #x1)))
-              (set! T (ior t17 (>> T 1)))
-              (set! A (ior (<< t0 17)
-                           (>> A 1)))))))
+      (define-instruction! "+*" ; multiply-step
+        (lambda ()
+          ;;case 1 - If bit A0 is zero
+          ;;  Treats T:A as a single 36 bit register and shifts it right by one
+          ;;  bit. The most signficicant bit (T17) is kept the same.
+          ;;case 2 - If bit A0 is one
+          ;;  Sums T and S and concatenates the result with A, shifting
+          ;;  everything to the right by one bit to replace T:A
+          (if (= (& A 1) 1)
+              ;;case 2:
+              (let* ((sum (if extended-arith?
+                              (let ((sum (+ T S carry-bit)))
+                                (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
+                                sum)
+                              (+ T S)))
+                     (sum17 (& sum #x20000))
+                     (result (ior (<< sum 17)
+                                  (>> A 1))))
+                (set! A (bitwise-bit-field result 0 18))
+                (set! T (ior sum17 (bitwise-bit-field result 18 36))))
+              ;;case 2:
+              (let ((t17 (& T #x20000))
+                    (t0  (& T #x1)))
+                (set! T (ior t17 (>> T 1)))
+                (set! A (ior (<< t0 17)
+                             (>> A 1)))))))
 
-    (define-instruction! "2*"
-      (lambda ()
-        (set! T (18bit (<< T 1)))))
+      (define-instruction! "2*"
+        (lambda ()
+          (set! T (18bit (<< T 1)))))
 
-    (define-instruction! "2/"
-      (lambda ()
-        (set! T (>> T 1))))
+      (define-instruction! "2/"
+        (lambda ()
+          (set! T (>> T 1))))
 
-    (define-instruction! "-" ;not
-      (lambda ()
-        (set! T (18bit (bitwise-not T)))))
+      (define-instruction! "-" ;not
+        (lambda ()
+          (set! T (18bit (bitwise-not T)))))
 
-    (define-instruction! "+"
-      (lambda ()
-        (if extended-arith?
-            (let ((sum (+ (d-pop!) (d-pop!) carry-bit)))
-              (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
-              (d-push! (18bit sum)))
-            (d-push! (18bit (+ (d-pop!) (d-pop!)))))))
+      (define-instruction! "+"
+        (lambda ()
+          (if extended-arith?
+              (let ((sum (+ (d-pop!) (d-pop!) carry-bit)))
+                (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
+                (d-push! (18bit sum)))
+              (d-push! (18bit (+ (d-pop!) (d-pop!)))))))
 
-    (define-instruction! "and"
-      (lambda ()
-        (d-push! (& (d-pop!) (d-pop!)))))
+      (define-instruction! "and"
+        (lambda ()
+          (d-push! (& (d-pop!) (d-pop!)))))
 
-    (define-instruction! "or"
-      (lambda ()
-        (d-push! (^ (d-pop!) (d-pop!)))))
+      (define-instruction! "or"
+        (lambda ()
+          (d-push! (^ (d-pop!) (d-pop!)))))
 
-    (define-instruction! "drop"
-      (lambda ()
-        (d-pop!)))
+      (define-instruction! "drop"
+        (lambda ()
+          (d-pop!)))
 
-    (define-instruction! "dup"
-      (lambda ()
-        (d-push! T)))
+      (define-instruction! "dup"
+        (lambda ()
+          (d-push! T)))
 
-    (define-instruction! "pop"
-      (lambda ()
-        (d-push! (r-pop!))))
+      (define-instruction! "pop"
+        (lambda ()
+          (d-push! (r-pop!))))
 
-    (define-instruction! "over"
-      (lambda ()
-        (d-push! S)))
+      (define-instruction! "over"
+        (lambda ()
+          (d-push! S)))
 
-    (define-instruction! "a" ; read a
-      (lambda ()
-        (d-push! A)));;??
+      (define-instruction! "a" ; read a
+        (lambda ()
+          (d-push! A)));;??
 
-    (define-instruction! "."
-      (lambda ()
-        (void)))
+      (define-instruction! "."
+        (lambda ()
+          (void)))
 
-    (define-instruction! "push"
-      (lambda ()
-        (r-push! (d-pop!))))
+      (define-instruction! "push"
+        (lambda ()
+          (r-push! (d-pop!))))
 
-    (define-instruction! "b!" ;; store into b
-      (lambda ()
-        (set! B (& (d-pop!) #x1ff))))
+      (define-instruction! "b!" ;; store into b
+        (lambda ()
+          (set! B (& (d-pop!) #x1ff))))
 
-    (define-instruction! "a!" ;store into a
-      (lambda ()
-        (set! A (d-pop!))))
+      (define-instruction! "a!" ;store into a
+        (lambda ()
+          (set! A (d-pop!))))
+      )
+    (init-instructions)
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; public methods
