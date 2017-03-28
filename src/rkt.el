@@ -630,15 +630,15 @@
 (defun replace-variable-references (form v-map f-map &optional exclude)
   (let (x)
     (pcase form
+      (`(send_ ,x ',method ,args)
+       `(send_ ,(replace-variable-references x v-map f-map exclude)
+               ',method
+               ,(mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) args)))
       (`(setq ,var ,value)
        (setq x (assoc var v-map))
        (if (and x (not (member var exclude)))
            `(aset this ,(cdr x) ,(replace-variable-references value v-map f-map exclude))
-         form))
-
-      (`(lambda () . ,body);;TODO: can this case be combined with
-       `(lambda () ,@(mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body)))
-
+         `(setq ,var ,(replace-variable-references value v-map f-map exclude))))
       (`(lambda ,params . ,body)
        (let ((exclude (append (get-param-syms params) exclude)))
          `(lambda ,params ,@(mapcar (lambda (x) (replace-variable-references x v-map f-map exclude)) body))))
@@ -685,18 +685,17 @@
     (dolist (form body)
       (pcase form
         (`(init-field . ,fields) (setq init-fields fields))
-        (`(define ,name ,body)
+        (`(define ,name . ,body)
          (if (symbolp name)
              (progn (push name attributes)
                     ;; use seq instead of define here or the 'define' macro will let-bind
                     ;; 'name' and it wont get replaced with the 'this' reference later
-                    (push `(setq ,name ,body) init-forms))
+                    (push `(setq ,name ,@body) init-forms))
            (push form private-methods)))
         (`(define/public ,name . ,body)
          (push form public-methods))
         ('(super-new) nil)
         (_ (push form init-forms))))
-
     ;;args don't work with the init method and the 'define' macro because
     ;;the arguments are also fields and the (setq <arg> (or <arg> <default>))
     ;;code that gets generated
@@ -773,7 +772,7 @@
   (aset obj object-type-index type))
 
 (defmacro send (obj method &rest args)
-  `(send_ ,obj ',method ',args))
+  `(send_ ,obj ',method ,(cons 'list args)))
 
 (defun send_ (obj method args)
   (let* ((methods (aref obj object-method-mapping-index))
