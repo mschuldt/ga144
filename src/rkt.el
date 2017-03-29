@@ -185,6 +185,12 @@
 (defmacro for/list (spec &rest body)
   (racket-make-for-loop spec body t))
 
+(defun in-range (start &optional end step)
+  (unless end
+    (setq end start
+          start 0))
+  (number-sequence start (1- end) step))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; vectors
 (defalias 'vector-set! 'aset)
@@ -340,6 +346,7 @@
 (defalias 'modulo 'remainder)
 (defalias 'exact->inexact 'identity)
 (defalias 'number->string 'number-to-string)
+(defsubst zero? (n) (= n 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conditions
@@ -376,6 +383,9 @@
 (defun bitwise-bit-field (n start end)
   (bitwise-and (sub1 (arithmetic-shift 1 (- end start)))
                (arithmetic-shift n (- start))))
+
+(defun bitwise-bit-set? (n m)
+    (not (zero? (bitwise-and n (arithmetic-shift 1 m)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mutable cons
@@ -791,7 +801,7 @@
     (when index
       (aref obj index))))
 
-(defmacro set-field (field obj value)
+(defmacro set-field! (field obj value)
   `(set-field_ ',field ,obj ,value))
 
 (defun set-field_ (field obj value)
@@ -852,7 +862,7 @@
     (assert (= (send obj2 get-a) 12))
 
     (assert (= (get-field b obj1) 22))
-    (set-field b obj1 111)
+    (set-field! b obj1 111)
     (assert (= (get-field b obj1) 111))
     ))
 
