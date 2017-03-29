@@ -30,7 +30,7 @@
     ;; 8x18 node matrix
 
     (define nodes (make-vector 144 false))
-
+    (define/public (get-nodes) nodes)
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
       (for ((i 144))

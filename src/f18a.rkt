@@ -16,10 +16,38 @@
       (funcall 'new f18a% index_ ga144_) ;;why funcall? so the racket compiler does not notice...
       (new f18a% (index index_) (ga144 ga144_))))
 
+
+(define obj-map_ (make-hash)) ;;maps names to objects
+(define obj-alist_ '()) ;;maps ojbects to names
+(define obj-key-counter 0)
+
+(define (register-obj obj)
+  ;; used to register a ga144 object and returns a key that can be used to access it
+  (let* ((key (assq obj obj-alist_)))
+    (if key
+        (set! key (cdr key))
+        (begin (set! key obj-key-counter)
+               (set! obj-alist_  (cons (cons obj key) obj-alist_))
+               (set! obj-key-counter (add1 obj-key-counter))
+               (hash-set! obj-map_ key obj)))
+    key))
+(define (lookup-obj name)
+  (hash-ref obj-map_ name))
+
 (define f18a%
   (class object%
     (super-new)
     (init-field index ga144 (active-index 0))
+
+    ;; register the ga144 object and keep a key to refer to it this prevents
+    ;; the ga144 <-> f18a circular reference which results in the elisp error:
+    ;;  'Apparently circular structure being printed'
+    (define ga144-key (register-obj ga144))
+    (define ga144-nodes-key (register-obj (send ga144 get-nodes)))
+    (set! ga144 false)
+    (when elisp? (set '__optional__ga144 false))
+    (define (get-ga144)
+      (lookup-obj ga144-key))
 
     (set! active-index index);;index of this node in the 'active-nodes' vector
     (define step-count 0)
@@ -73,7 +101,7 @@
       (set! print-io io))
 
     (define (err msg)
-      (printf "[~a] ERROR (chip: ~a)\n" coord (get-field name ga144))
+      (printf "[~a] ERROR (chip: ~a)\n" coord (get-field name (get-ga144)))
       (display-all)
       (when save-history
         (printf "Execution history(most recent first):\n ~a\n"
@@ -92,7 +120,7 @@
       (error msg))
 
     (define (log msg)
-      (define name (get-field name ga144))
+      (define name (get-field name (get-ga144)))
       (printf "[~a~a] ~a\n" (if name (rkt-format "~a." name) "") coord msg))
 
     (define/public (set-pin! pin val)
@@ -191,11 +219,11 @@
     (define (remove-from-active-list)
       (if suspended
           (err "cannot remove suspended node from active list")
-          (send ga144 remove-from-active-list this)))
+          (send (get-ga144) remove-from-active-list this)))
 
     (define (add-to-active-list)
       (if suspended
-          (send ga144 add-to-active-list this)
+          (send (get-ga144) add-to-active-list this)
           (err "cannot add active node to active list")))
 
     (define (suspend)
@@ -280,7 +308,7 @@
                   t)
                 (begin ;;else: suspend while we wait for other node to write
                   (when debug-ports (printf "       suspending\n"))
-                  (send (vector-ref ludr-port-nodes port)
+                  (send (get-port-node port)
                         receive-port-read port this)
                   (set! current-reading-port port)
                   (suspend)
@@ -326,7 +354,7 @@
                 ;;     one of the ports in ludr-port-nodes is false.
                 ;;     Collect the valid nodes into 'multiport-read-ports'
                 ;;     for use in 'finish-port-read()'
-                (when (setq other (vector-ref ludr-port-nodes port))
+                (when (setq other (get-port-node port))
                   (send other receive-port-read port this)
                   (set! multiport-read-ports (cons port multiport-read-ports))))
               (set! current-reading-port ports)
@@ -345,7 +373,7 @@
               (send reading-node finish-port-read value)
               t)
             (begin
-              (send (vector-ref ludr-port-nodes port)
+              (send (get-port-node port)
                     receive-port-write port value this)
               (set! current-writing-port port)
               (suspend)
@@ -377,7 +405,7 @@
         ;;there may be other nodes that still think we are waiting for them to write
         (for ((port multiport-read-ports))
           ;;reuse 'receive-port-read' to cancel the read notification
-          (send (vector-ref ludr-port-nodes port) receive-port-read port false))
+          (send (get-port-node port) receive-port-read port false))
         (set! multiport-read-ports false))
       (set! current-reading-port false)
       (set! waiting-for-pin false)
@@ -433,13 +461,13 @@
               (vector-ref (vector false #x20000 #x20002 #x2000a #x2002a)
                           num-gpio-pins)))
       ;;add the status bits
-      (when (vector-ref ludr-port-nodes 0)
+      (when (get-port-node 0)
         (set! io-read-mask (ior io-read-mask #x1800)))
-      (when (vector-ref ludr-port-nodes 1)
+      (when (get-port-node 1)
         (set! io-read-mask (ior io-read-mask #x600)))
-      (when (vector-ref ludr-port-nodes 2)
+      (when (get-port-node 2)
         (set! io-read-mask (ior io-read-mask #x6000)))
-      (when (vector-ref ludr-port-nodes 3)
+      (when (get-port-node 3)
         (set! io-read-mask (ior io-read-mask #x18000)))
 
       (set! ~io-read-mask (18bit (~ io-read-mask)))
@@ -674,7 +702,7 @@
                           fn)
              (set! _n (add1 _n))))
 
-    
+
     (define (init-instructions)
       ;; `init-instructions` is seporated as its own method to keep the size of the __init__ method
       ;; down which avoids this error:
@@ -968,10 +996,10 @@
                   ;;TEMP FIX:
                   ;; the target chip bootstream is special: the second)
                   ;; frame is written to a different path
-                  (send (send ga144 coord->node 709)
+                  (send (send (get-ga144) coord->node 709)
                         set-post-finish-port-read
                         false)
-                  (send (send ga144 coord->node 608)
+                  (send (send (get-ga144) coord->node 608)
                         set-post-finish-port-read
                         write-next)
                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -980,7 +1008,7 @@
                 (begin (printf "END FRAME\n")
                        (set! post-finish-port-write false)
                        ;;(send (send ga144 coord->node 400)
-                       (send (send ga144 coord->node 709)
+                       (send (send (get-ga144) coord->node 709)
                              set-post-finish-port-read
                              false)
                        (set! P jump-addr)
@@ -991,11 +1019,11 @@
       (when multiport-read-ports
         (for ((port multiport-read-ports))
           ;;reuse 'receive-port-read' to cancel the read notification
-          (send (vector-ref ludr-port-nodes port) receive-port-read port false))
+          (send (get-port-node port) receive-port-read port false))
         (set! multiport-read-ports false))
       ;;TODO: don't hardcode next node. convert dest-addr to ludr port
 
-      (send (send ga144 coord->node 709)
+      (send (send (get-ga144) coord->node 709)
             ;;(send ga144 coord->node 400)
             set-post-finish-port-read
             write-next)
@@ -1131,7 +1159,7 @@
     (define/public (step-program!)
       (set! step-count (add1 step-count))
       (funcall step-fn)
-      (when print-state (send ga144 display-node-states (list coord)))
+      (when print-state (send (get-ga144) display-node-states (list coord)))
       )
 
     ;; Steps the program n times.
@@ -1144,7 +1172,18 @@
       (init-ludr-port-nodes)
       (init-io-mask))
 
+    (define (get-port-node port)
+      (let ((index (vector-ref ludr-port-nodes port)))
+        (if (number? index)
+            (vector-ref (lookup-obj ga144-nodes-key) index)
+            index)))
+
     (define (init-ludr-port-nodes)
+      ;; ludr-port-nodes now stores the index of the node in ga144-nodes
+      ;; instead of the actual node object.
+      ;; This prevents circular structures as adjacent nodes no longer
+      ;; point directly at each other.
+      ;;  avoids elisp error: 'Apparently circular structure being printed'
       (define (convert dir)
         (let ((x (remainder coord 100))
               (y (quotient coord 100)))
@@ -1152,32 +1191,37 @@
                 ((equal? dir "south") (if (= (modulo y 2) 0) UP DOWN))
                 ((equal? dir "east") (if (= (modulo x 2) 0) RIGHT LEFT))
                 ((equal? dir "west") (if (= (modulo x 2) 0) LEFT RIGHT)))))
-      (let ((west (send ga144 coord->node (- coord 1)))
-            (north (send ga144 coord->node (+ coord 100)))
-            (south (send ga144 coord->node (- coord 100)))
-            (east (send ga144 coord->node (+ coord 1))))
+      (let (;;(west (send (get-ga144) coord->node (- coord 1)))
+            ;;(north (send (get-ga144) coord->node (+ coord 100)))
+            ;;(south (send (get-ga144) coord->node (- coord 100)))
+            ;;(east (send (get-ga144) coord->node (+ coord 1)))
+            (west (coord->index (- coord 1)))
+            (north (coord->index (+ coord 100)))
+            (south (coord->index (- coord 100)))
+            (east (coord->index (+ coord 1))))
+
         (set! ludr-port-nodes (make-vector 4 false))
 
         ;;TEMPORARY FIX: create new dummy nodes around the edges of the chip
         (vector-set! ludr-port-nodes (convert "north")
                      (if (< coord 700)
                          north
-                         (new-f18a 145 ga144)))
+                         (new-f18a 145 (get-ga144))))
 
         (vector-set! ludr-port-nodes (convert "east")
                      (if (< (modulo coord 100) 17)
                          east
-                         (new-f18a 145 ga144)))
+                         (new-f18a 145 (get-ga144))))
         (vector-set! ludr-port-nodes (convert "south")
                      (if (> coord 17)
                          south
-                         (new-f18a 145 ga144)))
+                         (new-f18a 145 (get-ga144))))
         (vector-set! ludr-port-nodes (convert "west")
                      (if (> (modulo coord 100) 0)
                          west
-                         (new-f18a 145 ga144)))))
+                         (new-f18a 145 (get-ga144))))))
 
-    (define/public (get-ludr-port-nodes) ludr-port-nodes)
+    ;;(define/public (get-ludr-port-nodes) ludr-port-nodes) ;; update -- ludr-port-nodes does not contain the nodes any more
 
     (define/public (set-aindex index)
       (set! active-index index))
@@ -1251,7 +1295,7 @@
     (define (break (reason false))
       (log (rkt-format "Breakpoint: ~a "
                        (or reason (rkt-format "~x(~x)" P (region-index P)))))
-      (send ga144 break this))
+      (send (get-ga144) break this))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display debug functions
@@ -1341,7 +1385,8 @@
                                    ", "))))
 
         (printf "ludr ports: ~a\n"
-                (string-join (for/list ((node ludr-port-nodes))
+                (string-join (for/list ((node 4))
+                               (set! node (get-port-node node))
                                (if node
                                    (number->string (send node get-coord))
                                    "___"))
