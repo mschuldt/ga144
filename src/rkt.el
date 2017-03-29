@@ -359,7 +359,8 @@
 
 (defconst false nil)
 (defconst true t)
-(defsubst void () nil)
+(defsubst void (&rest x) nil)
+(setq void (function void))
 
 (setq eof nil) ;;functions that use this should not be called from elisp
 
