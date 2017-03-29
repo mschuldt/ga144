@@ -418,7 +418,7 @@
       (when debug-ports (log "(finish-port-write)"))
       (set! current-writing-port false)
       (wakeup)
-      (and post-finish-port-write (post-finish-port-write)))
+      (and post-finish-port-write (funcall post-finish-port-write)))
 
     (define/public (receive-port-read port node)
       ;;called by adjacent node when it is reading from one of our ports
@@ -1158,7 +1158,9 @@
     ;; returns false when P = 0, else t
     (define/public (step-program!)
       (set! step-count (add1 step-count))
-      (funcall step-fn)
+      (if elisp?
+          (funcall step-fn this)
+          (step-fn))
       (when print-state (send (get-ga144) display-node-states (list coord)))
       )
 
@@ -1270,7 +1272,7 @@
     (define/public (set-word-hook-fn line-or-word fn)
       (define addr (get-breakpoint-address line-or-word))
       (if addr
-          (vector-set! breakpoints addr (lambda () (fn) t))
+          (vector-set! breakpoints addr (lambda () (funcall fn) t))
           (printf "[~a] set-word-hook-fn -- invalid word" coord line-or-word)))
 
     (define (get-breakpoint-address line-or-word)
