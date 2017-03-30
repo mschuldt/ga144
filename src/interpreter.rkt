@@ -70,20 +70,23 @@
 
 (define (step* (chip false))
   (define (step-all)
-    (define again false)
+    (define again true)
     (define breakpoint? false)
-    (for ((c chips))
-      (when (and (> (send c num-active-nodes) 0)
-                 (not breakpoint?))
-        (set! again t)
-        (set! breakpoint? (send c step-program!))
-        (when (and breakpoint?
-                   (not cli-active?)
-                   enter-cli-on-breakpoint?)
-          (set! selected-chip c)
-          (set! selected-node (send c get-breakpoint-node))
-          (enter-cli))))
-    (when (and again (not breakpoint?)) (step-all)))
+    (while (and again
+                (not breakpoint?))
+      (begin
+        (set! again false)
+        (for ((c chips))
+          (when (and (> (send c num-active-nodes) 0)
+                     (not breakpoint?))
+            (set! again t)
+            (set! breakpoint? (send c step-program!))
+            (when (and breakpoint?
+                       (not cli-active?)
+                       enter-cli-on-breakpoint?)
+              (set! selected-chip c)
+              (set! selected-node (send c get-breakpoint-node))
+              (enter-cli)))))))
   (if chip
       (and (send chip step-program!*)
            (and (not cli-active?)
@@ -396,40 +399,41 @@
   (define again t)
   (def-command exit () "Exit this cli" (set! again false))
   (define last-command false)
-  (define (loop)
-    (let* ((selected (if (and selected-chip
-                              (> num-chips 1))
-                         (list (get-field name selected-chip))
-                         '()))
-           (selected (if selected-node
-                         (cons (rkt-format "~a" (send selected-node get-coord))
-                               selected)
-                         false))
-           (selected (if selected
-                         (rkt-format "(~a)" (string-join (reverse selected) "."))
-                         "")))
-      (printf "~a>>> " selected))
-    (let* ((input (read-line stdin)))
-      (when (or (eof-object? input)
-                (= (string-length input) 0))
-        (set! input last-command)
-        (pretty-display (rkt-format "[~a]" input)))
-      (when input
-        (let* ((split (string-split (string-trim input)))
-               (len (length split))
-               (command (and (> len 0) (car split)))
-               (args (and (> len 1) (cdr split))))
-          (if (eq? (string-ref input 0) #\()
-              ;;TODO: fix
-              (pretty-display (eval (read (open-input-string input))))
 
-              (let ((command-name (string-append command
-                                                 (number->string (sub1 len)))))
-                (if (hash-has-key? _commands command-name)
-                    ((hash-ref _commands command-name) args)
-                    (printf "unkown command '~a', arity ~a\n"
-                            command (sub1 len))))))
-        (set! last-command input)))
-    (and again (loop)))
-  (loop)
+  (while again
+    (begin
+      (let* ((selected (if (and selected-chip
+                                (> num-chips 1))
+                           (list (get-field name selected-chip))
+                           '()))
+             (selected (if selected-node
+                           (cons (rkt-format "~a" (send selected-node get-coord))
+                                 selected)
+                           false))
+             (selected (if selected
+                           (rkt-format "(~a)" (string-join (reverse selected) "."))
+                           "")))
+        (printf "~a>>> " selected))
+      (let* ((input (read-line stdin)))
+        (when (or (eof-object? input)
+                  (= (string-length input) 0))
+          (set! input last-command)
+          (pretty-display (rkt-format "[~a]" input)))
+        (when input
+          (let* ((split (string-split (string-trim input)))
+                 (len (length split))
+                 (command (and (> len 0) (car split)))
+                 (args (and (> len 1) (cdr split))))
+            (if (eq? (string-ref input 0) #\()
+                ;;TODO: fix
+                (pretty-display (eval (read (open-input-string input))))
+
+                (let ((command-name (string-append command
+                                                   (number->string (sub1 len)))))
+                  (if (hash-has-key? _commands command-name)
+                      ((hash-ref _commands command-name) args)
+                      (printf "unkown command '~a', arity ~a\n"
+                              command (sub1 len))))))
+          (set! last-command input)))))
+
   (set! cli-active? false))
