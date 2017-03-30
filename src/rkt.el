@@ -39,19 +39,23 @@
 
 (setq maybe-undefined (make-hash-table))
 
-(defun racket-translate-define-body (form &optional local-functions)
+(defun racket-translate-define-body (form &optional local-functions fn-names)
   "translates forms in the body of a Racket define macro FORM"
   (cond ((not (consp form)) form) ;;nothing to do
         ((eq (car form) 'define)
          ;;function or varable definition
          ;; replace 'define' with 'setq',
          (if (consp (cadr form))
-             `(setq ,(caadr form) (lambda ,@(racket-make-define-body (cadr form) (cddr form) (cons (caadr form) local-functions))))
-           (cons 'setq (racket-translate-define-body (cdr form) local-functions))))
+             `(setq ,(caadr form) (lambda ,@(racket-make-define-body (cadr form) (cddr form)
+                                                                     (cons (caadr form) local-functions)
+                                                                     (cons (caadr form) fn-names))))
+           (cons 'setq (racket-translate-define-body (cdr form) local-functions fn-names))))
 
         ((member (car form) local-functions)
          ;;translate call to local function -
-         (cons 'funcall (cons (car form) (racket-translate-define-body (cdr form) local-functions))))
+         (when (member (car form) fn-names)
+           (message "Warning: recursive call detected: %s (in file %s)" (car form) buffer-file-name))
+         (cons 'funcall (cons (car form) (racket-translate-define-body (cdr form) local-functions fn-names))))
         (t (let (body)
              (dolist (x form)
                (if (and (consp x)
@@ -65,7 +69,7 @@
                            (consp (cadr x)))
                       ;; (define (f ...) ...)
                       (setq local-functions (cons (caadr x) local-functions))
-                      (push (racket-translate-define-body x local-functions) body))
+                      (push (racket-translate-define-body x local-functions fn-names) body))
                      ((and (consp x)
                            (= (length x) 3)
                            (or (eq (car x) 'define)
@@ -77,12 +81,15 @@
                                (eq (caaddr x) 'fn)))
                       ;; (set! <var> <func>)
                       (setq local-functions (cons (cadr x) local-functions))
-                      (push (list 'setq (cadr x) (racket-translate-define-body (caddr x) (cons (cadr x) local-functions))) body))
+                      (push (list 'setq (cadr x) (racket-translate-define-body (caddr x)
+                                                                               (cons (cadr x) local-functions)
+                                                                               fn-names))
+                            body))
                      ;; TODO: let bound functions
-                     (t (push (racket-translate-define-body x local-functions) body))))
+                     (t (push (racket-translate-define-body x local-functions fn-names) body))))
              (reverse body)))))
 
-(defun racket-make-define-body (form body &optional local-functions)
+(defun racket-make-define-body (form body &optional local-functions fn-names)
   ;; (define (symbol args...) BODY...)
   ;; LOCAL-FUNCTIONS is a list of functions defined within this function
   (let ((args (cdr form))
@@ -98,7 +105,7 @@
         (assert (symbolp a))
         (push a positional)))
     (setq local-vars (racket-gather-local-vars body (append positional optional)))
-    (setq body (racket-translate-define-body body local-functions))
+    (setq body (racket-translate-define-body body local-functions fn-names))
     (when local-vars
       (setq body `((let ,local-vars ,@body))))
 
@@ -115,7 +122,7 @@
                    (car form) buffer-file-name))
         ;; else: ok to define
         (put (car form) 'is-racket-fn t)
-        `(progn ,(cons 'defun (cons (car form) (racket-make-define-body form body)))
+        `(progn ,(cons 'defun (cons (car form) (racket-make-define-body form body nil (list (car form)))))
                 (setq ,(car form) ',(car form))))
 
 
