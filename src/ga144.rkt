@@ -183,14 +183,14 @@
 
     (define/public (display-node-states (nodes false))
       (let ((nodes (if nodes
-                       (map fn:coord->node nodes)
+                       (map (lambda (n) (coord->node n)) nodes)
                        (get-active-nodes))))
         (for ((node nodes))
           (send node display-state))))
 
     (define/public (display-dstacks (nodes false))
       (let ((nodes (if nodes
-                       (map fn:coord->node nodes)
+                       (map (lambda (n) (coord->node n)) nodes)
                        (get-active-nodes))))
         (for ((node nodes))
           (send node display-dstack))))
