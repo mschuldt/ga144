@@ -135,8 +135,7 @@
                      name false))))
   (let ((x (filter (lambda (x) (cdr x)) (hash->list fallthroughs))))
     (unless (or (null? x) t)
-      (pretty-display "fallthroughs:")
-      (pretty-display x)))
+      (printf "fallthroughs: ~a\n" x)))
   (define fall-into-nodes (hash-values fallthroughs))
   (for ((node fall-into-nodes))
     (set! names (remove node names)))
@@ -1041,7 +1040,7 @@ effect as though a program had executed code 30 20 10"
    (define addr (get-word-address word))
    (if addr
        (begin (push addr stack)
-              (when DEBUG? (pretty-display (list "tick addr: "  addr))))
+              (when DEBUG? (printf "tick addr: ~a\n"  addr)))
        (err (rkt-format "' (tick): \"~a\" is not defined" word)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1087,8 +1086,7 @@ effect as though a program had executed code 30 20 10"
 (define compiler-ops (make-hash))
 
 (define (add-compiler-word! name body)
-  (when DEBUG? (pretty-display (rkt-format "adding compiler word: '~a' = " name))
-        (pretty-display body))
+  (when DEBUG? (printf (rkt-format "adding compiler word: '~a' = \n body" name body)))
   (hash-set! compiler-words name body))
 
 (define _no-compiler-op-def false)
@@ -1126,7 +1124,7 @@ effect as though a program had executed code 30 20 10"
 (add-directive!  "lit"  ""  (lambda () (err "'lit' is a compiler directive.")))
 
 (define (exec-compiler-word word)
-  (when DEBUG? (pretty-display (rkt-format "Execing compiler word ~a" word)))
+  (when DEBUG? (printf (rkt-format "Execing compiler word ~a\n" word)))
   (let ((body (hash-ref compiler-words word)))
     (define i false)
 
@@ -1180,15 +1178,15 @@ Only the following words are supported in the body of a compiler word:
   ;;NODES is a list of node structs
   (define (display-word word (n 0))
     (if (number? word)
-        (display word)
+        (printf "~a" word)
         (when (< n 4)
-          (display (rkt-format "~a " (vector-ref word n)))
+          (printf (rkt-format "~a " (vector-ref word n)))
           (display-word word (add1 n)))))
 
   (define (display-mem mem (index 0))
     (let ((word (vector-ref mem index)))
       (unless (equal? word (vector false false false false))
-        (display (rkt-format "~a    " index))
+        (printf (rkt-format "~a    " index))
         (display-word word)
         (newline)
         (when (< index num-words)
@@ -1196,7 +1194,7 @@ Only the following words are supported in the body of a compiler word:
 
   (define (display-node nodes)
     (unless (null? nodes)
-      (pretty-display (rkt-format "\nnode ~a" (node-coord (car nodes))))
+      (printf (rkt-format "\nnode ~a\n" (node-coord (car nodes))))
       (display-mem (node-mem (car nodes)))
       (display-node (cdr nodes))))
   (display-node (compiled-nodes compiled)))
