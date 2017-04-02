@@ -350,7 +350,7 @@
 
 (defsubst quotient (n m) (floor (/ n m)))
 (defalias 'remainder '%)
-(defalias 'modulo 'remainder)
+(defalias 'modulo 'mod)
 (defalias 'exact->inexact 'identity)
 (defalias 'number->string 'number-to-string)
 (defsubst zero? (n) (= n 0))
