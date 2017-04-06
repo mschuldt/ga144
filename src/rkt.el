@@ -271,7 +271,8 @@
   (let (ret)
     (maphash (lambda (k v)
                (push (cons k v) ret))
-             hash)))
+             hash)
+    ret))
 
 (require 'subr-x)
 (defalias 'hash-values 'hash-table-values)
