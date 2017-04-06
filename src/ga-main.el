@@ -23,6 +23,7 @@
 (setq create-docs? nil)
 (setq test? nil)
 (setq only-bootstream? nil)
+(setq run? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -55,6 +56,8 @@
                (setq create-docs? t))
               (("--test") nil "run tests"
                (setq test? t))
+              (("-r" "--run") nil "run in simulator" ;;TODO: -r option does not work
+               (setq run? t))
               (("-h") nil "print usage"
                (ga-print-help-and-exit))
               (position (file) "aforth file"
@@ -86,6 +89,9 @@
                   "src/rom.rkt"
                   "src/rom-dump.rkt"
                   "tests/test-compiler.rkt"
+                  "src/ga144.rkt"
+                  "src/f18a.rkt"
+                  "src/stack.rt"
                   ))
     (rkt-byte-compile (expand-file-name file)))
 
@@ -97,6 +103,7 @@
                   "src/arg-parser.el"
                   "src/rkt.el"
                   "src/ga-loadup.el"
+                  "src/ga144-sim.el"
                   ))
     (byte-compile-file (expand-file-name file))))
 
@@ -130,6 +137,11 @@
   (message (if (run-compiler-tests)
                "ok"
              "fail"))
+  (ga-main-exit))
+
+(when run?
+  (require 'ga144-sim)
+  (ga144-run-file in-file)
   (ga-main-exit))
 
 (progn ;;for .rkt compatibility
