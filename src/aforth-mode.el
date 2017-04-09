@@ -265,36 +265,66 @@
     index))
 
 (setq aforth-map-buffer nil)
+(setq aforth-sim-buffer nil)
 (setq aforth-created-map nil)
+(setq aforth-created-sim nil)
 (make-variable-buffer-local 'aforth-map-buffer)
+(make-variable-buffer-local 'aforth-sim-buffer)
 
 (defun aforth-check-map-buffer ()
   (when (and aforth-map-buffer
              (not (buffer-live-p aforth-map-buffer)))
     (setq aforth-map-buffer nil)))
 
+(defun aforth-check-sim-buffer ()
+  (when (and aforth-sim-buffer
+             (not (buffer-live-p aforth-sim-buffer)))
+    (setq aforth-sim-buffer nil)))
+
 (defun aforth-goto-map ()
   "open the GA144 map for the current aforth-file"
   (interactive)
-  (when (eq major-mode 'aforth-mode)
-    (aforth-check-map-buffer)
+  (if (eq major-mode 'aforth-mode)
+      (progn
+        (aforth-check-map-buffer)
 
-    (when (not aforth-map-buffer)
-      (setq aforth-map-buffer (ga-open-map-for-file buffer-file-name)
-            aforth-created-map t))
-    (switch-to-buffer-other-window aforth-map-buffer)))
+        (when (not aforth-map-buffer)
+          (setq aforth-map-buffer (ga-open-map-for-buffer (current-buffer))
+                aforth-created-map t))
+        (switch-to-buffer-other-window aforth-map-buffer))
+    (message "Not in aforth buffer")))
 
+(defun aforth-goto-simulation ()
+  "open the GA144 simulation for the current aforth-file"
+  (interactive)
+  (if (eq major-mode 'aforth-mode)
+      (progn (aforth-check-sim-buffer)
+             (when (not aforth-sim-buffer)
+               (setq aforth-sim-buffer (ga-open-map-for-simulation (current-buffer))
+                     aforth-created-sim t))
+             (switch-to-buffer-other-window aforth-sim-buffer))
+    (message "Not in aforth buffer")))
+
+;; only the map is updated when the source is saved.
+;; the simulation map is only updated when it starts
 (defun aforth-compile-and-update-map ()
-  (condition-case nil
+  (condition-case err
       (begin
        (aforth-check-map-buffer)
+       (aforth-check-sim-buffer)
        (when (and aforth-map-buffer
                   (buffer-modified-p))
-         (let ((_compiled (aforth-compile-buffer)))
-           (with-current-buffer aforth-map-buffer
-             (ga-update-compilation-data  _compiled)))))
-    (error (message "Error compiling buffer:")))
+         (aforth-update-compilation-for-map-buffer aforth-map-buffer)))
+    (error (message "Error compiling buffer(1): %s" err)))
   nil)
+
+(defun aforth-update-compilation-for-map-buffer (buffer)
+  (condition-case err
+      (let ((_compiled (aforth-compile-buffer)))
+        (with-current-buffer buffer
+          ;;TODO: check that buffer is a valid map buffer
+          (ga-update-compilation-data  _compiled)))
+    (error (message "Error compiling buffer(2): %s" err))))
 
 (defun aforth-save-buffer ()
   "Update the compilation data for the ga144 map if one is linked to this buffer, then save"
@@ -307,13 +337,18 @@
   (when (and aforth-created-map
              aforth-map-buffer
              (buffer-live-p aforth-map-buffer))
-    (kill-buffer aforth-map-buffer)))
+    (kill-buffer aforth-map-buffer))
+  (when (and aforth-created-sim
+             aforth-sim-buffer
+             (buffer-live-p aforth-sim-buffer))
+    (kill-buffer aforth-sim-buffer)))
 
 (setq aforth-mode-map
       (let ((map (make-sparse-keymap 'aforth-mode-map)))
         (define-key map (kbd "C-M-a") 'aforth-back-to-node)
         (define-key map (kbd "C-M-e") 'aforth-goto-next-node)
         (define-key map (kbd "C-c v") 'aforth-goto-map)
+        (define-key map (kbd "C-c s") 'aforth-goto-simulation)
         ;;(define-key map (kbd "C-x C-s") 'aforth-save-buffer)
         map))
 

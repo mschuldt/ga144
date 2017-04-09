@@ -90,10 +90,10 @@
     (define ram-name->addr false)
     (define ram-addr->name false)
 
-    (define debug false)
-    (define debug-ports false)
+    (define debug true)
+    (define debug-ports true)
     (define print-state false)
-    (define print-io false)
+    (define print-io true)
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -910,6 +910,8 @@
     (define/public (get-rstack-as-list)
       (cons R (stack->list rstack)))
     (define/public (get-coord) coord)
+    (define/public (get-inst-index)
+      (vector-member step-fn (vector 'step0 'step1 'step2 'step3)))
 
     (define/public (suspended?) suspended)
 

@@ -37,13 +37,18 @@
 (def-local ga-compilation-data nil)
 (def-local ga-compiled-nodes nil) ;; hash mapping nodes to compiled node memory array
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
-(def-local ga-assembled-data nil)
+(def-local ga-assembly-data nil)
 (def-local ga-node-usage nil)
 (def-local ga-node-usage-hash nil)
 (def-local ga-node-locations nil)
 (def-local ga-ram-display nil)
 (def-local ga-current-node-display nil)
-
+(def-local ga-sim-ga144 nil) ;; ga44 simulation - object type ga144%
+(def-local ga-sim-current-node nil) ;;The currently selected f18a node
+(def-local ga-sim-p nil) ;; true if simulation is active
+(def-local ga-sim-node-P 0)
+(def-local ga-sim-node-i 0)
+(def-local ga-buffer-valid-p nil) ;;true if map is in valid state. Used for cleanup
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
 (def-local ga-node-ram-display-position nil)
@@ -113,9 +118,11 @@
     ok))
 
 (defun ga-render( node-size )
+  (setq ga-buffer-valid-p nil)
   (ga-draw-map node-size)
   (goto-char 1)
-  (update-position))
+  (update-position)
+  (setq ga-buffer-valid-p t))
 
 (defun ga-move-to-node (coord &optional middle node-size)
   (goto-char 1)
@@ -197,7 +204,9 @@
 
     (when ga-ram-display
       (sd-remove ga-ram-display))
-    (setq ga-ram-display (sd-create ga-empty-node-ram-display-data
+    (setq ga-ram-display (sd-create (if ga-sim-p
+                                        (make-vector 769 "~ ~ ~ ~")
+                                      ga-empty-node-ram-display-data)
                                     1 (+ map-width 3) ;; line column position
                                     map-height ;; display length
                                     27)) ;; display width
@@ -466,7 +475,6 @@
   (interactive)
   (ga-move-selected-node (- (* (/ ga-current-coord 100) 100))))
 
-
 (defun ga-valid-coord-p (coord)
   (and (>= coord 0)
        (< (mod coord 100) 18)
@@ -476,6 +484,8 @@
   (assert (ga-valid-coord-p coord))
   (setq ga-prev-coord ga-current-coord
         ga-current-coord coord)
+  (when ga-sim-p
+    (setq ga-sim-current-node (send ga-sim-ga144 coord->node coord)))
   (ga-update-ram-display-node)
   (update-position))
 
@@ -559,21 +569,30 @@
       (setq ga-node-locations (compiled-node-locations data))
       (ga-update-node-usage-colors ga-node-usage)
       (when ga-ram-display
-        (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord)))
+        (ga-update-ram-display-node)
+        ;;(sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord)))
+        )
       (ga-set-compilation-status "Ok"))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
-  (if compilation-data
-      (ga-set-compilation-data compilation-data)
-    (when ga-project-aforth-file
-      (unless ga-project-aforth-buffer
-	(setq ga-get-project-file-buffer ga-project-aforth-file))
-      (if ga-project-aforth-buffer
-	  (ga-set-compilation-data (aforth-compile-buffer ga-project-aforth-buffer))
-	(error "unable to retrieve project aforth buffer")))
-    ;;TODO: maybe assemble, bootstream
-    )
-  (setq ga-compilation-data-changed t))
+  (let ((old-ga-assembly-data ga-assembly-data))
+    (if compilation-data
+        (ga-set-compilation-data compilation-data)
+      (when ga-project-aforth-file
+        (unless ga-project-aforth-buffer
+          (setq ga-get-project-file-buffer ga-project-aforth-file))
+        (if ga-project-aforth-buffer
+            (ga-set-compilation-data (aforth-compile-buffer ga-project-aforth-buffer))
+          (error "unable to retrieve project aforth buffer")))
+      ;;TODO: maybe assemble, bootstream
+      )
+    (when ga-sim-p
+      (if (not (eq ga-assembly-data old-ga-assembly-data))
+          (progn
+            (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
+            (ga-sim-load ga-assembly-data))
+        (message "Error: failed to update compilation. ga14 sim not updated"))))
+  (setq ga-compilation-data-changed t)) ;;TODO: what is this used for?
 
 (defun ga-calculate-node-usage (assembled)
   (let ((nodes (compiled-nodes assembled))
@@ -609,15 +628,15 @@
                                     (to-hex-str (- 255 n))
                                     (to-hex-str (- 255 n))
                                     ))))))
+(defun ga-format-str (str color)
+  (put-text-property 0 (length str) 'font-lock-face (list :foreground color) str)
+  str)
 
 (defun ga-format-inst (inst)
   (cond ((stringp inst)
-         (put-text-property 0 (length inst) 'font-lock-face '(:foreground "green") inst)
-         inst)
+         (ga-format-str inst "green"))
         ((number? inst)
-         (setq inst (number-to-string inst))
-         (put-text-property 0 (length inst) 'font-lock-face '(:foreground "red") inst)
-         inst)
+         (ga-format-str (number-to-string inst) "red"))
         ((null inst) "~")))
 
 (defun ga-format-word (i word)
@@ -661,19 +680,65 @@
 	       data)
       ga-empty-node-ram-display-data)))
 
+(defun ga-format-sim-word (i word &optional slot)
+  (concat (format "%2s " (if slot
+                             (ga-format-str (number->string i) "blue")
+                           i))
+          (if (numberp word)
+              (mapconcat 'identity
+                         (mapcar* (lambda (i inst)
+                                    (if (eq i slot)
+                                        (ga-format-str (format "%s" inst) "blue")
+                                      (ga-format-inst inst)))
+                                  (number-sequence 0 3)
+                                  (disassemble-word word))
+                         " ")
+            "PORT"))) ;;TODO: which port?
+
+(defun ga-create-sim-ram-display-data (node)
+  (let* ((mem (send node get-memory))
+         data word str)
+    ;; reserve the first line in the display for node coord and usage
+    (setq data (make-vector (1+ (length mem)) nil)) ;;TODO: compress the unused(repetitive) ram sections
+    (dotimes (i (length mem)) ;;TODO: does the display auto adjust the length?
+      (setq str (ga-format-sim-word i (aref mem i) (if (= (1+ i) ga-sim-node-P) ga-sim-node-i nil)))
+      (aset data (1+ i) str))
+    data))
+
+(defun ga-update-ram-display-with (data)
+  ;; save the position of the previous node
+  (aset ga-node-ram-display-position (coord->index ga-prev-coord) (sd-offset ga-ram-display))
+  ;; swap data to current node
+  (sd-set-data ga-ram-display data)
+  ;; restore position of current node
+  (sd-move-to ga-ram-display (aref ga-node-ram-display-position (coord->index ga-current-coord))))
+
 (defun ga-update-ram-display-node ()
   "Updates the ram display with the compiled data from the current selected node.
 Called after ga-current-node is set"
   ;;(assert ga-ram-display)
   (when (and ga-ram-display
-	     ga-current-coord
-             ga-compiled-nodes)
-    ;; save the position of the previous node
-    (aset ga-node-ram-display-position (coord->index ga-prev-coord) (sd-offset ga-ram-display))
-    ;; swap data to current node
-    (sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord))
-    ;; restore position of current node
-    (sd-move-to ga-ram-display (aref ga-node-ram-display-position (coord->index ga-current-coord)))))
+	     ga-current-coord)
+    (if (and ga-sim-p
+             ga-sim-current-node)
+        ;;update with simulation ram
+        (progn (ga-update-ram-display-with (ga-create-sim-ram-display-data ga-sim-current-node))
+               (sd-center-on ga-ram-display ga-sim-node-P))
+      ;;update with compiled data
+      (when ga-compiled-nodes
+        (ga-update-ram-display-with (ga-create-ram-display-data ga-current-coord))))))
+
+(defun show-buffer-local-variables ()
+  (interactive)
+  (let ((buf (get-buffer-create (format "*local variables of '%s'*" (buffer-name (current-buffer)))))
+        (vars (buffer-local-variables)))
+    (switch-to-buffer-other-window buf)
+    (widen)
+    (delete-region (point-min) (point-max))
+    (dolist (v vars)
+      (insert (format "%s   %s\n" (car v)  (cdr v))))
+    (linum-mode 1)
+    (goto-char 1)))
 
 (defun ga-move-ram-view-down ()
   (interactive)
@@ -685,9 +750,9 @@ Called after ga-current-node is set"
   (when ga-ram-display
     (sd-move-up ga-ram-display)))
 
-(defun ga-set-aforth-source (file)
+(defun ga-set-aforth-source (file &optional buffer)
   (setq ga-project-aforth-file file)
-  (setq ga-project-aforth-buffer (ga-get-project-file-buffer file))
+  (setq ga-project-aforth-buffer (or buffer (ga-get-project-file-buffer file)))
   (add-to-list 'ga-project-aforth-buffers (ga-get-project-file-buffer file))
   ;; set aforth-map-buffer in the aforth buffer to point to the buffer of this map
   (let ((this-buffer (current-buffer)))
@@ -1059,7 +1124,74 @@ Elements of ALIST that are not conses are ignored."
       (ga-set-selected-node coord))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; simulation support
 
+(defmacro ga-check-sim (&rest body)
+  `(if ga-sim-p
+       (progn ,@body)
+     (message "Not in GA144 simulation mode")))
+
+(defun ga-sim-load (assembly)
+  (send ga-sim-ga144 load assembly)
+  (ga-update-current-node-registers))
+
+(defun ga-sim-recompile ()
+  "Recompile the simulation source files and update ga144 simulation
+This resets the simulation"
+  (interactive)
+  (assert ga-project-aforth-buffer)
+  (let ((this-buffer (current-buffer)))
+    (with-current-buffer ga-project-aforth-buffer
+      (aforth-update-compilation-for-map-buffer this-buffer)))
+  (ga-sim-reset))
+
+(defun ga-sim-reset ()
+  (send ga-sim-ga144 reset!)
+  ;;TODO: rese also wipes the nodes - need to reload
+  (send ga-sim-ga144 load ga-assembly-data)
+  (ga-update-current-node-registers)
+  (ga-sim-update-display))
+
+(defun ga-sim-reset-command ()
+  (interactive)
+  (ga-check-sim
+   (when (y-or-n-p "Reset simulation?")
+     (ga-sim-reset))))
+
+(defun ga-sim-set-current-node (coord)
+  (when ga-sim-ga144
+    (setq ga-sim-current-node (send ga-sim-ga144 coord->node coord))))
+
+(defun ga-update-current-node-registers ()
+  (let* ((registers (send ga-sim-current-node get-registers)))
+
+    (setq ga-sim-node-P (aref registers 2))
+    (setq ga-sim-node-i (send ga-sim-current-node get-inst-index ))
+    (message "REGISTERS = %s" registers)
+    (message "i = %s" ga-sim-node-i)))
+
+(defun ga-sim-step-node ()
+  "Steps the current selected node one instruction"
+  ;;TODO: support for stepping variable
+  (interactive)
+  (ga-check-sim
+   (send ga-sim-current-node step-program!)
+   (ga-update-current-node-registers)
+   (ga-sim-update-display)
+   ))
+
+(defun ga-sim-update-display (&optional node)
+  (when ga-ram-display
+    (ga-update-ram-display-node)
+    )
+  )
+
+;;TODO: DOING: need to update ga-ram-display with the simulation memory
+(defun ga-sim-step-all ()
+  )
+
+(defun ga-sim-set-breakpoint ()
+  )
 
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
@@ -1095,24 +1227,47 @@ Elements of ALIST that are not conses are ignored."
         (define-key map (kbd "<") 'ga-move-ram-view-down)
         (define-key map (kbd ">") 'ga-move-ram-view-up)
         (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
+        ;;simulation keys
+        (define-key map (kbd "s") 'ga-sim-step-node)
+        (define-key map (kbd "g") 'ga-sim-reset-command)
+
         map))
 
-(defun ga-open-map-for-file (filename)
-  (let* ((buffer-name (format "*GA144-%s*" (file-name-base filename)))
+(defun ga-map-buffer-valid (buf)
+  "verifies that the map buffer BUF is still alive"
+  (when (buffer-live-p buf)
+    (with-current-buffer buf
+      (and ga-buffer-valid-p
+           (buffer-live-p ga-project-aforth-buffer)
+           ))))
+
+(defun ga-open-map-for-buffer (aforth-buffer &optional buf-name-fmt)
+  (let* ((filename (buffer-file-name aforth-buffer))
+         (buffer-name (format (or buf-name-fmt "*GA144-%s*") (file-name-base filename)))
          (buf (get-buffer buffer-name)))
+    (unless (ga-map-buffer-valid buf)
+      (setq buf nil))
     (or buf
         (progn
           (setq buf (get-buffer-create buffer-name))
           (with-current-buffer buf
             (setq ga-map-view-mode t)
+            (setq ga-project-aforth-buffer aforth-buffer)
             (setq ga-project-aforth-files filename)
             (ga-mode)
             (ga-set-aforth-source filename))
           buf))))
 
+(defun ga-open-map-for-simulation (aforth-buffer)
+  (let ((buf (ga-open-map-for-buffer aforth-buffer "*GA144 SIM: %s*")))
+    (with-current-buffer buf
+      (setq ga-sim-p t)
+      (ga-sim-recompile))
+    buf))
+
 (define-derived-mode ga-mode nil "GA144"
   "A major mode for programming the GA144."
-
+  (setq ga-buffer-valid-p nil)
   (use-local-map ga-mode-map)
   (setq show-trailing-whitespace nil)
 
@@ -1178,7 +1333,8 @@ Elements of ALIST that are not conses are ignored."
         (ga-set-map-focus t)
         (add-hook 'buffer-list-update-hook 'ga-update-map-focus)
         (add-hook 'kill-buffer-hook 'ga-kill-buffer-handler)
-        (ga-move-selected-node ga-current-coord))
+        (ga-move-selected-node ga-current-coord)
+        (setq ga-buffer-valid-p t))
     (message "ga144-mode: invalid file format")))
 
 (defun ga-restore-node-overlays ( ga-nodes )
