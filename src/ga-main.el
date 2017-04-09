@@ -91,7 +91,7 @@
                   "tests/test-compiler.rkt"
                   "src/ga144.rkt"
                   "src/f18a.rkt"
-                  "src/stack.rt"
+                  "src/stack.rkt"
                   ))
     (rkt-byte-compile (expand-file-name file)))
 
