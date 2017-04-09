@@ -63,6 +63,7 @@
     (define B 0)
     (define P 0)
     (define I 0)
+    (define I-index 0) ;; index of I in memory
     (define I^ 0)
     (define R 0)
     (define S 0)
@@ -90,10 +91,10 @@
     (define ram-name->addr false)
     (define ram-addr->name false)
 
-    (define debug true)
-    (define debug-ports true)
+    (define debug false)
+    (define debug-ports false)
     (define print-state false)
-    (define print-io true)
+    (define print-io false)
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -643,6 +644,7 @@
 
     (define (step0-helper)
       (set! I (d-pop!))
+      (set! I-index P)
       (set! I^ (^ I #x15555))
       (when (funcall (vector-ref breakpoints (if (port-addr? P)
                                                  (& P #x1ff)
@@ -904,7 +906,7 @@
     (define/public (get-memory) memory)
     (define/public (get-rstack) rstack)
     (define/public (get-dstack) dstack)
-    (define/public (get-registers) (vector A B P I R S T IO))
+    (define/public (get-registers) (vector A B P I R S T IO I-index))
     (define/public (get-dstack-as-list)
       (cons T (cons S (stack->list dstack))))
     (define/public (get-rstack-as-list)

@@ -47,7 +47,8 @@
 (def-local ga-sim-current-node nil) ;;The currently selected f18a node
 (def-local ga-sim-p nil) ;; true if simulation is active
 (def-local ga-sim-node-P 0)
-(def-local ga-sim-node-i 0)
+(def-local ga-sim-node-inst-i 0)
+(def-local ga-sim-node-word-i 0)
 (def-local ga-buffer-valid-p nil) ;;true if map is in valid state. Used for cleanup
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
@@ -485,7 +486,7 @@
   (setq ga-prev-coord ga-current-coord
         ga-current-coord coord)
   (when ga-sim-p
-    (setq ga-sim-current-node (send ga-sim-ga144 coord->node coord)))
+    (ga-sim-set-current-node coord))
   (ga-update-ram-display-node)
   (update-position))
 
@@ -588,9 +589,7 @@
       )
     (when ga-sim-p
       (if (not (eq ga-assembly-data old-ga-assembly-data))
-          (progn
-            (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
-            (ga-sim-load ga-assembly-data))
+          (ga-sim-load ga-assembly-data)
         (message "Error: failed to update compilation. ga14 sim not updated"))))
   (setq ga-compilation-data-changed t)) ;;TODO: what is this used for?
 
@@ -629,7 +628,8 @@
                                     (to-hex-str (- 255 n))
                                     ))))))
 (defun ga-format-str (str color)
-  (put-text-property 0 (length str) 'font-lock-face (list :foreground color) str)
+  (when color
+    (put-text-property 0 (length str) 'font-lock-face (list :foreground color) str))
   str)
 
 (defun ga-format-inst (inst)
@@ -680,15 +680,18 @@
 	       data)
       ga-empty-node-ram-display-data)))
 
-(defun ga-format-sim-word (i word &optional slot)
-  (concat (format "%2s " (if slot
-                             (ga-format-str (number->string i) "blue")
-                           i))
+(defun ga-format-sim-word (i word P slot)
+  (concat (format "%2s " (ga-format-str (number->string i)
+                                        (cond ((and P slot)
+                                               "green")
+                                              (P "blue")
+                                              (slot "yellow"))))
+
           (if (numberp word)
               (mapconcat 'identity
                          (mapcar* (lambda (i inst)
                                     (if (eq i slot)
-                                        (ga-format-str (format "%s" inst) "blue")
+                                        (ga-format-str (format "%s" inst) "yellow")
                                       (ga-format-inst inst)))
                                   (number-sequence 0 3)
                                   (disassemble-word word))
@@ -701,7 +704,10 @@
     ;; reserve the first line in the display for node coord and usage
     (setq data (make-vector (1+ (length mem)) nil)) ;;TODO: compress the unused(repetitive) ram sections
     (dotimes (i (length mem)) ;;TODO: does the display auto adjust the length?
-      (setq str (ga-format-sim-word i (aref mem i) (if (= (1+ i) ga-sim-node-P) ga-sim-node-i nil)))
+      (setq str (ga-format-sim-word i
+                                    (aref mem i)
+                                    (= i ga-sim-node-P)
+                                    (if (= i ga-sim-node-word-i) ga-sim-node-inst-i nil)))
       (aset data (1+ i) str))
     data))
 
@@ -1159,16 +1165,15 @@ This resets the simulation"
      (ga-sim-reset))))
 
 (defun ga-sim-set-current-node (coord)
-  (when ga-sim-ga144
-    (setq ga-sim-current-node (send ga-sim-ga144 coord->node coord))))
+  (assert ga-sim-ga144)
+  (setq ga-sim-current-node (send ga-sim-ga144 coord->node coord))
+  (ga-update-current-node-registers))
 
 (defun ga-update-current-node-registers ()
   (let* ((registers (send ga-sim-current-node get-registers)))
-
     (setq ga-sim-node-P (aref registers 2))
-    (setq ga-sim-node-i (send ga-sim-current-node get-inst-index ))
-    (message "REGISTERS = %s" registers)
-    (message "i = %s" ga-sim-node-i)))
+    (setq ga-sim-node-inst-i (send ga-sim-current-node get-inst-index))
+    (setq ga-sim-node-word-i (aref registers 8))))
 
 (defun ga-sim-step-node ()
   "Steps the current selected node one instruction"
@@ -1262,6 +1267,8 @@ This resets the simulation"
   (let ((buf (ga-open-map-for-buffer aforth-buffer "*GA144 SIM: %s*")))
     (with-current-buffer buf
       (setq ga-sim-p t)
+      (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
+      (ga-sim-set-current-node ga-current-coord)
       (ga-sim-recompile))
     buf))
 
@@ -1333,7 +1340,7 @@ This resets the simulation"
         (ga-set-map-focus t)
         (add-hook 'buffer-list-update-hook 'ga-update-map-focus)
         (add-hook 'kill-buffer-hook 'ga-kill-buffer-handler)
-        (ga-move-selected-node ga-current-coord)
+        (ga-set-selected-node ga-current-coord)
         (setq ga-buffer-valid-p t))
     (message "ga144-mode: invalid file format")))
 
