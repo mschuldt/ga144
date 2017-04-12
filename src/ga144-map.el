@@ -50,6 +50,8 @@
 (def-local ga-sim-node-inst-i 0)
 (def-local ga-sim-node-word-i 0)
 (def-local ga-buffer-valid-p nil) ;;true if map is in valid state. Used for cleanup
+(def-local ga-data-display nil) ;; data stack
+(def-local ga-return-display nil) ;;return stack
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
 (def-local ga-node-ram-display-position nil)
@@ -165,26 +167,6 @@
     ;; insert map chars
     (dotimes (_ map-height)
       (insert (make-string map-width ? ) "\n" ))
-    ;; aforth file chars and overlay
-    (let ((s "source file: ") p)
-      (setq n (- (* node-size 8) (1+ (length s)))
-            n (> n 0) n 0)
-      (insert "\n" (make-string n ? ))
-      (beginning-of-line)
-      (setq p (point))
-      (insert s)
-      (move-overlay ga-project-aforth-file-overlay p (point)))
-    ;;compile status overlay
-    (let ((s "Compilation status: ")
-	  p)
-      (setq n (- (* node-size 8) (1+ (length s)))
-            n (> n 0) n 0)
-      (insert "\n" (make-string n ? ))
-      (beginning-of-line)
-      (setq p (point))
-      (insert s)
-      (move-overlay ga-project-aforth-compile-status-overlay p (point)))
-    (insert "\n")
 
     ;; set map overlays
     (loop-nodes node
@@ -196,7 +178,7 @@
       (insert s)
       (setq o (ga-node-coord-overlay node))
       (move-overlay o (- (point) l) (point))
-      (set-ga-node-coord-overlay! node o)) ;
+      (set-ga-node-coord-overlay! node o))
     ;; set aforth file overlay string
     (ga-set-source-buffer-overlay)
     (ga-create-overlays node-size)
@@ -205,6 +187,10 @@
 
     (when ga-ram-display
       (sd-remove ga-ram-display))
+    (when ga-data-display
+      (sd-remove ga-data-display))
+    (when ga-return-display
+      (sd-remove ga-return-display))
     (setq ga-ram-display (sd-create (if ga-sim-p
                                         (make-vector 769 "~ ~ ~ ~")
                                       ga-empty-node-ram-display-data)
@@ -212,6 +198,40 @@
                                     map-height ;; display length
                                     27)) ;; display width
     (sd-set-display-function ga-ram-display 0 'ga-current-node-display-fn)
+
+    (goto-char (point-max))
+    (when ga-sim-p
+      (insert "\n")
+      (dotimes (i 10)
+        (insert (format "%d\n" i)))
+      (setq ga-data-display (sd-create (make-vector 10 "  ~")
+                                       (+ map-height 2) 3 ;; line column position
+                                       10 ;; display length
+                                       5)) ;; display width
+      (setq ga-return-display (sd-create (make-vector 10 "  ~")
+                                         (+ map-height 2) 10 ;; line column position
+                                         10 ;; display length
+                                         5))) ;; display width
+    ;; aforth file chars and overlay
+    (let ((s "Source: ") p)
+      (setq n (- (* node-size 8) (1+ (length s)))
+            n (> n 0) n 0)
+      (insert "\n" (make-string n ? ))
+      (beginning-of-line)
+      (setq p (point))
+      (insert s)
+      (move-overlay ga-project-aforth-file-overlay p (point)))
+    ;;compile status overlay
+    (let ((s "Compilation: ")
+	  p)
+      (setq n (- (* node-size 8) (1+ (length s)))
+            n (> n 0) n 0)
+      (insert "\n" (make-string n ? ))
+      (beginning-of-line)
+      (setq p (point))
+      (insert s)
+      (move-overlay ga-project-aforth-compile-status-overlay p (point)))
+    (insert "\n")
     )
   (ga-update-overlay-faces)
   (set-buffer-modified-p t)
@@ -681,11 +701,14 @@
       ga-empty-node-ram-display-data)))
 
 (defun ga-format-sim-word (i word P slot)
-  (concat (format "%2s " (ga-format-str (number->string i)
-                                        (cond ((and P slot)
-                                               "green")
-                                              (P "blue")
-                                              (slot "yellow"))))
+  (concat (format "%2s %5s " (ga-format-str (number->string i)
+                                            (cond ((and P slot) "green")
+                                                  (P "blue")
+                                                  (slot "yellow")))
+                  (ga-format-str (if (numberp word)
+                                     (format "%x" word)
+                                   ".")
+                                 "grey"))
 
           (if (numberp word)
               (mapconcat 'identity
@@ -1185,11 +1208,29 @@ This resets the simulation"
    (ga-sim-update-display)
    ))
 
+(defun ga-convert-stack-list (data)
+  (let ((ret (list->vector (mapcar (lambda (x) (format "%-5x" x)) data))))
+    (if (< (length ret) 10)
+        (vconcat ret (make-vector (- 10 (length ret)) "  ?"));;TODO
+      ret)))
+
+(defun ga-update-stack-displays()
+  (assert ga-sim-p)
+  (assert ga-data-display)
+  (assert ga-return-display)
+
+  (let ((dstack (ga-convert-stack-list (send ga-sim-current-node get-dstack-as-list)))
+        (rstack (ga-convert-stack-list (send ga-sim-current-node get-rstack-as-list))))
+    (message "dstack = %s" dstack)
+    (message "rstack = %s" rstack)
+    (sd-set-data ga-data-display dstack)
+    (sd-set-data ga-return-display rstack)))
+
 (defun ga-sim-update-display (&optional node)
   (when ga-ram-display
     (ga-update-ram-display-node)
     )
-  )
+  (ga-update-stack-displays))
 
 ;;TODO: DOING: need to update ga-ram-display with the simulation memory
 (defun ga-sim-step-all ()
