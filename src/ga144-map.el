@@ -1184,7 +1184,7 @@ This resets the simulation"
 (defun ga-sim-reset-command ()
   (interactive)
   (ga-check-sim
-   (when (y-or-n-p "Reset simulation?")
+   (when (or t (y-or-n-p "Reset simulation?"))
      (ga-sim-reset))))
 
 (defun ga-sim-set-current-node (coord)
@@ -1215,16 +1215,15 @@ This resets the simulation"
       ret)))
 
 (defun ga-update-stack-displays()
-  (assert ga-sim-p)
-  (assert ga-data-display)
-  (assert ga-return-display)
-
+  (when (and ga-sim-p
+             ga-data-display
+             ga-return-display)
   (let ((dstack (ga-convert-stack-list (send ga-sim-current-node get-dstack-as-list)))
         (rstack (ga-convert-stack-list (send ga-sim-current-node get-rstack-as-list))))
     (message "dstack = %s" dstack)
     (message "rstack = %s" rstack)
     (sd-set-data ga-data-display dstack)
-    (sd-set-data ga-return-display rstack)))
+    (sd-set-data ga-return-display rstack))))
 
 (defun ga-sim-update-display (&optional node)
   (when ga-ram-display
@@ -1310,7 +1309,10 @@ This resets the simulation"
       (setq ga-sim-p t)
       (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
       (ga-sim-set-current-node ga-current-coord)
-      (ga-sim-recompile))
+      (ga-sim-recompile)
+      (ga-draw-map-in-frame-limits);;need to redraw to display simulation
+      ;;TODO: this duplicate display should not be necessary
+      )
     buf))
 
 (define-derived-mode ga-mode nil "GA144"
