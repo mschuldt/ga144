@@ -1019,12 +1019,15 @@ Elements of ALIST that are not conses are ignored."
 
 (defun ga-kill-map ()
   (interactive)
-  (if (and (not ga-map-view-mode)
-           (buffer-modified-p))
-      (and (yes-or-no-p "map modified, kill anyways?")
-           (kill-buffer))
-    (and (y-or-n-p "kill map?")
-         (kill-buffer))))
+  ;;TODO: cleanup map reference in .aforth buffer
+  (cond (ga-sim-p
+         (kill-buffer))
+        ((and (not ga-map-view-mode)
+              (buffer-modified-p))
+         (and (yes-or-no-p "map modified, kill anyways?")
+              (kill-buffer)))
+        (t (and (y-or-n-p "kill map?")
+                (kill-buffer)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; color selection
@@ -1276,7 +1279,7 @@ This resets the simulation"
         ;;simulation keys
         (define-key map (kbd "s") 'ga-sim-step-node)
         (define-key map (kbd "g") 'ga-sim-reset-command)
-
+        (define-key map (kbd "Q") 'ga-kill-map)
         map))
 
 (defun ga-map-buffer-valid (buf)
