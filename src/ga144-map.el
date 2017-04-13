@@ -52,6 +52,7 @@
 (def-local ga-buffer-valid-p nil) ;;true if map is in valid state. Used for cleanup
 (def-local ga-data-display nil) ;; data stack
 (def-local ga-return-display nil) ;;return stack
+(def-local ga-register-display nil)
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
 (def-local ga-node-ram-display-position nil)
@@ -191,6 +192,9 @@
       (sd-remove ga-data-display))
     (when ga-return-display
       (sd-remove ga-return-display))
+    (when ga-register-display
+      (sd-remove ga-register-display))
+
     (setq ga-ram-display (sd-create (if ga-sim-p
                                         (make-vector 769 "~ ~ ~ ~")
                                       ga-empty-node-ram-display-data)
@@ -210,8 +214,13 @@
                                        5)) ;; display width
       (setq ga-return-display (sd-create (make-vector 9 "  ~")
                                          (+ map-height 2) 10 ;; line column position
-                                         10 ;; display length
-                                         5))) ;; display width
+                                         9 ;; display length
+                                         5)) ;; display width
+      (setq ga-register-display (sd-create (make-vector 5 "  ~")
+                                           (+ map-height 2) 16 ;; line column position
+                                           5 ;; display length
+                                           14)))  ;; display width
+
     ;; aforth file chars and overlay
     (let ((s "Source: ") p)
       (setq n (- (* node-size 8) (1+ (length s)))
@@ -1214,6 +1223,13 @@ This resets the simulation"
 (defun ga-convert-stack-list (data)
   (list->vector (mapcar (lambda (x) (format "%-5x" x)) data)))
 
+(defun ga-convert-reg-list (data)
+  (list->vector (mapcar (lambda (x) (format "%-3s %x" (car x) (cdr x)))
+                        `(("A" . ,(aref data 0))
+                          ("B" . ,(aref data 1))
+                          ("P" . ,(aref data 2))
+                          ("I" . ,(aref data 3))
+                          ("IO" . ,(aref data 7))))))
 
 (defun ga-update-stack-displays()
   (when (and ga-sim-p
