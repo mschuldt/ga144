@@ -208,7 +208,7 @@
                                        (+ map-height 2) 3 ;; line column position
                                        10 ;; display length
                                        5)) ;; display width
-      (setq ga-return-display (sd-create (make-vector 10 "  ~")
+      (setq ga-return-display (sd-create (make-vector 9 "  ~")
                                          (+ map-height 2) 10 ;; line column position
                                          10 ;; display length
                                          5))) ;; display width
@@ -1209,21 +1209,22 @@ This resets the simulation"
    ))
 
 (defun ga-convert-stack-list (data)
-  (let ((ret (list->vector (mapcar (lambda (x) (format "%-5x" x)) data))))
-    (if (< (length ret) 10)
-        (vconcat ret (make-vector (- 10 (length ret)) "  ?"));;TODO
-      ret)))
+  (list->vector (mapcar (lambda (x) (format "%-5x" x)) data)))
+
 
 (defun ga-update-stack-displays()
   (when (and ga-sim-p
              ga-data-display
-             ga-return-display)
-  (let ((dstack (ga-convert-stack-list (send ga-sim-current-node get-dstack-as-list)))
-        (rstack (ga-convert-stack-list (send ga-sim-current-node get-rstack-as-list))))
-    (message "dstack = %s" dstack)
-    (message "rstack = %s" rstack)
-    (sd-set-data ga-data-display dstack)
-    (sd-set-data ga-return-display rstack))))
+             ga-return-display
+             ga-register-display)
+    (let ((dstack (ga-convert-stack-list (send ga-sim-current-node get-dstack-as-list)))
+          (rstack (ga-convert-stack-list (send ga-sim-current-node get-rstack-as-list)))
+          (registers (ga-convert-reg-list (send ga-sim-current-node get-registers))))
+      ;;(message "dstack = %s" dstack)
+      ;;(message "rstack = %s" rstack)
+      (sd-set-data ga-data-display dstack)
+      (sd-set-data ga-return-display rstack)
+      (sd-set-data ga-register-display registers))))
 
 (defun ga-sim-update-display (&optional node)
   (when ga-ram-display
