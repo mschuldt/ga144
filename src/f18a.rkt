@@ -906,7 +906,7 @@
     (define/public (get-memory) memory)
     (define/public (get-rstack) rstack)
     (define/public (get-dstack) dstack)
-    (define/public (get-registers) (vector A B P I R S T IO I-index))
+    (define/public (get-registers) (vector A B (region-index P) I R S T IO (region-index I-index)))
     (define/public (get-dstack-as-list)
       (cons T (cons S (stack->list dstack))))
     (define/public (get-rstack-as-list)
