@@ -927,6 +927,7 @@
         (begin (vector-set! memory index (vector-ref code index))
                (set! index (add1 index))))
       (set! P (or (node-p node) 0))
+      (set! I-index P)
       (set! A (or (node-a node) 0))
       (set! B (or (node-b node) (cdr (assoc "io" named-addresses))))
       (set! IO (or (node-io node) #x15555))
@@ -1154,7 +1155,8 @@
                 (set! P (hash-ref rom "cold"))
                 (if (hash-has-key? rom "warm")
                     (set! P (hash-ref rom "warm"))
-                    (err "ROM does not define 'warm' or 'cold')"))))))
+                    (err "ROM does not define 'warm' or 'cold')")))))
+      (set! I-index P))
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
