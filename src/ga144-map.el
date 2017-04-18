@@ -710,28 +710,39 @@
       ga-empty-node-ram-display-data)))
 
 (defun ga-format-sim-word (i word P slot)
-  (concat (format "%2s %5s " (ga-format-str (number->string i)
-                                            (cond ((and P slot) "green")
-                                                  (P "blue")
-                                                  (slot "yellow")))
-                  (ga-format-str (if (numberp word)
-                                     (format "%x" word)
-                                   ".")
-                                 "grey"))
+  ;;WORD is (value . name), (value), or "port-string"
+  (let (name)
+    (when (consp word)
+      (setq name (cdr word)
+            word (car word)))
+    (concat (format "%2s %5s " (ga-format-str (number->string i)
+                                              (cond ((and P slot) "green")
+                                                    (P "blue")
+                                                    (slot "yellow")))
+                    (ga-format-str (if (numberp word)
+                                       (format "%x" word)
+                                     ".")
+                                   "grey"))
 
-          (if (numberp word)
-              (mapconcat 'identity
-                         (mapcar* (lambda (i inst)
-                                    (if (eq i slot)
-                                        (ga-format-str (format "%s" inst) "yellow")
-                                      (ga-format-inst inst)))
-                                  (number-sequence 0 3)
-                                  (disassemble-word word))
-                         " ")
-            "PORT"))) ;;TODO: which port?
+            (if (numberp word)
+                (concat (mapconcat 'identity
+                                   (mapcar* (lambda (i inst)
+                                              (if (eq i slot)
+                                                  (ga-format-str (format "%s" inst) "yellow")
+                                                (ga-format-inst inst)))
+                                            (number-sequence 0 3)
+                                            (disassemble-word word))
+                                   " ")
+                        (if name
+                            (concat "   " name )
+                          ""))
+              (if (stringp word)
+                  word ;;port name
+                "~")
+              ))))
 
 (defun ga-create-sim-ram-display-data (node)
-  (let* ((mem (send node get-memory))
+  (let* ((mem (send node get-tagged-memory))
          data word str)
     ;; reserve the first line in the display for node coord and usage
     (setq data (make-vector (1+ (length mem)) nil)) ;;TODO: compress the unused(repetitive) ram sections

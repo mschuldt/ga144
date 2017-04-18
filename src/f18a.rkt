@@ -1498,4 +1498,18 @@
     (define/public (disassemble-local)
       (disassemble-memory (- P 5) (+ P 5)))
 
+    (define/public (get-tagged-memory)
+      ;;returns a list of disassembled words
+
+      (let ((mem (make-vector #x1ff false)))
+        (for ((i (append (range 0 #x40)
+                         (range #x80 #xc0))))
+          (vector-set! mem i (cons (vector-ref memory i)
+                                   (get-memory-name i))))
+
+        (for ((i (range #xc0 #x1ff)))
+          (vector-set! mem i (if (hash-has-key? address-names i)
+                                 (hash-ref address-names i)
+                                 nil)))
+        mem))
     ))
