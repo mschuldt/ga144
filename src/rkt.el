@@ -249,6 +249,14 @@
 (defun string-join (sequence separator)
   (mapconcat 'identity sequence separator))
 
+(defun take (list n)
+  (let (ret)
+    (while (and list (> n 0))
+      (setq ret (cons (car list) ret)
+            list (cdr list)
+            n (1- n)))
+    (nreverse ret)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; hash tables
 (defun make-hash (&optional alist)
