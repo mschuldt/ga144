@@ -227,7 +227,10 @@
           (send (get-ga144) add-to-active-list this)
           (err "cannot add active node to active list")))
 
-    (define (suspend)
+    (define (suspend (reason false))
+      (when debug
+        (set! reason (or reason "<unspecified>"))
+        (printf "suspending due to ~a\n" reason))
       (when debug-ports (log "suspending"))
       (remove-from-active-list)
       (set! suspended t)
@@ -293,7 +296,7 @@
                      t)
               (begin ;;else: suspend while waiting for pin to change
                 (set! waiting-for-pin t)
-                (suspend)
+                (suspend "pin17 read")
                 false))
           ;;else: normal inter-node read
           (let ((writing-node (vector-ref writing-nodes port)))
@@ -312,7 +315,7 @@
                   (send (get-port-node port)
                         receive-port-read port this)
                   (set! current-reading-port port)
-                  (suspend)
+                  (suspend "port read")
                   false)))))
 
     (define (multiport-read ports)
@@ -359,7 +362,7 @@
                   (send other receive-port-read port this)
                   (set! multiport-read-ports (cons port multiport-read-ports))))
               (set! current-reading-port ports)
-              (suspend)
+              (suspend "multiport write")
               false))))
 
     (define (port-write port value)
@@ -377,7 +380,7 @@
               (send (get-port-node port)
                     receive-port-write port value this)
               (set! current-writing-port port)
-              (suspend)
+              (suspend "port-write")
               false))))
 
     (define (multiport-write ports value)
