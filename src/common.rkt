@@ -300,6 +300,10 @@
                        ))
                ","))
 
+(define (port-addr? addr)
+  ;;True if ADDR is an IO port or register, else False
+  (> (& addr #x100) 0))
+
 ;;Determine if we are in RAM or ROM, return the index for that memory location
 ;;DB001 section 2.2  Top half of RAM and ROM is repeated
 (define (region-index addr)

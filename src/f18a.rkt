@@ -593,10 +593,6 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
 
-    (define (port-addr? addr)
-      ;;True if ADDR is an IO port or register, else False
-      (> (& addr #x100) 0))
-
     ;;Port address in the 'memory' vector (0x100 - 0x1ff) contain
     ;;vectors of functions to call when reading or writing to that port.
     ;;First element is the read function, second is the write function.
