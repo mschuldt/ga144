@@ -63,7 +63,6 @@
     (define B 0)
     (define P 0)
     (define I 0)
-    (define I-index 0) ;; index of I in memory
     (define I^ 0)
     (define R 0)
     (define S 0)
@@ -71,6 +70,9 @@
     (define IO #x15555)
     (define IO-read #x15555)
     (define data 0)
+
+    (define iI 0) ;; opcode index
+    (define I-index 0) ;; index of I in memory
 
     ;;value of each gpio pin. t or false)
     ;;"All pins reset to weak pulldown"
@@ -95,6 +97,7 @@
     (define debug-ports false)
     (define print-state false)
     (define print-io false)
+
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -641,53 +644,55 @@
                        addr-mask))
           (funcall (vector-ref instructions opcode))))
 
-    (define (step0-helper)
-      (set! I (d-pop!))
-      (set! I-index P)
+    (define fetching-in-progress false)
+
+    (define (finish-fetch)
+      (set! I (d-pop!)) ;;TODO: don't use stack
       (set! I^ (^ I #x15555))
-      (when (funcall (vector-ref breakpoints (if (port-addr? P)
-                                                 (& P #x1ff)
-                                                 (region-index P))))
-        (begin (set! P (incr P))
-               (if (eq? I 'end)
-                   (suspend)
-                   (step-0-execute)))))
+      (set! P (incr P))
+      (when (eq? I 'end)
+        (suspend "I=='end")))
 
-    (define (step-0-execute)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
-                        step1
-                        step0)))
+    (define (fetch-I)
+      (set! I-index P)
+      (if (read-memory P) ;; read-memory returns t if the value is immediately available,
+                          ;; false if it results in suspending while waiting for the value
+          (finish-fetch)
+          (set! fetching-in-progress true)))
 
-    (define (step0)
-      (if unext-jump-p
-          (begin
+    (define (step!)
+      (when fetching-in-progress
+        ;; This is the first step since the node suspended waiting for the read
+        ;; finishing fetching the instruction
+        (finish-fetch)
+        (set! fetching-in-progress false))
+      (cond ((= iI 0)
+             ;; check if this word has a breakpoint stet
+             (when (funcall (vector-ref breakpoints (if (port-addr? P)
+                                                        (& P #x1ff)
+                                                        (region-index P))))
+               (set! iI (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
+                            1
+                            0))))
+
+            ((= iI 1)
+             (set! iI (if (execute! (bitwise-bit-field I^ 8 13) 8 #x3ff00)
+                          2
+                          0)))
+            ((= iI 2)
+             (set! iI (if (execute! (bitwise-bit-field I^ 3 8) 3 #x3fff8)
+                          3
+                          0)))
+            ((= iI 3)
+             (execute! (<< (bitwise-bit-field I^ 0 3) 2))
+             (set! iI 0)))
+      ;; fetch next word if index is zero and we are not in a unext loop
+      (when (= iI 0)
+        (if unext-jump-p
             (set! unext-jump-p false)
-            (step-0-execute))
-          (if (read-memory P)
-              ;;TODO: FIX: this should not use the stack
-              ;;           we could loose the last item on the stack this way
-              (step0-helper)
-              ;;else: we are now suspended waiting for the value
-              (set! step-fn step0-helper))))
+            (fetch-I))))
 
-    (define (step1)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 8 13) 8 #x3ff00)
-                        step2
-                        step0)))
-
-    (define (step2)
-      (set! step-fn (if (execute! (bitwise-bit-field I^ 3 8) 3 #x3fff8)
-                        step3
-                        step0)))
-
-    (define (step3)
-      (execute! (<< (bitwise-bit-field I^ 0 3) 2))
-      (set! step-fn step0))
-
-    (define step-fn step0)
-
-    (define (get-current-slot-index)
-      (or (vector-member step-fn (vector step0 step1 step2 step3)) 0))
+    (define (get-current-slot-index) iI) ;;TODO: dup of get-inst-index
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; instructions
@@ -744,7 +749,6 @@
               (r-pop!)
               (begin (set! R (sub1 R))
                      (set! unext-jump-p t)
-                     (set! step-fn step0)
                      false))))
 
       (define-instruction! "next"
@@ -911,8 +915,7 @@
     (define/public (get-rstack-as-list)
       (cons R (stack->list rstack)))
     (define/public (get-coord) coord)
-    (define/public (get-inst-index)
-      (vector-member step-fn (vector 'step0 'step1 'step2 'step3)))
+    (define/public (get-inst-index) iI)
 
     (define/public (suspended?) suspended)
 
@@ -926,7 +929,8 @@
         (begin (vector-set! memory index (vector-ref code index))
                (set! index (add1 index))))
       (set! P (or (node-p node) 0))
-      (set! I-index P)
+      (fetch-I)
+      (set! iI 0)
       (set! A (or (node-a node) 0))
       (set! B (or (node-b node) (cdr (assoc "io" named-addresses))))
       (set! IO (or (node-io node) #x15555))
@@ -960,7 +964,7 @@
                                        (err "execute: invalid index")))
                                  (lambda (x) (err "execute: invalid port"))))
 
-      (set! step-fn step0)
+      (set! iI 0)
       (when suspended
         (wakeup)))
 
@@ -970,7 +974,7 @@
           (let ((addr (symbol-address (hash-ref symbols word))))
             (log (rkt-format "call-word!: ~a -> ~a\n" word addr))
             (apply (vector-ref instructions 3) (list addr 0))
-            (set! step-fn step0)
+            (set! iI 0)
             (when suspended
               (wakeup))
             t)
@@ -1004,7 +1008,7 @@
                         false)
                   (send (send (get-ga144) coord->node 608)
                         set-post-finish-port-read
-                        write-next)
+                        write-next) ;;mbs: does this transform correctly?
                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
                   ;;(send ga144 show-io-changes t)
                   (load-bootframe last))
@@ -1015,7 +1019,7 @@
                              set-post-finish-port-read
                              false)
                        (set! P jump-addr)
-                       (set! step-fn step0)))))
+                       (set! iI 0)))))
 
       (set! post-finish-port-write write-next)
       ;; Cancel active reads. TODO: single port reads
@@ -1042,14 +1046,14 @@
         (when suspended (wakeup))
         (if (port-addr? dest-addr)
             (begin
-              (set! step-fn void)
+              ;;(set! step-fn void) ;;TODO:????
               (write-next))
             (begin
               (for ((i (range n-words)))
                 (set-memory! i (vector-ref frames index))
                 (set! index (add1 index)))
               (set! P jump-addr)
-              (set! step-fn step0))))
+              (set! iI 0))))
       (load-bootframe))
 
     (define (setup-ports)
@@ -1111,12 +1115,13 @@
       (set! A 0)
       (set! B (cdr (assoc "io" named-addresses)))
       (set! P 0)
-      (set! I 0)
+      (set! iI 0)
       (set! R #x15555)
       (set! S #x15555)
       (set! T #x15555)
       (set! IO #x15555)
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
+      (fetch-I)
       (set! dstack (make-stack 8 #x15555))
       (set! rstack (make-stack 8 #x15555))
       (set! blocking-read false)
@@ -1126,7 +1131,6 @@
       (set! writing-nodes (make-vector 4 false))
       (set! reading-nodes (make-vector 4 false))
       (set! port-vals (make-vector 4 false))
-      (set! step-fn step0)
       (set! pin-handlers-set-p false)
       (set! WD false)
       (set! ~WD t)
@@ -1161,12 +1165,15 @@
     ;; p and executing the word.
     ;; returns false when P = 0, else t
     (define/public (step-program!)
-      (set! step-count (add1 step-count))
-      (if elisp?
-          (funcall step-fn this)
-          (step-fn))
-      (when print-state (send (get-ga144) display-node-states (list coord)))
-      )
+      (if suspended
+          (message "node %s suspended" coord)
+          (begin
+            (set! step-count (add1 step-count))
+            (if elisp?
+                (funcall step! this)
+                (step!))
+            (when print-state
+              (send (get-ga144) display-node-states (list coord))))))
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)
@@ -1238,6 +1245,8 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; breakpoints
 
+    ;; `breakpoints' is a vector of functions that return nil
+    ;; when that word has a breakpoint set
     (define breakpoints (make-vector MEM-SIZE false))
     (define break-at-wakeup false)
     (define break-at-io-change false)
@@ -1254,9 +1263,10 @@
     (define/public (set-breakpoint line-or-word)
       (define (break-fn)
         (let ((name (get-memory-name P)))
-          (set! step-fn (lambda ()
-                          (set! P (incr P))
-                          (step-0-execute)))
+          ;;TODO: fix - what to do here
+          ;;  (set! step-fn (lambda ()
+          ;;                  (set! P (incr P))
+          ;;                  (step-0-execute)))
           (break name)
           false))
       (define addr (get-breakpoint-address line-or-word))
