@@ -517,6 +517,7 @@
   (when ga-sim-p
     (ga-sim-set-current-node coord))
   (ga-update-ram-display-node)
+  (ga-update-stack-displays)
   (update-position))
 
 (defun ga-move-selected-node (n)
@@ -602,6 +603,7 @@
         (ga-update-ram-display-node)
         ;;(sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord)))
         )
+      (ga-update-stack-displays)
       (ga-set-compilation-status "Ok"))))
 
 (defun ga-update-compilation-data (&optional compilation-data)
