@@ -446,7 +446,8 @@
   (interactive)
   (if (< (* (1+ ga-node-size) 18)  (window-max-chars-per-line))
       (progn (setq ga-node-size (1+ ga-node-size))
-             (ga-render ga-node-size))
+             (ga-render ga-node-size)
+             (ga-sim-update-display))
     (message "Map cannot be made larger")))
 
 (defun ga-dec-node-size ()
@@ -454,7 +455,8 @@
   (if (> ga-node-size 3)
       (progn
         (setq ga-node-size (1- ga-node-size))
-        (ga-render ga-node-size))
+        (ga-render ga-node-size)
+        (ga-sim-update-display))
     (message "Map is cannot be made smaller")))
 
 (defun ga-move-left ()
