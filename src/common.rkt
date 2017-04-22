@@ -79,6 +79,9 @@
                             (500 . 1)
                             (600 . 1)))
 
+(define address-names (make-hash (map (lambda (x) (cons (cdr x) (car x)))
+                                      (append named-addresses io-places))))
+
 (defconst &UP #x145) ;325
 (defconst &DOWN #x115) ;277
 (defconst &LEFT #x175) ;373
@@ -307,14 +310,17 @@
 ;;Determine if we are in RAM or ROM, return the index for that memory location
 ;;DB001 section 2.2  Top half of RAM and ROM is repeated
 (define (region-index addr)
-  (set! addr (& addr #xff)) ;; get rid of extended arithmetic bit
-  (if (>= addr #x80);;ROM
-      (if (> addr #xbf)
-          (- addr #x40)
-          addr)
-      (if (> addr #x3F)
-          (- addr #x40)
-          addr)))
+  (if (port-addr? addr)
+      addr
+      (begin
+        (set! addr (& addr #xff)) ;; get rid of extended arithmetic bit
+        (if (>= addr #x80);;ROM
+            (if (> addr #xbf)
+                (- addr #x40)
+                addr)
+            (if (> addr #x3F)
+                (- addr #x40)
+                addr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler options

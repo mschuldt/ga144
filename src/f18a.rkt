@@ -645,6 +645,7 @@
           (funcall (vector-ref instructions opcode))))
 
     (define fetching-in-progress false)
+    (define/public (fetching?) fetching-in-progress)
 
     (define (finish-fetch)
       (set! I (d-pop!)) ;;TODO: don't use stack
@@ -1121,6 +1122,7 @@
       (set! T #x15555)
       (set! IO #x15555)
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
+      (set! fetching-in-progress false)
       (fetch-I)
       (set! dstack (make-stack 8 #x15555))
       (set! rstack (make-stack 8 #x15555))

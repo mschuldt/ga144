@@ -22,6 +22,7 @@
 (setq profile? nil)
 (setq create-docs? nil)
 (setq test? nil)
+(setq test-all? nil)
 (setq only-bootstream? nil)
 (setq run? nil)
 
@@ -54,8 +55,11 @@
                (setq profile? t))
               (("--create-docs") nil "generate documentation"
                (setq create-docs? t))
-              (("--test") nil "run tests"
+              (("-t" "--test") nil "run compiler tests" ;;TODO -t, -T does not work "Option '-T' requires an argument"
                (setq test? t))
+              (("-T" "--test-all") nil "run all tests (compiler + simulator)"
+               (setq test? t
+                     test-all? t))
               (("-r" "--run") nil "run in simulator" ;;TODO: -r option does not work
                (setq run? t))
               (("-h") nil "print usage"
@@ -137,6 +141,10 @@
   (message (if (run-compiler-tests)
                "ok"
              "fail"))
+  (when test-all?
+    (require 'ga-tests)
+    (ga-sim-loadup)
+    (run-tests))
   (ga-main-exit))
 
 (when run?

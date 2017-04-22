@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t -*-
 
-(add-to-list 'load-path "~/ga144/src")
+(add-to-list 'load-path "~/a/projects/ga144/src")
 (setq byte-compiled-p (file-exists-p "ga-main.elc"))
 
 (defun ga-rkt-load (file)
@@ -34,8 +34,16 @@
   (ga-el-load "aforth-parse")
   (ga-el-load "aforth-mode")
   (ga-el-load "arg-parser")
-
+  ;;(ga-el-load "ga144-sim")
   (ga-el-load "aforth-compile"))
+
+(defun ga-sim-loadup()
+  (ga-rkt-load "f18a.rkt")
+  (ga-rkt-load "ga144.rkt")
+  (ga-rkt-load "stack.rkt")  )
+
+
+;; (ga-compiler-loadup)
 
 
 (provide 'ga-loadup)

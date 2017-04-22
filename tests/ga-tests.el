@@ -93,7 +93,7 @@
         got:      ~a...\n"
                   coord
                   m
-                  (take dstack s)))))l
+                  (take dstack s)))))
 
 (defun check-ret (coord &rest expect)
   (let* ((m (map 18bit expect))

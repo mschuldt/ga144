@@ -1385,6 +1385,7 @@ This resets the simulation"
       (ga-sim-set-current-node ga-current-coord)
       (ga-sim-recompile)
       (ga-draw-map-in-frame-limits);;need to redraw to display simulation
+      (ga-sim-reset)
       ;;TODO: this duplicate display should not be necessary
       )
     buf))
