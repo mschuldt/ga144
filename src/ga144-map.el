@@ -1236,13 +1236,32 @@ This resets the simulation"
 (defun ga-convert-stack-list (data)
   (list->vector (mapcar (lambda (x) (format "%-5x" x)) data)))
 
+(defun ga-disassemble-I (val)
+  (if (send ga-sim-current-node fetching?)
+      ;;fetching is in progress so the current vaue of I is invalid
+      "fetching..."
+    (mapconcat 'identity
+               (mapcar* (lambda (i inst)
+                          (if (eq i ga-sim-node-inst-i)
+                              (ga-format-str (format "%s" inst) "yellow")
+                            (ga-format-inst inst)))
+                        (number-sequence 0 3)
+                        (disassemble-word val))
+               " ")))
+
 (defun ga-convert-reg-list (data)
-  (list->vector (mapcar (lambda (x) (format "%-3s %x" (car x) (cdr x)))
-                        `(("A" . ,(aref data 0))
-                          ("B" . ,(aref data 1))
-                          ("P" . ,(aref data 2))
-                          ("I" . ,(aref data 3))
-                          ("IO" . ,(aref data 7))))))
+  (list->vector (append (mapcar (lambda (x) (format "%-3s %x" (car x) (cdr x)))
+                                `(("A" . ,(aref data 0))
+                                  ("B" . ,(aref data 1))
+                                  ("P" . ,(aref data 2))
+                                  ;;("I" . ,(aref data 3))
+                                  ("IO" . ,(aref data 7))))
+                        (list (format "I   %s  %s"
+                                      (if (port-addr? (aref data 2))
+                                          "<port>"
+                                        (format "%x" (aref data 3)))
+                                      (ga-disassemble-I (aref data 3))))
+                        )))
 
 (defun ga-update-stack-displays()
   (when (and ga-sim-p
