@@ -1249,8 +1249,18 @@ This resets the simulation"
                         (disassemble-word val))
                " ")))
 
+(defun ga-reg-address-name (n)
+  (let ((name (gethash n address-names)))
+    (message "name = %s" name)
+    (if name
+        (ga-format-str name "aquamarine")
+      "")))
+
 (defun ga-convert-reg-list (data)
-  (list->vector (append (mapcar (lambda (x) (format "%-3s %x" (car x) (cdr x)))
+  (list->vector (append (mapcar (lambda (x) (format "%-3s %x  %s"
+                                                    (car x)
+                                                    (cdr x)
+                                                    (ga-reg-address-name (cdr x))))
                                 `(("A" . ,(aref data 0))
                                   ("B" . ,(aref data 1))
                                   ("P" . ,(aref data 2))
