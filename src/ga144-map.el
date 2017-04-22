@@ -1210,7 +1210,8 @@ This resets the simulation"
   (interactive)
   (ga-check-sim
    (when (or t (y-or-n-p "Reset simulation?"))
-     (ga-sim-reset))))
+     (ga-sim-reset)
+     (message "reset"))))
 
 (defun ga-sim-set-current-node (coord)
   (assert ga-sim-ga144)
