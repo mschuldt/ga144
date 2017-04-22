@@ -306,6 +306,7 @@
   (set! current-addr false)
   (set! next-addr false)
   (set! words (make-hash))
+  (set! compiler-words (make-hash))
   (set! rom false)
   (set! waiting (make-hash))
   (set! current-tok-line 0)
