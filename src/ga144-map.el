@@ -1290,6 +1290,16 @@ This resets the simulation"
 (defun ga-sim-set-breakpoint ()
   )
 
+(defun ga-node-debug-dump ()
+  (interactive)
+  (let ((node ga-sim-current-node))
+    (if node
+        (message (with-temp-buffer
+                   (send node describe-io)
+                   (send node display-all)
+                   (buffer-string)))
+      (message "no node selected"))))
+
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
         (define-key map "+" 'ga-inc-node-size)
@@ -1328,6 +1338,7 @@ This resets the simulation"
         (define-key map (kbd "s") 'ga-sim-step-node)
         (define-key map (kbd "g") 'ga-sim-reset-command)
         (define-key map (kbd "Q") 'ga-kill-map)
+        (define-key map (kbd "D") 'ga-node-debug-dump)
         map))
 
 (defun ga-map-buffer-valid (buf)
