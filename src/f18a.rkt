@@ -74,6 +74,13 @@
     (define iI 0) ;; opcode index
     (define I-index 0) ;; index of I in memory
 
+    ;; Read operations return true if they have finished and left data
+    ;; on the dstack. They return false if the node has suspened waiting
+    ;; for the data.
+    ;; When primary read operations finish they store the the
+    ;; result in `fetched-data'. If the read was successful
+    ;; fetched-data is pushed onto the stack to complete it.
+    (define fetched-data false)
     ;;value of each gpio pin. t or false)
     ;;"All pins reset to weak pulldown"
     (define pin17 false)
@@ -288,15 +295,15 @@
       (and current-writing-port
            (vector-ref (vector "L" "U" "D" "R") current-writing-port)))
 
-    (define (port-read port)
-      (when debug-ports (log (rkt-format "(port-read ~a)\n" port)))
+    (define (do-port-read port)
+      (when debug-ports (log (rkt-format "(do-port-read ~a)\n" port)))
       ;;read a value from a ludr port
       ;;returns t if value is on the stack, false if we are suspended waiting for it
       (if (eq? port wake-pin-port)
           ;;reading from pin17
           (if (eq? pin17 ~WD)
-              (begin (d-push! (if pin17 1 0))
-                     t)
+              (begin (set! fetched-data (if pin17 1 0)) ;;TODO: correct return value?
+                     true)
               (begin ;;else: suspend while waiting for pin to change
                 (set! waiting-for-pin t)
                 (suspend "pin17 read")
@@ -307,7 +314,7 @@
                 (begin ;;value was ready
                   (when debug-ports (printf "       value was ready: ~a\n"
                                             (vector-ref port-vals port)))
-                  (d-push! (vector-ref port-vals port))
+                  (set! fetched-data (vector-ref port-vals port))
                   ;;clear state from last reading
                   (vector-set! writing-nodes port false)
                   ;;let other node know we read the value
@@ -321,8 +328,13 @@
                   (suspend "port read")
                   false)))))
 
-    (define (multiport-read ports)
-      (when debug-ports (log (rkt-format "(multiport-read ~a)\n" ports)))
+    ;; (define (port-read port)
+    ;;   (when (do-port-read port)
+    ;;     (d-push! fetched-data)
+    ;;     (set! fetched-data false)))
+
+    (define (do-multiport-read ports)
+      (when debug-ports (log (rkt-format "(do-multiport-read ~a)\n" ports)))
       (let ((done false)
             (writing-node false)
             (other false))
@@ -330,17 +342,17 @@
           (if (eq? port wake-pin-port)
               ;;reading from pin17
               (begin (when (eq? pin17 ~WD)
-                       (d-push! (if pin17 1 0))
+                       (set! fetched-data (if pin17 1 0)) ;; TOOD: correct return value?
                        (set! done t)))
               (when (setq writing-node (vector-ref writing-nodes port))
                 ;;an ajacent writing node is waiting for us to read its value
                 (if done
-                    (err "multiport-read -- more then one node writing")
+                    (err "do-multiport-read -- more then one node writing")
                     (begin
                       (when debug-ports
                         (printf "       value was ready: ~a\n"
                                 (vector-ref port-vals port)))
-                      (d-push! (vector-ref port-vals port))
+                      (setq fetched-data (vector-ref port-vals port))
                       (vector-set! writing-nodes port false)
                       (send writing-node finish-port-write)
                       (set! done t))))))
@@ -353,7 +365,7 @@
               (set! multiport-read-ports '())
               (for ((port ports))
                 ;;(unless (vector-ref ludr-port-nodes port)
-                ;;  (raise (rkt-format "multiport-read: node ~a does not have a ~a port"
+                ;;  (raise (rkt-format "do-multiport-read: node ~a does not have a ~a port"
                 ;;                 coord (vector-ref port-names port))))
                 ;;TODO: this is a temp fix:
                 ;;     the current default instruction word is 'jump ludr'
@@ -367,6 +379,11 @@
               (set! current-reading-port ports)
               (suspend "multiport write")
               false))))
+
+    ;;(define (multiport-read ports)
+    ;;  (when (do-multiport-read ports)
+    ;;    (d-push! fetched-data)
+    ;;    (set! fetched-data nil)))
 
     (define (port-write port value)
       (when debug-ports
@@ -404,10 +421,16 @@
       (set! post-finish-port-read fn))
 
     (define/public (finish-port-read val)
-      ;;called by adjacent node when it writes to a port we are reading from)
+      ;;called by adjacent node when it writes to a port we are reading from
       ;;or when a pin change causes node to awaken
       (when debug-ports (log (rkt-format "(finish-port-read  ~a)\n" val)))
-      (d-push! val)
+      (set! fetched-data val)
+      (if fetching-in-progress
+          ;; call finish-fetch here instead of waiting for it to happen at the start
+          ;; of the next step so that the received word is visable immediately in the map
+          (finish-fetch)
+          (error "finish-port-read expected fetching-in-prgresss"))
+
       (when multiport-read-ports
         ;;there may be other nodes that still think we are waiting for them to write
         (for ((port multiport-read-ports))
@@ -417,7 +440,7 @@
       (set! current-reading-port false)
       (set! waiting-for-pin false)
       (wakeup)
-      (and post-finish-port-read (post-finish-port-read)))
+      (and post-finish-port-read (funcall post-finish-port-read)))
 
     (define post-finish-port-write false)
     (define/public (finish-port-write)
@@ -562,10 +585,6 @@
                    (set! io (ior io pin5-bit))))))
         io))
 
-    (define (push-io-reg)
-      (d-push! (read-io-reg))
-      t)
-
     (define (set-io-reg val)
       (when print-io (log (rkt-format "IO = ~a\n" val)))
       (set! prev-IO IO)
@@ -602,7 +621,7 @@
     ;;Invalid port numbers have the value false
 
     (define (read-memory addr)
-      ;;pushes the value at memory location ADDR onto the data stack
+      ;; if read finishes leave value in fetched-data and return true
       (set! addr (& addr #x1ff))
       (when (or (< addr 0)
                 (>= addr MEM-SIZE))
@@ -612,7 +631,13 @@
             (if (vector? x)
                 (funcall (vector-ref x 0))
                 (err (rkt-format "read-memory(~a) - invalid port\n" addr))))
-          (d-push! (vector-ref memory (region-index addr)))))
+          (begin (set! fetched-data (vector-ref memory (region-index addr)))
+                 true)))
+
+    (define (read-memory-to-stack addr)
+      (if (read-memory addr)
+          (d-push! fetched-data)
+          (set! fetching-in-progress 'stack)))
 
     (define (set-memory! addr value)
       (set! addr (& addr #x1ff))
@@ -647,8 +672,9 @@
     (define fetching-in-progress false)
     (define/public (fetching?) fetching-in-progress)
 
-    (define (finish-fetch)
-      (set! I (d-pop!)) ;;TODO: don't use stack
+    (define (finish-I-fetch)
+      (set! I fetched-data)
+      (set! fetched-data false)
       (set! I^ (^ I #x15555))
       (set! P (incr P))
       (when (eq? I 'end)
@@ -657,16 +683,23 @@
     (define (fetch-I)
       (set! I-index P)
       (if (read-memory P) ;; read-memory returns t if the value is immediately available,
-                          ;; false if it results in suspending while waiting for the value
-          (finish-fetch)
-          (set! fetching-in-progress true)))
+          ;; false if it results in suspending while waiting for the value
+          (finish-I-fetch)
+          (set! fetching-in-progress 'inst)))
+
+    (define (finish-fetch)
+      (assert fetching-in-progress)
+      (cond ((eq? fetching-in-progress 'stack) ;;finishing reading a word to stack
+             (d-push! fetched-data))
+            ((eq? fetching-in-progress 'inst) ;;finish reading an instruction fetch
+             (finish-I-fetch)))
+      (set! fetching-in-progress false))
 
     (define (step!)
       (when fetching-in-progress
-        ;; This is the first step since the node suspended waiting for the read
-        ;; finishing fetching the instruction
-        (finish-fetch)
-        (set! fetching-in-progress false))
+        ;; This is the first step since the node suspended waiting for a read
+        ;; Finish fetching an instruction or data word
+        (finish-fetch))
       (cond ((= iI 0)
              ;; check if this word has a breakpoint stet
              (when (funcall (vector-ref breakpoints (if (port-addr? P)
@@ -776,22 +809,24 @@
 
       (define-instruction! "@p"
         (lambda ()
-          (read-memory P)
-          (set! P (incr P))))
+          (read-memory-to-stack P)
+          (set! P (incr P))
+          true))
 
       (define-instruction! "@+" ; fetch-plus
         (lambda ()
-          (read-memory (& A #x1ff))
-          (set! A (incr A))))
+          (read-memory-to-stack (& A #x1ff))
+          (set! A (incr A))
+          true))
 
       (define-instruction! "@b" ;fetch-b
         (lambda ()
-          (read-memory B)
-          t))
+          (read-memory-to-stack B)
+          true))
 
       (define-instruction! "@" ; fetch a
         (lambda ()
-          (read-memory (& A #x1ff)) t))
+          (read-memory-to-stack (& A #x1ff)) t))
 
       (define-instruction! "!p" ; store p
         (lambda ()
@@ -820,7 +855,7 @@
           ;;  Sums T and S and concatenates the result with A, shifting
           ;;  everything to the right by one bit to replace T:A
           (if (= (& A 1) 1)
-              ;;case 2:
+              ;;case 1:
               (let* ((sum (if extended-arith?
                               (let ((sum (+ T S carry-bit)))
                                 (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
@@ -1058,52 +1093,52 @@
       (load-bootframe))
 
     (define (setup-ports)
-      (vector-set! memory &LEFT (vector (lambda () (port-read LEFT))
+      (vector-set! memory &LEFT (vector (lambda () (do-port-read LEFT))
                                         (lambda (v) (port-write LEFT v))))
-      (vector-set! memory &RIGHT (vector (lambda () (port-read RIGHT))
+      (vector-set! memory &RIGHT (vector (lambda () (do-port-read RIGHT))
                                          (lambda (v) (port-write RIGHT v))))
-      (vector-set! memory &UP (vector (lambda () (port-read UP))
+      (vector-set! memory &UP (vector (lambda () (do-port-read UP))
                                       (lambda (v) (port-write UP v))))
-      (vector-set! memory &DOWN (vector (lambda () (port-read DOWN))
+      (vector-set! memory &DOWN (vector (lambda () (do-port-read DOWN))
                                         (lambda (v) (port-write DOWN v))))
-      (vector-set! memory &IO (vector (lambda () (push-io-reg))
+      (vector-set! memory &IO (vector (lambda () (set! fetched-data (read-io-reg)) true)
                                       (lambda (v) (set-io-reg v))))
       (vector-set! memory &--LU
-                   (vector (lambda () (multiport-read (list LEFT UP)))
+                   (vector (lambda () (do-multiport-read (list LEFT UP)))
                            (lambda (v) (multiport-write (list LEFT UP) v))))
       (vector-set! memory &-D-U
-                   (vector (lambda () (multiport-read (list DOWN UP)))
+                   (vector (lambda () (do-multiport-read (list DOWN UP)))
                            (lambda (v) (multiport-write (list DOWN UP) v))))
       (vector-set! memory &-DL-
-                   (vector (lambda () (multiport-read (list DOWN LEFT)))
+                   (vector (lambda () (do-multiport-read (list DOWN LEFT)))
                            (lambda (v) (multiport-write (list DOWN LEFT) v))))
       (vector-set! memory &-DLU
-                   (vector (lambda () (multiport-read (list DOWN LEFT UP)))
+                   (vector (lambda () (do-multiport-read (list DOWN LEFT UP)))
                            (lambda (v) (multiport-write (list DOWN LEFT UP) v))))
       (vector-set! memory &R--U
-                   (vector (lambda () (multiport-read (list RIGHT UP)))
+                   (vector (lambda () (do-multiport-read (list RIGHT UP)))
                            (lambda (v) (multiport-write (list RIGHT UP) v))))
       (vector-set! memory &R-L-
-                   (vector (lambda () (multiport-read (list RIGHT LEFT)))
+                   (vector (lambda () (do-multiport-read (list RIGHT LEFT)))
                            (lambda (v) (multiport-write (list RIGHT LEFT) v))))
       (vector-set! memory &R-LU
-                   (vector (lambda () (multiport-read (list RIGHT LEFT UP)))
+                   (vector (lambda () (do-multiport-read (list RIGHT LEFT UP)))
                            (lambda (v) (multiport-write (list RIGHT LEFT UP) v))))
       (vector-set! memory &RD--
-                   (vector (lambda () (multiport-read (list RIGHT DOWN)))
+                   (vector (lambda () (do-multiport-read (list RIGHT DOWN)))
                            (lambda (v) (multiport-write (list RIGHT DOWN) v))))
       (vector-set! memory &RD-U
-                   (vector (lambda () (multiport-read (list RIGHT DOWN UP)))
+                   (vector (lambda () (do-multiport-read (list RIGHT DOWN UP)))
                            (lambda (v) (multiport-write (list RIGHT DOWN UP) v))))
       (vector-set! memory &RDL-
-                   (vector (lambda () (multiport-read (list RIGHT DOWN LEFT)))
+                   (vector (lambda () (do-multiport-read (list RIGHT DOWN LEFT)))
                            (lambda (v) (multiport-write (list RIGHT DOWN LEFT) v))))
       (vector-set! memory &RDLU
-                   (vector (lambda () (multiport-read (list RIGHT DOWN LEFT UP)))
+                   (vector (lambda () (do-multiport-read (list RIGHT DOWN LEFT UP)))
                            (lambda (v) (multiport-write (list RIGHT DOWN LEFT UP) v))
                            ))
       (vector-set! memory &DATA
-                   (vector (lambda () (d-push! data) t)
+                   (vector (lambda () (set! fetched-data data) true)
                            (lambda (v) (set! data v) t)))
       )
 
@@ -1123,6 +1158,7 @@
       (set! IO #x15555)
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
       (set! fetching-in-progress false)
+      (set! fetched-data false)
       (fetch-I)
       (set! dstack (make-stack 8 #x15555))
       (set! rstack (make-stack 8 #x15555))
