@@ -319,7 +319,7 @@
                   (vector-set! writing-nodes port false)
                   ;;let other node know we read the value
                   (send writing-node finish-port-write)
-                  t)
+                  true)
                 (begin ;;else: suspend while we wait for other node to write
                   (when debug-ports (printf "       suspending\n"))
                   (send (get-port-node port)
@@ -355,9 +355,9 @@
                       (setq fetched-data (vector-ref port-vals port))
                       (vector-set! writing-nodes port false)
                       (send writing-node finish-port-write)
-                      (set! done t))))))
+                      (set! done true))))))
         (if done ;;successfully read a value from one of the ports
-            t
+            true
             (begin ;;else: suspend while we wait for an other node to write
               (when (member wake-pin-port ports)
                 (when debug (log "suspending. waiting-for-pin = True"))
@@ -742,7 +742,6 @@
                           fn)
              (set! _n (add1 _n))))
 
-
     (define (init-instructions)
       ;; `init-instructions` is seporated as its own method to keep the size of the __init__ method
       ;; down which avoids this error:
@@ -831,20 +830,24 @@
       (define-instruction! "!p" ; store p
         (lambda ()
           (set-memory! P (d-pop!))
-          (set! P (incr P)) t))
+          (set! P (incr P))
+          true))
 
       (define-instruction! "!+" ;store plus
         (lambda ()
           (set-memory! A (d-pop!))
-          (set! A (incr A)) t))
+          (set! A (incr A))
+          true))
 
       (define-instruction! "!b" ; store-b
         (lambda ()
-          (set-memory! B (d-pop!)) t))
+          (set-memory! B (d-pop!))
+          true))
 
       (define-instruction! "!" ; store
         (lambda ()
-          (set-memory! (& A #x1ff)  (d-pop!)) t))
+          (set-memory! (& A #x1ff)  (d-pop!))
+          true))
 
       (define-instruction! "+*" ; multiply-step
         (lambda ()
@@ -871,19 +874,23 @@
                     (t0  (& T #x1)))
                 (set! T (ior t17 (>> T 1)))
                 (set! A (ior (<< t0 17)
-                             (>> A 1)))))))
+                             (>> A 1)))))
+          true))
 
       (define-instruction! "2*"
         (lambda ()
-          (set! T (18bit (<< T 1)))))
+          (set! T (18bit (<< T 1)))
+          true))
 
       (define-instruction! "2/"
         (lambda ()
-          (set! T (>> T 1))))
+          (set! T (>> T 1))
+          true))
 
       (define-instruction! "-" ;not
         (lambda ()
-          (set! T (18bit (bitwise-not T)))))
+          (set! T (18bit (bitwise-not T)))
+          true))
 
       (define-instruction! "+"
         (lambda ()
@@ -891,51 +898,61 @@
               (let ((sum (+ (d-pop!) (d-pop!) carry-bit)))
                 (set! carry-bit (if (bitwise-bit-set? sum 18) 1 0))
                 (d-push! (18bit sum)))
-              (d-push! (18bit (+ (d-pop!) (d-pop!)))))))
+              (d-push! (18bit (+ (d-pop!) (d-pop!)))))
+          true))
 
       (define-instruction! "and"
         (lambda ()
-          (d-push! (& (d-pop!) (d-pop!)))))
+          (d-push! (& (d-pop!) (d-pop!)))
+          true))
 
       (define-instruction! "or"
         (lambda ()
-          (d-push! (^ (d-pop!) (d-pop!)))))
+          (d-push! (^ (d-pop!) (d-pop!)))
+          true))
 
       (define-instruction! "drop"
         (lambda ()
-          (d-pop!)))
+          (d-pop!)
+          true))
 
       (define-instruction! "dup"
         (lambda ()
-          (d-push! T)))
+          (d-push! T)
+          true))
 
       (define-instruction! "pop"
         (lambda ()
-          (d-push! (r-pop!))))
+          (d-push! (r-pop!))
+          true))
 
       (define-instruction! "over"
         (lambda ()
-          (d-push! S)))
+          (d-push! S)
+          true))
 
       (define-instruction! "a" ; read a
         (lambda ()
-          (d-push! A)));;??
+          (d-push! A);;??
+          true))
 
       (define-instruction! "."
-        (lambda ()
-          (void)))
+        (lambda () true))
 
       (define-instruction! "push"
         (lambda ()
-          (r-push! (d-pop!))))
+          (r-push! (d-pop!))
+          true))
 
       (define-instruction! "b!" ;; store into b
         (lambda ()
-          (set! B (& (d-pop!) #x1ff))))
+          (set! B (& (d-pop!) #x1ff))
+          true))
 
       (define-instruction! "a!" ;store into a
         (lambda ()
-          (set! A (d-pop!))))
+          (set! A (d-pop!))
+          true))
       )
     (init-instructions)
 
@@ -1037,7 +1054,7 @@
                   (printf "SECOND FRAME\n")
                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;)
                   ;;TEMP FIX:
-                  ;; the target chip bootstream is special: the second)
+                  ;; the target chip bootstream is special: the second
                   ;; frame is written to a different path
                   (send (send (get-ga144) coord->node 709)
                         set-post-finish-port-read
