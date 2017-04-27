@@ -81,7 +81,7 @@
 (define with-temp-buffer true)
 (define insert true)
 (define write-file true)
-(define message true)
+(define message printf)
 (define concat true)
 (define unread-last-tok true)
 (define aforth-print-error-data true)
