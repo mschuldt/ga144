@@ -23,7 +23,7 @@
         ;;(assembled-file (rkt-format "test-out/~a-assembled.txt" name))
         assembled
         )
-
+    (printf "running test: '~a'\n" name)
     ;;(reset!);;TODO: fix reset
     ;;(delete-all-chips)
     (set! test-chip (make-ga144 "testchip" nil))
