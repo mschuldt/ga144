@@ -541,14 +541,14 @@ node 1
   '(check-dat 500 20 0 default)
   '(check-dat 1 1 2 default))
 
-;; (define-test "compiler-word"
-;;   "node 600
-;; :: x 3 lit ;
-;; :: xx 5 1 or lit ;
-;; :: xxx 4 5 + lit ;
-;; x xx xxx
-;; x xx +"
-;;   '(check-dat 600 7 9 4 3 default))
+(define-test "compiler-word"
+  "node 600
+:: x 3 lit ;
+:: xx 5 1 or lit ;
+:: xxx 4 5 + lit ;
+x xx xxx
+x xx +"
+  '(check-dat 600 7 9 4 3 default))
 
 (defun run-tests ()
   (setq tests-failed 0)
