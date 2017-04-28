@@ -305,7 +305,7 @@
               (begin (set! fetched-data (if pin17 1 0)) ;;TODO: correct return value?
                      true)
               (begin ;;else: suspend while waiting for pin to change
-                (set! waiting-for-pin t)
+                (set! waiting-for-pin true)
                 (suspend "pin17 read")
                 false))
           ;;else: normal inter-node read
@@ -352,7 +352,7 @@
                       (when debug-ports
                         (printf "       value was ready: ~a\n"
                                 (vector-ref port-vals port)))
-                      (setq fetched-data (vector-ref port-vals port))
+                      (set! fetched-data (vector-ref port-vals port))
                       (vector-set! writing-nodes port false)
                       (send writing-node finish-port-write)
                       (set! done true))))))
@@ -978,18 +978,19 @@
     (define/public (load node)
       ;;CODE is a vector of assembled code
       ;;load N words from CODE into memory, default = len(code)
+      (reset!)
       (define code (node-mem node))
       (define n (or (node-len node) (vector-length code)))
       (define index 0)
       (while (< index n)
         (begin (vector-set! memory index (vector-ref code index))
                (set! index (add1 index))))
-      (set! P (or (node-p node) 0))
+      (set! P (or (node-p node) P))
       (fetch-I)
       (set! iI 0)
-      (set! A (or (node-a node) 0))
-      (set! B (or (node-b node) (cdr (assoc "io" named-addresses))))
-      (set! IO (or (node-io node) #x15555))
+      (set! A (or (node-a node) A))
+      (set! B (or (node-b node) B))
+      (set! IO (or (node-io node) IO))
 
       (let ((structs (make-hash))
             (addrs (make-hash))
@@ -1075,7 +1076,9 @@
                              set-post-finish-port-read
                              false)
                        (set! P jump-addr)
-                       (set! iI 0)))))
+                       (fetch-I)
+                       (set! iI 0)
+                       ))))
 
       (set! post-finish-port-write write-next)
       ;; Cancel active reads. TODO: single port reads
@@ -1109,7 +1112,9 @@
                 (set-memory! i (vector-ref frames index))
                 (set! index (add1 index)))
               (set! P jump-addr)
-              (set! iI 0))))
+              (error "TODO: Untested case")
+              (set! iI 0)
+              (fetch-I))))
       (load-bootframe))
 
     (define (setup-ports)
@@ -1179,7 +1184,6 @@
       (set! memory (make-vector MEM-SIZE #x134a9)) ;; 0x134a9 => 'call 0xa9'
       (set! fetching-in-progress false)
       (set! fetched-data false)
-      (fetch-I)
       (set! dstack (make-stack 8 #x15555))
       (set! rstack (make-stack 8 #x15555))
       (set! blocking-read false)
@@ -1205,7 +1209,8 @@
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
-      (setup-ports))
+      (setup-ports)
+      (fetch-I))
 
     ;; Resets only p
     (define/public (reset-p! (start false))
@@ -1579,4 +1584,8 @@
                                  (hash-ref address-names i)
                                  nil)))
         mem))
+    (when (valid-coord? coord)
+      ;;; dummy edge nodes have a invalid coord so things like rom
+      ;;; hash table indexes fail in reset
+      (reset!))
     ))
