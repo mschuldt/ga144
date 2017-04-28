@@ -675,10 +675,13 @@
     (define (finish-I-fetch)
       (set! I fetched-data)
       (set! fetched-data false)
-      (set! I^ (^ I #x15555))
       (set! P (incr P))
-      (when (eq? I 'end)
-        (suspend "I=='end")))
+      (if (or (eq? I 'end) (eq? I false))
+          (begin (suspend "I=='end")
+                 ;; set I to call warm to prevent a
+                 ;; lot of special casing in `step!`
+                 (set! I #x134a9)) ;; 0x134a9 = "warm" = 'call 169'
+          (set! I^ (^ I #x15555))))
 
     (define (fetch-I)
       (set! I-index P)
