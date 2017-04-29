@@ -598,19 +598,19 @@
         (let ((changed (^ prev-IO IO)))
           (when (> (& changed pin1-ctl-mask) 0)
             (set! pin1-config (>> (& IO pin1-ctl-mask) pin1-ctl-shift))
-            (and pin1-handler (pin1-handler pin1-config)))
+            (and pin1-handler (funcall1 pin1-handler pin1-config)))
           (when (> num-gpio-pins 1)
             (when (> (& changed pin2-ctl-mask) 0)
               (set! pin2-config (>> (& IO pin2-ctl-mask) pin2-ctl-shift))
-              (and pin2-handler (pin2-handler pin2-config)))
+              (and pin2-handler (funcall1 pin2-handler pin2-config)))
             (when (> num-gpio-pins 2)
               (when (> (& changed pin3-ctl-mask) 0)
                 (set! pin3-config (>> (& IO pin3-ctl-mask) pin3-ctl-shift))
-                (and pin3-handler (pin3-handler pin3-config)))
+                (and pin3-handler (funcall1 pin3-handler pin3-config)))
               (when (and (> num-gpio-pins 3)
                          (> (& changed pin4-ctl-mask) 0))
                 (set! pin4-config (>> (& IO pin4-ctl-mask) pin4-ctl-shift))
-                (and pin4-handler (pin4-handler pin4-config)))))))
+                (and pin4-handler (funcall1 pin4-handler pin4-config)))))))
       t)
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; memory accesses
@@ -985,7 +985,12 @@
       (while (< index n)
         (begin (vector-set! memory index (vector-ref code index))
                (set! index (add1 index))))
-      (set! P (or (node-p node) P))
+      ;; If P defaults to warm instead of 0:
+      ;;reset calls fetch-I so reset P here again before calling fetch-I
+      ;;or the default value (if used) will be incorrectly incremented
+      ;;;(reset-p!)
+      ;;;(set! P (or (node-p node) P))
+      (set! P (or (node-p node) 0));;TODO: this boot descriptor should be set by the compiler
       (fetch-I)
       (set! iI 0)
       (set! A (or (node-a node) A))
@@ -1045,6 +1050,8 @@
       (define last false)
       (define word false)
 
+      (define load-bootframe-fn false)
+
       (define (write-next)
         (if (< index last)
             (begin
@@ -1068,7 +1075,7 @@
                         write-next) ;;mbs: does this transform correctly?
                   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
                   ;;(send ga144 show-io-changes t)
-                  (load-bootframe last))
+                  (apply load-bootframe-fn (list last)))
                 (begin (printf "END FRAME\n")
                        (set! post-finish-port-write false)
                        ;;(send (send ga144 coord->node 400)
@@ -1115,6 +1122,11 @@
               (error "TODO: Untested case")
               (set! iI 0)
               (fetch-I))))
+
+      (if elisp? ;; stupid hack needed because of the way classes where implemented in elisp
+          (set! load-bootframe-fn (lambda (x) (load-bootframe x)))
+          (set! load-bootframe-fn load-bootframe))
+
       (load-bootframe))
 
     (define (setup-ports)
@@ -1221,8 +1233,7 @@
                 (set! P (hash-ref rom "cold"))
                 (if (hash-has-key? rom "warm")
                     (set! P (hash-ref rom "warm"))
-                    (err "ROM does not define 'warm' or 'cold')")))))
-      (set! I-index P))
+                    (err "ROM does not define 'warm' or 'cold')"))))))
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
