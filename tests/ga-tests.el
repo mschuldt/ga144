@@ -1,3 +1,9 @@
+;; -*- lexical-binding: t -*-
+
+(require 'ga144-sim)
+
+(ga144-clear-all)
+
 (defun 18bit (n)
   (cond ((number? n)
          (bitwise-and n #x3ffff))
@@ -7,17 +13,20 @@
 
 (setq tests nil)
 (setq test-chip false)
-(setq tests-passed 0)
-(setq tests-failed 0)
 
 (defun define-test (name program &rest checks)
-  (push (list name program checks) tests))
+  (push (lambda () (_run-test name program checks)) tests)
+  )
 
-(defun _run-test (test)
-  (let ((name (car test))
-        (program (nth 1 test))
-        (checks (nth 2 test))
-        (result false)
+(defun define-test-fn (name fn)
+  (push (lambda ()
+          (ga144-clear-all)
+          (message "running test: '%s'" name)
+          (funcall fn))
+        tests))
+
+(defun _run-test (name program checks)
+  (let ((result false)
         (failed '())
         ;;(compiled-file (rkt-format "test-out/~a-compiled.txt" name))
         ;;(assembled-file (rkt-format "test-out/~a-assembled.txt" name))
@@ -35,15 +44,14 @@
       (set! result (apply (car check) (cdr check)))
       (when result
         (set! failed (cons result failed))))
+    (when (not (null? failed))
+      (printf "FAILED: ~a: '~a'\n" name program
+              (dolist (f failed)
+                (printf "~a\n" f))
+              (newline)
+              ))
+    (null failed)))
 
-    (if (null? failed)
-        (set! tests-passed (add1 tests-passed))
-      (begin (printf "FAILED: ~a: '~a'\n" name program)
-             (dolist (f failed)
-               (printf "~a\n" f))
-             (newline)
-             (set! tests-failed (add1 tests-failed))
-             ))))
 
 (define (coord->node coord)
   (send test-chip coord->node coord))
@@ -550,18 +558,15 @@ x xx xxx
 x xx +"
   '(check-dat 600 7 9 4 3 default))
 
-(defun run-tests ()
-  (setq tests-failed 0)
-  (setq tests-passed 0)
-  (dolist (test tests)
-    ;;(for ((test (list (car tests))))
-    (_run-test test))
-  (printf "passed: ~a\n" tests-passed)
-  (printf "failed: ~a\n" tests-failed))
+(defun run-simulation-tests ()
+  (let ((tests-failed 0)
+        (tests-passed 0))
+    (dolist (test (reverse tests))
+      (if (funcall test)
+          (setq tests-passed (add1 tests-passed))
+        (setq tests-failed (add1 tests-failed))))
 
-;;(unless (directory-exists? "test-out")
-;;  (make-directory "test-out"))
-
-;;(run-tests)
+    (printf "passed: ~a\n" tests-passed)
+    (printf "failed: ~a\n" tests-failed)))
 
 (provide 'ga-tests)
