@@ -141,10 +141,12 @@
   (message (if (run-compiler-tests)
                "ok"
              "fail"))
+
   (when test-all?
     (require 'ga-tests)
-    (ga-sim-loadup)
-    (run-tests))
+    (run-simulation-tests)
+    (ga-main-exit))
+  
   (ga-main-exit))
 
 (when run?
