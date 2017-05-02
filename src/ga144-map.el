@@ -1254,7 +1254,6 @@ This resets the simulation"
 
 (defun ga-reg-address-name (n)
   (let ((name (gethash n address-names)))
-    (message "name = %s" name)
     (if name
         (ga-format-str name "aquamarine")
       "")))
@@ -1296,7 +1295,6 @@ This resets the simulation"
     )
   (ga-update-stack-displays))
 
-;;TODO: DOING: need to update ga-ram-display with the simulation memory
 (defun ga-sim-step-all ()
   )
 

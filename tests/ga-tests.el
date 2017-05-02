@@ -2,6 +2,7 @@
 
 (require 'ga144-sim)
 
+
 (ga144-clear-all)
 
 (defun 18bit (n)
@@ -568,5 +569,7 @@ x xx +"
 
     (printf "passed: ~a\n" tests-passed)
     (printf "failed: ~a\n" tests-failed)))
+
+(require 'ga-test-target-chip)
 
 (provide 'ga-tests)

@@ -849,7 +849,7 @@
 
       (define-instruction! "!" ; store
         (lambda ()
-          (set-memory! (& A #x1ff)  (d-pop!))
+          (set-memory! (& A #x1ff) (d-pop!))
           true))
 
       (define-instruction! "+*" ; multiply-step
@@ -949,7 +949,7 @@
 
       (define-instruction! "b!" ;; store into b
         (lambda ()
-          (set! B (& (d-pop!) #x1ff))
+          (set! B (& (d-pop!) #x1ff)) ;; B is 9 bits
           true))
 
       (define-instruction! "a!" ;store into a

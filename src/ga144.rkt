@@ -166,6 +166,8 @@
       (set! current-node-index 0)
       (set! current-node (vector-ref active-nodes current-node-index))
       (set! breakpoint false)
+      (set! cli-active? false)
+      (set! breakpoint-node false)
       (vector-map (lambda (node) (send node reset!)) nodes))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

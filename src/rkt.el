@@ -884,4 +884,14 @@
 
 ;; (rkt-classes-test)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; temporary
+
+(defsubst funcall1 (fn a)
+  (funcall fn a))
+
+(defsubst funcall2 (fn a b)
+  (funcall fn a b))
+
+
 (provide 'rkt)

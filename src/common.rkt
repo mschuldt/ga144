@@ -196,6 +196,11 @@
 (define (coord->col coord)
   (remainder coord 100))
 
+(define (valid-coord? coord)
+  (and (>= coord 0)
+       (< (modulo coord 100) 18)
+       (< (/ coord 100) 8)))
+
 (define (convert-direction coord dir)
   ;;converts DIR={North, East, South, West} Into Left, Up, Down, or Right
   ;;depending on the nodes coordinate COORD
