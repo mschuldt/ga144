@@ -20,7 +20,7 @@
                                    (if (vector? word)
                                        (rkt-format "[~a]"
                                                    (comma-join (for/list ((w word))
-                                                                 (rkt-format "'~a'" w))))
+                                                                 (rkt-format "'~a'" (or  w "~")))))
                                        word)))))))))
 
 (define (boot-descriptors->json compiled)
