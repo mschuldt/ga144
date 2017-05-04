@@ -1239,15 +1239,13 @@
     ;; p and executing the word.
     ;; returns false when P = 0, else t
     (define/public (step-program!)
-      (if suspended
-          (message "node %s suspended" coord)
-          (begin
-            (set! step-count (add1 step-count))
-            (if elisp?
-                (funcall step! this)
-                (step!))
-            (when print-state
-              (send (get-ga144) display-node-states (list coord))))))
+      (unless suspended
+        (set! step-count (add1 step-count))
+        (if elisp?
+            (funcall step! this)
+            (step!))
+        (when print-state
+          (send (get-ga144) display-node-states (list coord)))))
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)

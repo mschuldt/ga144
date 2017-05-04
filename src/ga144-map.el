@@ -1232,6 +1232,8 @@ This resets the simulation"
   (interactive)
   (ga-check-sim
    (send ga-sim-current-node step-program!)
+   (when (send ga-sim-current-node suspended?)
+     (message "node suspended"))
    (ga-update-current-node-registers)
    (ga-sim-update-display)
    ))
@@ -1242,6 +1244,7 @@ This resets the simulation"
   (interactive)
   (ga-check-sim
    (send ga-sim-ga144 step-program!)
+   (message "%s active nodes" (send ga-sim-ga144 num-active-nodes))
    (ga-update-current-node-registers)
    (ga-sim-update-display)
    ))
