@@ -25,6 +25,7 @@
 (setq test-all? nil)
 (setq only-bootstream? nil)
 (setq run? nil)
+(setq verbose? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -62,6 +63,8 @@
                      test-all? t))
               (("-r" "--run") nil "run in simulator" ;;TODO: -r option does not work
                (setq run? t))
+              (("-v" "--verbose") nil ""
+               (setq verbose? t))
               (("-h") nil "print usage"
                (ga-print-help-and-exit))
               (position (file) "aforth file"
@@ -80,7 +83,12 @@
 
 (load "ga-loadup.el" nil t)
 (ga-compiler-loadup)
-(unless only-bootstream? (message "load time: %s" (float-time (time-since load-start-time))))
+
+(when only-bootstream?
+  (setq verbose? nil))
+
+(when  verbose?
+  (message "load time: %s" (float-time (time-since load-start-time))))
 
 (defun ga-byte-compile-files ()
   (setq lexical-binding t)
@@ -127,7 +135,8 @@
   ;;(dolist (file (set->list rkt-loaded-files))
   ;;  (rkt-byte-compile (expand-file-name file)))
   (ga-byte-compile-files)
-  (message "byte-compile time: %s" (float-time (time-since _start-time)))
+  (when verbose?
+    (message "byte-compile time: %s" (float-time (time-since _start-time))))
   (ga-main-exit))
 
 
@@ -171,9 +180,7 @@
       (print-pretty in-file hex?)
     (print-json in-file bootstream-type symbols?)))
 
-(message "compile time: %s" (float-time (time-since _start-time)))
-
-
-
+(when verbose?
+  (message "compile time: %s" (float-time (time-since _start-time))))
 
 (ga-main-exit)
