@@ -10,41 +10,42 @@
 
 (defun aforth-compile-buffer (&optional buffer) ;
   (with-current-buffer (or buffer (current-buffer))
-    (let (parsed-nodes ret locations)
-      (reset!)
-      (catch 'aforth-error
-        (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
-        (setq aforth-compile-stage "compiling")
-        (dolist (node parsed-nodes)
-          (setq aforth-current-node (aforth-node-coord node))
-          (push (cons aforth-current-node (aforth-node-location node))
-                locations)
-          (start-new-node aforth-current-node)
-          (setq current-token-list (aforth-node-code node))
+    (save-excursion
+      (let (parsed-nodes ret locations)
+        (reset!)
+        (catch 'aforth-error
+          (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
+          (setq aforth-compile-stage "compiling")
+          (dolist (node parsed-nodes)
+            (setq aforth-current-node (aforth-node-coord node))
+            (push (cons aforth-current-node (aforth-node-location node))
+                  locations)
+            (start-new-node aforth-current-node)
+            (setq current-token-list (aforth-node-code node))
 
-          (while current-token-list
-            (setq aforth-current-token (read-tok))
-            (compile-token aforth-current-token)))
-        (when memory
-          (fill-rest-with-nops) ;;make sure last instruction is full
-          (set-node-len! current-node (sub1 next-addr)))
+            (while current-token-list
+              (setq aforth-current-token (read-tok))
+              (compile-token aforth-current-token)))
+          (when memory
+            (fill-rest-with-nops) ;;make sure last instruction is full
+            (set-node-len! current-node (sub1 next-addr)))
 
-        (when DEBUG? (display-compiled (compiled used-nodes nil)))
+          (when DEBUG? (display-compiled (compiled used-nodes nil)))
 
-        ;; errors from this point on are not associated with line numbers
-        (setq current-tok-line nil
-              current-tok-col nil)
+          ;; errors from this point on are not associated with line numbers
+          (setq current-tok-line nil
+                current-tok-col nil)
 
-        (setq aforth-compile-stage "checking")
-        (mapc 'check-for-undefined-words used-nodes)
+          (setq aforth-compile-stage "checking")
+          (mapc 'check-for-undefined-words used-nodes)
 
-        (setq aforth-compile-stage "finalizing")
-        (setq used-nodes (mapcar 'remove-address-cells used-nodes))
-        ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
-        (setq ret (compiled used-nodes nil locations)))
+          (setq aforth-compile-stage "finalizing")
+          (setq used-nodes (mapcar 'remove-address-cells used-nodes))
+          ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
+          (setq ret (compiled used-nodes nil locations)))
 
-      (or ret
-          (compiled nil (aforth-get-error-data))))))
+        (or ret
+            (compiled nil (aforth-get-error-data)))))))
 
 (defun aforth-compile (code) ;;shadows racket version
   (setq aforth-compile-input-type 'string)
