@@ -1236,6 +1236,16 @@ This resets the simulation"
    (ga-sim-update-display)
    ))
 
+(defun ga-sim-step-chip ()
+  "Steps all the active nodes one instruction"
+  ;;TODO: support for stepping variable
+  (interactive)
+  (ga-check-sim
+   (send ga-sim-ga144 step-program!)
+   (ga-update-current-node-registers)
+   (ga-sim-update-display)
+   ))
+
 (defun ga-convert-stack-list (data)
   (list->vector (mapcar (lambda (x) (format "%-5x" x)) data)))
 
@@ -1347,6 +1357,7 @@ This resets the simulation"
         (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
         ;;simulation keys
         (define-key map (kbd "s") 'ga-sim-step-node)
+        (define-key map (kbd "S") 'ga-sim-step-chip)
         (define-key map (kbd "g") 'ga-sim-reset-command)
         (define-key map (kbd "Q") 'ga-kill-map)
         (define-key map (kbd "D") 'ga-node-debug-dump)
