@@ -559,6 +559,25 @@ x xx xxx
 x xx +"
   '(check-dat 600 7 9 4 3 default))
 
+(define-test "remote-word-call"
+  "node 2
+.. ;
+.. ;
+: fn2  10 + dup !p ;
+: fn  5 + dup ;
+: main west push ; ( ok )
+
+node 1
+east b!
+
+.. @p !b .. @p ..  6 !b ( send arg )
+.. @p !b .. fn@2 .. ( send call)
+.. @p !b .. !p .. @b ( read result )"
+
+  '(check-dat 1 11 default)
+  '(check-dat 2 11 default)
+  )
+
 (defun run-simulation-tests ()
   (let ((tests-failed 0)
         (tests-passed 0))
