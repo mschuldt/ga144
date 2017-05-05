@@ -578,6 +578,35 @@ east b!
   '(check-dat 2 11 default)
   )
 
+(define-test "multiport-write"
+  ;; test that only currently reading nodes can read the value from a multi-port write
+"node 408
+:: 'rdlu  0x1A5 lit ;
+: main
+'rdlu b! 5 !b  warm
+
+node 308
+: main
+north b! @b
+
+node 508
+: main
+. . . . . . . .
+south b! @b warm
+
+node 407
+. . . . . . . .
+east b! @b warm
+
+node 409
+west b! @b warm"
+'(check-dat 408 default)
+'(check-dat 508 default)
+'(check-dat 409 5 default)
+'(check-dat 308 5 default)
+'(check-dat 407 default)
+  )
+
 (defun run-simulation-tests ()
   (let ((tests-failed 0)
         (tests-passed 0))
