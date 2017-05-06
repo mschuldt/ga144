@@ -1,0 +1,146 @@
+( save words to sram then read them back and print them
+
+( 708 - async, print all words it receives from south port
+( 106 - for n from 1 to 10 write sram[n] = 2*n
+(       for n from 1 to 15 read sram[n], sent to node 708
+( 107,7,8,9 - sram control
+( 608...206 - wire nodes for sending data from sram to async port
+
+( run with:
+(     ./ga-load examples/sram-demo.aforth /dev/ttyUSB0
+( Exected output:
+(    0
+(    2
+(    4
+(    6
+(    8
+(    10
+(    12
+(    14
+(    16
+(    18
+(    20
+(    ...
+(    ...
+(    ...
+(    ...
+(    ...
+(    [exit]
+( Where ... are random numbers
+
+
+node 708
+: out18 0 out8 drop out8 out8
+: out8 0 out1 7 for dup out1 2/ next 1
+: out1 1 and 3 or !b 904 for unext ;
+: exit 1 out8 ;
+: main
+    io b! south a!
+15 for @ out18 next
+exit warm ;
+
+node 608
+: main north b! south a!
+: loop @ !b loop ;
+
+node 508
+: main north b! south a!
+: loop @ !b loop ;
+
+node 408
+: main north b! south a!
+: loop @ !b loop ;
+
+node 308
+: main  north b! west a!
+: loop @ !b loop ;
+
+node 307
+: main  west a! east b! 
+: loop @ !b loop ;
+
+node 306
+: main south a! east b! 
+: loop @ !b loop ;
+
+node 206
+: main south a! north b!
+: loop @ !b loop ;
+
+( - user ) node 106 ( node 106, 108, or 207.)
+: x! ( wa) ( 39) dup dup or
+: ex! ( wap) : mk! ( mfp') ( 3A) - !b - !b !b ;
+: x@ ( a-w) ( 3C) dup dup or
+: ex@ ( ap-w) ( 3D) !b !b @b ;
+: cx? ( wapn-f) ( 3E) - !b !b !b !b @b ; ( 40)
+
+: main
+north a!
+east b!
+
+0 10 for dup dup . + over  x! 1 . + next
+0 15 for dup dup  x@ ! 1 . + next
+warm
+
+node 9 ( sram.16 address-bus )
+org 0x20
+: main
+: start west ( right) b! .. data a! .. 0x3 ( mask)
+: cmd ( m) @b ( a16) 2* 2* over @b -if
+   - ( p04) and or ( a18) ! cmd ;
+   then ( p04) and or .. ( a18) ! cmd ;
+
+node 8 ( control-pins )
+org 0
+:: 'r-l- 0x1F5 lit ;  ( TODO: why?
+( 'start' pin control table 0-7)
+, 0x2556E ( r00) , 0x2557E ( r01)
+, 0x3556E ( r10) , 0x3557E ( r11)
+, 0x3557A ( w11) , 0x3556A ( w10)
+, 0x2557A ( w01) , 0x2556A ( w00)
+org 0x20
+
+: main
+: start 'r-l- b! io a!
+: cmd @b ( stop) ! a push 0x7 ( mask) ..
+   @b ( a16) !b @b ( +p/-p) dup !b
+   2/ 2/ and ( i3) a! .. @ ( ctrl) pop a!
+   ( start) ! cmd ;
+
+node 7 ( data-bus)
+org 0x20
+:: in 0x14555 lit ;
+:: out 0x15555 lit ;
+:: stop 0x3557F lit ;
+
+: main
+: start east ( left) b! out io data stop
+   out io data stop in io a! ( in) !
+   north ( down) a! ( stop) !b
+: cmd ( /soid/) @ ( a16 ) !b @ ( +p/-p ) -if
+
+: w16 ( /soid/p-) ( +p/-p) !b
+( /- setup + 45ns) @ ( w) a push push ( data) a!
+pop ! ( io) a! ( out) ! ( 40) 13 for unext ( stop) !b
+( -/) in ! pop a! cmd ;
+
+: r16 ( /soid/p-) then ( +p/-p) !b
+( /- setup + 55ns) a push ( data) a!
+( io) drop ( out) drop ( 50) 40 for unext ( stop) !b ( -/ )
+@ ( w) pop a! ! cmd ;
+
+
+node 107 org 0 
+
+: cx ( wp-) over push @ dup 
+   ( a)  !b over ( p) !b @b ( w) pop - ( w1) or if 
+( ne) @ ( w2) dup or ( ff) ! ;
+( eq) then drop ( a) !b - ( -p) !b @ ( w2) !b 0xffff ! ; 
+
+: cmd  @ -if @ ' cx -until ( .e!) - !b !b @ !b ;
+then @  ( .e@) ( a) !b ( p) !b @b ( w) ! ;
+org 0x17
+
+: main : start  down b! right a!
+: run cmd run ; 
+
