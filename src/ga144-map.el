@@ -670,7 +670,7 @@
          (ga-format-str inst "green"))
         ((number? inst)
          (ga-format-str (number-to-string inst) "red"))
-        ((null inst) "~")))
+        ((null inst) "")))
 
 (defun ga-format-word (i word)
   (let* ((a " ")
