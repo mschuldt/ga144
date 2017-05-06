@@ -142,6 +142,15 @@
 
 (setq ga-current-node-display-format "node %s  (%s/64, %s%%)")
 
+(setq ga-display-hex t)
+(defun ga-toggle-hex ()
+  (interactive)
+  (setq ga-display-hex (not ga-display-hex))
+  (ga-sim-update-display))
+
+(defun ga-format-num (n)
+  (format (if ga-display-hex "%x" "%d") n))
+
 (defun ga-current-node-display-fn (_ _)
   (let ((s (format "node %s" ga-current-coord))
         (n (gethash ga-current-coord ga-node-usage-hash)))
@@ -669,7 +678,7 @@
   (cond ((stringp inst)
          (ga-format-str inst "green"))
         ((number? inst)
-         (ga-format-str (number-to-string inst) "red"))
+         (ga-format-str (ga-format-num inst) "red"))
         ((null inst) "")))
 
 (defun ga-format-word (i word)
@@ -691,7 +700,7 @@
                (when (not (number? (aref word 2)))
                  (setq d (ga-format-inst (aref word 3)))))))
           (t (error "unknow type for compiled word: '%s'"  word)))
-    (format "%2s  %-5s %-5s %-5s %-5s" i a b c d)))
+    (format "%2s  %-5s %-5s %-5s %-5s" (ga-format-num i) a b c d)))
 
 (defun ga-create-ram-display-data (coord)
   "create an array of ram display data for node COORD"
@@ -719,12 +728,12 @@
     (when (consp word)
       (setq name (cdr word)
             word (car word)))
-    (concat (format "%2s %5s " (ga-format-str (number->string i)
+    (concat (format "%2s %5s " (ga-format-str (ga-format-num i)
                                               (cond ((and P slot) "green")
                                                     (P "magenta")
                                                     (slot "turquoise2")))
                     (ga-format-str (if (numberp word)
-                                       (format "%x" word)
+                                       (ga-format-num word)
                                      ".")
                                    "grey"))
 
@@ -1250,7 +1259,7 @@ This resets the simulation"
    ))
 
 (defun ga-convert-stack-list (data)
-  (list->vector (mapcar (lambda (x) (format "%-5x" x)) data)))
+  (list->vector (mapcar (lambda (x) (format "%-5s" (ga-format-num x))) data)))
 
 (defun ga-disassemble-I (val)
   (if (send ga-sim-current-node fetching?)
@@ -1272,9 +1281,9 @@ This resets the simulation"
       "")))
 
 (defun ga-convert-reg-list (data)
-  (list->vector (append (mapcar (lambda (x) (format "%-3s %x  %s"
+  (list->vector (append (mapcar (lambda (x) (format "%-3s %s  %s"
                                                     (car x)
-                                                    (cdr x)
+                                                    (ga-format-num (cdr x))
                                                     (ga-reg-address-name (cdr x))))
                                 `(("A" . ,(aref data 0))
                                   ("B" . ,(aref data 1))
@@ -1364,6 +1373,7 @@ This resets the simulation"
         (define-key map (kbd "g") 'ga-sim-reset-command)
         (define-key map (kbd "Q") 'ga-kill-map)
         (define-key map (kbd "D") 'ga-node-debug-dump)
+        (define-key map (kbd "x") 'ga-toggle-hex)
         map))
 
 (defun ga-map-buffer-valid (buf)
