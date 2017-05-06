@@ -654,21 +654,25 @@
     (setq color (list :background color)))
   (ga-set-node-usage-face node color))
 
+(defun ga-get-scaled-color (fmt n)
+  ;; N is 0 to 64
+  (setq n (+ (floor (* (/ n 64.0) 240)) 15))
+  (format fmt
+          (to-hex-str (- 255 n))
+          (to-hex-str (- 255 n))))
+
 (defun ga-update-node-usage-colors (usage)
   ;; USAGE format: ((code . word-count)...)
-  (let (n)
-    (loop-nodes node
-      ;;reset node colors
-      (ga-set-usage-color (ga-node-coord node) nil))
-    (dolist (node usage)
-      (if (> (cdr node) 64)
-          (ga-set-usage-color (car node) ga-node-overflow-color)
-        (setq n (+ (floor (* (/ (cdr node) 64.0) 240)) 15))
-        (ga-set-usage-color (car node)
-                            (format "#ff%s%s"
-                                    (to-hex-str (- 255 n))
-                                    (to-hex-str (- 255 n))
-                                    ))))))
+  (loop-nodes node
+    ;;reset node colors
+    (ga-set-usage-color (ga-node-coord node) nil))
+  (dolist (node usage)
+    (if (> (cdr node) 64)
+        (ga-set-usage-color (car node) ga-node-overflow-color)
+
+      (ga-set-usage-color (car node)
+                          (ga-get-scaled-color "#ff%s%s" (cdr node))))))
+
 (defun ga-format-str (str color)
   (when color
     (put-text-property 0 (length str) 'font-lock-face (list :foreground color) str))
