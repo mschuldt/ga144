@@ -38,7 +38,7 @@
 (def-local ga-compiled-nodes nil) ;; hash mapping nodes to compiled node memory array
 (def-local ga-compilation-data-changed nil) ;; set true after compilation data is updated
 (def-local ga-assembly-data nil)
-(def-local ga-node-usage nil)
+(def-local ga-node-usage-list nil)
 (def-local ga-node-usage-hash nil)
 (def-local ga-node-locations nil)
 (def-local ga-ram-display nil)
@@ -91,10 +91,6 @@
                             (((background dark)) (:background "gold2")))
   "default ga node region face 2")
 
-(defface ga-selected-used-node-face '((((background light)) (:background "green"))
-                                      (((background dark)) (:background "green")))
-  "default face for selected used nodes")
-
 (setq ga-node-coord-face 'ga-node-coord-face)
 (setq ga-default-face-1 'ga-default-face-1)
 (setq ga-default-face-2 'ga-default-face-2)
@@ -102,8 +98,6 @@
 (setq ga-unfocused-face 'ga-unfocused-face)
 (setq ga-region-face-1 'ga-region-face-1)
 (setq ga-region-face-2 'ga-region-face-2)
-(setq ga-selected-used-node-face 'ga-selected-used-node-face)
-
 
 (defun ga-get-project-file-buffer (filepath)
   (let ((buff (find-buffer-visiting filepath)))
@@ -293,7 +287,7 @@
     (assert (and (arrayp faces) (= (length faces) ga-num-faces)))
     (if (and (aref faces 5)
              (aref faces 2))
-        ga-selected-used-node-face
+        (list :background (ga-get-scaled-color "#%s%sff" (ga-node-usage node)))
       (or (aref faces 4) ;; tmp high
           (aref faces 3) ;; point
           (aref faces 2) ;; tmp low  ( region selection )
@@ -351,8 +345,8 @@
   (let ((node (ga-coord->node coord)))
     (ga-set-node-face-internal coord 2 (if remove nil (ga-node-region-face node)))))
 
-(defstruct ga-node coord special-function node-type text color overlays region-face faces coord-overlay)
-;;                 1     2                3         4    5     6        7           8     9
+(defstruct ga-node coord special-function node-type text color overlays region-face faces coord-overlay usage)
+;;                 1     2                3         4    5     6        7           8     9             10
 ;; work around for errors like:
 ;;   Symbol’s function definition is void: \(setf\ ga-node-coord-overlay\)
 ;; internet says (require 'cl) should have fixed this but it doesn't
@@ -362,6 +356,8 @@
   (aset node 8 x))
 (defun set-ga-node-coord-overlay! (node x)
   (aset node 9 x))
+(defun set-ga-node-usage! (node x)
+  (aset node 10 x))
 
 (defun ga-valid-node-index-p(n)
   (and (>= n 0) (< n 144)))
@@ -606,10 +602,11 @@
 					   (vector-copy (node-mem node))ht))
                                 ht))
       (setq ga-assembly-data (assemble data))
-      (setq ga-node-usage (ga-calculate-node-usage ga-assembly-data))
-      (setq ga-node-usage-hash (ga-alist->hash ga-node-usage))
+      (setq ga-node-usage-list (ga-calculate-node-usage ga-assembly-data)) ;;TODO: remove
+      (setq ga-node-usage-hash (ga-alist->hash ga-node-usage-list)) ;;TODO: remove
       (setq ga-node-locations (compiled-node-locations data))
-      (ga-update-node-usage-colors ga-node-usage)
+      (ga-update-node-usage-colors ga-node-usage-list) ;;TODO: remove
+      (ga-update-node-usage ga-assembly-data)
       (when ga-ram-display
         (ga-update-ram-display-node)
         ;;(sd-set-data ga-ram-display (ga-create-ram-display-data ga-current-coord)))
@@ -635,6 +632,11 @@
         (message "Error: failed to update compilation. ga14 sim not updated"))))
   (setq ga-compilation-data-changed t)) ;;TODO: what is this used for?
 
+(defun ga-update-node-usage (assembled)
+  (dolist (node (compiled-nodes assembled))
+    (set-ga-node-usage! (ga-coord->node (node-coord node))
+                        (length (filter 'identity (vector->list (node-mem node)))))))
+
 (defun ga-calculate-node-usage (assembled)
   (let ((nodes (compiled-nodes assembled))
         usage)
@@ -656,7 +658,7 @@
 
 (defun ga-get-scaled-color (fmt n)
   ;; N is 0 to 64
-  (setq n (+ (floor (* (/ n 64.0) 240)) 15))
+  (setq n (+ (floor (* (/ (or n 0) 64.0) 240)) 15))
   (format fmt
           (to-hex-str (- 255 n))
           (to-hex-str (- 255 n))))
