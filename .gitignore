@@ -4,6 +4,7 @@ compiled/
 TAGS
 _*
 *.elc
+*.pyc
 *~
 
 .emacs.desktop
