@@ -47,7 +47,7 @@ FUNCTIONS = [  #from tag in low 4 bits of each compressed 32-bit word
 ]
 TAGS = [function[0] for function in FUNCTIONS]
 COLORS = [function[1] for function in FUNCTIONS]
-DEBUGLEVEL = int(os.getenv('DEBUGLEVEL') or '0')
+DEBUGLEVEL = int(os.getenv('DEBUGLEVEL') or '-1')
 def bits_unused(letter):
  """28 bits are available for compressing text
 
