@@ -54,7 +54,7 @@ DEFAULT = ['execute']  # default action, reset at start of each block
 
 def cf2f(infile = sys.stdin, output = sys.stdout):
  blocks = getbinary(infile)
- for index in range(len(blocks)):
+ for index in range(18, len(blocks)):
   DEFAULT[:] = ['execute']  # reset default action
   print >>output, '( block %d )' % index
   block = getwords(blocks[index])
@@ -348,6 +348,5 @@ def getwords(block):
  return words
 
 if __name__ == '__main__':
- name = os.path.splitext(os.path.split(sys.argv[0])[-1])[0]
- debug('trying: %s with args %s' % (name, sys.argv[1:]))
- debug(eval(name)(*sys.argv[1:]))
+ print "( -*- mode: aforth -*- )"
+ cf2f( *sys.argv[1:] )
