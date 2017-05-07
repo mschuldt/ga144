@@ -150,6 +150,8 @@ def unpack_all(rawblock, index = 0):
  markup(block, 'highlevel')
  rawblock[:] = block
 
+word_type_host = False
+
 def markup(block, blocktype = 'highlevel', index = 0):
  '''add syntactic cues for text-mode rendition of colorforth
 
@@ -158,9 +160,15 @@ def markup(block, blocktype = 'highlevel', index = 0):
     the offset is the number of words added beyond the index.
     a special offset of None will indicate to the markup loop
     to skip any further processing.'''
+ global word_type_host
+ word_type_host = False
  while block[index:]:
   item, word, tag, adjust = block[index], block[index][0], block[index][1], 0
   debug('marking up: %s' % item, 2)
+  if word == "host":
+   word_type_host = True
+  if word == "target":
+   word_type_host = False
   for pattern in MARKUP[blocktype]:
    if re.compile(pattern[0]).match(tag or 'NO_MATCH'):
     debug('marking up as %s' % pattern[1], 2)
@@ -193,7 +201,7 @@ def markup_commented(block, index):
 
 def markup_definition(block, index):
  'put colon before defined word'
- block.insert(index, [':', 'markup'])
+ block.insert(index, ['::' if word_type_host else ':', 'markup'])
  DEFAULT[-1] = 'compile'
  return index + 1, None  # skip over colon
 
