@@ -67,7 +67,8 @@ def output_text(block, output):
   if block[i][0] == ':' and not nocr(block, i - 1):
    output.softspace = False
    print >>output
-  print >>output, block[i][0],
+  if block[i][1] != 'formatting':
+   print >>output, block[i][0],
   if block[i][0] in ['cr', 'br', 'indent'] and block[i][1] == 'formatting':
    output.softspace = False
    print >>output
@@ -105,7 +106,7 @@ def unpack_number(block, index):
    else:
     block.pop(index)  # puts value in current slot
   if hex:
-   block[index] = ['$%x' % (sign_extend(block[index], tag) & INT), tag]
+   block[index] = ['0x%x' % (sign_extend(block[index], tag) & INT), tag]
   else:
    block[index] = ['%d' % block[index], tag]
   return index + 1, True
@@ -173,19 +174,22 @@ def markup(block, blocktype = 'highlevel', index = 0):
 
 def markup_formatting(block, index):
  'signify a formatting word to differentiate format cr from kernel cr'
- block.insert(index, ['|', 'markup'])
- return index + 1, None
+ #block.insert(index, ['|', 'markup'])
+ #return index + 1, None
+ return index, None
 
 def markup_feedback(block, index):
  'signify a "compiler feedback" number'
  debug('compiler feedback number: %s' % block[index], 2)
- block.insert(index, ['=', 'markup'])
- return index + 1, None
+ block.insert(index, ['(', 'markup'])
+ block.insert(index + 2, [')', 'markup'])
+ return index + 2, None
 
 def markup_commented(block, index):
  'signify a "commented" number rather than one compiled or executed'
- block.insert(index, ['#', 'markup'])
- return index + 1, None
+ block.insert(index, ['(', 'markup'])
+ block.insert(index + 2, [')', 'markup'])
+ return index + 2, None
 
 def markup_definition(block, index):
  'put colon before defined word'
@@ -209,6 +213,7 @@ def markup_macro(block, index):
  return index + 1, None
 
 def markup_textallcaps(block, index):
+ assert False
  word, marked_up = block[index][0], block[index][0].upper()
  if marked_up in [word.lower(), word.capitalize()]:
   debug('explicitly marking %s as allcaps' % block[index], 2)
@@ -218,6 +223,7 @@ def markup_textallcaps(block, index):
  return index  # note this should NOT return tuple
 
 def markup_textcapitalized(block, index):
+ assert False
  word, marked_up = block[index][0], block[index][0].capitalize()
  debug('as is, upper, capital: %s' % [word, word.upper(), marked_up], 2)
  if marked_up in [word.lower(), word.upper()]:
@@ -243,12 +249,12 @@ def markup_text(block, index):
 def markup_execute(block, index):
  if DEFAULT[-1] == 'compile':
   debug('switching default to "execute" at %s' % end(block, index), 2)
-  block.insert(index, ['[', 'markup'])
+  block.insert(index, ['', 'markup'])
   DEFAULT[-1] = 'execute'
   index += 1
   return index, 0
  elif padblock(block)[index + 1][1] == 'definition':
-  block.insert(index + 1, [']', 'markup'])
+  block.insert(index + 1, ['', 'markup'])
   DEFAULT[-1] = 'compile'
   return index, 1
  else:
@@ -261,7 +267,7 @@ def end(block, index):
 def markup_compile(block, index):
  if DEFAULT[-1] == 'execute':
   debug('switching default to "compile" at %s' % end(block, index), 2)
-  block.insert(index, [']', 'markup'])
+  block.insert(index, ['', 'markup'])
   DEFAULT[-1] = 'compile'
   index += 1
  if block[index][0] == ';':
