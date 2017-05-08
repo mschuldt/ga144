@@ -16,6 +16,8 @@
 
 (provide aforth-compile aforth-compile-file display-compiled)
 
+(define 64-word-mem true)
+
 (define DEBUG? false) ;;does not work in elisp
 
 (define nodes false) ;;node# -> code struct
@@ -367,8 +369,12 @@
 
 (define (org n)
   (when DEBUG? (printf "        org(~a)\n" n))
+  (when 64-word-mem
+    (set! n (remainder n #x40)))
   (set! current-addr n)
-  (set! next-addr (add1 n))
+  (set! next-addr (if 64-word-mem
+                      (remainder (add1 n) #x40)
+                      (add1 n)))
   (set! current-word (vector-ref memory n))
   (when save-buffer-mappings
     (set! current-word-buffer-mapping (vector-ref buffer-mappings n)))
@@ -495,7 +501,9 @@
       (begin (vector-set! memory next-addr word)
              (when save-buffer-mappings
                (vector-set! buffer-mappings next-addr current-token-buffer-position))
-             (set! next-addr (add1 next-addr)))))
+             (set! next-addr (if 64-word-mem
+                                 (remainder (add1 next-addr) #x40)
+                                 (add1 next-addr))))))
 
 (define (make-new-address-cell val (name false))
   ;; name is an optional tag, usually the name of the word, that discribes the address.)
