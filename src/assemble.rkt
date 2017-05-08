@@ -32,7 +32,7 @@
         ;;in the assembled memory vector, false represents unused words
         ((or (equal? word (vector false false false false))
              (not word))
-         #x15555)
+         #x134a9) ;; call warm
         (else (let* ((d (assemble-inst word 3 0))
                      (c (assemble-inst word 2 3))
                      (b (assemble-inst word 1 8))
