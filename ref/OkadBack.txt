@@ -1,4 +1,4 @@
- ( -*- mode: aforth -*- )
+( -*- mode: aforth -*- )
 ( block 18 )
 :var ns [0x202] :var nblk [0x5a0] :var nc [0xf] ( 144a12 01g 42c/01w/22a copyright 2009-2011 greenarrays,inc) 20 load 22 load 24 load ( colors) 28 load 
 : abuf  10000  ;
@@ -462,7 +462,7 @@
 ( block 52 )
 ( floppy utility) empty :var hd [0x1] :var ad [0x25312]
 : array pop 2/ 2/ ;
-: com align array  0x1202004d , 0x6c 2, 
+: com align array  , 0x1202004d 0x6c 2, 
 : word ( n)  ad  @ ! 1  ad  +! ;
 : sectors ( cs-c) buffer  ad  ! 18 for over  hd  @ 0x100 * + over 18 mod 1 + 0x10000 * + 0x2000000 + word 1 + next drop ;
 : head ( ch-c) dup  hd  ! 0x400 * 0x1202004d +  com  ! dup 2* - 1801 + sectors format ;
@@ -542,7 +542,7 @@ text  ic  @ dup . h. 400 60 set keyboard ; 56 load ok h
 : r 1 wrap ;
 : tl toggle
 : l -1 wrap ;
-: h pad nul nul accept nul tl tu td tr l u d r -ic nul nul +ic nul nul nul nul nul nul nul nul nul nul nul nul  0x2500 , 0x110160c dup , , 0x2b000023 , 0 , 0 , 0 ,
+: h pad nul nul accept nul tl tu td tr l u d r -ic nul nul +ic nul nul nul nul nul nul nul nul nul nul nul nul  , 0x2500 0x110160c , , dup , 0x2b000023 , 0 , 0 , 0
 
 ( block 57 )
 ( edit icon)
@@ -659,8 +659,8 @@ text  ic  @ dup . h. 400 60 set keyboard ; 56 load ok h
 ( editor recolor) 8 display + @ 13 display + ! 
 : array pop 2/ 2/ + @ ; ( 1-4-9 2-5 8-6-15)
 : reclr align array
- 0 , 4 , 5 , 3 , 9 , 2 , 15 , 7 ,
-6 , 1 , 10 , 11 , 12 , 13 , 14 , 8 , 
+ , 0 , 4 , 5 , 3 , 9 , 2 , 15 , 7
+, 6 , 1 , 10 , 11 , 12 , 13 , 14 , 8 
 : wadr ( -a)  pcad  @  blk  @ max ; here ekt 20 + ! 
 : change wadr @ 0xf and reclr wadr @ 0xfffffff0 and or wadr ! ; 0x220e100a ekt 33 + !
 
@@ -739,19 +739,19 @@ macro
 : 1@ 0x8a 2, ; : 1! [compile] a! 0x288 2, [compile] drop ; forth 
 : string pop ;
 : cf-ii align string
- 0x6f747200 , 0x696e6165 , 0x79636d73 , 0x7766676c ,
-0x62707664 , 0x71757868 , 0x33323130 , 0x37363534 ,
-0x2d6a3938 , 0x2f7a2e6b , 0x2b21273b , 0x3f2c2a40 , 
+ , 0x6f747200 , 0x696e6165 , 0x79636d73 , 0x7766676c
+, 0x62707664 , 0x71757868 , 0x33323130 , 0x37363534
+, 0x2d6a3938 , 0x2f7a2e6b , 0x2b21273b , 0x3f2c2a40 
 : ch 0xfffffff0 and unpack  cf-ii  + 1@ 0xff and ;
 
 
 : ii-cf string
- 0x2a00 , 0x2b , 0x2b2d0000 , 0x2725232e ,
-0x1b1a1918 , 0x1f1e1d1c , 0x28292120 , 0x2f000000 ,
-0x3a43355c , 0x3d3e3440 , 0x54523744 , 0x3336393c ,
-0x38314742 , 0x3f414632 , 0x563b45 , 0x23000000 ,
-0xa13052c , 0xd0e0410 , 0x24220714 , 0x306090c ,
-0x8011712 , 0xf111602 , 0x260b15 , 
+ , 0x2a00 , 0x2b , 0x2b2d0000 , 0x2725232e
+, 0x1b1a1918 , 0x1f1e1d1c , 0x28292120 , 0x2f000000
+, 0x3a43355c , 0x3d3e3440 , 0x54523744 , 0x3336393c
+, 0x38314742 , 0x3f414632 , 0x563b45 , 0x23000000
+, 0xa13052c , 0xd0e0410 , 0x24220714 , 0x306090c
+, 0x8011712 , 0xf111602 , 0x260b15 
 : chc 0xffffffe0 +  ii-cf  + 1@ 0xff and ;
 
 
@@ -1317,7 +1317,7 @@ canon load
 : !18 ( n)  0x3ffff  or  0x40  *  0x12  + /str 4! +wd ;
 
 
-: snam ( -a) align create ( //./)  0x2f2e2f2f , ( com) 0x6d6f63 , 0x0 , 
+: snam ( -a) align create ( //./)  , 0x2f2e2f2f ( com) , 0x6d6f63 , 0x0 
 : !nam  sport  @ 10 over - + drop -if 256 * 2560 /mod + 0x3000 + then 0x30 + snam a-b 7 + 4! ; !nam 
 : toser ( bn)  dh  @ fwr drop ;
 : inser ( w) stream swap  3  *  dh  @ frd drop ;
@@ -1424,12 +1424,12 @@ canon load
 
 
 : 0pa align create  708 700 to 600 0 to
-1 17 to 117 717 to 716 708 to -1 , 
-: 1pa align create  708 , 608 , -1 , 
+1 17 to 117 717 to 716 708 to , -1 
+: 1pa align create  , 708 , 608 , -1 
 : 2pa align create  708 717 to 617 17 to
-16 0 to 100 , 101 116 to 216 200 to
+16 0 to , 100 101 116 to 216 200 to
 300 316 to 416 400 to 500 516 to
-616 600 to 700 708 to -1 ,
+616 600 to 700 708 to , -1
 
 ( block 121 )
 
@@ -1443,13 +1443,13 @@ canon load
 : wall ( nn-i)  'wall  xqt ; ' swall 'wall !
 
 
-: do! align create ( @p+a!.@p+)  0x4ab7 ,
-     0x0 , 0x0 , ( !;;;) 0xb555 , 
-: do@ align create ( ...@p+)  0x2c9b7 ,
-     0x0 , ( a!@!p+;) 0x2be35 , 
-: doi align create  0x10000 , 
-: dopu align create ( @p+;)  0x5555 , 0x0 , 
-: dostk align create ( !p+dup-push!p+)  0xcdbe ,
+: do! align create ( @p+a!.@p+)  , 0x4ab7
+     , 0x0 , 0x0 ( !;;;) , 0xb555 
+: do@ align create ( ...@p+)  , 0x2c9b7
+     , 0x0 ( a!@!p+;) , 0x2be35 
+: doi align create  , 0x10000 
+: dopu align create ( @p+;)  , 0x5555 , 0x0 
+: dostk align create ( !p+dup-push!p+)  , 0xcdbe
 
 
 : aa@ ( a-n)  do@ 1 +  ! do@  3  fet  1  exch @18 ;
@@ -1543,8 +1543,8 @@ canon load
 
 ( block 128 )
 ( - routing control)
-: targets ( -a)  act  @ align tbl  0tg , 1tg , 2tg , 
-: paths ( -a)  act  @ align tbl  here 0pa , 1pa , 2pa , : 'pths  0 + b-a  ;
+: targets ( -a)  act  @ align tbl  , 0tg , 1tg , 2tg 
+: paths ( -a)  act  @ align tbl  here , 0pa , 1pa , 2pa : 'pths  0 + b-a  ;
 
 
 : path ( i)  act  ! paths dup @ swap  1  + @ wall port  vport  ! ;
@@ -1577,11 +1577,11 @@ canon load
 
 ( block 130 )
 ( - target anywhere)
-: dor! align create  0x12005 , 0x0 , 0x0 , 
-: dor@ align create  0x12000 , 0x0 , 
-: dori align create  0x1200a , 0x0 , 
-: dorp align create  0x1200d , 0x0 , 
-: dorst align create  0x12010 , 
+: dor! align create  , 0x12005 , 0x0 , 0x0 
+: dor@ align create  , 0x12000 , 0x0 
+: dori align create  , 0x1200a , 0x0 
+: dorp align create  , 0x1200d , 0x0 
+: dorst align create  , 0x12010 
 : stak align create  40 rez
 
 
@@ -1721,7 +1721,7 @@ canon load
 : zxch ( w n f n) push push dup ( 0x2 ) ( +) ( -2 ) ( and)  vport  @ pop /frame ( vport @) ( 0x12000 ) ( + !18 dup -) ( 0x1 ) ( and drop if vport @) ( 0x10000 ) ( + !18 then) +frame  wos  !frame pop inser -stream ;
 
 
-: dox align create ( @p call)  0x56a9 , ( arg) 0x0 , 
+: dox align create ( @p call)  , 0x56a9 ( arg) , 0x0 
 : xchg ( cmd arg - result)  dox 1 +  !  dox  ! dox  0x2  fet  1 ( exch)  zxch @18 ;
 
 
@@ -1756,7 +1756,7 @@ lit' ra! ;
 : fwall ( -n) paths targets @ + dup @ swap  -1  + @ wall ;
 : fport ( -a) fwall port ;
 : fbit ( -n) fwall align tbl
-( r)  0x8000 , ( d) 0x2000 , ( l) 0x800 , ( u) 0x200 , 
+( r)  , 0x8000 ( d) , 0x2000 ( l) , 0x800 ( u) , 0x200 
 : nodes ( -n) 0 begin  1  +
 dup paths +  1  + @  0  + drop -until paths @
 over paths + @ or drop if ;  then  -1  + ;
@@ -1907,9 +1907,9 @@ i idle reset i n-nn @rom load -next
 ( c-a-c - ascii for gds only!) macro 
 : 1@ 0x8a 2, ; forth 
 : string pop ;
-: cf-ii string  0x6f747200 , 0x696e6165 , 0x79636d73 , 0x7766676c , 0x62707664 , 0x71757868 , ( 336a7a6b) 0x33323130 , 0x37363534 , ( 2d313938 - 2d7a3938) 0x5f7a3938 , ( 2f322e30) 0x2f6a2e6b , ( 2b213a3b) 0x24213a3b , 0x3f2c2a40 , 
+: cf-ii string  , 0x6f747200 , 0x696e6165 , 0x79636d73 , 0x7766676c , 0x62707664 , 0x71757868 ( 336a7a6b) , 0x33323130 , 0x37363534 ( 2d313938 - 2d7a3938) , 0x5f7a3938 ( 2f322e30) , 0x2f6a2e6b ( 2b213a3b) , 0x24213a3b , 0x3f2c2a40 
 : ch 0xfffffff0 and unpack  cf-ii  + 1@ 0xff and ;
-: ii-cf string  0x2a00 , ( 0 +) 0x2b , 0x2b2d0000 , 0x2725232e , ( zjk 1b262224) 0x1b1a1918 , 0x1f1e1d1c , 0x28292120 , 0x2f000000 , 0x3a43355c , 0x3d3e3440 , ( 02 484a3744 kj) 0x54523744 , 0x3336393c , 0x38314742 , 0x3f414632 , ( 1 493b45 z) 0x563b45 , ( -) 0x23000000 , 0xa13052c , 0xd0e0410 , ( 02 181a0714 kj) 0x24220714 , 0x306090c , 0x8011712 , 0xf111602 , ( 1 190b15 z) 0x260b15 , 
+: ii-cf string  , 0x2a00 ( 0 +) , 0x2b , 0x2b2d0000 , 0x2725232e ( zjk 1b262224) , 0x1b1a1918 , 0x1f1e1d1c , 0x28292120 , 0x2f000000 , 0x3a43355c , 0x3d3e3440 ( 02 484a3744 kj) , 0x54523744 , 0x3336393c , 0x38314742 , 0x3f414632 ( 1 493b45 z) , 0x563b45 ( -) , 0x23000000 , 0xa13052c , 0xd0e0410 ( 02 181a0714 kj) , 0x24220714 , 0x306090c , 0x8011712 , 0xf111602 ( 1 190b15 z) , 0x260b15 
 : chc 0xffffffe0 +  ii-cf  + 1@ 0xff and ;
 
 ( block 155 )
@@ -2438,9 +2438,9 @@ seeb ( toggles blue-word visibility.)
 ( ga144 pads, ports and resets)
 
 
-: port ( i-pa) align tbl  0x1d5 , 0x115 , 0x175 , 0x145 , 0x195 , 0x185 , 0x1b5 , 0x1a5 , 
+: port ( i-pa) align tbl  , 0x1d5 , 0x115 , 0x175 , 0x145 , 0x195 , 0x185 , 0x1b5 , 0x1a5 
 : idle ( n-p)  nnx  /mod  nny -1 +  mod  1  min  4  + swap  nnx -1 +  mod  1  min 2* + port ;
-: rstadr align tbl  0xaa , 0x195 , 0x185 , 0x1b5 , 0x1a5 , 
+: rstadr align tbl  , 0xaa , 0x195 , 0x185 , 0x1b5 , 0x1a5 
 : rstdef strings ( p0aa p13f p12f p11f p10f)
 : ?rst ( pa-i)  4  for dup i rstadr or while drop -next abort then drop drop pop ;
 
@@ -2500,7 +2500,7 @@ seeb ( toggles blue-word visibility.)
 ( block 200 )
 ( user f18 code) reclaim
 
-( softsim example) reclaim 0 node 1342 load
+( softsim example) reclaim node 0 1342 load
 ( practical example pwm code) reclaim 842 load
 
 ( block 201 )
@@ -3017,17 +3017,17 @@ drop if pop fail ;
 
 
 ( block 256 )
-( exercising flash) 0x20 org 
+( exercising flash) org 0x20 
 : focus ( 0x20 ) @p dup a! .. ( /) --l- ( /) ! ;
 : reading ( 0x23 ) ( l h) focus @p ! .. ( /) @p @p .. ( /)
-! ! .. @p ! ; ( /) 0x1200e , ( /)
-: @word ( 0x29 ) ( -n) @p ! .. ( /)  0x120d9 , ( /)
+! ! .. @p ! ; ( /) , 0x1200e ( /)
+: @word ( 0x29 ) ( -n) @p ! .. ( /)  , 0x120d9 ( /)
  @p ! @ ; ( /)  !p .. ( /)
 : writing ( 0x2d ) ( h l n) focus
 left @p ! .. ( /) @p a! .. ( /)
 ! @p ! .. ( /) @p @p @p .. ( /) push push !
-pop ! pop ! @p ! ; ( /) 0x1201d , ( /)
-: stash ( 0x37 ) focus @word !p ; ( 0x3a ) 0 ,
+pop ! pop ! @p ! ; ( /) , 0x1201d ( /)
+: stash ( 0x37 ) focus @word !p ; ( 0x3a ) , 0
 
 exit 
 : stash ( 0x37 ) focus a push @word 0x3f a! ! pop a! ;
@@ -3100,7 +3100,7 @@ drop if pop drop fail ;  then -next drop fair ;
 : line ( ncd) swap push swap begin dup , over + -next drop drop ;
 : count ( nc-ncd) dup  100  mod  0  + if ( horz) swap drop  1  ; ( vert)  then drop  100  /  100  ;
 : to ( nn) over negate + -if ( back) negate count negate line ; ( forw)  then count line ;
-: entire align create  705 701 to 700 0 to 1 17 to 117 101 to 201 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to -1 , ( retain asynch boot) 708 +node 0xaa /p
+: entire align create  705 701 to 700 0 to 1 17 to 117 101 to 201 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to , -1 ( retain asynch boot) 708 +node 0xaa /p
 
 ( block 263 )
 
@@ -3130,8 +3130,8 @@ drop if pop drop fail ;  then -next drop fair ;
 
 ( block 268 )
 ( - residual paths)
-: s705 align create  705 701 to 700 0 to 1 6 to 106 101 to 201 208 to 108 109 to 209 210 to 110 10 to 11 17 to 117 111 to 211 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to -1 ,
-: s708 align create  708 701 to 700 0 to 1 6 to 106 101 to 201 208 to 108 109 to 209 210 to 110 10 to 11 17 to 117 111 to 211 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to -1 ,
+: s705 align create  705 701 to 700 0 to 1 6 to 106 101 to 201 208 to 108 109 to 209 210 to 110 10 to 11 17 to 117 111 to 211 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to , -1
+: s708 align create  708 701 to 700 0 to 1 6 to 106 101 to 201 208 to 108 109 to 209 210 to 110 10 to 11 17 to 117 111 to 211 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to , -1
 
 ( block 269 )
 ( memory clusters are often loaded before the) ( rest of the application so that external ram) ( may be initialized without burdening appli-) ( cation f18 code. these residual paths provide access from boot nodes to the rest of the chip in such cases.)
@@ -3139,8 +3139,8 @@ drop if pop drop fail ;  then -next drop fair ;
 : s708 ( residual path for async boot or ide.)
 
 ( block 270 )
-( sram.16 address-bus) 9 node
-( 0xaa ) 0x20 org
+( sram.16 address-bus) node 9
+( 0xaa ) org 0x20
 
 
 : start ( 0x20 ) right b! .. data a! .. 0x3 ( mask)
@@ -3159,14 +3159,14 @@ drop if pop drop fail ;  then -next drop fair ;
 ( the code is written to minimize/equalize the time to output the address, which must be stable when node8 stores the 'start' command.)
 
 ( block 272 )
-( - control-pins) 8 node host  :: 'r-l- 0x1f5 lit ; target 0x0 org
+( - control-pins) node 8 host  :: 'r-l- 0x1f5 lit ; target org 0x0
 
 ( 'start' pin control table 0-7)
-( 0x0 ) 0x2556e ( r00) , 0x2557e ( r01) ,
-( 0x2 ) 0x3556e ( r10) , 0x3557e ( r11) ,
-( 0x4 ) 0x3557a ( w11) , 0x3556a ( w10) ,
-( 0x6 ) 0x2557a ( w01) , 0x2556a ( w00) ,
-( 0x8 ) 0x20 org
+( 0x0 ) 0x2556e ( , r00) 0x2557e ( , r01)
+( 0x2 ) 0x3556e ( , r10) 0x3557e ( , r11)
+( 0x4 ) 0x3557a ( , w11) 0x3556a ( , w10)
+( 0x6 ) 0x2557a ( , w01) 0x2556a ( , w00)
+( 0x8 ) org 0x20
 
 
 : start ( 0x20 ) 'r-l- b! io a!
@@ -3191,9 +3191,9 @@ drop if pop drop fail ;  then -next drop fair ;
 ( r11 .0011) 0x3557e ( a19-1 a18-1 /we-1 /ce-0)
 
 ( block 274 )
-( - data-bus) 7 node host  :: in 0x14555 lit ; :: out 0x15555 lit ; :: stop 0x3557f lit ; target
+( - data-bus) node 7 host  :: in 0x14555 lit ; :: out 0x15555 lit ; :: stop 0x3557f lit ; target
 
-( 0xaa ) 0x20 org 
+( 0xaa ) org 0x20 
 : start ( 0x20 ) left b! out io data stop
      out io data stop in io a! ( in) !
      down a! ( stop) !b
@@ -3222,7 +3222,7 @@ pop ! ( io) a! ( out) ! ( 40 ) 13 for unext ( stop) !b
 ( stop) 0x3557f ( a19-1 a18-1 /we-1 /ce-1)
 
 ( block 276 )
-( - interface) 107 node 0x0 org 
+( - interface) node 107 org 0x0 
 : cx ( wp-) ( 0x0 ) over push @ dup ( a) !b over ( p) !b @b ( w) pop - ( w1) or if ( ne) @ ( w2) dup or ( ff) ! ; ( eq)  then drop ( a) !b - ( -p) !b @ ( w2) !b 0xffff ! ;
 : cmd ( 0xa ) @ -if @  ' cx  -until ( .e!) - !b !b @ !b ;  then ( 0xe ) @ -if ( mixpa) ( .mk!) ( 0xf ) - push drop drop pop if ( mia) ( ..stim) ( 0x11 ) drop and @ over over 2* ahead  swap ( ..mask) ( 0x14 )  then drop drop @ 2* over - ( ...both) ( 0xc16 ) then and or
 : re ( 0x17 ) ( m) 0x15555 dup ahead  swap  then ( .e@) ( 0x19 ) ( a) !b ( p) !b @b ( w) ! ;
@@ -3260,7 +3260,7 @@ mk! ( sets mask from w when f is 0;)
 ( posts stimuli when f is 1.)
 
 ( block 280 )
-( - degenerate sram) 107 node 0x0 org
+( - degenerate sram) node 107 org 0x0
 
 
 : cx ( wp-) ( 0x0 ) over push @ dup
@@ -3271,7 +3271,7 @@ mk! ( sets mask from w when f is 0;)
 
 : cmd ( 0xa ) @ -if @  ' cx  -until ( .e!) - !b !b @ !b ;  then ( 0xe ) @ ( .e@) ( 0xf ) ( a) !b ( p) !b @b ( w) ! ;
 
-( 0x11 ) 0x17 org 
+( 0x11 ) org 0x17 
 : start ( 0x17 ) down b! right a!
 : run ( 0x1b ) cmd run ; ( 0x1d )
 
@@ -3379,18 +3379,18 @@ len ( length of stream in words)
 ( pf to flash)
 
 ( read/write) ( 18 ) ( bit flash)
-     705 node 1364 load 1609 bin
-     706 node 256 load 1610 bin
+     node 705 1364 load 1609 bin
+     node 706 256 load 1610 bin
 ( read/write) ( 8 ) ( bit flash)
-     705 node 1370 load 1611 bin
+     node 705 1370 load 1611 bin
 ( erase flash)
-     705 node 1352 load 1613 bin
+     node 705 1352 load 1613 bin
 
 ( block 289 )
 
 
 ( block 290 )
-( speedup spi boot) 705 node 0 org 
+( speedup spi boot) node 705 org 0 
 : start 5 dup spi-exec ;
 ( 0x3 ) 1608 bin
 
@@ -3442,7 +3442,7 @@ blocks 604 ( thru) 636 ( are ide load blocks to set up various measurement condi
 
 
 ( block 302 )
-( custom test code) 609 node 0x0 org 
+( custom test code) node 609 org 0x0 
 : t1 ( 0x0 ) begin begin begin begin
 unext unext unext unext t1 ;
 : t2 ( 0x2 ) begin begin begin
@@ -3793,7 +3793,7 @@ dup try -1 + io r@ - 0x20000 and drop until then ;
 
 
 ( block 344 )
-( instr timing code) 610 node 0x0 org 
+( instr timing code) node 610 org 0x0 
 : set 0x3fffe 0x3ffff 999 io b! 1 a! ;
 : t1 ( 0x7 ) set push !b begin unext !b ;
 : t2 ( 0xa ) set push !b begin next !b ;
@@ -3900,7 +3900,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 : //go ( entered with path tbl adr for the active node on stack.)
 
 ( block 360 )
-( polyforth virtual machine) reclaim ( sram cluster mk1) sram load ( serial) 38 fh 3 loads reclaim ( stack) 106 node 0x39 org 278 load 14 fh 2 loads ( coprocs) 22 fh 4 loads ( bitsy) 105 node 18 fh 2 loads ( coprocs) 30 fh 4 loads ( flash to sram) 86 fh 2 loads reclaim ( erase and burn flash) 288 load ( spi speedup) 290 load ( serial wires) 102 node 0x20 org
+( polyforth virtual machine) reclaim ( sram cluster mk1) sram load ( serial) 38 fh 3 loads reclaim ( stack) node 106 org 0x39 278 load 14 fh 2 loads ( coprocs) 22 fh 4 loads ( bitsy) node 105 18 fh 2 loads ( coprocs) 30 fh 4 loads ( flash to sram) 86 fh 2 loads reclaim ( erase and burn flash) 288 load ( spi speedup) 290 load ( serial wires) node 102 org 0x20
 : start @ !b start ; ( 0x21 ) 1709 bin ( ganglia) 6 fh load ( snorkel) 10 fh load ( spi) 44 fh load
 
 ( block 361 )
@@ -3919,7 +3919,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 
 
 ( block 366 )
-( generate ganglia) 700 node 0x20 org reclaim ( rlud)  r--- --l- ---u -d--  2 fh load 1716 bin ( 0x40 ) 701 node 0x20 org reclaim ( rlud)  --l- r--- ---u -d--  2 fh load 1717 bin ( 0x40 ) 600 node 0x20 org reclaim ( rlud)  r--- --l- -d-- ---u  2 fh load 1714 bin ( 0x40 ) 601 node 0x20 org reclaim ( rlud)  --l- r--- -d-- ---u  2 fh load 1715 bin ( 0x40 )
+( generate ganglia) node 700 org 0x20 reclaim ( rlud)  r--- --l- ---u -d--  2 fh load 1716 bin ( 0x40 ) node 701 org 0x20 reclaim ( rlud)  --l- r--- ---u -d--  2 fh load 1717 bin ( 0x40 ) node 600 org 0x20 reclaim ( rlud)  r--- --l- -d-- ---u  2 fh load 1714 bin ( 0x40 ) node 601 org 0x20 reclaim ( rlud)  --l- r--- -d-- ---u  2 fh load 1715 bin ( 0x40 )
 
 ( block 367 )
 ( background nodes are filled by default with) ( ganglia, routing code in) ( 0x20 ) ( to) ( 0x3f ) ( thus they) ( may support either ide or neural messaging) ( until node is programmed some other way.) ( routing directions are geographic.) ( coded direction rlud 0123) ( four bins hold node orientations...) ( 1716 ) ( 100 ) ( 1717 ) ( 101 ) ( 1714 ) ( 000) ( 1715 ) ( 001) ( routing note- step count is relative to the node first receiving one of these messages. if) ( all counts zero will deliver to its neighbor) ( in direction indicated by two lsb of path. a) ( turn to deliver to right neighbor of turner) is not expressible ( because whole field zero.) third run must never have count 8 or more!
@@ -3937,7 +3937,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 ( ganglia route messages much like chuck's 'sea' delivers exchanges of) ( 1 ) ( or more word out and) ( 1 ) ( or more word reply to arbitrary nodes with) ( source routing. message structure is...)  focus call ( to port)  always there  pump call  interganglion only  path ( see below)  inter only  reply count ( words-1)  inter only  payload count ( words-1)  inter only  payload  always there  reply  always there ( path has) ( 3 ) ( 6-bit runs low order taken first) ( run encoded nnnndd path has 3 runs,) ( 2-bit direction rlud 0123) ( 4-bit count 1-relative zero deliver immed) ( 3rd run must be lt) ( 8 ) ( example from 708 to 617 go down 1 and right 8) ( 8 0 1 3 packed as 807) in octal. ( when an exchange is finished all) ( ganglia are back where they were) ( on receipt of focusing call.)
 
 ( block 370 )
-( - snorkel) reclaim 108 node 0 org 
+( - snorkel) reclaim node 108 org 0 
 : mk! ( fp'm)
 : /! ( an-a) ( 0x0 ) push dup - !b over - !b pop !b ;
 : a+ ( 0x3 ) ( ap-ap+) push 1 . + 0x10000 over and if or 1 then pop . + ;
@@ -3964,7 +3964,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 
 
 ( block 374 )
-( pf.16 stack) 0x0 org 
+( pf.16 stack) org 0x0 
 : '1+ ( w-w) ( 0x0 ) 1 . + : mask ( w-w) ( 0x2 ) 0xffff and ;
 : '2/ ( w-w) ( 0x4 ) 2* 2* 2/ 2/ 2/ mask ;
 : popt ( p-pt) ( 0x6 ) dup '1+ over x@ ;
@@ -3972,8 +3972,8 @@ empty compile serial load panel talk 2 ( 0 ) path
 : popst ( p-pst) ( 0x9 ) popt
 : pops ( pt-pst) ( 0xa ) push popt pop ;
 : pop43 ( pst-p43st) ( 0xc ) push push popst pop pop ;
-: '1- ( w-w) ( 0xe ) -1 . + mask ; ( 0x11 ) here 0x37 org 
-: psht ( pt-p) ( 0x37 ) push '1- pop over ( x! ;) ( 0x839 ) ( *)  org
+: '1- ( w-w) ( 0xe ) -1 . + mask ; ( 0x11 ) here org 0x37 
+: psht ( pt-p) ( 0x37 ) push '1- pop over ( x! ;) ( 0x839 ) ( org  *)
 : pshs ( pst-pt) ( 0x11 ) push psht pop ;
 : pshw ( pstw-ptw) ( 0x13 ) push pshs pop ;
 : 'sp! ( ptp-pst) ( 0x15 ) pshs popst ;
@@ -3985,7 +3985,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 ( code.sx x4) ( 0x1a ) 2* ( up)  0x145  -until -d-- ;
 ( code.sm x4) ( 0x1d )  then drop push ; ( 0x1e )
 
-( 3 ) ( words to recover!) 0x21 org
+( 3 ) ( words to recover!) org 0x21
 
 ( block 375 )
 ( the stack node abuts the memory driver. note that it includes x@ and friends.)
@@ -4030,7 +4030,7 @@ empty compile serial load panel talk 2 ( 0 ) path
 ( so as not to lose the code for use later when/if some code is put in rom.)
 
 ( block 378 )
-( pf.16 bitsy) 0x0 org 
+( pf.16 bitsy) org 0x0 
 : 'else : bx@ ( a-w) ( 0x0 ) @p !b !b . ( /) @p x@ ( /)
 @p !b @b ; ( /)  !p . . . ( /)
 : bx!- ( aw-a') ( 0x4 ) @p !b !b dup ( /) @p . . . ( /)
@@ -4095,7 +4095,7 @@ xx.1111.xxaa.aaaa.aaaa ( xt in bitsy down)
 ( code.sx rix4) ( 0x29 ) @p !b !b . ( /) @b sco ( /) drop ; ( code.sm) ( 0x2c )  then drop 0x1a000 or !b ;
 
 ( block 382 )
-( stack down bxxx) 6 node 0 org 
+( stack down bxxx) node 6 org 0 
 : xqt ( 0x0 ) @b push ex
 : idle ( 0x1 ) @p !b xqt ; ( /)  drop !p . . ( /) ( 0x3 )
 
@@ -4130,7 +4130,7 @@ opcodes  must return to idle when done.
 
 
 ( block 386 )
-( stack up axxx) 206 node 0 org 
+( stack up axxx) node 206 org 0 
 : xqt ( 0x0 ) @b push ex
 : idle ( 0x1 ) @p !b xqt ; ( /)  drop !p . . ( /) ( 0x3 )
 
@@ -4140,7 +4140,7 @@ opcodes  must return to idle when done.
 : free ( 0x5 ) @p !b pop ; ( /)  . ;  ..
 
 ( 0x7 )  1702 bin exit 
-: who ( 0x7 ) @p !b @b @p ( /) !p @p ; ( /) 206 ,  + !b ;
+: who ( 0x7 ) @p !b @b @p ( /) !p @p ; ( /) , 206  + !b ;
 
 ( block 387 )
 
@@ -4157,7 +4157,7 @@ opcodes  must return to idle when done.
 
 
 ( block 390 )
-( bitsy down fxxx) 5 node 0 org 
+( bitsy down fxxx) node 5 org 0 
 : xqt ( 0x0 ) @b push ex
 : idle ( 0x1 ) @p !b xqt ; ( /)  drop !p . . ( /) ( 0x3 )
 
@@ -4183,7 +4183,7 @@ opcodes  must return to idle when done.
 
 
 ( block 394 )
-( bitsy up exxx) 205 node 0 org 
+( bitsy up exxx) node 205 org 0 
 : xqt ( 0x0 ) @b push ex
 : idle ( 0x1 ) @p !b xqt ; ( /)  drop !p . . ( /) ( 0x3 )
 
@@ -4214,7 +4214,7 @@ opcodes  must return to idle when done.
 
 
 ( block 398 )
-( serial transmit) 100 node 0x0 org 
+( serial transmit) node 100 org 0x0 
 : !bit ( im-i) ( 0x0 ) over and
 if ( 0 ) ( dumb) 0x25555 ( maxim) ( 0x35555 ) !b drop ;
  then ( 1 ) ( dumb) 0x35555 ( maxim) ( 0x25555 ) !b drop ;
@@ -4224,7 +4224,7 @@ if ( 0 ) ( dumb) 0x25555 ( maxim) ( 0x35555 ) !b drop ;
      1 !bit 2/ over for . unext
 next ( 0xe ) drop ( weak-pulldown) ( 0x15555 ) ( !b) ;
 
-( 0xf ) 0x20 org ( programmed with abandon)
+( 0xf ) org 0x20 ( programmed with abandon)
 : start io b! right a! 2400 ( est.) ( 115200 ) ( baud)
 ( stopbit state dumb) 0x25555 ( maxim) ( 0x35555 ) !b
 : wait ( d-.d) ( 0x27 ) @ -if ( tx!) putchar wait ;
@@ -4250,7 +4250,7 @@ the delay!
       send ( and) send/ ( test the bit timing using external loop-back.)
 
 ( block 400 )
-( - receive) 200 node 0x28 org 
+( - receive) node 200 org 0x28 
 : @bit ( cm-c) @b - over - and push and pop or ;
 : getc ( d-dc) ( 0x2b ) dup begin drop @b -until
 : getchar ( dx-dc) ( 0x2d ) over 2/ for . unext ( 1/2 bit) 8 for ( 1-start, 8-data, 1-stop bits)
@@ -4269,7 +4269,7 @@ pop - ( n) dup 2/ . + ( 1.5n) dup ;
 : idle ( d) ( 0x4c ) @b -if getchar -
      @b 2* - -if over ! then drop drop idle ;  then 0x200 and .. if auto ;  then drop idle ;
 
-( 0x58 ) 0x20 org ( programmed with some abandon)
+( 0x58 ) org 0x20 ( programmed with some abandon)
 : start io b! 0x5555 !b right a! 2400 idle ; ( 0x27 ) 1707 bin
 
 ( block 401 )
@@ -4287,7 +4287,7 @@ pop - ( n) dup 2/ . + ( 1.5n) dup ;
 : idle
 
 ( block 402 )
-( - interface) 104 node 0x20 org
+( - interface) node 104 org 0x20
 ( programmed with abandon)
 : start io b! right a! ahead
 : rx? ( 0x24 ) 0x400 and .. if ( avail) up a! @ then
@@ -4316,7 +4316,7 @@ pop - ( n) dup 2/ . + ( 1.5n) dup ;
       iox ( suspends until it puts the)  16-bit pos bit delay ( in the xmit queue and again while it discards any) inv characters ( in the recv queue before the new) pos bit delay ( arrives.)
 
 ( block 404 )
-( spi flash sst25wf080) reclaim 705 node 0 org 
+( spi flash sst25wf080) reclaim node 705 org 0 
 : entry ( 0x0 ) pop a! ( delay) @
 : nxt ( 0x1 ) ( d-d) @ push ex . nxt ;
 : null ( 0x3 ) ( d) dup !
@@ -4342,7 +4342,7 @@ pop - ( n) dup 2/ . + ( 1.5n) dup ;
 : slowin ( given nbyt-1 receives nbyt bytes from) ( the device. used for slow mmc.)
 
 ( block 406 )
-( minimal spi) reclaim 705 node 0 org ( working before speed up)
+( minimal spi) reclaim node 705 org 0 ( working before speed up)
 : entry ( 0x0 ) pop a! ( delay) @
 : nxt ( 0x1 ) ( d-d) @ push ex . nxt ;
 : null ( 0x3 ) ( d) dup !
@@ -4476,15 +4476,15 @@ pop - ( n) dup 2/ . + ( 1.5n) dup ;
 
 
 ( block 446 )
-( - sram loader nodes) ( wires) 605 node 0 org 
-: wire ( b! a!) @ dup !b for @ !b unext warm ; ( 0x4 ) 1711 bin ( sram loader node) ( 108 ) 108 node 0x39 org 278 load 0 org
+( - sram loader nodes) ( wires) node 605 org 0 
+: wire ( b! a!) @ dup !b for @ !b unext warm ; ( 0x4 ) 1711 bin ( sram loader node) ( 108 ) node 108 org 0x39 278 load org 0
 : start ( 0x0 ) up a! left b! 0 @ dup push over x! begin 1 . + @ over x! next warm ; ( 0xd ) 1713 bin
 
 ( block 447 )
 ( minimal version of plumbing for sram boot from flash. wires are compiled only once and are) ( initialized with source port in a and dest) ( port in b.) ( message consists of word count n-1 followed by n words to be passed along.) ( node) ( 108 ) ( now loads the image received from) ( flash into sram.) ( 208 ) ( is just another wire) ( however, the generic sram interface code is) ( compiled at the usual place anyway, so this) ( bin can be used by both the streamer and the) ( ide)
 
 ( block 448 )
-( - spi flash) ( 8 ) ( bits) 705 node 0 org host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
+( - spi flash) ( 8 ) ( bits) node 705 org 0 host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
      18 8 */ 4 * lit ; target 
 : wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
 : 2cmd ( dw-d) ( 0x4 ) select 8obits
@@ -4519,8 +4519,8 @@ rbit ibit - next 0xffff and ;
 
 ( block 452 )
 ( - custom ide paths)
-: pfp0 align create  708 707 to 607 207 to 206 205 to -1 ,
-: pfp1 align create ( sram)  708 108 to 107 7 to 8 9 to -1 ,
+: pfp0 align create  708 707 to 607 207 to 206 205 to , -1
+: pfp1 align create ( sram)  708 108 to 107 7 to 8 9 to , -1
 
 ( block 453 )
 ( paths) ( 0 ) ( and) ( 1 ) ( are customized for interactive devel and testing of polyforth.)
@@ -4709,13 +4709,13 @@ framer load ( the stream) 2 fh load
 
 ( block 482 )
 ( 2000 ) ( port tests)
-( creeper) reclaim 0 node 1344 load 0x1b org 
+( creeper) reclaim node 0 1344 load org 0x1b 
 : release ( 0x1b ) @p ! ; ( /)  ; ( /)
 : bit ( 0x1d ) ( n-nn) @p ! dup dup ( /) @p !p .. ( /)
 ! @ or ;
 : walk ( 0x20 ) ( n) 17 for bit if pop !b pop
 release ;  then drop 2* next drop ;
-( 0x28 ) 4 org : ftst a 0x1ff and 0x13400 or
+( 0x28 ) org 4 : ftst a 0x1ff and 0x13400 or
 : tst ( 0x8 ) ( cport) dup a! !
 0x15554 dup walk dup - walk release dup or !b ;
 : trd ( 0xf ) leap ( tr) : td ( 0x10 ) @p tst ;  -d--
@@ -4749,13 +4749,13 @@ tests ( on single neighbor and on pairs)
 
 ( block 484 )
 ( 2001 ) ( port tests with 2*)
-( creeper) reclaim 0 node 1344 load 0x1b org 
+( creeper) reclaim node 0 1344 load org 0x1b 
 : release ( 0x1b ) @p ! ; ( /)  ; ( /)
 : bit ( 0x1d ) ( n-nn) @p ! dup dup ( /) @p 2* !p .. ( /)
 ! 2* @ or ;
 : walk ( 0x21 ) ( n) 17 for bit if pop !b pop
 release ;  then drop 2* next drop ;
-( 0x2a ) 4 org : ftst a 0x1ff and 0x13400 or
+( 0x2a ) org 4 : ftst a 0x1ff and 0x13400 or
 : tst ( 0x8 ) ( cport) dup a! !
 0x15554 dup walk dup - walk release dup or !b ;
 : trd ( 0xf ) leap ( tr)
@@ -4789,8 +4789,8 @@ tests ( on single neighbor and on pairs)
 
 ( block 486 )
 ( 2002 ) ( extensive ram test jeff)
-( creeper) reclaim 0 node 1344 load 0x28 org 
-: err  4 org 
+( creeper) reclaim node 0 1344 load org 0x28 
+: err  org 4 
 : test ( n1) @p ! @p dup ( ') 0x3f push dup dup
 ! @p ! ( ') or dup a! .
 @p ! ( ') begin dup !+ unext .. ( 0xb ) ( erased)
@@ -4827,9 +4827,9 @@ apocryphal documentation follows
 
 ( block 488 )
 ( 2003 ) ( testing t and s)
-( creeper) reclaim 0 node 1344 load 0x20 org 
+( creeper) reclaim node 0 1344 load org 0x20 
 : echo ( 0x20 ) ( n-n) @p ! dup .. ( /) @p - dup .. ( /)
-! @p ! .. ( /) drop !p .. ( /) - @ or ; 4 org 
+! @p ! .. ( /) drop !p .. ( /) - @ or ; org 4 
 : test ( 0x4 ) ( n) 17 for dup echo
 if pop 1 . + !b ;  then drop 2* next
 dup or !b ; ( 0xe ) 2003 bin
@@ -4847,9 +4847,9 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 490 )
 ( 2004 ) ( testing t and r)
-( creeper) reclaim 0 node 1344 load 0x20 org 
+( creeper) reclaim node 0 1344 load org 0x20 
 : echo ( 0x20 ) ( n-n) @p ! dup .. ( /) @p - push .. ( /)
-! @p ! .. ( /) pop !p .. ( /) - @ or ; 4 org 
+! @p ! .. ( /) pop !p .. ( /) - @ or ; org 4 
 : test ( 0x4 ) ( n) 17 for dup echo
 if pop 1 . + !b ;  then drop 2* next
 dup or !b ; ( 0xe ) 2004 bin
@@ -4867,12 +4867,12 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 492 )
 ( 2005 ) ( testing stack registers)
-( creeper) reclaim 0 node 1344 load 6 org 
+( creeper) reclaim node 0 1344 load org 6 
 : put ( n) @p ! ! ; ( /)  @p .. ( /)
 : get ( -n) @p ! @ ; ( /)  !p .. ( /)
 : stack ( 0xa ) 1 9 for dup put 2* next
 9 for 2/ get over or if pop 1 . + !b
-pop ;  then drop next ; ( 0x18 ) 4 org 
+pop ;  then drop next ; ( 0x18 ) org 4 
 : start ( n) stack dup or !b ; ( 0x6 ) 2005 bin
 
 ( block 493 )
@@ -4889,7 +4889,7 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 494 )
 ( 2006 ) ( testing return stack registers)
-( creeper) reclaim 0 node 1344 load ( 0x4 )  ahead
+( creeper) reclaim node 0 1344 load ( 0x4 )  ahead
 : !error ( n) 1 !b ;
 : put ( 0x7 ) ( n) @p ! ! ; ( /)  @p push .. ( /)
 : get ( 0x9 ) ( -n) @p ! @ ; ( /)  pop !p .. ( /)
@@ -4917,7 +4917,7 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 496 )
 ( 2007 ) ( mark ram test) ( 200 ) ( node)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : store @p ! ;  .. ( /) !+ .. ( /)
 : fetch ( -n) @p ! @ ; ( /)  @+ !b drop .. ( /)
 : /neighbor 4 for @p ! unext ;
@@ -4948,7 +4948,7 @@ over over over over over over .. ( 0x11 ) ;
 
 ( block 498 )
 ( 2008 ) ( mark r d stack test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : store dup ! dup ! dup ! ! ;
 : fetch ( -n) @p ! @ ; ( /)  !b .. ( /)
 : /neighbor @p ! ! .. @p ..
@@ -4963,7 +4963,7 @@ fetch drop @p .. pop pop pop .. store
 
 9 for fetch or .. if pop pop 0xffff and pop drop !b ;  then drop
 next next ;
- then ( 0x2b )  0x2b org 
+ then ( 0x2b )  org 0x2b 
 : full ( 0x2b ) 0x2aaaa t-stk dup or t-stk 0x33333 t-stk 0x19999 t-stk dup or t-stk ( 0x0 ) dup or !b ;
 ( 0x36 ) 2008 bin
 
@@ -4984,7 +4984,7 @@ next next ;
 
 ( block 500 )
 ( 2009 ) ( +* a shift test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : !error ( n) 1 !b ;
 : init ( s) @p ! ! ; ( /)  @p .. ( /)
 : check ( an-a) over or if !error pop pop ;
@@ -5017,7 +5017,7 @@ dup or !b ;
 
 ( block 502 )
 ( 2010 ) ( t s a and r data path tests)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : check or if pop !b pop ;  then drop ;
 : -t- ( n) dup @p ! .. ( /) @p !p .. ( /) ! @ ( 2*) check ;
 : -s- ( n) dup @p ! dup ( /) @p @p !p !p ( /)
@@ -5047,7 +5047,7 @@ dup - 0x33333 dup - 0x6666 dup - dup dup drop
 
 ( block 504 )
 ( 2011 ) ( gpio pin test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : !it ( n) ( 0x5 ) @p drop !p ;
 : its ( n-n) ( 0x6 ) 0 and ;
 : ++ ( 0x8 ) -1 : !io its ! ; : -- 0x2aaaa !io ;
@@ -5069,7 +5069,7 @@ dup dup or ;  then drop pop ;
 
 ( block 506 )
 ( 2012 ) ( mark d stack test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : fetch ( -n) @p ! @ ; ( //)  !b .. ( /)
 : /neighbor @p ! ! .. @p ..
 3 for @p ! unext ;  ..
@@ -5078,7 +5078,7 @@ over .. ( /) over over over .. ( /) over ( -) . .. ( /) ;
 : d-stack ( 0x11 ) 0x8 for dup - /neighbor /stack ( 0x16 ) next
 12 ( 0x0 ) for drop fetch or if pop pop 0xffff and ( !b) pop ( and) drop !b ;  then
 next ;
-( 0x21 ) 0x2a org  then
+( 0x21 ) org 0x2a  then
 : full ( 0x2a ) 0x2aaaa d-stack dup or d-stack 0x33333 d-stack 0x19999 d-stack dup or d-stack
 !b ; ( 0x35 ) 2012 bin
 
@@ -5099,7 +5099,7 @@ next ;
 
 ( block 508 )
 ( 2013 ) ( io data path tests)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : check ( nn) or if pop !b pop ;  then drop ;
 : t-io ( mn-m) 0x15555 or dup @p ( /) @p ! @ !p ( /)
 ! ! @ or over and over check ;
@@ -5124,15 +5124,15 @@ dup t-io ( 0x16 ) 0 t-io ( 0x18 ) next then dup or !b ; ( 0x1a ) 2013 bin
 
 ( block 510 )
 ( 2014 ) ( set/clear carry test)
-( creeper) reclaim 0 node 1344 load
+( creeper) reclaim node 0 1344 load
 
-0x2a org ( test tools)
+org 0x2a ( test tools)
 : +c ( 0x2a ) ( n-c) a 0x200 or !
 : +@ ( 0x2d ) ( n-c) @p ! dup . ( /) . . . @p ( /)
 ( ..) ( 0x2f ) ! @p ! . ( /) @p . + !p ( /) ! @ a ! ;
 : ?t ( 0x33 ) ( c) or if pop !b pop then drop ; ( 0x36 )
 
-0x4 org ( test start)
+org 0x4 ( test start)
 ( 0x4 ) ( post args)  push 0x20000 0x0 begin
 ( 0x7 ) ( clr nxt) dup +c ( ign was) drop ..
 ( 0x9 ) ( set nxt) over +c ( tst clr) over ?t
@@ -5168,15 +5168,15 @@ dup t-io ( 0x16 ) 0 t-io ( 0x18 ) next then dup or !b ; ( 0x1a ) 2013 bin
 
 ( block 512 )
 ( 2015 ) ( mark @p test)
-( creeper) reclaim 0 node 1344 load ( 0x4 )  ahead
+( creeper) reclaim node 0 1344 load ( 0x4 )  ahead
 
 : seq ( -n) ( 0x5 ) 63 .. a push 6 a!
 if dup -1 . + ! pop a! ;
  then drop 63 ! pop a! ( @p!bunext;) 0x5b75 ;
-: init ( 0x11 ) @p ! @p .. ( /) @p a! .. ( /)  1 ,  !
+: init ( 0x11 ) @p ! @p .. ( /) @p a! .. ( /)  , 1  !
 63 for seq @p ! ! .. ( /) @p !+ .. ( /) next
 @p ! a .. ( /) @p push .. ( /)
-! @p ! @p ( /) @p push .. ( /)  63 ,
+! @p ! @p ( /) @p push .. ( /)  , 63
  ! @p ! ; ( /)  dup or push ; ( /)
 : /@p ( n) ( 0x21 ) then init
 63 for @ seq ( -) or .. if pop !b ;
@@ -5199,7 +5199,7 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 514 )
 ( 2016 ) ( test i-ad and r-ad data paths)
-( creeper) reclaim 2 node 1344 load
+( creeper) reclaim node 2 1344 load
 
 ( test start)
 ( 0x4 ) ( @p;)  0x5500 63 for ..
@@ -5212,7 +5212,7 @@ address 0x4 ( tests the) tfocused ( neighbor)
 ( 0x1d ) @ ( -) or 0x3f and if pop 0x80 or !b ;
 ( 0x23 )  then drop next ( dup or !b ;)
 ( 0x24 ) ( ex) ( 0x12040 ) dup 63 for ..
-( 0x26 ) @p ! ! @p ( /) @p push ex ( /)  1 ,
+( 0x26 ) @p ! ! @p ( /) @p push ex ( /)  , 1
 ( 0x29 )  @p ! . + ( /) !p .. ( /) @ over ( -) or 0x3f
 ( 0x2d ) and if pop drop 0xc0 or !b ;
 ( 0x31 )  then drop dup .. next dup or !b ;
@@ -5241,7 +5241,7 @@ address 0x4 ( tests the) tfocused ( neighbor)
 
 ( block 516 )
 ( 2017 ) ( rom checksum)
-( creeper) reclaim 0 node 1344 load 
+( creeper) reclaim node 0 1344 load 
 : start ( n) ( 0x4 ) 0 63 for pop dup push 0x80 . +
 @p .. ( /) @p a! @ !p ( /) ! ! @ or next
 or if 1 then !b ;
@@ -5261,7 +5261,7 @@ or if 1 then !b ;
 
 ( block 518 )
 ( 2100 ) ( parallel port pin test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : return ( n) pop dup b! push !b ;
 : chk ( nn) ( 0x7 ) or
 if pop pop drop pop drop return ;
@@ -5299,13 +5299,13 @@ address 0x4 ( tests active node given arg which is ending io value.) note purpos
 
 ( block 520 )
 ( 2101 ) ( mark @b !b test)
-( creeper) reclaim 0 node 1344 load  ahead
+( creeper) reclaim node 0 1344 load  ahead
 : /t ( 0x5 ) ( n) dup - .. ( /) @p ! ! ; ( /)  @p .. ( /)
 : /b! ( 0x8 ) ( n) @p ! ! ; ( /)  @p b! .. ( /)
 : /!b ( 0xa ) ( n) @p ! ! ; ( /)  @p !b .. ( /)
 : /@b ( 0xc ) ( -n) @p ! @ ; ( /)  @b !p .. ( /)
 : end @p ! a . ( /) @p b! .. ( /) ! !b ;
-: init ( 0x11 ) then @p ! @p .. ( /) dup or a! .  63 ,
+: init ( 0x11 ) then @p ! @p .. ( /) dup or a! .  , 63
 ( 0x14 )  @p ! ! .. ( /) ( 0x15 ) @p push .. ( 0x16 ) ( /)
 @p ! .. ( /) ( 0x17 ) begin a - !+ unext .. ( 0x18 ) ( / ;)
 1 dup ( 0x3e ) 0x3f for over . + /t dup /b! dup /!b next ( ;)
@@ -5332,14 +5332,14 @@ a - !+ unext ( / in the port)
 
 ( block 522 )
 ( 2102 ) ( mark t to b reg test)
-( creeper) reclaim 0 node 1344 load ( ahead) ( 0x12 ) 0x14 org 
+( creeper) reclaim node 0 1344 load ( ahead) ( 0x12 ) org 0x14 
 : end ( 0x14 ) @p ! a . ( /) @p b! .. ( /) ! !b ;
 : /t ( 0x17 ) ( n) dup - .. ( /) @p ! ! .. ( /) @p .. ( /) ;
 : /b! ( 0x1b ) ( n) @p ! ! .. ( /) @p b! .. ( /) ;
 : /!b ( 0x1e ) ( n) @p ! ! .. ( /) @p !b .. ( /) ;
 : /@b ( 0x21 ) ( -n) @p ! @ .. ( /) @b !p .. ( /) ;
 : chk-a ( 0x24 ) 0x3f and dup dup /t /b! /@b or ( -) .. if drop 1000 . + end pop pop pop ;  then ;
-: 2chk dup dup chk-a drop drop - chk-a drop drop chk-a ; ( 0x36 ) 0x4 org 
+: 2chk dup dup chk-a drop drop - chk-a drop drop chk-a ; ( 0x36 ) org 0x4 
 : init ( then) @p ! .. ( /) dup or a! .. ( /)
 0x3f .. ( /) ( 0x8 ) @p ! ! .. ( /) ( 0x9 ) @p push .. ( 0xa ) ( /) @p ! .. ( /) ( 0xb ) begin a !+ unext .. ( 0xc ) ( /)
 : b-reg ( 0xc ) dup or 2chk 0xaa 2chk 0x33 2chk 0x19 2chk
@@ -5367,7 +5367,7 @@ a - !+ unext ( / in the port)
 
 ( block 524 )
 ( 2103 ) ( mark port to i-reg test)
-( creeper) reclaim 0 node 1344 load 0x1a org 
+( creeper) reclaim node 0 1344 load org 0x1a 
 : chk ( 0x1a ) or if pop 1000 !b ;  then ;
 : rets @p ! a . ( /) @p dup push . ( /)
 ( /) ! @p ! @p ( /) dup dup or . ( /) push push . . ( /) !
@@ -5378,7 +5378,7 @@ a - !+ unext ( / in the port)
 
 : -code ( 0x32 ) @p dup - dup ( /) a! - @p dup ( /) push ! ! ! pop ! ; ( / ; !p drop unext)
 
-( 0x36 ) 0x4 org 
+( 0x36 ) org 0x4 
 : i-reg ( 0x4 ) rets ( ;) code over chk drop
 ( 0x408 ) .. ( /) @p ! @ . ( /) a !p !p .. ( /)
 ( 0xa ) - chk drop @ - chk ( / end first check)
@@ -5410,11 +5410,11 @@ pop pop drop . ( /) push .. ( /)
 
 ( block 526 )
 ( 2104 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load ( 0x13 ) 0x17 org 
+( creeper) reclaim node 0 1344 load ( 0x13 ) org 0x17 
 : chk ( 0x17 ) or if pop pop 1000 ( 0x1000 ) !b ;  then drop ;
 : init ( 0x1c ) 0x3807 dup 2* dup 2* dup dup
 2* dup dup 2* dup dup
-.. @p ! @p . ( /) @p @p @p . ( /)  0x12345 , ( . 2/ .)  ! ! ! ;
+.. @p ! @p . ( /) @p @p @p . ( /)  , 0x12345 ( . 2/ .)  ! ! ! ;
 : read ( 0x25 ) ( /) @p ! @ . ( /) !p !p !p . ( /) @ @ ;
 
 
@@ -5426,7 +5426,7 @@ pop pop drop . ( /) push .. ( /)
 -code ! ( .) ! ! ( .) ;
 
 
-( 0x32 ) 0x4 org 
+( 0x32 ) org 0x4 
 : i-reg ( 0x4 ) init run read 0x12345 chk 0x10020 chk 0x1502a chk
 dup or !b ; ( 0xe ) 2104 bin ( 0x9813 )
 
@@ -5451,7 +5451,7 @@ pop pop drop . ( /) push .. ( /)
 
 ( block 528 )
 ( 2105 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load 0x1a org 
+( creeper) reclaim node 0 1344 load org 0x1a 
 : chk ( 0x1a ) or if pop pop 1000 ( 0x1000 ) !b ;  then drop ;
 : init ( 0x1f )
 dup or - dup 2* dup 2* dup 2* dup 2* dup 2* dup 2* ( /)
@@ -5462,7 +5462,7 @@ dup or - dup 2* dup 2* dup 2* dup 2* dup 2* dup 2* ( /)
 : run ( 0x2b ) push ! - ! @ @ @ pop !
 .. ( /) @p ! @ . ( /) !p !p !p . ( /) @ @ ;
 
-( 0x31 ) 0x4 org 
+( 0x31 ) org 0x4 
 : i-reg ( 0x4 ) init 3code 0x3ffc0 chk 0x3ffe0 chk 0xf chk 0x3fff8 chk 0x3fffc chk 0x1 ( -) chk
 
 dup or !b ; ( 0x13 ) 2105 bin
@@ -5484,7 +5484,7 @@ dup or !b ; ( 0x13 ) 2105 bin
 
 ( block 530 )
 ( 2106 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load 0x18 org 
+( creeper) reclaim node 0 1344 load org 0x18 
 : chk ( 0x18 ) or if pop pop 1000 !b ;  then drop ;
 : init ( 0x1d ) dup or - dup 2* dup 2* dup 2*
 dup 2* dup 2* dup 2* dup 2* dup 2* dup 2*
@@ -5496,7 +5496,7 @@ dup 2* dup 2* dup 2* dup 2* dup 2* dup 2*
 : run ( 0x2d ) - over push push ! @ pop ! @ pop ! @
 .. ( /) @p ! @ . .. ( /) a !p !p . ( /) @ .. ;
 
-( 0x35 ) 0x4 org 
+( 0x35 ) org 0x4 
 : i-reg ( 0x4 ) init 2code 0x3ff00 chk 0x3f chk 0x7f chk 0x3ffe0 chk 0xf chk
 dup or !b ; ( 0x11 ) 2106 bin
 
@@ -5521,7 +5521,7 @@ dup or !b ; ( 0x11 ) 2106 bin
 
 ( block 532 )
 ( 2107 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load ( 0x18 ) 0x17 org 
+( creeper) reclaim node 0 1344 load ( 0x18 ) org 0x17 
 : chk ( 0x17 ) or if pop pop 1000 ( 0x1000 ) !b ;  then drop ;
 : init ( 0x1c )
 dup or - dup 2* dup 2* dup 2* dup 2* ( /)
@@ -5536,7 +5536,7 @@ dup or - dup 2* dup 2* dup 2* dup 2* ( /)
 : 0run ( 0x31 ) - over ! ! !
 .. ( /) @p ! @ . ( /) a !p !p !p ( /) @ @ ;
 
-( 0x36 ) 0x4 org 
+( 0x36 ) org 0x4 
 : i-reg ( 0x4 ) init 1code 0x1 chk 0x3fff8 chk 3 chk 0x3ffff chk
 ( 0xe ) init 0code 0x3fffc chk 0x1 chk 0x3ffff chk
 dup or !b ; ( 0x17 ) 2107 bin
@@ -5564,7 +5564,7 @@ dup or !b ; ( 0x17 ) 2107 bin
 
 ( block 534 )
 ( 2108 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load 0x15 org 
+( creeper) reclaim node 0 1344 load org 0x15 
 : chk ( 0x15 ) or if pop pop 1000 ( 0x1000 ) !b ;  then drop ;
 : init ( 0x1a )
 dup or - dup 2* dup 2* dup 2* dup 2* ( /)
@@ -5576,7 +5576,7 @@ dup or - dup 2* dup 2* dup 2* dup 2* ( /)
 : +run ( 0x27 ) - over ! ! !
 .. ( /) @p ! @ . ( /) a !p !p . ( /) @ ;
 
-( 0x2c ) 0x4 org 
+( 0x2c ) org 0x4 
 : i-reg ( 0x4 ) init +code 0x3fff8 chk 0x3fffc chk
 ( 0xa ) dup or !b ; ( 0xb ) 2108 bin
 
@@ -5601,7 +5601,7 @@ dup or - dup 2* dup 2* dup 2* dup 2* ( /)
 
 ( block 536 )
 ( 2109 ) ( mark port to i-reg-bit-short test)
-( creeper) reclaim 0 node 1344 load 0x15 org 
+( creeper) reclaim node 0 1344 load org 0x15 
 : chk ( 0x15 ) or if pop pop 1000 !b ;  then drop ;
 : init ( 0x1a ) dup or - dup 2* dup 2* dup 2*
 dup 2* dup 2* dup 2* dup 2* dup 2* ( /)
@@ -5614,7 +5614,7 @@ dup 2* dup 2* dup 2* dup 2* dup 2* ( /)
 : -run ( 0x2b ) +code ! -code ! ( .) ! ! ! ( .) +code !
 .. ( /) @p ! @ . ( /) a !p !p !p . ( /) @ @ ;
 
-( 0x33 ) 0x4 org 
+( 0x33 ) org 0x4 
 : i-reg ( 0x4 ) init -run 0x3ff80 chk 0x3ffc0 chk 0x3fffc chk
 dup or !b ; ( 0xd ) 2109 bin
 
@@ -5640,7 +5640,7 @@ dup or !b ; ( 0xd ) 2109 bin
 
 ( block 538 )
 ( 2110 ) ( mark prp-call test)
-( creeper) reclaim 0 node 1344 load ( 0xd ) ( 0xc ) 0x9 org 
+( creeper) reclaim node 0 1344 load ( 0xd ) ( 0xc ) org 0x9 
 : p-r-p dup 0x1 . + 0x7e for
 : init ( 0x2 ) ( 0x3 ) dup ( 3) push over a
 ( 0x3 ) ( .) ( 0x2 ) ( a) pop ( 3) a push dup push 0x1 . +
@@ -5662,7 +5662,7 @@ a ( 0x4 ) pop a! ( 0x4 ) push
 ( /) .. @p ! @ .. ( //) !p .. a
 ( chk) or if pop pop 1000 !b ;  then drop
 
-next ; ( 0x35 ) 0x4 org 
+next ; ( 0x35 ) org 0x4 
 : p-r 0x0 p-r-p 0x200 p-r-p dup or !b ;
 ( 0x9 ) 2110 bin
 
@@ -5694,7 +5694,7 @@ next ; ( 0x35 ) 0x4 org
 
 ( block 540 )
 ( 2111 ) ( mark prp-ex test)
-( creeper) reclaim 0 node 1344 load 0xd org 
+( creeper) reclaim node 0 1344 load org 0xd 
 : p-r-p dup 0x1 . + 0x7e for
 : init ( 0x2 ) ( 0x3 ) dup ( 3) push over a
 ( 0x3 ) ( .) ( 0x2 ) ( a) pop ( 3) a push dup push 0x1 . +
@@ -5715,7 +5715,7 @@ a ( 0x4 ) pop a! ( 0x4 ) push
 : calls ( 0x2b ) ( 0x3 ) pop ( 0x4 ) over ( 0x3 ) 0x11000 or ! ( ? ; ?)
 ( /) a .. @p ! @ .. ( //) !p ..
 ( chk) or if pop pop 1000 !b ;  then drop
-next ; ( 0x36 ) 0x4 org 
+next ; ( 0x36 ) org 0x4 
 : p-r 0 p-r-p 0x200 p-r-p dup or !b ;
 ( 0x9 ) 2111 bin
 
@@ -5745,7 +5745,7 @@ next ; ( 0x36 ) 0x4 org
 
 ( block 542 )
 ( 2112 ) ( serdes 001 slave test)
-( creeper) reclaim 1 node 1344 load  ahead
+( creeper) reclaim node 1 1344 load  ahead
 : s-lis ( 0x5 ) ( rip) -1 !b .. cold ;
 : lis ( 0x8 ) io a! 0x15555 ! data a! 0x3fffe dup ! ;
 : m-lis ( arg) ( 0xf ) then a push lis pop a! .. 0 !b ; ( 0x14 )
@@ -5771,7 +5771,7 @@ up a! ! dly lis warm ;
 
 ( block 544 )
 ( 2113 ) ( serdes) ( 701 ) ( master test)
-( creeper) reclaim 1 node 1344 load  ahead
+( creeper) reclaim node 1 1344 load  ahead
 
 
 : ran ( n-n) ( 0x5 ) -if 2* 0x2cd81 or ;  then 2* ;
@@ -5794,7 +5794,7 @@ dup 2/ over - and or 0x1ffff and .. !b ;
 
 ( block 546 )
 ( 2114 ) ( basic analog checks)
-( creeper) reclaim 0 node 1344 load
+( creeper) reclaim node 0 1344 load
 
 
 : !dac ( 0x4 ) ( n) io a! ! dup dup or !b ;
@@ -5823,7 +5823,7 @@ dup 2/ over - and or 0x1ffff and .. !b ;
 
 ( block 548 )
 ( 2115 ) ( mark 2* test)
-( creeper) reclaim 0 node 1344 load 0x13 org 
+( creeper) reclaim node 0 1344 load org 0x13 
 : t! ( n) @p ! ! ; ( //)  @p .. ( /)
 : t2* @p ! ; ( //)  2* .. ( /)
 : t@ ( -n) @p ! @ ; ( //)  !p .. ( /)
@@ -5835,7 +5835,7 @@ dup . + t2* t@ dup t! chk
 next ;
 : h2*3 dup t! 6 for
 dup . + dup . + dup . + t2*3 chk next ;
-: forcefail ( 0x36 )  0x4 org 
+: forcefail ( 0x36 )  org 0x4 
 : tst-2* ( 0x4 ) 0x15555 h2* 0x1 h2* - ( 0x3ffff ) h2*3 ( 0x0 ) h2*3 0x15555 h2*3 0x33333 h2*3 0x71c7 h2*3 0x1 h2*3 !b ;
 ( 0x13 ) 2115 bin
 
@@ -5858,7 +5858,7 @@ dup . + dup . + dup . + t2*3 chk next ;
 
 ( block 550 )
 ( 2116 ) ( mark 2/ test)
-( creeper) reclaim 0 node 1344 load ( 0x13 ) 0x19 org 
+( creeper) reclaim node 0 1344 load ( 0x13 ) org 0x19 
 : t2/ ( n-n) dup . + @p ( //) @p 2/ !p .. ( /) ! dup ! over @ ;
 : t2/3 ( n-n) dup . + dup . +
 .. ( /) dup . + @p ( //) @p .. ( /)
@@ -5866,7 +5866,7 @@ dup . + dup . + dup . + t2*3 chk next ;
 ( /) ! over @ ;
 : chk or .. if pop pop pop 1000 !b ;  then drop ;
 : h2/ 12 for dup t2/ chk next ;
-: h2/3 3 for dup t2/3 chk next ; ( 0x36 ) 0x4 org 
+: h2/3 3 for dup t2/3 chk next ; ( 0x36 ) org 0x4 
 : tst-2/ ( 0x4 ) 0xf h2/ 0x5 h2/ 0x3 h2/ 0xc h2/ 0xf h2/3 0x5 h2/3 0x3 h2/3 0xc h2/3 0x7 h2/3 0x9 h2/3 dup or !b ;
 ( 0x19 ) 2116 bin
 
@@ -5890,7 +5890,7 @@ dup . + dup . + dup . + t2*3 chk next ;
 
 ( block 552 )
 ( 2117 ) ( mark 2/ test)
-( creeper) reclaim 0 node 1344 load 0x22 org 
+( creeper) reclaim node 0 1344 load org 0x22 
 : t2/ ( n-n) dup . + @p ( //) @p 2/ !p .. ( /) ! ! @ ;
 : t2/3 ( n-n) dup . + dup . +
 .. ( /) dup . + @p ( //) @p .. ( /)
@@ -5898,7 +5898,7 @@ dup . + dup . + dup . + t2*3 chk next ;
 ( /) ! @ ;
 : chk or .. if pop pop pop 1000 !b ;  then drop ;
 : h2/ dup t2/ chk ;
-: h2/3 dup t2/3 chk ; ( 0x36 ) 0x4 org 
+: h2/3 dup t2/3 chk ; ( 0x36 ) org 0x4 
 : tst-2/b ( 0x4 ) 0x30000 h2/ 0x3aaaa h2/ 0x35555 h2/ 0x3fffe h2/ 0x33333 h2/ 0x3cccc h2/
 0x3c000 h2/3 0x3eaaa h2/3 0x3d555 h2/3 0x3fff8 h2/3 0x3f333 h2/3 0x3cccc h2/3 0x3c0f0 h2/3 0x3c1c3 h2/3 dup or !b ;
 ( 0x21 ) 2117 bin
@@ -5923,13 +5923,13 @@ dup . + dup . + dup . + t2*3 chk next ;
 
 ( block 554 )
 ( 2200 ) ( tst+ mark testing +)
-( creeper) reclaim 0 node 1344 load 0x2a org
+( creeper) reclaim node 0 1344 load org 0x2a
 
 : chk or if pop pop 1000 !b ;  then drop ;
 : t+ ( nnn-n) push ..
 ( /) @p ! ! @p ( //) @p ( . - .) .. ( //) @p . + !p ( /)
 ( /) ! ! @ pop chk ;
-( 0x35 ) 0x4 org
+( 0x35 ) org 0x4
 
 : tst+ 0x15555 dup dup 0x2aaaa t+
 dup dup - 0x3ffff t+ - dup - dup 0x2aaaa 0x3ffff t+ dup - 0x3ffff t+
@@ -5958,7 +5958,7 @@ dup or !b ;
 
 ( block 556 )
 ( 2201 ) ( mark r d stack test v2)
-( creeper) reclaim 0 node 1344 load 0xe org 
+( creeper) reclaim node 0 1344 load org 0xe 
 : store dup ! dup ! dup ! ! ;
 : fetch ( -n) @p ! @ ; ( /)  !b .. ( /)
 : /neighbor @p ! ! .. @p ..
@@ -5973,7 +5973,7 @@ fetch drop @p .. pop pop pop .. store
 
 11 for fetch or .. if pop pop - 10 . + !b pop ;  then drop
 next drop fetch drop next ;
-( 0x35 ) 0x4 org 
+( 0x35 ) org 0x4 
 : full ( 0x4 ) 0x2aaaa t-stk dup or ( 0x0 ) t-stk 0x33333 t-stk 0x19999 t-stk dup or !b ;
 ( 0xd ) 2201 bin
 
@@ -6000,7 +6000,7 @@ next drop fetch drop next ;
 
 ( block 558 )
 ( 2202 ) ( mark d stack test v2)
-( creeper) reclaim 0 node 1344 load 0x18 org 
+( creeper) reclaim node 0 1344 load org 0x18 
 : fetch ( -n) @p ! @ ; ( //)  !b .. ( /)
 : /neighbor @p ! ! .. @p ..
 3 for @p ! unext ;  ..
@@ -6008,7 +6008,7 @@ next drop fetch drop next ;
 over .. ( /) over over over .. ( /) over .. ( /) ;
 : d-stack ( 0x24 ) 0x8 for dup ( . - .) /neighbor /stack ( .) 11 for fetch or if pop pop - 10 . + !b pop ;  then drop
 next next ;
-( 0x33 ) 0x4 org 
+( 0x33 ) org 0x4 
 : full ( 0x4 ) 0x2aaaa d-stack dup or ( 0x0 ) d-stack 0x15555 d-stack dup or - ( 0x3ffff ) d-stack 0x33333 d-stack 0x19999 d-stack 0xcccc d-stack 0x26666 d-stack dup dup or
 !b ; ( 0x16 ) 2202 bin
 
@@ -6034,7 +6034,7 @@ next next ;
 
 ( block 560 )
 ( 2203 ) ( mark test + v2)
-( creeper) reclaim 0 node 1344 load 0x18 org
+( creeper) reclaim node 0 1344 load org 0x18
 
 : h+ over over ( . - .) . + push
 : t+ ( nn-n) @p ! ! @p ( //) @p .. ( //) @p . + !p ( /) ! ! @
@@ -6047,7 +6047,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 : thr ( z) leap 0x1be29 . + dup
 : zstr @p drop !p ; : z then 0x0 ;
 
-( 0x36 ) 0x4 org
+( 0x36 ) org 0x4
 
 : tst+ dup or ( 0x3ffff ) 0x3ff for first h+ sec over h+ thr h+ x - h+ over h+ z - h+ - y h+ dup h+ h+ next dup or !b ;
 ( 0x18 ) 2203 bin
@@ -6071,7 +6071,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 
 ( block 562 )
 ( 2204 ) ( mark testing and)
-( creeper) reclaim 0 node 1344 load 0x1e org 
+( creeper) reclaim node 0 1344 load org 0x1e 
 : chk ( nn) or if pop pop pop 0x1000 !b ;  then ( drop) ;
 : tand ( nn-n) @p ! ! .. ( //) @p @p and !p ( /) ! @ ;
 : ttand over over ( . - .) and push tand pop chk ;
@@ -6079,7 +6079,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 : xstr @p drop !p ; : x then 0x0 ;
 : sec ( y) leap 0x1f9a9 . + dup
 : ystr @p drop !p ; : y then 0x0 ;
-( 0x35 ) 0x4 org 
+( 0x35 ) org 0x4 
 : tstand ( 0x3ffff ) 0x100 for first sec ttand x - y ttand x y - ttand x - y - ttand y - x ttand y x - ttand y - x - ttand next dup or !b ;
 ( 0x1d ) 2204 bin
 
@@ -6103,7 +6103,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 
 ( block 564 )
 ( 2205 ) ( mark test and)
-( creeper) reclaim 0 node 1344 load 0x25 org 
+( creeper) reclaim node 0 1344 load org 0x25 
 : chk ( nn) or if pop pop 0x1000 !b ;  then ;
 : tand ( nn-n) @p ! ! .. ( //) @p @p and !p .. ( /) ! @ ;
 
@@ -6111,7 +6111,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 ( /) ! ! ! @p ( //) and and and !p .. ( /) ! @ ;
 : tsa tand chk ;
 : tsa3 tand3 chk ;
-( 0x36 ) 0x4 org 
+( 0x36 ) org 0x4 
 : tstand ( 0 ) 0x2222 0x17777 0x2aaaa 0x3faff 0x33333 tsa3 0x30a5c 0x3ffff over tsa 0x30a5c - 0x3ffff over tsa 0xa00 0x3ff00 0xfff 0x3ffff 0x3fa55 tsa3 - tsa 0x15555 tsa dup 0x2aaaa tsa 0x15555 0x2aaaa tsa !b ;
 ( 0x25 ) 2205 bin
 
@@ -6144,7 +6144,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 
 ( block 566 )
 ( 2206 ) ( mark testing or)
-( creeper) reclaim 0 node 1344 load 0x1e org 
+( creeper) reclaim node 0 1344 load org 0x1e 
 : chk ( nn) or if pop pop pop 0x1000 !b ;  then ;
 : tor ( nn-n) @p ! ! .. ( //) @p @p or !p ( /) ! @ ;
 : ttor over over ( . - .) or push tor pop chk ;
@@ -6152,7 +6152,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 : xstr @p drop !p ; : x then 0x0 ;
 : sec ( y) leap 0x1f9a9 . + dup
 : ystr @p drop !p ; : y then 0x0 ;
-( 0x35 ) 0x4 org 
+( 0x35 ) org 0x4 
 : tst-or ( 0x3ffff ) 0x100 for first sec ttor x - y ttor x y - ttor x - y - ttor y - x ttor y x - ttor y - x - ttor next dup or !b ;
 ( 0x1d ) 2206 bin
 
@@ -6176,7 +6176,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 
 ( block 568 )
 ( 2207 ) ( mark test or v2)
-( creeper) reclaim 0 node 1344 load 0x25 org 
+( creeper) reclaim node 0 1344 load org 0x25 
 : chk ( nn) or if pop pop pop 0x1000 !b ;  then ;
 : tor ( nn-n) @p ! ! .. ( //) @p @p or ( . - .) !p .. ( /) ! @ ;
 
@@ -6184,7 +6184,7 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 ( /) ! ! ! @p ( //) or or or ( . - .) !p .. ( /) ! @ ;
 : tso tor chk ;
 : tso3 tor3 chk ;
-( 0x36 ) 0x4 org 
+( 0x36 ) org 0x4 
 : tstor 0x3e372 0x35fa9 0x3f57f 0x25733 0x11e97 tso3 0x3f555 0x3ff00 0xfff 0x3ffff 0x3fa55 tso3 0x15555 0x3ffff over - tso 0x2aaaa 0x3ffff over - tso dup or dup - dup tso dup or - dup dup - tso 0x15555 over - over - tso !b ;
 ( 0x25 ) 2207 bin
 
@@ -6217,14 +6217,14 @@ pop over ( chk) or if pop pop 1000 !b ;  then drop ;
 
 ( block 570 )
 ( 2208 ) ( mark test -)
-( creeper) reclaim 0 node 1344 load 0x26 org 
+( creeper) reclaim node 0 1344 load org 0x26 
 : chk ( nn) ! @ or if pop pop 0x1000 !b ;  then ;
 : t- ( n-n) @p ! .. ( //) @p - !p .. ( /) chk ;
 : t-2 ( n-n) dup @p ! .. ( //) @p - - !p .. ( /) chk ;
 
 : t-3 ( n-n) @p ! ! @p ( //) @p .. ( /)
 ( //) - - - !p .. ( /) chk ;
-( 0x36 ) 0x4 org 
+( 0x36 ) org 0x4 
 : tstor 0x1c8d 0x3e372 t- 0x2aaaa 0x15555 t- 0x15555 0x2aaaa t- 0x3ffff dup dup or t- dup dup or 0x3ffff t-
 dup dup or t-2 0x3ffff t-2 0x2aaaa t-2 0x15555 t-2 0x3ffff dup dup or t-3 0x2aaaa 0x15555 t-3 !b ;
 ( 0x26 ) 2208 bin
@@ -6434,7 +6434,7 @@ dup dup or t-2 0x3ffff t-2 0x2aaaa t-2 0x15555 t-2 0x3ffff dup dup or t-3 0x2aaa
 
 ( block 630 )
 ( 1900 ) ( ats analog)
-reclaim 717 node 0 org 
+reclaim node 717 org 0 
 : sam ( n-k) ( 0x0 ) io b! data a! @b - 0x1ff and or
 !b dup ! @ 1000 for unext dup ! @ - . + ;
 : vdd ( 0xc ) 0x2000 sam ; : vss ( 0xe ) 0x6000 sam ;
@@ -6454,7 +6454,7 @@ vpin - . + -if dup or then 1800 u* pop m/ ;
 
 ( block 632 )
 ( 1901 ) ( ats sync boot master)
-reclaim 300 node 0 org 
+reclaim node 300 org 0 
 : dly ( 0x0 ) ( b) !b 40 ( 31 ) for unext ;
 : 1bt ( 0x3 ) ( wb-w') dup dly 0x10000 or dly ;
 : 18o ( 0x6 ) ( w) 0x30000 dly 8 for begin
@@ -6475,29 +6475,29 @@ reclaim 300 node 0 org
 
 ( block 634 )
 ( 1902 ) ( boot frame for master testing)
-reclaim 300 node 0 org
+reclaim node 300 org 0
 host :: 3- 0xfffffffd + ; target
 
 
-: frame ser-exec -d--  0 , 
-: portex @p !b . . ( /)  0x30000 , ( /)
-( 0x5 ) here here 3- 2 org ,
-org ( 0x5 ) 1902 bin
+: frame ser-exec -d--  , 0 
+: portex @p !b . . ( /)  , 0x30000 ( /)
+( 0x5 ) here here 3- org , 2 org
+( 0x5 ) 1902 bin
 
 ( block 635 )
 ( boot frame which commands uut node) ( 0x200 ) ( to set its pin 200.17 high.)
 
 ( block 636 )
 ( 1903 ) ( boot frame for master testing)
-reclaim 300 node 0 org
+reclaim node 300 org 0
 host :: 3- 0xfffffffd + ; target
 
 
-: frame ser-exec -d--  0 , 
-: portex @p !b . . ( /)  0x20000 , ( /)
-( 0x5 ) here here 3- 2 org ,
-org ( 0x5 )
-0x20 org 
+: frame ser-exec -d--  , 0 
+: portex @p !b . . ( /)  , 0x20000 ( /)
+( 0x5 ) here here 3- org , 2 org
+( 0x5 )
+org 0x20 
 : misc ---u @p - !p ; 1903 bin
 
 ( block 637 )
@@ -6505,7 +6505,7 @@ org ( 0x5 )
 
 ( block 638 )
 ( 1904 ) ( ats sync bridge)
-reclaim 300 node ( 3 ) 8 org
+reclaim node 300 ( 3 ) org 8
 host :: hd- ( -3 ) -8 + ; target
 
 
@@ -6528,9 +6528,9 @@ host :: hd- ( -3 ) -8 + ; target
 ( 0x2e )  then zro drop 18o idl ;
 
 : ent ( 0x31 ) io b! wpd begin @b - -until idl ;
-( 0x36 ) here here hd- ( 0 ) 5 org 
-: frame ent dly  ,
-org ( 0x36 ) 1904 bin
+( 0x36 ) here here hd- ( 0 ) org 5 
+: frame ent ,  dly org
+( 0x36 ) 1904 bin
 
 ( block 639 )
  shadow out of date.
@@ -6550,7 +6550,7 @@ org ( 0x36 ) 1904 bin
 
 ( block 640 )
 ( 1905 ) ( uut bridge debug)
-reclaim 300 node ( 3 ) 8 org
+reclaim node 300 ( 3 ) org 8
 host :: hd- ( -3 ) -8 + ; target
 
 
@@ -6574,9 +6574,9 @@ host :: hd- ( -3 ) -8 + ; target
 
 : ent ( 0x31 ) io b! wpd
 begin @b - -until idl ;
-( 0x36 ) here here hd- ( 0 ) 5 org 
-: frame ent dly  ,
-org ( 0x36 ) 1905 bin
+( 0x36 ) here here hd- ( 0 ) org 5 
+: frame ent ,  dly org
+( 0x36 ) 1905 bin
 
 ( block 641 )
  shadow out of date.
@@ -6596,7 +6596,7 @@ org ( 0x36 ) 1905 bin
 
 ( block 642 )
 ( 1906 ) ( tester bridge debug)
-reclaim 300 node ( 3 ) 8 org
+reclaim node 300 ( 3 ) org 8
 host :: hd- ( -3 ) -8 + ; target 
 : dly ( 0x8 ) ( b) !b ( 40 ) 400 for unext ; ( 88ns)
 : 1bt ( 0xb ) ( wb-w') dup dly 0x10000 or dly ;
@@ -6617,9 +6617,9 @@ host :: hd- ( -3 ) -8 + ; target
 
 : ent ( 0x33 ) io b! 0x10001 !b
 begin @b - -until ( idl) ;
-( 0x3a ) here here hd- ( 0 ) 5 org 
-: frame ent dly  ,
-org ( 0x3a ) 1906 bin
+( 0x3a ) here here hd- ( 0 ) org 5 
+: frame ent ,  dly org
+( 0x3a ) 1906 bin
 
 ( block 643 )
  shadow out of date.
@@ -6651,7 +6651,7 @@ org ( 0x3a ) 1906 bin
 
 ( block 648 )
 ( 1400 ) ( ats cs master0 n108)
-reclaim 108 node ( 742 ) ( load) ( 0xaa ) 0 org 
+reclaim node 108 ( 742 ) ( load) ( 0xaa ) org 0 
 : sam ( n-k) ( 0x0 )
 ( 0x1 )  1400 bin
 
@@ -6661,7 +6661,7 @@ reclaim 108 node ( 742 ) ( load) ( 0xaa ) 0 org
 
 ( block 650 )
 ( 1401 ) ( ats cs wire)
-reclaim 109 node 0 org 
+reclaim node 109 org 0 
 : sam ( n-k) ( 0x0 )
 ( 0x2b )  1401 bin
 
@@ -6670,7 +6670,7 @@ reclaim 109 node 0 org
 
 ( block 652 )
 ( 1402 ) ( ats cs digital)
-reclaim 717 node 0 org 
+reclaim node 717 org 0 
 : sam ( n-k) ( 0x0 )
 ( 0x2b )  1402 bin
 
@@ -6679,7 +6679,7 @@ reclaim 717 node 0 org
 
 ( block 654 )
 ( 1403 ) ( ats cs analog)
-reclaim 717 node 0 org 
+reclaim node 717 org 0 
 : sam ( n-k) ( 0x0 ) io b! data a! @b - 0x1ff and or
 !b dup ! @ 1000 for unext dup ! @ - . + ;
 : vdd ( 0xc ) 0x2000 sam ; : vss ( 0xe ) 0x6000 sam ;
@@ -6705,9 +6705,9 @@ vpin - . + -if dup or then 1800 u* pop m/ ;
 
 ( block 658 )
 ( xxxx smtm mem-random converted)
-reclaim 0 node 0  3  org
+reclaim node 0 0  org  3
 : rnd ( n-n') ( 0x0 ) -if 2* 0x2cd81 or ;  then 2* ;
-: run ( 0x4 ) @p @p a! dup ( /)  0x12155 , 0xa9 , ( /)
+: run ( 0x4 ) @p @p a! dup ( /)  , 0x12155 , 0xa9 ( /)
  @ 0xb a! .. or 0x3 0x3fff8 .. rnd dup ! and ..
 push 0x8 begin 2* . . unext and if or ahead
  swap  then run ; ( 0x14 )  . .. . ..
@@ -6721,7 +6721,7 @@ a ! ! 0xe push dup ! begin @p ! . unext ( /-)
 : migrate 0x1557f !b 0x1556a . 0x1f for . . . unext
 ( 0x34 ) !b 0x4 @p . ( /) @p dup 2/ . ( /)
 ( 0x37 ) a ! ! 0x43 push begin @p !+ . unext ( /-)
-( 0x3b )  0x3f ,  2* a! push begin @p !+ . unext
+( 0x3b )  , 0x3f  2* a! push begin @p !+ . unext
 ( 0x3e ) @p push ; ( -/)  ! warm ;
 ( 0x40 ) ( xxxx bin)
 
@@ -6949,23 +6949,23 @@ over over or drop if swall ;
  then drop drop ( up) 3 ; ' mwall 'wall !
 
 
-: uup0 align create  708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400 ,
-1400 , 1500 , 1600 ,
-1700 , 1701 , 1702 , 1703 , 1704 , 1705 ,
-1706 , 1707 , 1708 , 1709 , 1710 , 1711 ,
-1712 , 1713 , 1714 , 1715 , 1716 , 1717 ,
-1617 , 1616 , 1615 , 1614 , 1613 , 1612 ,
-1611 , 1610 , 1609 , 1608 , 1607 , 1606 ,
-1605 , 1604 , 1603 , 1602 , 1601 ,
-1501 , 1502 , 1503 , 1504 , 1505 , 1506 ,
-1507 , 1508 , 1509 , 1510 , 1511 , 1512 ,
-1513 , 1514 , 1515 , 1516 , 1517 ,
-1417 , 1416 , 1415 , 1414 , 1413 , 1412 ,
-1411 , 1410 , 1409 , 1408 , 1407 , 1406 ,
-1405 , 1404 , 1403 , 1402 , 1401 ,
-1301 , 1302 , 1303 , 1304 , 1305 , 1306 ,
-1307 , 1308 , 1309 , 1310 , 1311 , 1312 ,
-1313 , 1314 , 1315 , 1316 , 1317 ,
+: uup0 align create  , 708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400
+, 1400 , 1500 , 1600
+, 1700 , 1701 , 1702 , 1703 , 1704 , 1705
+, 1706 , 1707 , 1708 , 1709 , 1710 , 1711
+, 1712 , 1713 , 1714 , 1715 , 1716 , 1717
+, 1617 , 1616 , 1615 , 1614 , 1613 , 1612
+, 1611 , 1610 , 1609 , 1608 , 1607 , 1606
+, 1605 , 1604 , 1603 , 1602 , 1601
+, 1501 , 1502 , 1503 , 1504 , 1505 , 1506
+, 1507 , 1508 , 1509 , 1510 , 1511 , 1512
+, 1513 , 1514 , 1515 , 1516 , 1517
+, 1417 , 1416 , 1415 , 1414 , 1413 , 1412
+, 1411 , 1410 , 1409 , 1408 , 1407 , 1406
+, 1405 , 1404 , 1403 , 1402 , 1401
+, 1301 , 1302 , 1303 , 1304 , 1305 , 1306
+, 1307 , 1308 , 1309 , 1310 , 1311 , 1312
+, 1313 , 1314 , 1315 , 1316 , 1317
 
 
 ( block 675 )
@@ -6981,25 +6981,25 @@ when all three have been done, only node 300 and its right and down ports have n
 
 ( block 676 )
 ( -- paths 0,1)
-1217 , 1216 , 1215 , 1214 , 1213 , 1212 ,
-1211 , 1210 , 1209 , 1208 , 1207 , 1206 ,
-1205 , 1204 , 1203 , 1202 , 1201 , 1200 ,
-1100 , 1101 , 1102 , 1103 , 1104 , 1105 ,
-1106 , 1107 , 1108 , 1109 , 1110 , 1111 ,
-1112 , 1113 , 1114 , 1115 , 1116 , 1117 ,
-1017 , 1016 , 1015 , 1014 , 1013 , 1012 ,
-1011 , 1010 , 1009 , 1008 , 1007 , 1006 ,
-1005 , 1004 , 1003 , 1002 , 1001 , 1000 , -1 ,
+, 1217 , 1216 , 1215 , 1214 , 1213 , 1212
+, 1211 , 1210 , 1209 , 1208 , 1207 , 1206
+, 1205 , 1204 , 1203 , 1202 , 1201 , 1200
+, 1100 , 1101 , 1102 , 1103 , 1104 , 1105
+, 1106 , 1107 , 1108 , 1109 , 1110 , 1111
+, 1112 , 1113 , 1114 , 1115 , 1116 , 1117
+, 1017 , 1016 , 1015 , 1014 , 1013 , 1012
+, 1011 , 1010 , 1009 , 1008 , 1007 , 1006
+, 1005 , 1004 , 1003 , 1002 , 1001 , 1000 , -1
 
 
-: uup1 align create  708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400 ,
-1400 , 1500 , 1600 , 1700 ,
-1701 , 1601 , 1501 , 1401 , 1301 , 1201 ,
-1101 , 1001 , 1002 , 1102 , 1202 , 1302 ,
-1402 , 1502 , 1602 , 1702 ,
-1703 , 1603 , 1503 , 1403 , 1303 , 1203 ,
-1103 , 1003 , 1004 , 1104 , 1204 , 1304 ,
-1404 , 1504 , 1604 , 1704 ,
+: uup1 align create  , 708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400
+, 1400 , 1500 , 1600 , 1700
+, 1701 , 1601 , 1501 , 1401 , 1301 , 1201
+, 1101 , 1001 , 1002 , 1102 , 1202 , 1302
+, 1402 , 1502 , 1602 , 1702
+, 1703 , 1603 , 1503 , 1403 , 1303 , 1203
+, 1103 , 1003 , 1004 , 1104 , 1204 , 1304
+, 1404 , 1504 , 1604 , 1704
 
 
 ( block 677 )
@@ -7007,26 +7007,26 @@ when all three have been done, only node 300 and its right and down ports have n
 
 ( block 678 )
 ( -- paths 1)
-1705 , 1605 , 1505 , 1405 , 1305 , 1205 ,
-1105 , 1005 , 1006 , 1106 , 1206 , 1306 ,
-1406 , 1506 , 1606 , 1706 ,
-1707 , 1607 , 1507 , 1407 , 1307 , 1207 ,
-1107 , 1007 , 1008 , 1108 , 1208 , 1308 ,
-1408 , 1508 , 1608 , 1708 ,
-1709 , 1609 , 1509 , 1409 , 1309 , 1209 ,
-1109 , 1009 , 1010 , 1110 , 1210 , 1310 ,
-1410 , 1510 , 1610 , 1710 ,
-1711 , 1611 , 1511 , 1411 , 1311 , 1211 ,
-1111 , 1011 , 1012 , 1112 , 1212 , 1312 ,
-1412 , 1512 , 1612 , 1712 ,
-1713 , 1613 , 1513 , 1413 , 1313 , 1213 ,
-1113 , 1013 , 1014 , 1114 , 1214 , 1314 ,
-1414 , 1514 , 1614 , 1714 ,
-1715 , 1615 , 1515 , 1415 , 1315 , 1215 ,
-1115 , 1015 , 1016 , 1116 , 1216 , 1316 ,
-1416 , 1516 , 1616 , 1716 ,
-1717 , 1617 , 1517 , 1417 , 1317 , 1217 ,
-1117 , 1017 , -1 ,
+, 1705 , 1605 , 1505 , 1405 , 1305 , 1205
+, 1105 , 1005 , 1006 , 1106 , 1206 , 1306
+, 1406 , 1506 , 1606 , 1706
+, 1707 , 1607 , 1507 , 1407 , 1307 , 1207
+, 1107 , 1007 , 1008 , 1108 , 1208 , 1308
+, 1408 , 1508 , 1608 , 1708
+, 1709 , 1609 , 1509 , 1409 , 1309 , 1209
+, 1109 , 1009 , 1010 , 1110 , 1210 , 1310
+, 1410 , 1510 , 1610 , 1710
+, 1711 , 1611 , 1511 , 1411 , 1311 , 1211
+, 1111 , 1011 , 1012 , 1112 , 1212 , 1312
+, 1412 , 1512 , 1612 , 1712
+, 1713 , 1613 , 1513 , 1413 , 1313 , 1213
+, 1113 , 1013 , 1014 , 1114 , 1214 , 1314
+, 1414 , 1514 , 1614 , 1714
+, 1715 , 1615 , 1515 , 1415 , 1315 , 1215
+, 1115 , 1015 , 1016 , 1116 , 1216 , 1316
+, 1416 , 1516 , 1616 , 1716
+, 1717 , 1617 , 1517 , 1417 , 1317 , 1217
+, 1117 , 1017 , -1
 
 ( block 679 )
 
@@ -7034,16 +7034,16 @@ when all three have been done, only node 300 and its right and down ports have n
 ( block 680 )
 ( -- paths 1a)
 
-: up1a align create  708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400 ,
-1400 , 1401 , 1501 , 1500 , 1600 , 1601 ,
-1602 , 1502 , 1402 , 1302 , 1202 ,
-1201 , 1200 , 1100 , 1000 , -1 ,
+: up1a align create  , 708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400
+, 1400 , 1401 , 1501 , 1500 , 1600 , 1601
+, 1602 , 1502 , 1402 , 1302 , 1202
+, 1201 , 1200 , 1100 , 1000 , -1
 
 
-: up1b align create  708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400 ,
-1400 , 1401 , 1301 , 1201 , 1101 , 1001 ,
-1002 , 1102 , 1202 , 1302 , 1402 , 1502 ,
-1602 , 1702 , 1701 , 1700 , -1 ,
+: up1b align create  , 708 , 707 , 706 , 705 , 704 , 703 , 702 , 701 , 700 , 600 , 500 , 400
+, 1400 , 1401 , 1301 , 1201 , 1101 , 1001
+, 1002 , 1102 , 1202 , 1302 , 1402 , 1502
+, 1602 , 1702 , 1701 , 1700 , -1
 
 
 : !p0 uup0  'pths  ! ;
@@ -7386,13 +7386,13 @@ stp @ dup sport ! usb ! a-bps bps ! !nam
 
 : stp2 align create  708 717 to 617 600 to
 500 517 to 417 400 to 300 317 to 217 200 to
-100 117 to 17 0 to -1 , 
+100 117 to 17 0 to , -1 
 : stp1 align create  708 8 to 7 707 to
 706 6 to 5 705 to 704 4 to 3 703 to
-702 2 to 1 701 to 700 0 to -1 , 
-: stp1a align create  708 701 to -1 , 
+702 2 to 1 701 to 700 0 to , -1 
+: stp1a align create  708 701 to , -1 
 : stp0 align create  708 8 to 9 709 to 710 10 to 11 711 to 712 12 to 13 713 to 714 14 to
-15 715 to 716 16 to 17 717 to -1 ,
+15 715 to 716 16 to 17 717 to , -1
 
 
 : !p0 stp0  'pths  ! ; : !p1 stp1  'pths  1 + ! ;
@@ -7450,22 +7450,22 @@ stp @ dup sport ! usb ! a-bps bps ! !nam
 ( block 714 )
 ( - paths)
 : atp2 align create
- 708 700 to 600 300 to -1 ,
+ 708 700 to 600 300 to , -1
 
 : atp0 align create  708 408 to 407 400 to
 1400 1700 to 1701 1717 to 1617 1601 to
 1501 1517 to 1417 1401 to 1301 1317 to
-1217 1200 to 1100 1117 to 1017 1000 to -1 , 
+1217 1200 to 1100 1117 to 1017 1000 to , -1 
 : atp1 align create  708 408 to 407 400 to
 1400 1700 to 1701 1001 to 1002 1702 to
 1703 1003 to 1004 1704 to 1705 1005 to
 1006 1706 to 1707 1007 to 1008 1708 to
 1709 1009 to 1010 1710 to 1711 1011 to
 1012 1712 to 1713 1013 to 1014 1714 to
-1715 1015 to 1016 1716 to 1717 1017 to -1 , 
+1715 1015 to 1016 1716 to 1717 1017 to , -1 
 : atp1a align create  708 408 to 407 400 to
 1400 1401 to 1501 1500 to 1600 1602 to
-1502 1202 to 1201 1200 to 1100 1000 to -1 ,
+1502 1202 to 1201 1200 to 1100 1000 to , -1
 
 
 : !p0 atp0  'pths  ! ; : !p1 atp1  'pths  1 + ! ;
@@ -7922,7 +7922,7 @@ copyright c 2010-2011  greenarrays, inc.
 ( when deleting examples here, be sure to remove references in load blocks such as 200.)
 
 ( block 842 )
-( pwm demo) 600 node 0 org
+( pwm demo) node 600 org 0
 
 
 : pol ( 0x0 ) @b 0x2000 ( dw) and if
@@ -8682,17 +8682,17 @@ use the  'remote'  ones
 
 ( block 1080 )
 ( compile 16-bit eforth virtual machine)
-reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bin
+reclaim ( sram cluster mk1) sram load ( user) node 108 org 0x39 278 load 1817 bin
 ( boot flash-sram pipe) 1170 2 loads ( e4vm16 siobus wires) 1120 load
-     ( tx plug) 100 node 1124 load
-     ( rx plug) 200 node 1126 2 loads
-     ( 1-pin plug) 500 node 1130 load
-     ( 1-pin plug) 600 node 1130 load 1813 bin ( flash plug) 704 node 1132 load
-( e4vm16 stack) 106 node
-     ( sram+) 0x39 org 278 load
+     ( tx plug) node 100 1124 load
+     ( rx plug) node 200 1126 2 loads
+     ( 1-pin plug) node 500 1130 load
+     ( 1-pin plug) node 600 1130 load 1813 bin ( flash plug) node 704 1132 load
+( e4vm16 stack) node 106
+     ( sram+) org 0x39 278 load
      1082 2 loads ( +buds) 1086 4 loads
 ( e4vm16 bitsy +buds) 1094 8 loads
-( e4vm16 starter) 207 node ( sram+) 0x39 org 278 load ' -d-- ' ---u 0x8a00 1114 load
+( e4vm16 starter) node 207 ( sram+) org 0x39 278 load ' -d-- ' ---u 0x8a00 1114 load
 ( e4vm16 flash-sram pipe) ( 1110 ) ( load)
 ( erase and burn flash) 288 load
 ( spi speedup) 290 load
@@ -8702,8 +8702,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 ( block 1082 )
 ( - e4vm16 stack 8xxx-9xxx)
-( 'x@) 0x3c org 
-: 'au@ ( a-w) ( 0x3c )  0x0 org 
+( 'x@) org 0x3c 
+: 'au@ ( a-w) ( 0x3c )  org 0x0 
 : '1+ ( w-w) ( 0x0 ) 1 . + : mask ( w-w) ( 0x2 ) 0xffff and ;
 : '2/ ( w-w) ( 0x4 ) 2* 2* 2/ 2/ 2/ mask ;
 : popt ( p-pt) ( 0x6 ) dup '1+ over x@ ;
@@ -8711,8 +8711,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 : popst ( p-pst) ( 0x9 ) popt
 : pops ( pt-pst) ( 0xa ) push popt pop ;
 : pop43 ( pst-p43st) ( 0xc ) push push popst pop pop ;
-: '1- ( w-w) ( 0xe ) -1 . + mask ; here ( 'x!-2) 0x37 org 
-: psht ( pt-p) ( 0x37 ) push '1- pop over ( x! ;) ( 0x839 ) ( *)  org
+: '1- ( w-w) ( 0xe ) -1 . + mask ; here ( 'x!-2) org 0x37 
+: psht ( pt-p) ( 0x37 ) push '1- pop over ( x! ;) ( 0x839 ) ( org  *)
 : pshs ( pst-pt) ( 0x11 ) push psht pop ;
 : pshw ( pstw-ptw) ( 0x13 ) push pshs pop ;
 : 'sp@ ( pst-ptp) ( 0x15 ) pshs psht dup pops ;
@@ -8747,7 +8747,7 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 : 'zlt ( n-f) ( 0x28 ) 2* 2* -if dup or ..
 : 'inv ( w-w) ( 0x2a ) - mask ; ( 0x2b )  then dup or ;
 
-( 0x2c ) ( must be at or before) 0x32 org
+( 0x2c ) ( must be at or before) org 0x32
 ( bitsy left slot2 call reaches) ( 0x30 ) ( -) ( 0x37 )
 : c.s* ( code0* prix3) ( 0x32 ) 2* -if
 ( code01* prix4) ( 0x33 ) 2* -if -d-- ;  then ---u ;
@@ -8763,8 +8763,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
      ( code must fit before)  psht
 
 ( block 1086 )
-( -- stack up bud axxx) 206 node 0x20 org 
-: start @p b! ahead  ' ---u , 
+( -- stack up bud axxx) node 206 org 0x20 
+: start @p b! ahead  ' , ---u 
 : xqt ( 0x22 ) @b push ex
 : cmd ( 0x23 ) then @p !b ( ...) xqt ; ( /)  drop !p .. ( /)
 
@@ -8780,8 +8780,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 
 ( block 1090 )
-( -- stack down bud bxxx) 6 node 0x20 org 
-: start @p b! ahead  ' -d-- , 
+( -- stack down bud bxxx) node 6 org 0x20 
+: start @p b! ahead  ' , -d-- 
 : xqt ( 0x22 ) @b push ex
 : cmd ( 0x23 ) then @p !b ( ...) xqt ; ( /)  drop !p .. ( /)
 
@@ -8808,7 +8808,7 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 
 ( block 1094 )
-( - e4vm16 bitsy cxxx) 105 node 0x0 org 
+( - e4vm16 bitsy cxxx) node 105 org 0x0 
 : inc ( a-a) ( 0x0 ) 1 . + ;
 : bpshw ( w-) ( 0x2 ) @p !b !b ; ( /)  @p pshw ( /)
 : 'rp@ ( pri-pri) ( 0x4 ) push over bpshw pop ;
@@ -8838,7 +8838,7 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 ( block 1096 )
 ( --- more bitsy)
-( 0x25 ) ( must be at or before) 0x28 org
+( 0x25 ) ( must be at or before) org 0x28
       begin drop ;
 : 'exe ( pri-pri) ( 0x29 ) bpops
 : ?exe ( pri?-pri) ( 0x2a ) until
@@ -8869,8 +8869,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
      ( the) ide ( can single-step the bitsy node by calling)  step ( instead of executing) bitsy.
 
 ( block 1098 )
-( -- bitsy right bud dxxx) 104 node host  :: 'lu 0x165 lit ; target 0x20 org 
-: start @p b! ..  ' r--- ,  'lu a! ahead
+( -- bitsy right bud dxxx) node 104 host  :: 'lu 0x165 lit ; target org 0x20 
+: start @p b! ..  ' , r---  'lu a! ahead
 : xqt ( 0x24 ) @b push ex
 : cmd ( 0x25 ) then @p !b ( ...) xqt ; ( /)  drop !p .. ( /)
 
@@ -8903,8 +8903,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 
 ( block 1102 )
-( -- bitsy up bud exxx) 205 node 0x20 org 
-: start @p b! ahead  ' ---u , 
+( -- bitsy up bud exxx) node 205 org 0x20 
+: start @p b! ahead  ' , ---u 
 : xqt ( 0x22 ) @b push ex
 : cmd ( 0x23 ) then @p !b ( ...) xqt ; ( /)  drop !p .. ( /)
 
@@ -8920,8 +8920,8 @@ reclaim ( sram cluster mk1) sram load ( user) 108 node 0x39 org 278 load 1817 bi
 
 
 ( block 1106 )
-( -- bitsy down bud fxxx) 5 node 0x20 org 
-: start @p b! ahead  ' -d-- , 
+( -- bitsy down bud fxxx) node 5 org 0x20 
+: start @p b! ahead  ' , -d-- 
 : xqt ( 0x22 ) @b push ex
 : cmd ( 0x23 ) then @p !b ( ...) xqt ; ( /)  drop !p .. ( /)
 
@@ -8948,23 +8948,23 @@ if @p !b !b @p ( /) @p dec ( ') pop bx@ ; ( /)  !b ;
 ( block 1110 )
 ( - flash to sram pipe) host  :: head :: pipe  1112  load ; target
 ( -------- --in-- --out- ----)
-307 node ' ---u ' -d-- pipe
-407 node ' -d-- ' ---u pipe
-507 node ' ---u ' -d-- pipe
-607 node ' r--- ' ---u pipe
-606 node ' --l- ' r--- pipe
-605 node ' -d-- ' --l- head
+node 307 ' ---u ' -d-- pipe
+node 407 ' -d-- ' ---u pipe
+node 507 ' ---u ' -d-- pipe
+node 607 ' r--- ' ---u pipe
+node 606 ' --l- ' r--- pipe
+node 605 ' -d-- ' --l- head
 
-705 node ( interface) 1116 load
+node 705 ( interface) 1116 load
 
 ( block 1111 )
 
 
 ( block 1112 )
 ( -- head/pipe nodes take two parameters!)
-0x20 org ( programmed with abandon)
+org 0x20 ( programmed with abandon)
 : start ( init) leap warm ;
-: init ( 0x22 ) then @p b! .. ( out)  ,  @p a! ; ( in) , 
+: init ( 0x22 ) then @p b! .. ( ,  out)  @p a! ; ( , in) 
 : prime ( i-i) ( 0x26 ) dup !p ; ( install /* */)
 : pump ( 0x27 ) ( /*) begin @ !b unext ; ( */)
 : run ( in) ( 0x28 ) init
@@ -8983,15 +8983,15 @@ if @p !b !b @p ( /) @p dec ( ') pop bx@ ; ( /)  !b ;
 ( this is a bi-directional port pump! it assumes control comes from the 'head' and passes the it to the b-reg 'tail' of the pipe. a-reg the registers are set each time it is used, so the pipe may be crossed by other 'courteous' users. at this point only the count is passed--the tail has a fixed address to read to or write from.)
 
 ( block 1114 )
-( -- tail / starter node takes three parameters!) 0x0 org ( programmed with abandon)
+( -- tail / starter node takes three parameters!) org 0x0 ( programmed with abandon)
 : tf2s ( 0x0 ) ( e4base) 0
      begin @ over x! 1 . + next warm ;
 : ts2f ( 0x8 ) ( e4base) 0
      begin dup x@ ! 1 . + next warm ;
 : xm! ( m-) ( 0xf ) dup dup or dup - mk! ; ( 0x11 )
 
-0x20 org 
-: start ( 0x20 ) @p @p b! @p ( mask)  , ( out) , ( in) ,
+org 0x20 
+: start ( 0x20 ) @p @p b! @p ( ,  mask) ( , out) ( , in)
       a! xm! warm ;
 : prime ( i-i) ( 0x26 ) ; ( dummy)  ;
 : run ( in) ( 0x28 ) push @p or ( /*) begin @b ! unext ; ( */)  if tf2s ;  then ts2f ; ( 0x2d )
@@ -9001,7 +9001,7 @@ if @p !b !b @p ( /) @p dec ( ') pop bx@ ; ( /)  !b ;
       xm!  mask ( sets which neighbor nodes get access to memory.) ( 0x8000 ) ( is 106,) ( 0x800 ) ( is 108,) ( 0x200 ) ( is 207,) ( 0x8a00 ) ( is all three.) use carefully!
 
 ( block 1116 )
-( -- eforth flash interface) 0x0 org 
+( -- eforth flash interface) org 0x0 
 : 2cmd ( dw-d) select ( +2r) : +cmd ( dw-d) 8obits ( +4r)
 : cmd ( db-d) select : !8 ( db-d) 8obits drop ;
 : reading ( dh-d) ( 0x5 ) io b! over . ( read) 0xc00 cmd ( +5r)
@@ -9040,21 +9040,21 @@ if @p !b !b @p ( /) @p dec ( ') pop bx@ ; ( /)  !b ;
 ( block 1120 )
 ( - siobus16 wire nodes) host  :: wire  1122  load ; target
 ( ------- plug -dest- --in-- --out- ----)
-204 node 999 ' r--- ' -d-- ' ---u wire
-304 node 999 ' r--- ' ---u ' -d-- wire
-404 node 999 ' r--- ' -d-- ' ---u wire
-504 node 999 ' r--- ' ---u ' -d-- wire
-604 node 704 ' -d-- ' --l- ' ---u wire ( *)
-603 node 999 ' -d-- ' r--- ' --l- wire
-602 node 999 ' -d-- ' --l- ' r--- wire
-601 node 600 ' r--- ' ---u ' --l- wire ( *)
-501 node 500 ' r--- ' -d-- ' ---u wire ( *)
-401 node 999 ' r--- ' ---u ' -d-- wire
-301 node 999 ' r--- ' -d-- ' ---u wire
-201 node 200 ' r--- ' ---u ' -d-- wire ( *)
-101 node 100 ' r--- ' --l- ' ---u wire ( *)
-102 node 999 ' r--- ' r--- ' --l- wire
-103 node 999 ' r--- ' --l- ' r--- wire
+node 204 999 ' r--- ' -d-- ' ---u wire
+node 304 999 ' r--- ' ---u ' -d-- wire
+node 404 999 ' r--- ' -d-- ' ---u wire
+node 504 999 ' r--- ' ---u ' -d-- wire
+node 604 704 ' -d-- ' --l- ' ---u wire ( *)
+node 603 999 ' -d-- ' r--- ' --l- wire
+node 602 999 ' -d-- ' --l- ' r--- wire
+node 601 600 ' r--- ' ---u ' --l- wire ( *)
+node 501 500 ' r--- ' -d-- ' ---u wire ( *)
+node 401 999 ' r--- ' ---u ' -d-- wire
+node 301 999 ' r--- ' -d-- ' ---u wire
+node 201 200 ' r--- ' ---u ' -d-- wire ( *)
+node 101 100 ' r--- ' --l- ' ---u wire ( *)
+node 102 999 ' r--- ' r--- ' --l- wire
+node 103 999 ' r--- ' --l- ' r--- wire
 
 ( block 1121 )
 ( notes-)
@@ -9072,12 +9072,12 @@ iobus ( nodes have) ( 4 ) ( values defined when booted-)  in-port ( and) destina
 ( reply read and returned to eforth.)
 
 ( block 1122 )
-( -- generic siobus wire) 0x30 org
+( -- generic siobus wire) org 0x30
 
 
 : start ( takes four parameters!)
-     @p b! @p .. ( out-port)  , ( in-port) ,
-      @p a! @p .. ( dest-port)  , ( dest-node) , 
+     @p b! @p .. ( ,  out-port) ( , in-port)
+      @p a! @p .. ( ,  dest-port) ( , dest-node) 
 : wait ( id) ( 0x36 ) over push ex ( ... @p over @p ;)
 : test ( idndw) ( 0x37 ) push over or if
 : pass ( idnx.w) ( 0x39 )
@@ -9090,14 +9090,14 @@ iobus ( nodes have) ( 4 ) ( values defined when booted-)  in-port ( and) destina
 
 ( block 1124 )
 ( -- tx plug node) host  :: tx0 ( dumb) 0x25555 ( maxim) ( 0x35555 ) lit ; :: tx1 ( dumb) 0x35555 ( maxim) ( 0x25555 ) lit ; :: 'ru  0x1c5  lit ; :: 115k  2350  lit ;
-target 0x30 org 
+target org 0x30 
 : !bit ( im-i) ( 0x30 ) over and
      if tx0 !b drop ;  then tx1 !b drop ;
 : putchar ( di-dx) ( 0x35 ) 0xff or 2* ..
 ( 1-start, 8-data, 1-stop bit) 9 for ( 0x39 )
      1 !bit 2/ over for . unext next ; ( 0x3e )
 
-( 0x3e ) 0x20 org ( programmed with abandon)
+( 0x3e ) org 0x20 ( programmed with abandon)
 : start io b! ( space) tx0 !b 'ru a! ( bit delay) 115k
 : wait ( *d) ( 0x26 ) @ ( ...) if
 ( dly *d)  ' wait  -until
@@ -9118,7 +9118,7 @@ target 0x30 org
 ( protocol guarentees that there won't be a port conflict.)
 
 ( block 1126 )
-( -- rx plug node) 0x0 org 
+( -- rx plug node) org 0x0 
 : @bit ( cm-c) @b - over - and push and pop or ;
 : getchar ( dx-di) ( 0x3 ) over 2/ for . unext ( 1/2 bit) 8 for ( 1-start, 8-data, 1-stop bits)
      0x1ffff @bit 2/ over for . unext
@@ -9148,7 +9148,7 @@ next 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 0xff and - ;
 ( block 1128 )
 ( --- more rx)
 
-( 0x1d ) 0x20 org ( programmed with 2-stack abandon)
+( 0x1d ) org 0x20 ( programmed with 2-stack abandon)
 : start ( est 115k delay) 2350
      ( tri-state pin17) io b! 0x5555 !b
      ( 2-char empty buffer) 0 dup push
@@ -9168,7 +9168,7 @@ next 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 0xff and - ;
 
 
 ( block 1130 )
-( -- 1-pin plug node) 0x20 org 
+( -- 1-pin plug node) org 0x20 
 : start right a! io b! ( p17 hi-imp) 0x5555 dup !b
 : cmd ( m) ( 0x26 ) @ ( ...) -if
 ( n!) ( 0x27 ) ( mw) 1 or 7 for 2* 2* unext
@@ -9189,9 +9189,9 @@ n@ ( samples the pin, returning)
 ( high level eforth code toggles at) ( 250 ) ( khz!)
 
 ( block 1132 )
-( -- dummy flash controller plug) 0x0 org 
+( -- dummy flash controller plug) org 0x0 
 : !x @p drop !p ; : x 0 ;
-: xfers dup !x ; 0x20 org 
+: xfers dup !x ; org 0x20 
 : start down a!
 : cmd ( 0x22 ) @ ( ...) -if
 ( n!) ( 0x23 ) ( w) - xfers ! cmd ;
@@ -9243,23 +9243,23 @@ compiled and interpreted scripts.
 : !path ( ap) dup -hook 'pths + ! panel pause ;
 
 
-: srampath  1  align route  708 , 608 ,
-     508 , 408 , 308 , 208 , 108 , 107 ,
-     7 , 8 , 9 , -1 , ( srampath)
+: srampath  1  align route  , 708 , 608
+     , 508 , 408 , 308 , 208 , 108 , 107
+     , 7 , 8 , 9 , -1 ( srampath)
 
 
-: e4path  0  align route  708 , 707 , ( 706 ) ( ,)
-     ( 705 ) ( ,) ( 605 ) ( ,) ( 606 ) ( ,) 607 , 507 , 407 ,
-     307 , 207 , 206 , 205 , 105 , 106 ,
-     6 , 5 , 4 , 104 , 103 , 102 , 101 ,
-     100 , 200 , 201 , 301 , 401 , 501 ,
-     500 , 600 , 601 , 602 , 603 , 703 ,
-     704 , 604 , 504 , 404 , 304 , 204 ,
-     -1 , ( e4path)
+: e4path  0  align route  , 708 , 707 ( 706 ) ( ,)
+     ( 705 ) ( ,) ( 605 ) ( ,) ( 606 ) ( ,) , 607 , 507 , 407
+     , 307 , 207 , 206 , 205 , 105 , 106
+     , 6 , 5 , 4 , 104 , 103 , 102 , 101
+     , 100 , 200 , 201 , 301 , 401 , 501
+     , 500 , 600 , 601 , 602 , 603 , 703
+     , 704 , 604 , 504 , 404 , 304 , 204
+     , -1 ( e4path)
 
 
-: flpath  0  align route  708 , 707 , 706 ,
-     705 , -1 ,
+: flpath  0  align route  , 708 , 707 , 706
+     , 705 , -1
 
 ( block 1143 )
 
@@ -9444,8 +9444,8 @@ named ( ef/eforth.bin) !e4
 
 
 ( block 1170 )
-( - sram loader nodes) ( wires) 605 node 0 org 
-: wire ( b! a!) @ dup !b for @ !b unext warm ; ( 0x4 ) 1815 bin ( sram loader node) ( 208 ) 208 node 0 org  ahead
+( - sram loader nodes) ( wires) node 605 org 0 
+: wire ( b! a!) @ dup !b for @ !b unext warm ; ( 0x4 ) 1815 bin ( sram loader node) ( 208 ) node 208 org 0  ahead
 : !sram ( 0x1 ) ( an) @p !b !b .. ( /) @p @p .. ( /) !b @p !b ; ( /)  x! ( /)
 : start ( 0x5 ) then down a! up b! 0 dup @ dup push !sram begin 1 . + dup @ !sram next warm ; ( 0x11 ) 1816 bin
 
@@ -9453,7 +9453,7 @@ named ( ef/eforth.bin) !e4
 ( minimal version of plumbing for sram boot from flash. wires are compiled only once and are) ( initialized with source port in a and dest) ( port in b.) ( message consists of word count n-1 followed by n words to be passed along.)
 
 ( block 1172 )
-( - spi flash) ( 8 ) ( bits) 705 node 0 org host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
+( - spi flash) ( 8 ) ( bits) node 705 org 0 host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
      18 8 */ 4 * lit ; target 
 : wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
 : 2cmd ( dw-d) ( 0x4 ) select 8obits
@@ -10277,7 +10277,7 @@ goes high , at which point it starts over
 ( softsim display numbers) :var base [0x10]
 : hex 16  base  ! ;
 : dec 10  base  ! ;
-: digits ( i-n) 1 + 0 max 17 min align tbl  47 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31 , 32 , 33 , 5 , 19 , 10 , 16 , 4 , 14 , 48 , 
+: digits ( i-n) 1 + 0 max 17 min align tbl  , 47 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31 , 32 , 33 , 5 , 19 , 10 , 16 , 4 , 14 , 48 
 : digit ( i) digits emit/2 ;
 : .n ( nc) dup push -1 + for  base  @ /mod next begin digit next ;
 : awake cnt? -if -shake if silver pop drop ;  then then ;
@@ -10510,7 +10510,7 @@ over + next drop drop ;
 : -stp -track quick ;
 : +stp step
 : listen awake begin  op  @ 'tik @ or drop while pause key? step end then track ;
-: h pad ( -n.alt) nul +stp accept nul ( ur) ww wn ws we ( mr) fw fn fs fe ( lr) ftog mh ml wtog ( ul) nul nul --gap ++gap ( ml) restart gtog go -stp ( ll) nul nul -gap +gap ( n.alt)  0x2507 , ( ur) 0x110160c , ( mr) 0x110160c , ( lr) 0xf0c1403 , ( ul) 0x2b230000 , ( ml) 0x80d0e12 , ( ll) 0x2b230000 ,
+: h pad ( -n.alt) nul +stp accept nul ( ur) ww wn ws we ( mr) fw fn fs fe ( lr) ftog mh ml wtog ( ul) nul nul --gap ++gap ( ml) restart gtog go -stp ( ll) nul nul -gap +gap ( n.alt)  , 0x2507 ( ur) , 0x110160c ( mr) , 0x110160c ( lr) , 0xf0c1403 ( ul) , 0x2b230000 ( ml) , 0x80d0e12 ( ll) , 0x2b230000
 
 ( block 1295 )
 ( softsim keyboard handler)
@@ -10585,13 +10585,13 @@ edge ( is the dummy destination for unassigned)
 ( custom code) 1302 load ( exit)
 
 ( polyforth) 730 load
-( smtm test) 0 node 1342 load exit
+( smtm test) node 0 1342 load exit
 
-( */ exerciser) 402 node 1354 load
-     401 node 1356 load 400 node 1358 load
-( serdes) 1 node 1360 load 701 node 1362 load
-( spi flash write) 702 node 1364 load
-( ana) 715 node 1366 load 717 node 1368 load
+( */ exerciser) node 402 1354 load
+     node 401 1356 load node 400 1358 load
+( serdes) node 1 1360 load node 701 1362 load
+( spi flash write) node 702 1364 load
+( ana) node 715 1366 load node 717 1368 load
 
 
 ( block 1301 )
@@ -10603,16 +10603,16 @@ edge ( is the dummy destination for unassigned)
  unused ( custom test code exit)
 
 ( read/write) ( 18 ) ( bit flash)
-      705 node 1364 load 1609 bin
-     706 node 1216 load 1610 bin
+      node 705 1364 load 1609 bin
+     node 706 1216 load 1610 bin
 ( read/write) ( 8 ) ( bit flash)
-     705 node 1370 load 1611 bin
+     node 705 1370 load 1611 bin
 ( read image from flash to sram)
 host  :: sram ( -n) 4095 lit ; :: resume ( -n adjusted)  656 18 8 */ 4 *  lit ;
 target
-     705 node 292 load 1612 bin
+     node 705 292 load 1612 bin
 ( spi speedup)
-     705 node 284 load 1608 bin
+     node 705 284 load 1608 bin
 
 ( block 1303 )
 ( this load block, and the following) ( 25 ) ( source/shadow pairs, are yours to do with as you please!)
@@ -10620,14 +10620,14 @@ target
 ( block 1304 )
 ( eforth rom code)
 
-( sdram addr) 9 node 1320 load
-     ( ctrl) 8 node 1322 load ( ram)
-     ( data) 7 node 1324 load
-     ( idle) 108 node 1326 load
-     ( user) 107 node 1328 load
+( sdram addr) node 9 1320 load
+     ( ctrl) node 8 1322 load ( ram)
+     ( data) node 7 1324 load
+     ( idle) node 108 1326 load
+     ( user) node 107 1328 load
 
-( eforth stack) 106 node 1310 2 loads
-     ( bitsy) 105 node 1306 2 loads
+( eforth stack) node 106 1310 2 loads
+     ( bitsy) node 105 1306 2 loads
 
 
 
@@ -10636,7 +10636,7 @@ target
 
 ( block 1306 )
 ( e4 bitsy 1of2)
-0xaa org 
+org 0xaa 
 : rp-- ( a-a') ( 0xaa ) -1 . + ;
 : bs@ : 'else ( a-w) ( 0xac )
      @p+ !b !b . ( ') @p+ x@ ( ')
@@ -10724,10 +10724,10 @@ target
 
 ( block 1310 )
 ( e4 stack 1of2)
-0x3c org 
+org 0x3c 
 : xa@ ( a-) ( 0x3c ) @p+ !b !b ; ( ')  @p+ sd@ ( ')
 : xa! ( a-) ( 0x3e ) @p+ !b !b ; ( ')  @p+ sd! ( ')
-( 0x40 )  0xaa org 
+( 0x40 )  org 0xaa 
 : 'c@ : '@ : x@ ( a-w) ( 0xaa ) xa@ @b ;
 : sp++ : char+ : cell+
 : 1+ ( w-w') ( 0xac ) 1 . + ;
@@ -10913,7 +10913,7 @@ begin drop @b - -if getchar then
 ( sdram address-bus)
 ( copy command to address bus)
 
-0xaa org 
+org 0xaa 
 : cmd ( c-) ( 0xaa ) 0x3d555 ( nop.xxx) !b ..
      @ ( sleeps) !b cmd ;
 
@@ -10926,13 +10926,13 @@ begin drop @b - -if getchar then
 ( block 1322 )
 ( sdram control-pins)
 ( each word runs the requested rise..fall cycle 12+11 ticks per cycle is a 42ns period)
-0x0 org 
+org 0x0 
 : nooop ( rfr-rfr) ( 0x0 ) ( 'nooop') . .. !b
      .. over over .. . . !b ;
 : rcol1 ( rf-rfrf) ( 0x4 ) . . !b
      .. 0x2b .. !b ( transfer)
      . 0x22e .. . . !b ;
-( 0xa ) 0x10 org ( 8-word page accessible to down port)
+( 0xa ) org 0x10 ( 8-word page accessible to down port)
 : cmmd ( rfr-rfr) ( 0x10 ) ( '@p+ ! cmmd') !b
      .. over over .. . . !b ;
 : rcol ( rfr-rfr) ( 0x13 ) ( '@p+ ! rcol') !b
@@ -10954,7 +10954,7 @@ begin drop @b - -if getchar then
 ( sdram data-bus)
 
 ( db@ isn't used with 7j chip!)
-0xaa org ( called with 'db@' '...!p+')
+org 0xaa ( called with 'db@' '...!p+')
 : db@ ( -w) ( 0xaa ) @ ; ( wakeup when data ready)
 
 ( db! called with '@p+ db!')
@@ -10970,7 +10970,7 @@ begin drop @b - -if getchar then
 
 ( block 1326 )
 ( sdram idle-loop)
-0xaa org 
+org 0xaa 
 : noop ( -) ( 0xaa ) @p+ ! ; ( ')  nooop ( ')
 : cmd ( c-) ( 0xac ) 0x5a48 ! ! ; ( '@p+ ! cmmd')
 
@@ -11000,7 +11000,7 @@ dup dup dup init ;
 
 ( block 1328 )
 ( sdram user interface)
-0xaa org ( user cmds+data from/to up or right)
+org 0xaa ( user cmds+data from/to up or right)
 : a2rc ( pa-pbc) ( 0xaa ) dup ( 2* 16mw) push 2/ ( 32mw)
 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ -if
 : row! ( pr-pbc) ( 0xaf ) 0x7fff ( row.mask) and dup ..
@@ -11025,7 +11025,7 @@ drop poll ;
 ( 2* 16mw push)  2/ ( 32mw)  for 32.
 
 ( block 1330 )
-( async ats interface) 0 org 
+( async ats interface) org 0 
 : obit ( dwn-dw) ( 0x0 ) !b over push delay ;
 : word ( dw-d) ( 0x2 ) leap drop leap drop leap drop drop ;
 : obyt ( dw-dwx) ( 0x6 ) then then then 3 obit drop 7 for dup 1 and 3 or obit drop 2/ next 2 obit ;
@@ -11075,18 +11075,18 @@ drop poll ;
 
 
 ( block 1342 )
-( smtm test) 0x32 org 
+( smtm test) org 0x32 
 : go a! 0x1557f !b 0x1556a !b . pop @p+
      ( ') @p+ dup 2/ . ( ') a ! ! 0x43 for
      0x3f !+ . unext
      ( ') 2* a! push . ( ' ') begin @p+ !+ . unext ( ')
      ( ') @p+ push ; ( ')  ! warm ;
-( 0x12 ) 0x2a org 
+( 0x12 ) org 0x2a 
 : r @p+ go ;  r---
 : d @p+ go ;  -d--
 : l @p+ go ;  --l-
 : u @p+ go ;  ---u
- 0 org ( avoid node1)  d r l
+ org 0 ( avoid node1)  d r l
 : path r l r l d l r l r d path ;
 
 ( block 1343 )
@@ -11098,7 +11098,7 @@ drop poll ;
 ( 14 ) ( word ga144 creeper test frame 3/25/11)
 ( see db007 for detailed discussion.)
 
-0x36 org 
+org 0x36 
 : focus ( 0x36 ) ( jport) dup dup a! dup ! @p ! dup
 ( ') @p b! . ! or !b ;
 : creep ( 0x3a ) ( 67 ) dup !b push
@@ -11108,7 +11108,7 @@ begin @p ! unext . ( 0x3c )
 
 : wire begin @b ! @b ! @
 : rip ( 0x42 ) dup !b -until ( 0x43 ) warm ;
-( 0x44 ) 4 org 
+( 0x44 ) org 4 
 : test ( 0x4 ) ( n1)
 
 ( block 1345 )
@@ -11141,7 +11141,7 @@ begin @p ! unext . ( 0x3c )
 
 ( block 1348 )
 ( extensive neighbor's memory test 005-035)
-0x29 org : err  0x5 org 
+org 0x29 : err  org 0x5 
 : test ( n1) @p ! @p dup ( ') 0x3f push dup dup
 ! @p ! ( ') or dup a! .
 @p ! ( ') begin dup !+ unext . ( erased)
@@ -11174,7 +11174,7 @@ dup dup or !b ; ( 0x31 ) ( 3/5/11)
 
 
 ( block 1350 )
-( 1604 ) ( all nodes template) 15 node 0 org 
+( 1604 ) ( all nodes template) node 15 org 0 
 : poll io b! @b ( mask) 0xaa00 ( 0x3 ) and if ( drop) warm ;  then drop ; ( 0x6 )
 : incr poll if 1 . + ;  then drop 1 . + 1 ;
 : run ( 0xe ) -1 0 ( 9999 ) 99999 for ( 9999 ) 44999 for incr next next 0x3e a! !+ !+ 0x600d warm ;
@@ -11185,7 +11185,7 @@ dup dup or !b ; ( 0x31 ) ( 3/5/11)
 
 
 ( block 1352 )
-( erase flash) 0 org 
+( erase flash) org 0 
 : wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
 : 2cmd ( dw-d) ( 0x4 ) select 8obits
 : cmd ( dw-d) select
@@ -11206,7 +11206,7 @@ rbit ibit - next 0xffff and ;
 
 
 ( block 1354 )
-( hardware multiply test) 0 org +cy 
+( hardware multiply test) org 0 +cy 
 : clc ( 0x200 ) dup dup or dup . + drop ;
 : d2* ( hl-hl) ( 0x202 ) dup . + push dup . + pop ;
 : um+ ( hln-hl) ( 0x205 ) . + push dup dup or . + pop ; ( 0x208 ) -cy 
@@ -11223,7 +11223,7 @@ rbit ibit - next 0xffff and ;
 : try ( slaves this node to another by the port given. it expects to receive numbers b a r and calculates b*a+r then receives a and returns b and r. the multiply is done using the h* here which is why b is signed and a is unsigned.)
 
 ( block 1356 )
-( soft multiply test) 0 org +cy 
+( soft multiply test) org 0 +cy 
 : clc ( 0x200 ) dup dup or dup . + drop ;
 : d2* ( hl-hl) ( 0x202 ) dup . + push dup . + pop ;
 : um+ ( hln-hl) ( 0x205 ) . + push dup dup or . + pop ;
@@ -11239,7 +11239,7 @@ rbit ibit - next 0xffff and ;
 
 
 ( block 1358 )
-( multiply exerciser) 0x0 org 
+( multiply exerciser) org 0x0 
 : dec ( n-n) -1 . + ;
 : +or ( nn-n) over - and or ;
 : try ( abr-ab bad) ( 0x4 ) right a! ( 12033 !) push dup ! over ! pop dup ! push over ! dup @ or @ pop or +or ;
@@ -11257,7 +11257,7 @@ rbit ibit - next 0xffff and ;
 : try ( exercises slave node given a test vector. for the hardware version a is unsigned and b is signed. but the divide is unsigned so b is limited to the largest positive number.)
 
 ( block 1360 )
-( serdes test) 0xaa org  data a! 0x3fffe dup ! up a! begin @ drop unext ( rdlu)  0 org 
+( serdes test) org 0xaa  data a! 0x3fffe dup ! up a! begin @ drop unext ( rdlu)  org 0 
 : try io b! 0x20000 !b 0x147 a! 0 10000 for 1 + dup a! next ;
 : start @ io b!
 : test 0x2aaaa @b or ! test . . . . down a! . . start
@@ -11266,13 +11266,13 @@ rbit ibit - next 0xffff and ;
 
 
 ( block 1362 )
-( serdes test) ( 2 ) 0xaa org  data a! 0x33333 dup ! up a! 0x20000 !b begin dup . . . . . . . . . . . . . . . . . . . . . ! unext . . . . . . .
+( serdes test) ( 2 ) org 0xaa  data a! 0x33333 dup ! up a! 0x20000 !b begin dup . . . . . . . . . . . . . . . . . . . . . ! unext . . . . . . .
 
 ( block 1363 )
 
 
 ( block 1364 )
-( spi flash writer michael + greg 2.1) 0 org 
+( spi flash writer michael + greg 2.1) org 0 
 : 2o ( dw-dw') ( 0x0 ) obit 2* obit ;
 : wait ( dw-dw) ( 0x2 ) select dup begin drop @b -until drop select ;
 : 2cmd ( dw-d) ( 0x6 ) select 8obits
@@ -11308,7 +11308,7 @@ low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
 : 18ibits ( reads one word; take care with)  'd'
 
 ( block 1366 )
-( take adc data) 0 org 
+( take adc data) org 0 
 : sam+ ( -n) ( 0x0 ) ( 0x155 ) 0x2155 ( 0x6155 )
 : s+- ( k-n) io b! !b up b! !b @b ;
 : sam- ( -n) ( 0x6 ) ( 0x955 ) 0x2955 ( 0x6955 ) s+- ;
@@ -11326,7 +11326,7 @@ exit  sam+ drop
 ( original version sampled each half cycle of the incoming clock.)
 
 ( block 1368 )
-( generate dac waves) 0 org 
+( generate dac waves) org 0 
 : dly ( 0x0 ) 100 for unext ;
 : sano ( n-n) 0x3ffdf and ;  0x10 or ;
 : tri ( n) ( 0x7 ) push 0x155 0 begin
@@ -11345,7 +11345,7 @@ exit  sam+ drop
 
 
 ( block 1370 )
-( spi flash) ( 8 ) ( bits) 0 org 
+( spi flash) ( 8 ) ( bits) org 0 
 : 2o ( dw-dw') ( 0x0 ) obit 2* obit ;
 : wait ( dw-dw) ( 0x2 ) select dup begin drop @b -until drop select ;
 : 2cmd ( dw-d) ( 0x6 ) select 8obits
@@ -11379,7 +11379,7 @@ low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
 : 16ibits ( reads one word; take care with)  'd'
 
 ( block 1372 )
-( 1600 ) ( ide via async boot) 708 node 0 org 
+( 1600 ) ( ide via async boot) node 708 org 0 
 : obit ( dwn-dw) ( 0x0 ) !b over push delay ;
 : word ( dw-d) ( 0x2 ) leap drop leap drop leap drop drop ;
 : obyt ( dw-dwx) ( 0x6 ) then then then 3 obit drop 7 for dup 1 and 3 or obit drop 2/ next 2 obit ;
@@ -11397,7 +11397,7 @@ low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
 
 
 ( block 1374 )
-( 1601 ) ( ide via sync boot) 300 node 0 org 
+( 1601 ) ( ide via sync boot) node 300 org 0 
 : 1bit ( wx-w'x) drop -if 3 ahead  swap  then 2
 then !b 2* dup ;
 : word ( w) ( 0x6 ) 8 dup for begin drop @b -until 1bit begin drop @b - -until 1bit next drop drop ;
@@ -11417,11 +11417,11 @@ drop 2 !b 1 !b ser-exec ;
 
 
 ( block 1376 )
-( 1602 ) ( ide wire node) 17 node 0 org 
-: fet ( 0x0 ) @p+ !b @ . fet !b @b ! ; ( 0x3 ) 5 org 
-: sto ( 0x5 ) @p+ !b @ . sto !b @ !b ; ( 0x8 ) 0xa org 
-: ins ( 0xa ) @p+ !b @ . ins !b ; ( 0xd ) 0xd org 
-: psh ( 0xd ) @p+ !b @ . psh !b ; ( 0x10 ) 0x10 org 
+( 1602 ) ( ide wire node) node 17 org 0 
+: fet ( 0x0 ) @p+ !b @ . fet !b @b ! ; ( 0x3 ) org 5 
+: sto ( 0x5 ) @p+ !b @ . sto !b @ !b ; ( 0x8 ) org 0xa 
+: ins ( 0xa ) @p+ !b @ . ins !b ; ( 0xd ) org 0xd 
+: psh ( 0xd ) @p+ !b @ . psh !b ; ( 0x10 ) org 0x10 
 : stk ( 0x10 ) @p+ !b . . stk 9 for @b ! unext ;
 ( 0x15 ) 1602 bin
 
@@ -11429,8 +11429,8 @@ drop 2 !b 1 !b ser-exec ;
 
 
 ( block 1378 )
-( 1603 ) ( ide last guy) 16 node 0x1e org 
-: focus ( i0) ( 0x1e ) @p+ !b !b ; ( /)  focus ; 0 org 
+( 1603 ) ( ide last guy) node 16 org 0x1e 
+: focus ( i0) ( 0x1e ) @p+ !b !b ; ( /)  focus ; org 0 
 : fet ( 0x0 ) @p+ focus ( /+) @p+ a! @ !p+ ( /) @ !b @b @p+ ( /+) ; ( /)  !b ! ;
 : sto ( 0x5 ) @p+ focus ( /+) @p+ a! . @p+ ( /) @ !b @ . ( /) !b @p+ !b ; ( /+)  ! ;
 : ins ( 0xa ) @ focus ; ( /)  ins ins
@@ -11442,21 +11442,21 @@ drop 2 !b 1 !b ser-exec ;
 
 
 ( block 1380 )
-( common) 0x155 org ( bomb) 0x145 org
-: ---u  0x175 org
-: --l-  0x165 org
-: --lu  0x115 org
-: -d--  0x105 org
-: -d-u  0x135 org
-: -dl-  0x125 org
-: -dlu  0x1d5 org
-: r---  0x1c5 org
-: r--u  0x1f5 org
-: r-l-  0x1e5 org
-: r-lu  0x195 org
-: rd--  0x185 org
-: rd-u  0x1b5 org
-: rdl-  0x1a5 org
+( common) org 0x155 ( bomb) org 0x145
+: ---u  org 0x175
+: --l-  org 0x165
+: --lu  org 0x115
+: -d--  org 0x105
+: -d-u  org 0x135
+: -dl-  org 0x125
+: -dlu  org 0x1d5
+: r---  org 0x1c5
+: r--u  org 0x1f5
+: r-l-  org 0x1e5
+: r-lu  org 0x195
+: rd--  org 0x185
+: rd-u  org 0x1b5
+: rdl-  org 0x1a5
 : rdlu
 
 ( block 1381 )
@@ -11841,11 +11841,11 @@ the f18a uses adr bit 9 for mode; 8 for i/o; 7 for rom. incrementer maintains bi
 ( block 1418 )
 ( math rom anywhere) 0 kind
 
-0xa1 org
+org 0xa1
 ( 0xa1 ) 1388 load ( relay)
 ( 0xa9 ) : warm await ;
 
-0xb0 org
+org 0xb0
 ( 0xb0 ) 1390 load ( multiply)
 ( 0xb7 ) 1396 load ( fractional multiply)
 ( 0xbc ) 1386 load ( taps)
@@ -11853,7 +11853,7 @@ the f18a uses adr bit 9 for mode; 8 for i/o; 7 for rom. incrementer maintains bi
 ( 0xce ) 1394 load ( triangle)
 ( 0xd3 ) 1398 load ( -u/mod)
 
-0xaa org
+org 0xaa
 ( 0xaa ) 1382 load ( polynomial approximation)
 ( 0xb0 )
 
@@ -11863,7 +11863,7 @@ the f18a uses adr bit 9 for mode; 8 for i/o; 7 for rom. incrementer maintains bi
 ( block 1420 )
 ( serdes boot top/bot) 6 kind 0xaa reset
 
-0xa1 org
+org 0xa1
 ( 0xa1 ) 1388 load ( relay)
 ( 0xa9 ) : warm await ;
 
@@ -11882,8 +11882,8 @@ the f18a uses adr bit 9 for mode; 8 for i/o; 7 for rom. incrementer maintains bi
 
 ( block 1422 )
 ( sync serial boot side) 2 kind 0xaa reset
-( 0xbf ) 0xbe org : sget
- 0xa1 org
+( 0xbf ) org 0xbe : sget
+ org 0xa1
 ( 0xa1 ) 1388 load ( relay)
 ( 0xa9 ) : warm await ;
 
@@ -11916,8 +11916,8 @@ begin sget ( push sget pop !+) !+ next ;
 
 ( block 1424 )
 ( async serial boot top/bot) 1 kind 0xaa reset
-( 0xcf ) 0xcb org : 18ibits
- 0xa1 org
+( 0xcf ) org 0xcb : 18ibits
+ org 0xa1
 ( 0xa1 ) 1388 load ( relay)
 ( 0xa9 ) : warm await ;
 : cold ( 0xaa ) 0x31a5 ( 'rdlu) a! @ @b .. -if
@@ -11972,9 +11972,9 @@ begin @b . -if then . drop next @b ;
 
 ( block 1428 )
 ( spi boot top/bot) 4 kind 0xaa reset host  :: ---  0x2a  lit ; ( do, ce-, clk) :: --+  0x2b  lit ; :: +--  0x3a  lit ; :: +-+  0x3b  lit ; :: -++  0x2f  lit ; target
-0xa1 org 1388 load ( relay)
+org 0xa1 1388 load ( relay)
 
-0xc2 org 
+org 0xc2 
 : 8obits ( dw-dw') 7 for leap ( obit) 2* *next ;
 : ibit ( 0xc7 ) ( dw-dw')
      @b . -if drop - 2* ;  then drop 2* - ;
@@ -11987,7 +11987,7 @@ begin @b . -if then . drop next @b ;
 : ibits begin rbit ibit - next ;
 
 : u2/ 2/ 0x1ffff and ; ( 0xe1 )
-0xa9 org
+org 0xa9
 ( 0xa9 ) : warm await ;
 ( 0xaa ) 1430 load ( the rest)
 ( 0xc1 )
@@ -12018,11 +12018,11 @@ begin @b . -if then . drop next @b ;
 ( block 1432 )
 ( analog) 0 kind
 
-0xa1 org
+org 0xa1
 ( 0xa1 ) 1388 load ( relay)
 ( 0xa9 ) : warm await ;
 
-0xb0 org
+org 0xb0
 ( 0xb0 ) 1390 load ( multiply)
 ( 0xb7 ) 1396 load ( fractional multiply)
 ( 0xbc ) 1434 load ( -dac)
@@ -12030,7 +12030,7 @@ begin @b . -if then . drop next @b ;
 ( 0xce ) 1394 load ( triangle)
 ( 0xd3 ) 1398 load ( -u/mod)
 
-0xaa org
+org 0xaa
 ( 0xaa ) 1382 load ( polynomial approximation)
 ( 0xb0 )
 
@@ -12050,15 +12050,15 @@ begin @b . -if then . drop next @b ;
 
 
 ( block 1436 )
-( 1-wire) 3 kind 0xaa org
+( 1-wire) 3 kind org 0xaa
 
-0x9e org 
+org 0x9e 
 : rcv ( s-sn) ( 0x9e ) a push dup dup a! 17 for begin
 : bit ( 0xa1 ) @ drop @b -if
      drop - 2* - *next pop a! ;  then
      drop 2* next pop a! ; ( 0xa8 )
 
-0xa9 org 
+org 0xa9 
 : warm ( 0xa9 ) await ;
 : cold ( 0xaa ) left center a! . io b!
      dup dup 0xb7 ( rest) dup push push 16 push
@@ -12080,7 +12080,7 @@ begin @b . -if then . drop next @b ;
 ( block 1438 )
 ( null rom anywhere) 0 kind
 
-0xa9 org
+org 0xa9
 
 : warm ( 0xa9 ) await ;
 

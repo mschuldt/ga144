@@ -52,9 +52,12 @@ INT = 0xffffffff
 DEFAULT = ['execute']  # default action, reset at start of each block
 # bit 27 is the sign bit, so the above is the largest positive number
 
+block_num = 0
 def cf2f(infile = sys.stdin, output = sys.stdout):
+ global block_num
  blocks = getbinary(infile)
  for index in range(18, len(blocks)):
+  block_num = index
   DEFAULT[:] = ['execute']  # reset default action
   print >>output, '( block %d )' % index
   block = getwords(blocks[index])
@@ -152,6 +155,8 @@ def unpack_all(rawblock, index = 0):
 
 word_type_host = False
 
+reversed_words = [ "node", "org", "," ]#, "/b", "/a", "/io", "/p", "/stack" ]
+
 def markup(block, blocktype = 'highlevel', index = 0):
  '''add syntactic cues for text-mode rendition of colorforth
 
@@ -167,8 +172,11 @@ def markup(block, blocktype = 'highlevel', index = 0):
   debug('marking up: %s' % item, 2)
   if word == "host":
    word_type_host = True
-  if word == "target":
+  elif word == "target":
    word_type_host = False
+  elif not block_num %2 and  word in reversed_words and tag == 'executeword':
+   block[index-1], block[index] = block[index], block[index-1]
+
   for pattern in MARKUP[blocktype]:
    if re.compile(pattern[0]).match(tag or 'NO_MATCH'):
     debug('marking up as %s' % pattern[1], 2)
