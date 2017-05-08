@@ -28,7 +28,7 @@
               (compile-token aforth-current-token)))
           (when memory
             (fill-rest-with-nops) ;;make sure last instruction is full
-            (set-node-len! current-node (sub1 next-addr)))
+            (set-current-node-length))
 
           (when DEBUG? (display-compiled (compiled used-nodes nil)))
 

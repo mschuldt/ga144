@@ -94,7 +94,7 @@
         )))
   (when memory
     (fill-rest-with-nops) ;;make sure last instruction is full
-    (set-node-len! current-node (sub1 next-addr)))
+    (set-current-node-length))
 
   (when DEBUG? (display-compiled (compiled used-nodes)))
 
@@ -652,10 +652,19 @@
          (err (rkt-format "invalid token: ~a" token))
          (set-next-empty-word! data)))))
 
+(define (set-current-node-length)
+  (let ((i (- (vector-length memory) 1)))
+    (while (and (>= i 0)
+                (not (vector-ref memory i)))
+      (set! i (- i 1)))
+    (set! i (max i 0))
+    (set-node-len! current-node i)))
+
 (define (start-new-node coord)
   (when memory ;;make sure last instruction is full
     (fill-rest-with-nops)
-    (set-node-len! current-node (sub1 next-addr)))
+    (set-current-node-length))
+
   (define index (coord->index coord))
   ;;TODO: validate 'node'
   ;;assert (node-coord node) == coord
