@@ -605,6 +605,15 @@ west b! @b warm"
 '(check-dat 409 5 default)
 '(check-dat 308 5 default)
 '(check-dat 407 default)
+)
+
+(define-test "wrap-around"
+  "node 100
+org 62
+: main 1 2 3 4 + + +
+"
+  '(check-dat 100 10 default)
+  '(check-mem 100 2 3 4)
   )
 
 (defun run-simulation-tests ()

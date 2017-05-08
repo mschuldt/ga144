@@ -564,6 +564,15 @@ east b!
   (check-dat 2 11 default)
   )
 
+(define-test "wrap-around"
+  "node 100
+org 62
+: main 1 2 3 4 + + +
+"
+  (check-dat 100 10 default)
+  (check-mem 100 2 3 4)
+  )
+
 (define (run-tests)
   (set! tests-failed 0)
   (set! tests-passed 0)
