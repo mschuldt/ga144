@@ -56,6 +56,7 @@
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
 (def-local ga-node-ram-display-position nil)
+(def-local ram-display-moved nil) ;;true when the ram display of the current node has been moved
 
 (defvar ga-auto-resize-map-on-window-change t)
 
@@ -413,6 +414,7 @@
                                      :region-face (cdr default-faces)
                                      :coord-overlay coord-overlay)))
     (setq ga-current-coord 0)
+    (setq ram-display-moved nil)
     (unless ga-map-view-mode
       (ga-save))
     ))
@@ -423,7 +425,8 @@
   ;; everytime there was movement to remain consistent (or the map would have to
   ;; be marked modified at every movement)
   ;; Instead load everything and reset the state the user does not expect to be saved.
-  (setq ga-current-coord 0)
+  (setq ga-current-coord 0
+        ram-display-moved nil)
   (ga-reset-temp-faces))
 
 (defun ga-save ()
@@ -519,13 +522,19 @@
 
 (defun ga-set-selected-node (coord)
   (assert (ga-valid-coord-p coord))
+  ;; prev-coord is valid only when updating the display after
+  ;; moving the ga-current-coord
   (setq ga-prev-coord ga-current-coord
         ga-current-coord coord)
   (when ga-sim-p
     (ga-sim-set-current-node coord))
   (ga-update-ram-display-node)
   (ga-update-stack-displays)
-  (update-position))
+  (update-position)
+  ;; ram-display-moved is set to nil after all the update functions run
+  ;; so that they can tell that the display for ga-prev-coord moved
+  (setq ram-display-moved nil
+        ga-prev-coord nil))
 
 (defun ga-move-selected-node (n)
   (let ((next (+ ga-current-coord n)))
@@ -774,12 +783,22 @@
     data))
 
 (defun ga-update-ram-display-with (data)
-  ;; save the position of the previous node
-  (aset ga-node-ram-display-position (coord->index ga-prev-coord) (sd-offset ga-ram-display))
+  ;; save the position of the previous node if manually moved
+  (when (and ram-display-moved ga-prev-coord)
+    (aset ga-node-ram-display-position
+          (coord->index ga-prev-coord)
+          (sd-offset ga-ram-display)))
   ;; swap data to current node
   (sd-set-data ga-ram-display data)
   ;; restore position of current node
-  (sd-move-to ga-ram-display (aref ga-node-ram-display-position (coord->index ga-current-coord))))
+  (if (or (not ga-sim-p)
+          (not (null (aref ga-node-ram-display-position
+                           (coord->index ga-current-coord)))))
+      (sd-move-to ga-ram-display
+                  (or (aref ga-node-ram-display-position (coord->index ga-current-coord))
+                      0))
+    ;;else: we are in simulation mode and the display has not been manually moved
+    (sd-center-on ga-ram-display ga-sim-node-P)))
 
 (defun ga-update-ram-display-node ()
   "Updates the ram display with the compiled data from the current selected node.
@@ -787,11 +806,11 @@ Called after ga-current-node is set"
   ;;(assert ga-ram-display)
   (when (and ga-ram-display
 	     ga-current-coord)
+
     (if (and ga-sim-p
              ga-sim-current-node)
         ;;update with simulation ram
-        (progn (ga-update-ram-display-with (ga-create-sim-ram-display-data ga-sim-current-node))
-               (sd-center-on ga-ram-display ga-sim-node-P))
+        (ga-update-ram-display-with (ga-create-sim-ram-display-data ga-sim-current-node))
       ;;update with compiled data
       (when ga-compiled-nodes
         (ga-update-ram-display-with (ga-create-ram-display-data ga-current-coord))))))
@@ -811,11 +830,13 @@ Called after ga-current-node is set"
 (defun ga-move-ram-view-down ()
   (interactive)
   (when ga-ram-display
+    (setq ram-display-moved t)
     (sd-move-down ga-ram-display)))
 
 (defun ga-move-ram-view-up ()
   (interactive)
   (when ga-ram-display
+    (setq ram-display-moved t)
     (sd-move-up ga-ram-display)))
 
 (defun ga-set-aforth-source (file &optional buffer)
@@ -875,6 +896,7 @@ Called after ga-current-node is set"
 ;; when the point moves it reverts back to the default color, reverting the
 
 (defun ga-update-path-selection ()
+  (assert ga-prev-coord)
   (let ((i 0)
         dir diff coord m count quit)
     (setq diff (- (mod ga-current-coord 100) (mod ga-prev-coord 100))
@@ -928,13 +950,13 @@ Called after ga-current-node is set"
 (defun update-position ()
   ;;(setq ga-modified-p t)
   ;;(ga-move-to-node ga-current-coord 'middle)
-  (setq ga-prev-coord (or ga-prev-coord 0))
-  (if ga-mark-active
-      (if ga-region-path-p
-          (ga-update-path-selection)
-        (ga-update-rectangle-selection))
-    (ga-clear-selection))
-  (move-selected-node-overlay ga-prev-coord ga-current-coord)
+  (let ((prev-coord (or ga-prev-coord 0)))
+    (if ga-mark-active
+        (if ga-region-path-p
+            (ga-update-path-selection)
+          (ga-update-rectangle-selection))
+      (ga-clear-selection))
+    (move-selected-node-overlay prev-coord ga-current-coord))
   ;;(message "current coord: %s" ga-current-coord)
   )
 
@@ -1446,7 +1468,7 @@ This resets the simulation"
         (setq ga-project-aforth-file-overlay (make-overlay 0 0))
         (setq ga-node-size ga-default-node-size)
         (setq ga-project-aforth-compile-status-overlay (make-overlay 0 1))
-        (setq ga-node-ram-display-position (make-vector 144 0))
+        (setq ga-node-ram-display-position (make-vector 144 nil))
 	(ga-set-compilation-status "Unknown")
 
         (if ga-map-view-mode
