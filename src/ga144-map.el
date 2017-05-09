@@ -1059,15 +1059,16 @@ Elements of ALIST that are not conses are ignored."
 (defun ga-kill-map ()
   (interactive)
   ;;TODO: cleanup map reference in .aforth buffer
-  (cond (ga-sim-p
-         (kill-buffer))
-        ((and (not ga-map-view-mode)
-              (buffer-modified-p))
-         (and (yes-or-no-p "map modified, kill anyways?")
-              (kill-buffer)))
-        (t (and (y-or-n-p "kill map?")
-                (kill-buffer)))))
-
+  (let ((del (cond ((not (eq major-mode 'ga-mode)) nil)
+                   (ga-sim-p t)
+                   ((and (not ga-map-view-mode)
+                         (buffer-modified-p))
+                    (yes-or-no-p "map modified, kill anyways?"))
+                   (t (and (y-or-n-p "kill map?")
+                           t)))))
+    (when del
+      (delete-windows-on (current-buffer))
+      (kill-buffer))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; color selection
 
