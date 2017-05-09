@@ -839,6 +839,13 @@ Called after ga-current-node is set"
     (setq ram-display-moved t)
     (sd-move-up ga-ram-display)))
 
+(defun ga-sim-ram-center-on-P ()
+  (interactive)
+  (ga-check-sim
+   (when ga-ram-display
+     (aset ga-node-ram-display-position (coord->index ga-current-coord) nil)
+     (sd-center-on ga-ram-display ga-sim-node-P))))
+
 (defun ga-set-aforth-source (file &optional buffer)
   (setq ga-project-aforth-file file)
   (setq ga-project-aforth-buffer (or buffer (ga-get-project-file-buffer file)))
@@ -1403,6 +1410,7 @@ This resets the simulation"
         (define-key map (kbd "Q") 'ga-kill-map)
         (define-key map (kbd "D") 'ga-node-debug-dump)
         (define-key map (kbd "x") 'ga-toggle-hex)
+        (define-key map (kbd ".") 'ga-sim-ram-center-on-P)
         map))
 
 (defun ga-map-buffer-valid (buf)
