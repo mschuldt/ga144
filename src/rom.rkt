@@ -6,110 +6,206 @@
 
 ;; block 1418  math rom anywhere
 (defconst basic-rom '(("relay" . #xa1) ;; 1388
-                    ("warm" . #xa9)  ;; warm
-                    ("*.17" . #xb0) ;; 1390  multiply
-                    ("*." . #xb7) ;; 1396  fractional multiply
-                    ("taps" . #xbc) ;; 1386
-                    ("interp" . #xc4) ;; 1384  interpolate
-                    ("triangle" . #xce) ;; 1394
-                    ("clc" . #xd3) ;; 1398
-                    ("--u/mod" . #x2d5)  ;; 1398
-                    ("-u/mod" . #x2d6) ;; 1398
-                    ("poly" . #xaa) ;; 1382  polynomial approximation
-                    ))
+                      ("warm" . #xa9)  ;; warm
+                      ("*.17" . #xb0) ;; 1390  multiply
+                      ("*." . #xb7) ;; 1396  fractional multiply
+                      ("taps" . #xbc) ;; 1386
+                      ("interp" . #xc4) ;; 1384  interpolate
+                      ("triangle" . #xce) ;; 1394
+                      ("clc" . #xd3) ;; 1398
+                      ("--u/mod" . #x2d5)  ;; 1398
+                      ("-u/mod" . #x2d6) ;; 1398
+                      ("poly" . #xaa) ;; 1382  polynomial approximation
+                      ))
 
 ;; block 1432  analog
 (defconst analog-rom '(("relay" . #xa1) ;; 1388
-                     ("warm" . #xa9)  ;; warm
-                     ("*.17" . #xb0) ;; 1390  multiply
-                     ("*." . #xb7) ;; 1396  fractional multiply
-                     ("-dac" . #xbc) ;; 1434
-                     ("interp" . #xc4) ;; 1384  interpolate
-                     ("triangle" . #xce) ;; 1394
-                     ("clc" . #xd3) ;; 1398
-                     ("--u/mod" . #x2d5)  ;; 1398
-                     ("-u/mod" . #x2d6) ;; 1398
-                     ("poly" . #xaa) ;; 1382  polynomial approximation
-                     ))
+                       ("warm" . #xa9)  ;; warm
+                       ("*.17" . #xb0) ;; 1390  multiply
+                       ("*." . #xb7) ;; 1396  fractional multiply
+                       ("-dac" . #xbc) ;; 1434
+                       ("interp" . #xc4) ;; 1384  interpolate
+                       ("triangle" . #xce) ;; 1394
+                       ("clc" . #xd3) ;; 1398
+                       ("--u/mod" . #x2d5)  ;; 1398
+                       ("-u/mod" . #x2d6) ;; 1398
+                       ("poly" . #xaa) ;; 1382  polynomial approximation
+                       ))
 
 ;; block 1420  serdes top/bot
 (defconst serdes-boot-rom '(("relay" . #xa1) ;; 1388
-                          ("warm" . #xa9)
-                          ("cold" . #xaa)
-                          ("*.17" . #xb0) ;; 1390  multiply
-                          ("*." . #xb7) ;; 1396  fractional multiply
-                          ("taps" . #xbc) ;; 1386
-                          ("interp" . #xc4) ;; 1384  interpolate
-                          ("triangle" . #xce) ;; 1394
-                          ("clc" . #xd3) ;; 1398
-                          ("--u/mod" . #x2d5)  ;; 1398
-                          ("-u/mod" . #x2d6) ;; 1398
-                          ("poly" . #xaa) ;; 1382  polynomial approximation
-                          ))
+                            ("warm" . #xa9)
+                            ("cold" . #xaa)
+                            ("*.17" . #xb0) ;; 1390  multiply
+                            ("*." . #xb7) ;; 1396  fractional multiply
+                            ("taps" . #xbc) ;; 1386
+                            ("interp" . #xc4) ;; 1384  interpolate
+                            ("triangle" . #xce) ;; 1394
+                            ("clc" . #xd3) ;; 1398
+                            ("--u/mod" . #x2d5)  ;; 1398
+                            ("-u/mod" . #x2d6) ;; 1398
+                            ("poly" . #xaa) ;; 1382  polynomial approximation
+                            ))
 
 ;; block 1422  sync serial boot side
 (defconst sync-boot-rom '(("relay" . #xa1) ;; 1388
-                        ("warm" . #xa9)
-                        ("cold" . #xaa)
-                        ("ser-exec" . #xb6)
-                        ("ser-copy" . #xb9)
-                        ("sget" . #xbe)
-                        ("6in" . #xc0)
-                        ("2in" . #xc2)
-                        ("*.17" . #xcc) ;; 1390  multiply
-                        ("taps" . #xd3) ;; 1386
-                        ("triangle" . #xdb) ;; 1394
-                        ))
+                          ("warm" . #xa9)
+                          ("cold" . #xaa)
+                          ("ser-exec" . #xb6)
+                          ("ser-copy" . #xb9)
+                          ("sget" . #xbe)
+                          ("6in" . #xc0)
+                          ("2in" . #xc2)
+                          ("*.17" . #xcc) ;; 1390  multiply
+                          ("taps" . #xd3) ;; 1386
+                          ("triangle" . #xdb) ;; 1394
+                          ))
 
 ;; block 1424  async serial boot top/bot
 (defconst async-boot-rom '(("relay" . #xa1) ;; 1388
-                         ("warm" . #xa9)
-                         ("cold" . #xaa)
-                         ("ser-exec" . #xae)
-                         ("ser-copy" . #xb3)
-                         ("wait" . #xbb)
-                         ("sync" . #xbe)
-                         ("start" . #xc5)
-                         ("delay" . #xc8)
-                         ("18ibits" . #xcb) ;; 1426
-                         ("byte" . #xd0) ;; 1426
-                         ("4bits" . #xd2) ;; 1426
-                         ("2bits" . #xd3) ;; 1426
-                         ("1bit" . #xd4) ;; 1426
-                         ("lsh" . #xd9) ;; 1392
-                         ("rsh" . #xdb)))
+                           ("warm" . #xa9)
+                           ("cold" . #xaa)
+                           ("ser-exec" . #xae)
+                           ("ser-copy" . #xb3)
+                           ("wait" . #xbb)
+                           ("sync" . #xbe)
+                           ("start" . #xc5)
+                           ("delay" . #xc8)
+                           ("18ibits" . #xcb) ;; 1426
+                           ("byte" . #xd0) ;; 1426
+                           ("4bits" . #xd2) ;; 1426
+                           ("2bits" . #xd3) ;; 1426
+                           ("1bit" . #xd4) ;; 1426
+                           ("lsh" . #xd9) ;; 1392
+                           ("rsh" . #xdb)))
 ;; 1392 ;???????
 
 ;; block 1428  spi boot top/bot
 (defconst spi-boot-rom '(("relay" . #xa1) ;; 1388
-                       ("warm" . #xa9)
-                       ("8obits" . #xc2)
-                       ("ibit" . #xc7)
-                       ("half" . #xca)
-                       ("select" . #xcc)
-                       ("obit" . #xd0)
-                       ("rbit" . #xd5)
-                       ("18ibits" . #xd9)
-                       ;;?? ibits, u2/
-                       ;; block 1430
-                       ("cold" . #xaa)
-                       ("spi-boot" . #xb0)
-                       ("spi-exec" . #xb6)
-                       ("spi-copy" . #xbc)))
+                         ("warm" . #xa9)
+                         ("8obits" . #xc2)
+                         ("ibit" . #xc7)
+                         ("half" . #xca)
+                         ("select" . #xcc)
+                         ("obit" . #xd0)
+                         ("rbit" . #xd5)
+                         ("18ibits" . #xd9)
+                         ;;?? ibits, u2/
+                         ;; block 1430
+                         ("cold" . #xaa)
+                         ("spi-boot" . #xb0)
+                         ("spi-exec" . #xb6)
+                         ("spi-copy" . #xbc)))
 
 ;; block 1436  1-wire
 (defconst 1-wire-rom '(("rcv" . #x9e)
-                     ("bit" . #xa1)
-                     ("warm" . #xa9)
-                     ("cold" . #xaa)
-                     ("triangle" . #xbe) ;; 1394
-                     ("*.17" . #xc3) ;; 1390
-                     ("*." . #xca) ;; 1396
-                     ("interp" . #xcf) ;; 1384
-                     ("clc" . #xcf) ;; 1398
-                     ("--u/mod" . #x2d1)  ;; 1398
-                     ("-u/mod" . #x2d2) ;; 1398 ;;TODO: check
-                     ))
+                       ("bit" . #xa1)
+                       ("warm" . #xa9)
+                       ("cold" . #xaa)
+                       ("triangle" . #xbe) ;; 1394
+                       ("*.17" . #xc3) ;; 1390
+                       ("*." . #xca) ;; 1396
+                       ("interp" . #xcf) ;; 1384
+                       ("clc" . #xcf) ;; 1398
+                       ("--u/mod" . #x2d1)  ;; 1398
+                       ("-u/mod" . #x2d2) ;; 1398 ;;TODO: check
+                       ))
+
+(defconst SDRAM-addr-rom ;; node 9 block 1320
+  '(("warm".  #xa9)
+    ("cmd" . #xaa)))
+
+(defconst SDRAM-control-rom ;; node 8 block 1322
+  '(("warm".  #xa9)))
+
+(defconst SDRAM-data-rom ;; node 7 block 1324
+  '(("warm".  #xa9)
+    ("db@" . #xaa)
+    ("db!" . #xb)
+    ("inpt" . #xad)))
+
+(defconst eForth-bitsy-rom ;; node 105 block 1306
+  '(("warm".  #xa9)
+    ("rp--" . #xaa)
+    ("bs@" . #xac)
+    ("'else" . #xac)
+    ("rp@" . #xb0)
+    ("pshbs" . #xb1)
+    ("'r@" . #xb3)
+    ("@w" . #xb4)
+    ("rfrom" . #xb6)
+    ("popbs" . #xb9)
+    ("pshr" . #xbb)
+    ("rp++" . #xbf)
+    ("ip++" . #xbf)
+    ("tor" . #xc1)
+    ("rp!" . #xc4)
+    ("'con" . #xc7)
+    ("'var" . #xc8)
+    ("'exit" . #xc9)
+    ("bitsy" . #xce)
+    ("xxt" . #xd0)
+    ("'ex" . #xd3)
+    ("'lit" . #xd5)
+    ("'if" . #xd8)))
+
+(defconst eForth-stack-rom  ;;node 106 block 1310
+  '(("warm".  #xa9)
+    ("'c@" . #xaa)
+    ("'@" . #xaa)
+    ("x@" . #xaa)
+    ("sp++" . #xac)
+    ("char+" . #xac)
+    ("cell+" . #xac)
+    ("1+" . #xac)
+    ("popt" . #xae)
+    ("sp--" . #xb0)
+    ("char-" . #xb0)
+    ("cell-" . #xb0)
+    ("1-" . #xb0)
+    ("psht" . #xb2)
+    ("x!" . #xb4)
+    ("'c!" . #xb6)
+    ("'!" . #xb6)
+    ("popts" . #xb7)
+    ("pops" . #xb8)
+    ("pshs" . #xba)
+    ("page@" . #xbc)
+    ("pshw" . #xbe)
+    ("page!" . #xc0)
+    ("sp@" . #xc3)
+    ("sp!" . #xc6)
+    ("'drop" . #xc8)
+    ("'over" . #xc9)
+    ("'dup" . #xca)
+    ("'swap" . #xcb)
+    ("'2/" . #xcd)
+    ("um+" . #xcf)
+    ("'nc" . #xd2)
+    ("'cy" . #xd3)
+    ("zless" . #xd8)
+    ("'or" . #xdb)
+    ("'xor" . #xdc)
+    ("'and" . #xdd)
+    ("negate" . #xde)
+    ("invert" . #xdf)
+    ("zeq" . #xe0)
+    ("'+" . #xe2)
+    ("swap-" . #xe3)))
+
+(defconst SDRAM-mux-rom ;; node 107 block 1328
+  '(("warm".  #xa9)  ;;TODO: temp addition because simulator expects 'warm'
+    ("a2rc" . #xaa)
+    ("row!" . #xaf)
+    ("sd@" . #xbb)
+    ("sd!" . #xc5)  ;;TODO: sd! and poll are not in dumped rom
+    ("poll" . #xcf)))
+
+(defconst SDRAM-idle-rom '(("warm".  #xa9)
+                           ("noop" . #xaa)
+                           ("cmd" . #xac)
+                           ("idle" . #xae)
+                           ("init" . #xc0)))
 
 (define (rom-doc name block doc (code false))
   (void))

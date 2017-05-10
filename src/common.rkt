@@ -5,7 +5,6 @@
          "rom-dump.rkt"
          "el.rkt")
 
-
 (provide (all-defined-out))
 
 (define num-words 100);;TODO: compile arbitrarily large programs per node but warn if > 64 words
@@ -116,6 +115,13 @@
 (define async-boot-rom-ht (make-hash async-boot-rom))
 (define spi-boot-rom-ht (make-hash spi-boot-rom))
 (define 1-wire-rom-ht (make-hash 1-wire-rom))
+(define SDRAM-addr-rom-ht (make-hash SDRAM-addr-rom))
+(define SDRAM-control-rom-ht (make-hash SDRAM-control-rom))
+(define SDRAM-data-rom-ht (make-hash SDRAM-data-rom))
+(define eForth-bitsy-rom-ht (make-hash eForth-bitsy-rom))
+(define eForth-stack-rom-ht (make-hash eForth-stack-rom))
+(define SDRAM-mux-rom-ht (make-hash SDRAM-mux-rom))
+(define SDRAM-idle-rom-ht (make-hash SDRAM-idle-rom))
 
 ;; from section 2.3, DB002
 (defconst analog-nodes '(709 713 717 617 117))
@@ -132,18 +138,25 @@
 (defconst SDRAM-mux-node 107)
 (defconst SDRAM-idle-node 108)
 
+(defconst node-rom-type `((300 . ,sync-boot-rom-ht)
+                          (708 . ,async-boot-rom-ht)
+                          (705 . ,spi-boot-rom-ht)
+                          (200 . ,1-wire-rom-ht )
+                          (9 . ,SDRAM-addr-rom-ht)
+                          (8 . ,SDRAM-control-rom-ht)
+                          (7 . ,SDRAM-data-rom-ht)
+                          (105 . ,eForth-bitsy-rom-ht)
+                          (106 . ,eForth-stack-rom-ht)
+                          (107 . ,SDRAM-mux-rom-ht)
+                          (108 . ,SDRAM-idle-rom-ht)))
+
 (define (get-node-rom node)
-  (cond ((member node analog-nodes) analog-rom-ht)
-        ((member node serdes-nodes) serdes-boot-rom-ht)
-        ((member node sync-boot-nodes) sync-boot-rom-ht)
-        ((member node async-boot-nodes) async-boot-rom-ht)
-        ((member node spi-boot-nodes) spi-boot-rom-ht)
-        ((member node 1-wire-nodes) 1-wire-rom-ht)
-        ;;TODO: SDRAM-addr-node, SDRAM-control-node, SDRAM-data-node
-        ;;       eForth-Bitsy-node,  eForth-stack-node,  SDRAM-mux-node
-        ;;       SDRAM-idle-node
-        ;;   => currently default to basic rom
-        (else basic-rom-ht)))
+  (let ((nodes false))
+    (cond ((member node analog-nodes) analog-rom-ht)
+          ((member node serdes-nodes) serdes-boot-rom-ht)
+          ((setq nodes (assoc node node-rom-type))
+           (cdr nodes))
+          (else basic-rom-ht))))
 
 ;; This is the type that holds compiled code and other node info.
 ;; Compiling a program returns a list of these
