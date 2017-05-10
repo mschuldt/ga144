@@ -112,7 +112,7 @@
       (set! print-io io))
 
     (define (err msg)
-      (printf "[~a] ERROR (chip: ~a)\n" coord (get-field name (get-ga144)))
+      (printf "[~a] ERROR (chip: ~a): \"~a\"\n" coord (get-field name (get-ga144)) msg)
       (display-all)
       (when save-history
         (printf "Execution history(most recent first):\n ~a\n"
