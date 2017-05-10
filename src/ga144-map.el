@@ -1401,7 +1401,9 @@ This resets the simulation"
         (define-key map (kbd "C-c b") 'bury-buffer)
 	(define-key map (kbd "C-c v") 'ga-goto-source-buffer)
         (define-key map (kbd "<") 'ga-move-ram-view-down)
+        (define-key map (kbd ",") 'ga-move-ram-view-down)
         (define-key map (kbd ">") 'ga-move-ram-view-up)
+        (define-key map (kbd ".") 'ga-move-ram-view-up)
         (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
         ;;simulation keys
         (define-key map (kbd "s") 'ga-sim-step-node)
