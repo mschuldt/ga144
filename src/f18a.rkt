@@ -547,7 +547,6 @@
 
     (define (read-io-reg)
       ;;sacrifice speed here to keep reads and writes as fast as possible
-
       (let ((io (ior (& (18bit (~ IO)) ~io-read-mask)
                      io-read-default)))
         ;;set node handshake read bits
@@ -1233,7 +1232,7 @@
                 (set! P (hash-ref rom "cold"))
                 (if (hash-has-key? rom "warm")
                     (set! P (hash-ref rom "warm"))
-                    (err "ROM does not define 'warm' or 'cold')"))))))
+                    (err "ROM does not define 'warm' or 'cold'"))))))
 
     ;; Executes one step of the program by fetching a word, incrementing
     ;; p and executing the word.
