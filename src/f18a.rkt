@@ -9,7 +9,8 @@
 (when elisp? (_def '(f18a%)))
 (provide (all-defined-out))
 
-(defvar save-history t)
+(define save-history true)
+(define count-instructions true)
 
 (define (new-f18a index_ ga144_)
   (if elisp?
@@ -50,7 +51,6 @@
       (lookup-obj ga144-key))
 
     (set! active-index index);;index of this node in the 'active-nodes' vector
-    (define step-count 0)
     (define suspended false)
     (define coord (index->coord index))
 
@@ -104,6 +104,9 @@
     (define debug-ports false)
     (define print-state false)
     (define print-io false)
+
+    (define inst-counters false) ;; vector that records instruction execution counts
+    (define step-counter 0) ;; number of steps this node has taken
 
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
@@ -658,10 +661,20 @@
     (define unext-jump-p false)
 
     (define/public (execute! opcode (jump-addr-pos 0) (addr-mask false))
+      (when count-instructions
+        (when elisp?
+          (assert (not (= most-positive-fixnum step-counter))))
+        (set! step-counter (add1 step-counter))
+        (when (eq? step-counter break-at-step)
+          (break (rkt-format "step ~a" break-at-step)))
+
+        (vector-set! inst-counters opcode (add1 (vector-ref inst-counters opcode))))
+
       (when save-history
         (if (< opcode 8)
             (set! history (cons (cons opcode jump-addr-pos) history))
             (set! history (cons opcode history))))
+
       (if (< opcode 8)
           (apply (vector-ref instructions opcode)
                  (list (bitwise-bit-field I 0 jump-addr-pos)
@@ -1214,9 +1227,12 @@
       (set! unext-jump-p false)
       (set! break-at-wakeup false)
       (set! break-at-io-change false)
+      (set! break-at-step false)
       (set! symbols false)
       (set! history '())
       (set! suspended false)
+      (set! inst-counters (and count-instructions (make-vector 32 0)))
+      (set! step-counter 0)
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
@@ -1239,7 +1255,6 @@
     ;; returns false when P = 0, else t
     (define/public (step-program!)
       (unless suspended
-        (set! step-count (add1 step-count))
         (if elisp?
             (funcall step! this)
             (step!))
@@ -1250,7 +1265,11 @@
     (define/public (step-program-n! n)
       (for ((i (in-range 0 n))) (step-program!)))
 
-    (define/public (get-step-count) step-count)
+    (define/public (get-inst-counters)
+      inst-counters)
+
+    (define/public (get-step-count)
+      step-counter)
 
     (define/public (init)
       (init-ludr-port-nodes)
@@ -1320,6 +1339,7 @@
     ;; when that word has a breakpoint set
     (define breakpoints (make-vector MEM-SIZE false))
     (define break-at-wakeup false)
+    (define break-at-step false) ;; false if no break, else number to break at
     (define break-at-io-change false)
     ;; when true, set unset break-at-wakeup everytime it fires
     (define break-at-wakeup-autoreset t)
@@ -1330,6 +1350,10 @@
 
     (define/public (break-at-next-io-change)
       (set! break-at-io-change t))
+
+    (define/public (break-at-step step)
+      ;; call with false to unset breakpoint
+      (set! break-at-step step))
 
     (define/public (set-breakpoint line-or-word)
       (define (break-fn)
@@ -1352,7 +1376,8 @@
 
     (define/public (reset-breakpoints)
       (set! breakpoints (make-vector MEM-SIZE (lambda () t)))
-      (set! break-at-wakeup false))
+      (set! break-at-wakeup false)
+      (set! break-at-step false))
 
     (define/public (set-word-hook-fn line-or-word fn)
       (define addr (get-breakpoint-address line-or-word))
@@ -1592,6 +1617,34 @@
                                  (hash-ref address-names i)
                                  nil)))
         mem))
+
+    (define/public (print-inst-counters)
+      (assert elisp?)
+      (for ((i 32))
+        (princ (format "%-5s %s\n" (vector-ref opcodes i) (vector-ref inst-counters i)))))
+
+    (define/public (print-inst-counters-horizontal)
+      (assert elisp?)
+      (let ((len 5)
+            (fmt false))
+        (for ((i 32))
+          (set! len (max len (length (number->string (vector-ref inst-counters i))))))
+        (set! fmt (format "%%-%ss " len))
+        (for ((i 16))
+          (princ (format fmt (vector-ref opcodes i))))
+        (princ "\n")
+        (for ((i 16))
+          (when (= i 16) (princ "\n"))
+          (princ (format fmt (vector-ref inst-counters i))))
+        (princ "\n\n")
+        (for ((i 16))
+          (princ (format fmt (vector-ref opcodes (+ i 16)))))
+        (princ "\n")
+        (for ((i 16))
+          (when (= i 16) (princ "\n"))
+          (princ (format fmt (vector-ref inst-counters (+ i 16)))))
+        (princ "\n")))
+
     (when (valid-coord? coord)
       ;;; dummy edge nodes have a invalid coord so things like rom
       ;;; hash table indexes fail in reset
