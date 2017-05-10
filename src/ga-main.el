@@ -4,6 +4,8 @@
 
 (setq gc-cons-threshold most-positive-fixnum)
 
+(setq aforth-file-extensions '("aforth" "af"))
+
 (setq debug-on-error t)
 (setq load-start-time (current-time))
 
@@ -158,9 +160,21 @@
   
   (ga-main-exit))
 
+(setq file-extension (file-name-extension in-file))
+
+(when (not (or (member file-extension aforth-file-extensions)
+               (string= file-extension "el")))
+  (message "Error: unknown file type")
+  (ga-main-exit))
+
+(when (string= file-extension "el")
+  (require 'ga144-sim)
+  (load in-file)
+  (ga-main-exit))
+
 (when run?
   (require 'ga144-sim)
-  (ga144-run-file in-file)
+  (ga144-run-file (expand-file-name in-file))
   (ga-main-exit))
 
 (progn ;;for .rkt compatibility
