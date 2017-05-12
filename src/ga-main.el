@@ -28,12 +28,13 @@
 (setq only-bootstream? nil)
 (setq run? nil)
 (setq verbose? nil)
+(setq working-dir nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
   (kill-emacs))
 
-(when (< (length command-line-args) 4)
+(when (< (length command-line-args) 5)
   (ga-print-help-and-exit))
 
 (load "arg-parser" nil t)
@@ -69,6 +70,8 @@
                (setq verbose? t))
               (("-h") nil "print usage"
                (ga-print-help-and-exit))
+              (("--wd") (dir) "" ;; for internal use
+               (setq working-dir dir))
               (position (file) "aforth file"
                         (setq in-file file))
               )
@@ -169,7 +172,7 @@
 
 (when (string= file-extension "el")
   (require 'ga144-sim)
-  (load in-file)
+  (load (expand-file-name in-file working-dir))
   (ga-main-exit))
 
 (when run?
