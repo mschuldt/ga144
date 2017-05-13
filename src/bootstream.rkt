@@ -314,7 +314,8 @@ north a! io b!
 (define (get-used-portion mem)
   ;; trim empty words from end of memory vector
   (let ((mem (reverse (vector->list  mem))))
-    (while (not (car mem))
+    (while (and (not (null mem))
+                (not (car mem)))
       (set! mem (cdr mem)))
     (list->vector (reverse mem))))
 
