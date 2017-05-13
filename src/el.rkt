@@ -90,6 +90,8 @@
 (define error-data-p true)
 (define throw true)
 (define aforth-error-message true)
+(define most-positive-fixnum false)
+(define princ false)
 
 (define rkt-format format)
 (define token-start false)

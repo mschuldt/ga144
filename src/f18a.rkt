@@ -591,7 +591,7 @@
       (when print-io (log (rkt-format "IO = ~a\n" val)))
       (set! prev-IO IO)
       (set! IO val)
-      (set! WD (if (= (& (>> IO 11) 1) 1) t false))
+      (set! WD (if (= (& (>> IO 11) 1) 1) true false))
       (set! ~WD (not WD))
       ;;if a digital pin control field changed, notify its handlers
       (when (and (> num-gpio-pins 0)
@@ -1351,7 +1351,7 @@
     (define/public (break-at-next-io-change)
       (set! break-at-io-change t))
 
-    (define/public (break-at-step step)
+    (define/public (set-break-at-step step)
       ;; call with false to unset breakpoint
       (set! break-at-step step))
 

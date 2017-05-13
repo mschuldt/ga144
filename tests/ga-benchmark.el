@@ -17,7 +17,7 @@ node %s
 (setq start-time (current-time))
 (send chip load assembled)
 (setq node1 (send chip coord->node 1))
-(send node1 break-at-step steps)
+(send node1 set-break-at-step steps)
 (send chip step-program!*)
 ;;(send node1 print-inst-counters)
 (message "single node execution (%s steps): %s\n" steps (float-time (time-since start-time)))
@@ -32,9 +32,8 @@ node %s
 (setq node-steps (floor (/ steps 144)))
 (send chip load assembled)
 (dotimes (i 144)
-  (send (send chip coord->node (index->coord i)) break-at-step node-steps))
+  (send (send chip coord->node (index->coord i)) set-break-at-step node-steps))
 (send chip step-program!*)
-
 (message "all node execution (%s steps): %s\n" node-steps (float-time (time-since start-time)))
 
 

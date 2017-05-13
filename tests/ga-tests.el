@@ -2,7 +2,6 @@
 
 (require 'ga144-sim)
 
-
 (ga144-clear-all)
 
 (defun 18bit (n)

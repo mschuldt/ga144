@@ -194,7 +194,7 @@
     ("swap-" . #xe3)))
 
 (defconst SDRAM-mux-rom ;; node 107 block 1328
-  '(("warm".  #xa9)  ;;TODO: temp addition because simulator expects 'warm'
+  '(("warm".  #xa9)
     ("a2rc" . #xaa)
     ("row!" . #xaf)
     ("sd@" . #xbb)

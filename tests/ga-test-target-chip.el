@@ -42,6 +42,8 @@ node 708
 
     (assert (= (car dstack) 33))
     (assert (= (cadr dstack) #x15555))
+    ;;(message "instruction count:\n")
+    ;;(send node708 print-inst-counters)
     t))
 
 
