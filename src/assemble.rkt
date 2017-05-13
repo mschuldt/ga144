@@ -28,7 +28,8 @@
         (or (and inst (& (vector-ref const-masks slot) inst)) 0))))
 
 (define (assemble-word word)
-  (cond ((number? word) word)
+  (cond ((number? word)
+         (& word #x3ffff))
         ;;in the assembled memory vector, false represents unused words
         ((or (equal? word (vector false false false false))
              (not word))
