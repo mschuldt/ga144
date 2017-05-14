@@ -203,8 +203,8 @@
 
                        out)
                (aforth-compile-error (format "Expected definition name" val))))
-            ((or (string-match "^0x\\([0-9a-fA-F]+\\)$" val)
-                 (string-match "^0b\\([01]+\\)$" val)
+            ((or (string-match "^-?0x\\([0-9a-fA-F]+\\)$" val)
+                 (string-match "^-?0b\\([01]+\\)$" val)
                  (string-match "^\\(-?[0-9]+\\)$" val))
              (push (aforth-set-token token 'number (aforth-parse-number val) nil start end)
                    out))
