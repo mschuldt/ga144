@@ -126,6 +126,9 @@
           ((eq token-type 'call)
            (compile-call! token-val))
 
+          ((eq token-type 'funcall)
+           (compile-funcall! token-val))
+
           (t (error "unrecognized token type: %s" token)))
     (setq current-token-buffer-position nil)
     (setq current-token nil)))

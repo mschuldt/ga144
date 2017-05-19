@@ -59,6 +59,21 @@
   (setq ga144-name-to-chip (make-hash-table))
   (setq num-chips 0))
 
+
+(setq ga-extern-functions (make-hash-table))
+
+(defmacro ga-define (name &rest body)
+  "define a function that can be called from a ga144 simulation node with !!name
+the node object the function is called from will be bound to 'node'"
+  `(puthash ',name (lambda (node) ,@body) ga-extern-functions))
+
+(ga-define printT
+           (princ (format "T: %s\n" (car (send node get-dstack-as-list)))))
+
+(ga-define printS
+           (princ "S: %s\n" (cadr (send node get-dstack-as-list))))
+
+
 (ga144-clear-all)
 
 (provide 'ga144-sim)

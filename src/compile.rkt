@@ -174,6 +174,7 @@
 (define memory false) ;;vector of words
 (define current-addr false);;index of current word in memory
 (define current-word false);; tail of current word list
+(define current-word-i 0);;index of current-word in memory
 (define next-addr false) ;;index of next word in memory
 (define current-slot false);;index of the next slot in current-word
 (define words false) ;;word definitions -> addresses
@@ -305,6 +306,7 @@
   (set! current-word-buffer-mapping false)
   (set! current-token-buffer-position false)
   (set! current-word false)
+  (set! current-word-i 0)
   (set! current-addr false)
   (set! next-addr false)
   (set! words (make-hash))
@@ -319,6 +321,7 @@
   (set! address-cells false)
   (set! extended-arith 0)
   (set! current-node false)
+  (set! extern-funcalls false)
   (define-named-addresses!))
 
 (define (read-tok)
@@ -376,6 +379,7 @@
                       (remainder (add1 n) #x40)
                       (add1 n)))
   (set! current-word (vector-ref memory n))
+  (set! current-word-i n)
   (when save-buffer-mappings
     (set! current-word-buffer-mapping (vector-ref buffer-mappings n)))
   (set! current-slot 0))
@@ -456,6 +460,21 @@
               (add-to-next-slot cell)
               (unless (= current-slot 0)
                 (goto-next-word)))))))
+
+(define extern-funcalls false)
+
+(define (compile-funcall! name)
+  (unless extern-funcalls
+    (set! extern-funcalls (make-vector 64 false))
+    (set-node-extern-funcs! current-node extern-funcalls))
+
+  (let ((word (vector-ref extern-funcalls current-word-i)))
+    (unless word
+      (set! word (make-vector 4 false))
+      (vector-set! extern-funcalls current-word-i word))
+
+    (vector-set! word current-slot (cons (intern name) (vector-ref word current-slot)))))
+
 ;;TODO:
 ;; support for calling remote words in nodes that are defined later in the program
 
@@ -580,6 +599,7 @@
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
   (set! current-word (vector-ref memory current-addr))
+  (set! current-word-i current-addr)
   (for ((i (reverse (range from next-addr))))
     (vector-set! memory (add1 i) (vector-ref memory i)))
   (when save-buffer-mappings
@@ -687,6 +707,7 @@
   (set! used-nodes (cons current-node used-nodes))
   (set! current-node-coord coord)
   (set! current-node-consts (node-consts current-node))
+  (set! extern-funcalls false)
   (org 0))
 
 (add-directive!

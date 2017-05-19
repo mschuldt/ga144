@@ -258,6 +258,10 @@
                                      nil start end)
                    out))
 
+            ((string-match "^!!\\(.+\\)$" val)
+             (push (aforth-set-token token 'funcall (match-string 1 val)  nil start end)
+                   out))
+
             (t (push (aforth-set-token token 'call val
                                        nil start end)
                      out))))

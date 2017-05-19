@@ -215,6 +215,9 @@
                         aforth-word-reference-face)
                        ((eq type 'boot-descriptor)
                         aforth-boot-descriptor-face)
+                       ((eq type 'funcall)
+                        aforth-boot-descriptor-face
+                       )
                        ((or (eq type 'r-reference)
                             (eq type 'r-call)
                             (eq type 'call))

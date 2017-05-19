@@ -108,6 +108,9 @@
     (define inst-counters false) ;; vector that records instruction execution counts
     (define step-counter 0) ;; number of steps this node has taken
 
+    (define extern-functions false) ;;vector of vectors with extern functions for each word
+    (define extern-word-functions false) ;;vector containing extern functions for the current word
+
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -697,6 +700,8 @@
 
     (define (fetch-I)
       (set! I-index P)
+      (when extern-functions
+        (set! extern-word-functions (vector-ref extern-functions (region-index P))))
       (if (read-memory P) ;; read-memory returns t if the value is immediately available,
           ;; false if it results in suspending while waiting for the value
           (finish-I-fetch)
@@ -715,6 +720,12 @@
         ;; This is the first step since the node suspended waiting for a read
         ;; Finish fetching an instruction or data word
         (finish-fetch))
+
+      (when extern-word-functions
+        (mapc (lambda (fn)
+                (funcall (gethash fn ga-extern-functions) this))
+              (vector-ref extern-word-functions iI)))
+
       (cond ((= iI 0)
              ;; check if this word has a breakpoint stet
              (when (funcall (vector-ref breakpoints (if (port-addr? P)
@@ -1003,11 +1014,19 @@
       ;;;(reset-p!)
       ;;;(set! P (or (node-p node) P))
       (set! P (or (node-p node) 0));;TODO: this boot descriptor should be set by the compiler
-      (fetch-I)
+
       (set! iI 0)
       (set! A (or (node-a node) A))
       (set! B (or (node-b node) B))
       (set! IO (or (node-io node) IO))
+
+      (let ((funcs (node-extern-funcs node)))
+        (when funcs
+          (set! extern-functions (make-vector MEM-SIZE false))
+          (for ((i (length funcs)))
+            (vector-set! extern-functions i (vector-ref funcs i)))))
+
+      (fetch-I)
 
       (let ((structs (make-hash))
             (addrs (make-hash))
@@ -1233,6 +1252,8 @@
       (set! suspended false)
       (set! inst-counters (and count-instructions (make-vector 32 0)))
       (set! step-counter 0)
+      (set! extern-functions false)
+      (set! extern-word-functions false)
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
@@ -1644,6 +1665,9 @@
           (when (= i 16) (princ "\n"))
           (princ (format fmt (vector-ref inst-counters (+ i 16)))))
         (princ "\n")))
+
+    (define/public (get-extern-functions)
+      extern-functions)
 
     (when (valid-coord? coord)
       ;;; dummy edge nodes have a invalid coord so things like rom
