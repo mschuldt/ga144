@@ -1,16 +1,18 @@
-all: compiler interpreter tests
-	raco make src/common.rkt src/rom.rkt dump src/el.rkt
+lisp:
+	./ga --byte-compile
 
-compiler: src/assemble.rkt src/bootstream.rkt src/compile.rkt src/disassemble.rkt src/read.rkt
-	raco make src/assemble.rkt src/bootstream.rkt src/compile.rkt src/disassemble.rkt src/read.rkt src/rom-dump-bootstream.rkt
+install:
+	cp -f ga /usr/bin/ga
+	cp -f ga-load /usr/bin/ga-load
+	mkdir -p /usr/share/emacs/site-lisp/ga144
+	cp -r src /usr/share/emacs/site-lisp/ga144
 
-interpreter: src/interpreter.rkt src/stack.rkt src/ga144.rkt src/f18a.rkt
-	raco make src/interpreter.rkt src/stack.rkt src/ga144.rkt src/f18a.rkt
+uninstall:
+	rm /usr/bin/ga
+	rm /usr/bin/ga-load
+	rm -rf /usr/share/emacs/site-lisp/ga144
 
-tests: tests/tests.rkt
-	raco make tests/tests.rkt
-
-.PHONY: clean check
+.PHONY: clean check init install lisp
 
 clean:
 	rm -rf compiled/
