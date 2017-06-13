@@ -1,3 +1,6 @@
 #!/bin/bash
 
-emacs --quick --script src/ga-main.el --wd $(pwd) $@
+emacs --quick --script /usr/share/emacs/site-lisp/ga144/src/ga-main.el --wd $(pwd) $@
+
+
+
