@@ -6,6 +6,7 @@ install:
 	cp -f ga-load /usr/bin/ga-load
 	mkdir -p /usr/share/emacs/site-lisp/ga144
 	cp -r src /usr/share/emacs/site-lisp/ga144
+	cp -r tests /usr/share/emacs/site-lisp/ga144
 
 uninstall:
 	rm /usr/bin/ga
