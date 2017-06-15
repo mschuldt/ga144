@@ -32,7 +32,7 @@
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
   (kill-emacs))
 
-(when (< (length command-line-args) 5)
+(when (<= (length command-line-args) 5)
   (ga-print-help-and-exit))
 
 (setq base (file-name-directory (or buffer-file-name load-file-name))
