@@ -615,6 +615,42 @@ org 62
   '(check-mem 100 2 3 4)
   )
 
+(define-test "empty-node"
+  "node 1
+node 2
+1 2 +
+node 3
+node 4
+1 4 + "
+  '(check-dat 1 default)
+  '(check-dat 2 3 default)
+  '(check-dat 3 default)
+  '(check-dat 4 5 default))
+
+(define-test "negative-literals"
+  "node 1
+5 -1 . + warm"
+  '(check-dat 1 4 default))
+
+(define-test "subtract"
+  "node 1
+6 11 - + -
+"
+  '(check-dat 1 5 default))
+
+(define-test "main"
+  "node 1
+5
+: main 6 warm ;
+"
+  '(check-dat 1 6 default))
+
+(define-test "extern"
+  "node 1
+6 11 !!_test-inc
+"
+  '(check-dat 1 12 6 default))
+
 (defun run-simulation-tests ()
   (let ((tests-failed 0)
         (tests-passed 0))
