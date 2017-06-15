@@ -28,7 +28,6 @@
   (ga-rkt-load "assemble.rkt")
   (ga-rkt-load "disassemble.rkt")
   (ga-rkt-load "ga-compile-print.rkt")
-  (ga-rkt-load "../tests/test-compiler.rkt")
 
   (ga-el-load "rkt")
   (ga-el-load "aforth-parse")
@@ -36,6 +35,10 @@
   (ga-el-load "arg-parser")
   ;;(ga-el-load "ga144-sim")
   (ga-el-load "aforth-compile"))
+
+(defun ga-tests-loadup()
+  (ga-rkt-load "../tests/test-compiler.rkt"))
+
 
 (defun ga-sim-loadup()
   (ga-rkt-load "f18a.rkt")

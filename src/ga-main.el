@@ -110,7 +110,7 @@
                   "src/common.rkt"
                   "src/rom.rkt"
                   "src/rom-dump.rkt"
-                  "tests/test-compiler.rkt"
+                  ;;"tests/test-compiler.rkt"
                   "src/ga144.rkt"
                   "src/f18a.rkt"
                   "src/stack.rkt"
@@ -149,14 +149,13 @@
     (message "byte-compile time: %s" (float-time (time-since _start-time))))
   (ga-main-exit))
 
-
 (when create-docs?
   (require 'vc-git)
   (write-directive-docs "compiler-directives")
   (ga-main-exit))
 
 (when test?
-  (rkt-require "../tests/test-compiler.rkt")
+  (ga-tests-loadup)
   (message (if (run-compiler-tests)
                "ok"
              "fail"))
@@ -165,7 +164,6 @@
     (require 'ga-tests)
     (run-simulation-tests)
     (ga-main-exit))
-  
   (ga-main-exit))
 
 (setq file-extension (file-name-extension in-file))
