@@ -1,7 +1,5 @@
 ;; -*- lexical-binding: t -*-
 
-(add-to-list 'load-path "~/ga144/src/")
-
 (setq gc-cons-threshold most-positive-fixnum)
 
 (setq aforth-file-extensions '("aforth" "af"))
@@ -37,7 +35,13 @@
 (when (< (length command-line-args) 5)
   (ga-print-help-and-exit))
 
-(load "arg-parser" nil t)
+(setq base (file-name-directory (or buffer-file-name load-file-name))
+      base (file-name-directory (substring base 0 -1)))
+
+(add-to-list 'load-path (concat base "src"))
+(add-to-list 'load-path (concat base "tests"))
+
+(require 'arg-parser)
 
 (parse-args '((("-b" "--bootstream") nil "include bootstream"
                (setq bootstream? t))
@@ -71,6 +75,7 @@
               (("-h") nil "print usage"
                (ga-print-help-and-exit))
               (("--wd") (dir) "" ;; for internal use
+               ;;(cd dir)
                (setq working-dir dir))
               (position (file) "aforth file"
                         (setq in-file file))
