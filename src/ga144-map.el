@@ -839,6 +839,12 @@ Called after ga-current-node is set"
     (setq ram-display-moved t)
     (sd-move-up ga-ram-display)))
 
+(defun ga-move-ram-to-0 ()
+  (interactive)
+  (when ga-ram-display
+    (setq ram-display-moved t)
+    (sd-move-to ga-ram-display 0)))
+
 (defun ga-sim-ram-center-on-P ()
   (interactive)
   (ga-check-sim
@@ -1404,6 +1410,7 @@ This resets the simulation"
         (define-key map (kbd ",") 'ga-move-ram-view-down)
         (define-key map (kbd ">") 'ga-move-ram-view-up)
         (define-key map (kbd ".") 'ga-move-ram-view-up)
+        (define-key map (kbd "0") 'ga-move-ram-to-0)
         (define-key map (kbd "M-m") 'ga-goto-first-non-empty-node)
         ;;simulation keys
         (define-key map (kbd "s") 'ga-sim-step-node)
