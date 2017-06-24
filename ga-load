@@ -81,7 +81,7 @@ if __name__ == "__main__":
         else:
             print "invalid option: ", arg
 
-    cmd = "./ga --bootstream-type {} --only-bootstream {}".format(bootstream_type, filename)
+    cmd = "ga --bootstream-type {} --only-bootstream {}".format(bootstream_type, filename)
     bootstream = run_command(cmd).split(" ")
     host = Serial(port, speed)
     # target chip serial for resetting
