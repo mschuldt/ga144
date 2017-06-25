@@ -1,11 +1,14 @@
 This is an alternative Arrayforth toolchain targeting the GA144 multi-processor
 chip.
 
-It includes a compiler, bootstreamer/loader, and interpreter.
+It includes a compiler, bootstreamer/loader, and simulator.
 They are all independent of the Greenarrays tools.
 
-This was originally built to support work with [[http://pl.eecs.berkeley.edu/projects/chlorophyll/][Chlorophyll]] but is intended
-to be useful for manually writing Arrayforth as well.
+This was originally built to support work with [[http://pl.eecs.berkeley.edu/projects/chlorophyll/][Chlorophyll]] but is
+useful for manually writing Arrayforth as well.
+
+All tools are writen in Elisp, the simulator is implemented as an Emacs mode.
+The compiler and loader can used through the bash program =ga=,
 
 The Greenarrays Arrayforth documentation may be used for reference.
 This compiler is not fully compatible and differs in a few ways,
@@ -13,80 +16,78 @@ They are listed below.
 
 ** Setup
 *** Requirements:
-  - Racket
-  - Python
-  - pyserial
-  - Linux (only tested on Ubuntu, might work elsewhere)
+  - Emacs
+  - Python, pyserial
+  - Linux (only tested on Ubuntu)
+*** Compiling + installation
 
-*** Compiling
-run 'make' to compile
+=make= to byte compile
 
-run 'make check' to run interpreter tests
+=make install= to install the =ga= and =ga-load= commands
 
-*** First program
+byte compilation must be done for performance.
+
+=ga --test= and =ga --test-all= can be used to test the compiler and simulator
+*** Emacs setup
+TODO
+* First program
 To check that everything works, first connect the GA144 eval board or chip.
-If needed run 'dmesg' to find the serial port it is connected on.
+Run 'dmesg' to find the serial port it is connected on.
 Try running the lucas series example program:
 #+BEGIN_SRC bash
-  ./cal examples/lucas-series.aforth /dev/ttyUSB3 460800
+  ga-load examples/lucas-series.aforth /dev/ttyUSB3 460800
 #+END_SRC
  Replace /dev/ttyUSB3 with the actual serial port.
 This should print out the first 15 numbers of the [[https://en.wikipedia.org/wiki/Lucas_number][lucas series]] before exiting
 
-* Additional features and Differences
-This compiler differs from the Greenarrays version in the following ways:
+* Comparison to Greenarrays arrayforth
+This compiler differs from the Greenarrays version in several ways.
+Knowing the differences are helpful if you already know arrayforth or if you want to use the Greenarrays documentation.
 
 - No semantic color
    - standard forth syntax for words and comments
    - hex,bin literals: 0xN, 0bN
    - boot descriptors and other yellow words are reserved keywords.
-- north, east, south, and west
-  get resolved to correct ports, up, down, left, or right
+- ~north~, ~east~, ~south~, and ~west~
+  get resolved to correct ports, ~up~, ~down~, ~left~, or ~right~
 - Each node has a seporate namespace
-   - word@coord compiles a call to word in node coord.
-   - 'reclaim' has no use.
+   - word@coord compiles a call to =word= in node =coord=.
+   - The word ~reclaim~ has no use.
 - Automatic nop insertion.
   - Can be disabled.
   - Currently inserts nops even when not actually needed
 - Arguments follow the yellow words.
-  For example, use "node 715" instead of "715 node".
+  For example, use ~'node 715'~ instead of ~'715 node'~.
 - Generalized host computations during compilation are not supported.
   The compiler is not a forth interpreter.
 - There are no grey words
 
 * Compiling and Loading
 
-The script 'cal' is used to Compile And Load code into the GA144.
+The program ga-load is used to compile and load code into the GA144.
 After loading it enters into a listen mode and will print words the GA144
 sends back over the serial port.
 
- ./cal filename.aforth /dev/ttyUSB<N> baud-rate
+: ga-load filename.aforth /dev/ttyUSB<N> baud-rate
 
  <N> is the serial port number. On Linux this can be found by running 'dmesg' after inserting the port.
  baud-rate defaults to 460800
 
 * Dumping compilation data
 
-The script 'dump' can be used to dump data from various compilation
- stages in json format.
+Data from various compilation stages can be dumped in json or a more human readable format:
 
- ./dump [-b] [-s] [-c] file
+: ga [-b] [-s] [-c] file
 
 Includes the compiled code, boot descriptors, and assembled code
 Options:
 | -b | include the bootstream       |
 | -s | include the symbol table     |
 | -c | count the words in each node |
+| -h | human readable               |
 
 * Interpreter/Debugger
 TODO
 
-* Optimizations
- All optimizations are disabled by default. For now you must
- turn them on by changing #f to #t for the desired optimizations at
- bottom of common.rkt
-
-Options:
- - Automatically compile 0 as "dup dup or"
- - Reorder words with tail calls so that they are above the word
-   they call. Then remove the call and rely on fall through.
+* Limitations, known problems
+TODO
