@@ -153,7 +153,8 @@
         ((stringp x) (cdr (butlast (split-string x ""))))
         ((vectorp x) (mapcar 'identity x))
         ((numberp x) (number-sequence 0 (1- x)))
-        (t (error "unimplemented"))))
+        ((set? x) (set->list x))
+        (t (error (format "unimplemented for loop sequence type: %s %s" (type-of x) x)))))
 
 (defun racket-make-for-loop (spec body collect)
   (let* ((vars (mapcar 'car spec))
