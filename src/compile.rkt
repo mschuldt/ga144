@@ -497,13 +497,13 @@
 (define (compile-word-ref! word)
   (let ((addr (get-word-address word)))
     (unless addr
-      (raise (rkt-format "[TODO] reference to undefined word: ~a" word)))
+      (err (rkt-format "[TODO] reference to undefined word: ~a" word)))
     (compile-constant! addr)))
 
 (define (compile-remote-word-ref! word coord)
   (let ((addr (get-word-address word coord)))
     (unless addr
-      (raise (rkt-format "reference to undefined word: ~a" word)))
+      (err (rkt-format "reference to undefined word: ~a" word)))
     (compile-constant! addr)))
 
 (define (fill-rest-with-nops)
@@ -594,7 +594,7 @@
       (set-address-cell-next-addr! cell (add1 (address-cell-next-addr cell))))))
 
 (define (shift-words-down memory from)
-  (raise "shift-words-down ~a" current-node-coord)
+  (err (rkt-format "shift-words-down ~a" current-node-coord))
   ;;(printf "(shift-words-down ~a)\n" from)
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
@@ -947,13 +947,13 @@ which following code will be compiled into"
 
 (define (set-register-helper name set-fn)
   (unless current-node
-    (raise (rkt-format "must select node before '~a'" name)))
+    (err (rkt-format "must select node before '~a'" name)))
   (let* ((n (read-tok-name))
          (addr (or (get-address n current-node-coord)
                    (get-word-address n))))
     (unless (and addr
                  (number? addr))
-      (raise (rkt-format "unknown address for compiler directive '~a': ~a" name n)))
+      (err (rkt-format "unknown address for compiler directive '~a': ~a" name n)))
     (if elisp?
         (funcall set-fn current-node addr)
         (set-fn current-node addr))))
@@ -999,7 +999,7 @@ effect as though a program had executed code 30 20 10"
      (when (or (not len)
                (< len 0)
                (> len 10))
-       (raise (rkt-format "invalid number for /stack item count: '~a'" len)))
+       (err (rkt-format "invalid number for /stack item count: '~a'" len)))
 
      (while (> len 0)
        (begin
@@ -1007,7 +1007,7 @@ effect as though a program had executed code 30 20 10"
          (set! val (and tok (string->number tok)))
          (when (and (not val)
                     (not (setq val (get-word-address tok))))
-           (raise (rkt-format "invalid stack value: ~a" tok)))
+           (err (rkt-format "invalid stack value: ~a" tok)))
          (push val stack)
          (set! len (sub1 len))))
      (set-node-stack! current-node (reverse stack)))))
