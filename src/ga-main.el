@@ -97,7 +97,7 @@
 (when only-bootstream?
   (setq verbose? nil))
 
-(when  verbose?
+(when verbose?
   (message "load time: %s" (float-time (time-since load-start-time))))
 
 (defun ga-byte-compile-files ()

@@ -182,7 +182,6 @@
     (define/public (num-active-nodes)
       (add1 last-active-index))
 
-
     (define/public (display-node-states (nodes false))
       (let ((nodes (if nodes
                        (map (lambda (n) (coord->node n)) nodes)

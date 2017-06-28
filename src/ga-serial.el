@@ -3,10 +3,10 @@
 
 (defun ga144-scan ()
   "scan for connected GA144 devices"
-  (error "unimplemented"))
+  (error "ga144-scan unimplemented"))
 
 (defun ga144-find-serial-port ()
-  (error "unimplemented")
+  (error "ga144-find-serial-port unimplemented")
   )
 
 (defun ga-get-connected-serial-devices ()

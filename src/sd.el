@@ -135,6 +135,6 @@ WIDTH - width of display in characters
 
 (defun sd-realign ()
   "redraw the sd if the overlays have been moved horizontally"
-  (error "unimplemented"))
+  (error "sd-realign unimplemented"))
 
 (provide 'sd)

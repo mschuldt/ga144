@@ -192,6 +192,8 @@
 
     (when ga-ram-display
       (sd-remove ga-ram-display))
+    (when ga-ram-data-display
+      (sd-remove ga-ram-data-display))
     (when ga-data-display
       (sd-remove ga-data-display))
     (when ga-return-display
@@ -1301,7 +1303,7 @@ This resets the simulation"
    ))
 
 (defun ga-convert-stack-list (data)
-  (list->vector (mapcar (lambda (x) (format "%-5s" (ga-format-num x))) data)))
+  (list->vector (mapcar (lambda (x) (format "%-5s" (ga-format-num x t))) data)))
 
 (defun ga-disassemble-I (val)
   (if (send ga-sim-current-node fetching?)

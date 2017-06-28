@@ -614,7 +614,7 @@
 (defun exit (&optional code)
   (if racket-script-mode
       (kill-emacs (or code 0))
-    (signal 'racket-exit)))
+    (signal 'racket-exit code)))
 
 (defun with-output-to-file (filename function &rest options)
   (let ((prev-output standard-output))
