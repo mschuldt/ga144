@@ -524,10 +524,10 @@
                                  (remainder (add1 next-addr) #x40)
                                  (add1 next-addr))))))
 
-(define (make-new-address-cell val (name false))
-  ;; name is an optional tag, usually the name of the word, that discribes the address.)
+(define (make-new-address-cell val (name false) (next false))
+  ;; name is an optional tag, usually the name of the word, that discribes the address.
   ;; it is use for debug only
-  (define cell (address-cell val next-addr name))
+  (define cell (address-cell val (or next next-addr) name))
   (set! address-cells (set-add address-cells cell))
   cell)
 
@@ -571,7 +571,7 @@
           (if (not (address-fits? addr (sub1 slot-index) (address-cell-next-addr slot)))
               (begin
                 (set! new-word-index (+ word-index 1 (count word)))
-                (shift-words-down mem new-word-index)
+                (shift-words-down mem new-word-index node)
                 (increment-address (node-address-cells node) new-word-index)
                 (set! call-inst (vector-ref word (sub1 slot-index)))
                 (unless (member call-inst '("call" "jump" "next" "-if" "if"))
@@ -583,7 +583,7 @@
                 (set! word (vector call-inst (add1 addr) "." "."))
                 (vector-set! mem new-word-index word)
                 )
-              (vector-set! word slot-index addr))))))
+            (vector-set! word slot-index addr))))))
   node)
 
 (define (increment-address address-cells from)
@@ -593,18 +593,36 @@
     (when  (>= (address-cell-next-addr cell) from)
       (set-address-cell-next-addr! cell (add1 (address-cell-next-addr cell))))))
 
-(define (shift-words-down memory from)
-  (err (rkt-format "shift-words-down ~a" current-node-coord))
-  ;;(printf "(shift-words-down ~a)\n" from)
+(define (shift-words-down memory from node)
   (set! current-addr (add1 current-addr))
   (set! next-addr (add1 next-addr))
   (set! current-word (vector-ref memory current-addr))
   (set! current-word-i current-addr)
   (for ((i (reverse (range from next-addr))))
-    (vector-set! memory (add1 i) (vector-ref memory i)))
+       (vector-set! memory (add1 i) (vector-ref memory i)))
   (when save-buffer-mappings
     (for ((i (reverse (range from next-addr))))
-      (vector-set! buffer-mappings (add1 i) (vector-ref buffer-mappings i)))))
+         (vector-set! buffer-mappings (add1 i) (vector-ref buffer-mappings i))))
+
+  ;;;; (let ((word-dict (node-word-dict node))
+  ;;;;       (cell false)
+  ;;;;       (a false))
+  ;;;;   (for ((w (hash->list word-dict)))
+  ;;;;        (set! cell (cdr w))
+  ;;;;        (set! a (address-cell-val cell))
+  ;;;;        (printf "w = ~a, cell = ~a, a = ~a\n" w cell a)
+  ;;;;        (when (>= a from)
+  ;;;;          (set-address-cell-val! cell (1+ a))
+  ;;;;          (set-address-cell-next-addr! cell (1+ (address-cell-next-addr cell)))
+  ;;;;          (hash-set! word-dict (car w) cell))))
+
+  ;; shift symbol addresses down
+  ;; otherwise the word annotations in simulation views will be wrong
+  (let ((a false))
+    (for ((sym (node-symbols node)))
+         (set! a (symbol-address sym))
+         (when (>= a from)
+           (set-symbol-address! sym (1+ a))))))
 
 ;; map jump instruction slots to bit masks for their address fields
 (define address-masks (vector #x3ff #xff #x7))
@@ -821,7 +839,7 @@ into any of the four slots."
              (not (member inst last-slot-instructions)))
     (add-to-next-slot "."))
   (add-to-next-slot inst)
-  (push (make-addr current-addr) stack)
+  (push (cons (make-addr current-addr) next-addr) stack)
   (goto-next-word))
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
@@ -893,13 +911,30 @@ otherwise decrements R and jumps to matching 'then'"
   (unless (>= (length stack) len)
     (err "compiler stack underflow.")))
 
+;; back references for 'if' type instructions are different from word calls
+;; because their address is inserted by a corresponding 'then'
+;; this means that 'next-addr' as saved by 'make-new-address-cell is the
+;; next-addr from the perspective of 'then' not the 'if' instruction.
+;; To fix this issue the 'if' instructions push a cons cell with
+;; the current-addr and the next-addr onto the compiler stack.
+;; 'then' then uses that next-addr when calling 'make-new-address-cell'
+
 (add-directive!
  "then"
  "(r) forces word alignment and resolves a forward transfer."
  (lambda ()
    (fill-rest-with-nops)
    (check-stack stack 1)
-   (add-to-slot (pop stack) (make-new-address-cell current-addr "then"))))
+
+   (let* ((x false)
+          (addr false)
+          (next-addr false))
+
+     (set! x (pop stack))
+     (assert (consp x))
+     (set! addr (car x))
+     (set! next-addr (cdr x))
+     (add-to-slot addr (make-new-address-cell current-addr "then" next-addr)))))
 
 (define (org-directive (addr false))
   (let ((n (or addr (parse-num (read-tok-name)))))
