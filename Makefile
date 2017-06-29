@@ -1,19 +1,18 @@
-lisp:
+lisp: ga
 	./ga --byte-compile
+
+ga:
+	./make-ga-script.sh
 
 install:
 	cp -f ga /usr/bin/ga
 	cp -f ga-load /usr/bin/ga-load
-	mkdir -p /usr/share/emacs/site-lisp/ga144
-	cp -r src /usr/share/emacs/site-lisp/ga144
-	cp -r tests /usr/share/emacs/site-lisp/ga144
 
 uninstall:
 	rm /usr/bin/ga
 	rm /usr/bin/ga-load
-	rm -rf /usr/share/emacs/site-lisp/ga144
 
-.PHONY: clean check init install lisp
+.PHONY: clean check init install lisp ga
 
 clean:
 	rm -rf compiled/

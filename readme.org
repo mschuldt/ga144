@@ -25,7 +25,9 @@ They are listed below.
 
 =make install= to install the =ga= and =ga-load= commands
 
-byte compilation must be done for performance.
+Byte compilation must be done for performance.
+
+The installed ga script points to the source directory so that files may be edited without having to re-install
 
 =ga --test= and =ga --test-all= can be used to test the compiler and simulator
 *** Emacs setup

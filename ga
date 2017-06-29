@@ -1,6 +1,0 @@
-#!/bin/bash
-
-emacs --quick --script /usr/share/emacs/site-lisp/ga144/src/ga-main.el --wd $(pwd) $@
-
-
-
