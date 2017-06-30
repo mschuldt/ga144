@@ -783,6 +783,11 @@ R is decremented by one and control is transferred to a."
  (lambda () (compile-next-type "next")))
 
 (add-directive!
+ "next*"
+ "todo"
+ (lambda () (compile-transfer-instruction "next" (read-tok-name))))
+
+(add-directive!
  "end"
  "(a) unconditionally jumps to a"
  (lambda () (compile-next-type "jump")))
@@ -815,7 +820,6 @@ into any of the four slots."
    (swap stack)
    (compile-next-type "next")))
 
-(define (compile-if-instruction inst)
 (define (compile-transfer-instruction inst name (addr false))
   ;; inst - instruction type
   ;; name - name of word to jump to
@@ -843,13 +847,19 @@ into any of the four slots."
      (unless (= current-slot 0)
        (goto-next-word))
      )))
+
+(define (compile-if-instruction inst (immediate false))
   ;;cannot be in last word.
   (when (and (equal? current-slot 3)
              (not (member inst last-slot-instructions)))
     (add-to-next-slot "."))
-  (add-to-next-slot inst)
-  (push (cons (make-addr current-addr) next-addr) stack)
-  (goto-next-word))
+
+  (if immediate
+      (compile-transfer-instruction inst (read-tok-name))
+    (begin
+     (add-to-next-slot inst)
+     (push (cons (make-addr current-addr) next-addr) stack))
+    (goto-next-word)))
 
 ;;If T is nonzero, program flow continues; otherwise jumps to matching 'then'
 (define (if-directive)
@@ -860,6 +870,19 @@ into any of the four slots."
  "if"
  nil ;;TODO:
  if-directive)
+
+;; TODO: the directive list used for parsing is in aforth-mode.el
+;;       and needs to be maintained separately
+;;       it should be generated from the directive map built here
+(add-directive!
+ "if*"
+ nil
+ (lambda () (compile-if-instruction "if" true)))
+
+(add-directive!
+ "-if*"
+ nil
+ (lambda () (compile-if-instruction "-if" true)))
 
 (define (-if-directive)
   (compile-if-instruction "-if"))

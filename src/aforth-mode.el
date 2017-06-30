@@ -26,6 +26,7 @@
                               "right" "down" "left" "up" "io" "ldata"
                               "data" "warp" "center" "top" "side" "corner"
                               "+cy" "-cy"
+                              "if*" "-if*" "next*"
                               ))
 
 (setq io-place-names '("---u" "--l-" "--lu" "-d--" "-d-u"
