@@ -2,7 +2,7 @@
 
 (setq gc-cons-threshold most-positive-fixnum)
 
-(setq aforth-file-extensions '("aforth" "af"))
+(setq aforth-file-extensions '("aforth" "af" "ga"))
 
 (setq debug-on-error t)
 (setq load-start-time (current-time))
@@ -27,6 +27,7 @@
 (setq run? nil)
 (setq verbose? nil)
 (setq working-dir nil)
+(setq bowman-format nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -77,6 +78,8 @@
               (("--wd") (dir) "" ;; for internal use
                ;;(cd dir)
                (setq working-dir dir))
+              (("--bowman") nil ""
+               (setq bowman-format t))
               (position (file) "aforth file"
                         (setq in-file file))
               )

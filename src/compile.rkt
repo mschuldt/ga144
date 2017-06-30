@@ -413,14 +413,16 @@
 
 (define (compile-constant! const)
   (when DEBUG? (printf "    compile-constant!(~a)\n" const))
-  (if (and (eq? const 0)
-           compile-0-as-dup-dup-or)
-      (begin (compile-instruction! "dup")
-             (compile-instruction! "dup")
-             (compile-instruction! "or"))
+  (if bowman-format
+      (set-next-empty-word! const)
+    (if (and (eq? const 0)
+             compile-0-as-dup-dup-or)
+        (begin (compile-instruction! "dup")
+               (compile-instruction! "dup")
+               (compile-instruction! "or"))
       (begin
-        (compile-instruction! "@p")
-        (set-next-empty-word! const))))
+       (compile-instruction! "@p")
+       (set-next-empty-word! const)))))
 
 (define (get-call-instruction)
   ;; returns 'jump' if next instruction is ';', else 'call'
@@ -780,7 +782,9 @@ case you may write 'push <other things> begin'"
  "(a) ends a loop with conditional transfer to the address a. If R is zero when next
 is executed, the return stack is popped and program flow continues. Otherwise
 R is decremented by one and control is transferred to a."
- (lambda () (compile-next-type "next")))
+ (lambda () (if bowman-format
+                (compile-transfer-instruction "next" (read-tok-name))
+              (compile-next-type "next"))))
 
 (add-directive!
  "next*"
@@ -850,6 +854,7 @@ into any of the four slots."
 
 (define (compile-if-instruction inst (immediate false))
   ;;cannot be in last word.
+  (setq immediate (or immediate bowman-format))
   (when (and (equal? current-slot 3)
              (not (member inst last-slot-instructions)))
     (add-to-next-slot "."))
@@ -942,6 +947,20 @@ otherwise decrements R and jumps to matching 'then'"
 (define (check-stack stack len)
   (unless (>= (length stack) len)
     (err "compiler stack underflow.")))
+
+(add-directive!
+ "jump"
+ ""
+ (lambda ()
+   (assert bowman-format)
+   (compile-transfer-instruction "jump" (read-tok-name))))
+
+(add-directive!
+ "call"
+ ""
+ (lambda ()
+   (assert bowman-format)
+   (compile-transfer-instruction "call" (read-tok-name))))
 
 ;; back references for 'if' type instructions are different from word calls
 ;; because their address is inserted by a corresponding 'then'

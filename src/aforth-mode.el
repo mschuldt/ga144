@@ -27,6 +27,7 @@
                               "data" "warp" "center" "top" "side" "corner"
                               "+cy" "-cy"
                               "if*" "-if*" "next*"
+                              "call" "jump"
                               ))
 
 (setq io-place-names '("---u" "--l-" "--lu" "-d--" "-d-u"

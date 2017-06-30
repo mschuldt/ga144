@@ -136,8 +136,25 @@
 (defun aforth-compile-file (filename)
   (setq aforth-compile-input-type 'file)
   (with-temp-buffer
-    (insert-file-contents-literally filename)
+    (if (string= (file-name-extension in-file) "ga")
+        (convert-from-bowman-format filename)
+      (insert-file-contents-literally filename))
     (aforth-compile-buffer)))
+
+(defun convert-from-bowman-format (filename)
+  (setq bowman-format t)
+  (setq filename (expand-file-name filename))
+  (insert (shell-command-to-string (concat "m4 " filename)))
+  (goto-char 1)
+  (while (re-search-forward "^ *-+ \\([0-9]+\\) -+ *$" nil t)
+    (replace-match (format "node %s" (match-string 1))))
+
+  (dolist (d '("NORTH" "SOUTH" "EAST" "WEST"))
+    (goto-char 1)
+    (while (re-search-forward d nil t)
+      (replace-match (downcase d) t)))
+  ;;(write-file (concat filename ".aforth"))
+  )
 
 (defmacro compiler-binop(op)
   `(push (funcall ',op (pop stack) (pop stack)) stack))

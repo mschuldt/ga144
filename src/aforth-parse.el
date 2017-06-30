@@ -83,7 +83,8 @@
                 tok-end tok-beg
                 tok-beg (1- tok-beg))))
       ;;comment
-      (when (eq first ?\()
+      (when (or (eq first ?\()
+                (eq first ?\\)) ;; bowman comment syntax
         (setq c nil
               token (list first)
               tok-end (1+ tok-beg))
