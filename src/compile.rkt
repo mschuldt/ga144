@@ -422,44 +422,26 @@
         (compile-instruction! "@p")
         (set-next-empty-word! const))))
 
+(define (get-call-instruction)
+  ;; returns 'jump' if next instruction is ';', else 'call'
+  (let ((next (read-tok-name)))
+    (if (and next (equal? next ";"))
+        "jump"
+      (begin (when next
+               (if elisp? (unread-last-tok)
+                 (unread-tok next)))
+             "call"
+             ))))
+
 (define (compile-call! word (address false))
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
-  (define (compile-call-or-jump)
-    (let ((next (read-tok-name)))
-      (when (equal? current-slot 3)
-        (fill-rest-with-nops))
-      (if (and next (equal? next ";"))
-          (add-to-next-slot "jump")
-          (begin (add-to-next-slot "call")
-                 (when next
-                   (if elisp? (unread-last-tok)
-                       (unread-tok next)))))))
   (let* ((compiler-word-p (compiler-word? word))
          (addr (and (not compiler-word-p)
                     (or address (get-word-address word))))
          (cell false))
     (if compiler-word-p
         (exec-compiler-word word)
-        (if addr
-            (begin
-              (unless (address-fits? (if (address-cell? addr) (address-cell-val addr) addr) current-slot)
-                (fill-rest-with-nops))
-              (when DEBUG? (printf "       address = ~a\n" addr))
-              (compile-call-or-jump)
-              (add-to-next-slot (if (address-cell? addr)
-                                    addr
-                                    (make-new-address-cell addr word)))
-              (unless (= current-slot 0)
-                (goto-next-word)))
-            ;;else
-            (begin
-              (when DEBUG? (printf "       waiting on address....\n"))
-              (compile-call-or-jump)
-              (set! cell (make-new-address-cell false word))
-              (add-to-waiting word cell)
-              (add-to-next-slot cell)
-              (unless (= current-slot 0)
-                (goto-next-word)))))))
+      (compile-transfer-instruction (get-call-instruction) word addr))))
 
 (define extern-funcalls false)
 
@@ -834,6 +816,33 @@ into any of the four slots."
    (compile-next-type "next")))
 
 (define (compile-if-instruction inst)
+(define (compile-transfer-instruction inst name (addr false))
+  ;; inst - instruction type
+  ;; name - name of word to jump to
+  (set! addr (or addr (get-word-address name)))
+  (if addr
+      (begin
+       (unless (address-fits? (if (address-cell? addr) (address-cell-val addr) addr) current-slot)
+         (fill-rest-with-nops))
+       (when (equal? current-slot 3)
+         (fill-rest-with-nops))
+       (add-to-next-slot inst)
+       (add-to-next-slot (if (address-cell? addr)
+                             addr
+                           (make-new-address-cell addr name)))
+       (unless (= current-slot 0)
+         (goto-next-word)))
+    ;;else
+    (begin
+     (when (equal? current-slot 3)
+       (fill-rest-with-nops))
+     (add-to-next-slot inst)
+     (set! cell (make-new-address-cell false name))
+     (add-to-waiting name cell)
+     (add-to-next-slot cell)
+     (unless (= current-slot 0)
+       (goto-next-word))
+     )))
   ;;cannot be in last word.
   (when (and (equal? current-slot 3)
              (not (member inst last-slot-instructions)))
