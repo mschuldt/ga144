@@ -16,7 +16,6 @@ node 708
 : loop
     @ out18 loop ;
 
-(
-  Originally translated from:
-  https://github.com/jamesbowman/ga144tools/blob/master/src/708out.hdr
-)
+(  Originally translated from:
+(  https://github.com/jamesbowman/ga144tools/blob/master/src/708out.hdr
+( )
