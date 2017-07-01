@@ -1,4 +1,4 @@
-#lang racket ;; -*- lexical-binding: t  -*-
+#lang racket ;; -*- lexical-binding: t  mode: emacs-lisp -*-
 
 ;;references:
 ;; - colorforth blocks 190-192,1404-1412
@@ -479,13 +479,10 @@
   (compile-call! word addr))
 
 (define (compile-word-ref! word)
-  (let ((addr (get-word-address word)))
-    (unless addr
-      (err (rkt-format "[TODO] reference to undefined word: ~a" word)))
-    (compile-constant! addr)))
+  (compile-constant! (get-word-address word)))
 
 (define (compile-remote-word-ref! word coord)
-  (let ((addr (get-word-address word coord)))
+  (let ((addr (get-word-address word coord))) ;;TODO: need to fix for undefined addresses
     (unless addr
       (err (rkt-format "reference to undefined word: ~a" word)))
     (compile-constant! addr)))
@@ -527,6 +524,13 @@
             (err (rkt-format "Undefined word: '~a' in node ~a" (address-cell-name slot)
                              (node-coord node)))))))))
 
+(define (get-address-cell-val cell)
+  (let ((addr (address-cell-val cell)))
+    (when (not addr)
+      (err (rkt-format "remove-address-cells -- invalid address '~a' for '~a'"
+                       addr (address-cell-name cell))))
+    addr))
+
 (define (remove-address-cells node)
   ;; unwrap mcons address cells
   ;; shift down words to make room if address is to large
@@ -538,36 +542,35 @@
   (define (count word)
     (define n 0)
     (for ((inst word))
-      (when (equal? inst "@p")
-        (set! n (add1 n))))
+         (when (equal? inst "@p")
+           (set! n (add1 n))))
     n)
 
   (for ((word mem)
         (word-index (vector-length mem)))
-    (when (vector? word)
-      (for ((slot word)
-            (slot-index 4))
-        (when (address-cell? slot)
-          (set! addr (address-cell-val slot))
-          (when (not addr)
-            (err (rkt-format "remove-address-cells -- invalid address '~a' for '~a'" addr (address-cell-name slot))))
-
-          (if (not (address-fits? addr (sub1 slot-index) (address-cell-next-addr slot)))
-              (begin
-                (set! new-word-index (+ word-index 1 (count word)))
-                (shift-words-down mem new-word-index node)
-                (increment-address (node-address-cells node) new-word-index)
-                (set! call-inst (vector-ref word (sub1 slot-index)))
-                (unless (member call-inst '("call" "jump" "next" "-if" "if"))
-                  (err (rkt-format "invalid call instruction: '~a'" call-inst)))
-                ;; remove call from old word
-                (vector-set! word (sub1 slot-index) ".")
-                (vector-set! word slot-index ".")
-                ;; create and set call in new word
-                (set! word (vector call-inst (add1 addr) "." "."))
-                (vector-set! mem new-word-index word)
-                )
-            (vector-set! word slot-index addr))))))
+       (cond ((address-cell? word)
+              (vector-set! mem word-index (get-address-cell-val word)))
+             ((vector? word)
+              (for ((slot word)
+                    (slot-index 4))
+                   (when (address-cell? slot)
+                     (set! addr (get-address-cell-val slot))
+                     (if (not (address-fits? addr (sub1 slot-index) (address-cell-next-addr slot)))
+                         (begin
+                          (set! new-word-index (+ word-index 1 (count word)))
+                          (shift-words-down mem new-word-index node)
+                          (increment-address (node-address-cells node) new-word-index)
+                          (set! call-inst (vector-ref word (sub1 slot-index)))
+                          (unless (member call-inst '("call" "jump" "next" "-if" "if"))
+                            (err (rkt-format "invalid call instruction: '~a'" call-inst)))
+                          ;; remove call from old word
+                          (vector-set! word (sub1 slot-index) ".")
+                          (vector-set! word slot-index ".")
+                          ;; create and set call in new word
+                          (set! word (vector call-inst (add1 addr) "." "."))
+                          (vector-set! mem new-word-index word)
+                          )
+                       (vector-set! word slot-index addr)))))))
   node)
 
 (define (increment-address address-cells from)
@@ -1157,16 +1160,20 @@ effect as though a program had executed code 30 20 10"
           (read-apply-op name op))
          (else (err (rkt-format "invalid const op type: '~a'" op))))))
 
+(define (get-word-address* word)
+  (define addr (get-word-address word))
+  (if addr
+      addr
+    (begin
+     (define cell (make-new-address-cell false word))
+     (add-to-waiting name cell)
+     cell)))
+
 (add-directive!
  "'"
  "' (-a) (tick) places the address of an F18 red word on the compiler's stack."
  (lambda ()
-   (define word (read-tok-name))
-   (define addr (get-word-address word))
-   (if addr
-       (begin (push addr stack)
-              (when DEBUG? (printf "tick addr: ~a\n"  addr)))
-       (err (rkt-format "' (tick): \"~a\" is not defined" word)))))
+   (push (get-word-address* (read-tok-name)) stack)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1188,6 +1195,11 @@ effect as though a program had executed code 30 20 10"
      (car addr)
      (format "Compile the address for the ~a port" (car addr))
      ((lambda (a) (lambda () (compile-constant! a))) (cdr addr)))))
+
+(define (lit-directive)
+  (compile-constant! (pop stack)))
+
+(add-directive! "lit" "todo" lit-directive)
 
 (define (err msg)
   (when elisp?
@@ -1241,12 +1253,7 @@ effect as though a program had executed code 30 20 10"
 
 (def-compiler-op!
   "lit"
-  (lambda ()
-    (define n (pop stack))
-    ;;assert number
-    (compile-constant! n)))
-
-(add-directive!  "lit"  ""  (lambda () (err "'lit' is a compiler directive.")))
+  (lambda () (lit-directive)))
 
 (define (exec-compiler-word word)
   (when DEBUG? (printf (rkt-format "Execing compiler word ~a\n" word)))

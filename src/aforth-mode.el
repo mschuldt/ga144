@@ -28,6 +28,7 @@
                               "+cy" "-cy"
                               "if*" "-if*" "next*"
                               "call" "jump"
+                              "lit"
                               ))
 
 (setq io-place-names '("---u" "--l-" "--lu" "-d--" "-d-u"
