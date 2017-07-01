@@ -26,7 +26,7 @@
                               "right" "down" "left" "up" "io" "ldata"
                               "data" "warp" "center" "top" "side" "corner"
                               "+cy" "-cy"
-                              "if*" "-if*" "next*"
+                              "if:" "-if:" "next:"
                               "call" "jump"
                               "lit"
                               ))

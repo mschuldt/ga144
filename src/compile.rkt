@@ -790,7 +790,7 @@ R is decremented by one and control is transferred to a."
               (compile-next-type "next"))))
 
 (add-directive!
- "next*"
+ "next:"
  "todo"
  (lambda () (compile-transfer-instruction "next" (read-tok-name))))
 
@@ -883,12 +883,12 @@ into any of the four slots."
 ;;       and needs to be maintained separately
 ;;       it should be generated from the directive map built here
 (add-directive!
- "if*"
+ "if:"
  nil
  (lambda () (compile-if-instruction "if" true)))
 
 (add-directive!
- "-if*"
+ "-if:"
  nil
  (lambda () (compile-if-instruction "-if" true)))
 
