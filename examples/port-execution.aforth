@@ -1,0 +1,34 @@
+( code from AB004
+
+( node 609 is in port execution mode and is used by node 608
+( as a random access 64 word array
+
+node 609
+: main r---
+
+node 608
+: set ( a )
+    @p ! ! ;
+    .. @p a! ..
+: @next ( -n )
+    @p ! @ ;
+    .. @+ !p ..
+: !next ( n )
+    @p ! ! ;
+    .. @p !+ ..
+: fetch ( a-n ) set @next ;
+: store ( na ) set !next ;
+
+: main
+ right a!
+
+( store 2*i at index i
+
+ 0 (index
+ 10 for
+    dup dup . + ( 2*index
+ over ( index
+ store
+ 1 . + ( increment index
+ next
+ warm
