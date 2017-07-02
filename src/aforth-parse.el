@@ -2,7 +2,7 @@
 
 (require 'cl)
 (require 'gv)
-(defstruct aforth-token type value args start end overlay subtoks)
+(defstruct aforth-token type value args start end overlay subtoks file)
 (defstruct aforth-node coord code location)
 (defstruct error-data message stage node line col input-type token)
 
@@ -15,7 +15,7 @@
 (setq aforth-parse-currrent-point nil)
 (setq aforth-compile-input-type nil)
 
-(defun aforth-set-token (old type value &optional args start end)
+(defun aforth-set-token (old type value &optional args start end file)
   (if old
       (progn
         (setf (aforth-token-type old) type)
@@ -28,15 +28,17 @@
                        :value value
                        :args args
                        :start start
-                       :end end)))
+                       :end end
+                       :file file)))
 
 (defun aforth-token->str (token)
-  (format "aforth-token: type= %s, value=%s, args=%s, start= %s, end=%s"
+  (format "aforth-token: type= %s, value=%s, args=%s, start= %s, end=%s file=%s"
           (aforth-token-type token)
           (aforth-token-value token)
           (aforth-token-args token)
           (aforth-token-start token)
-          (aforth-token-end token)))
+          (aforth-token-end token)
+          (aforth-token-file token)))
 
 (defsubst aforth-token-delimiter-p (c)
   (or (eq c ?\[)
@@ -63,6 +65,7 @@
 (defun aforth-tokenize-region (beg end)
   (setq aforth-compile-stage "tokenizing")
   (setq aforth-parse-currrent-point beg)
+  (setq aforth-parse-current-file buffer-file-name)
   (let ((str (string-to-list (buffer-substring-no-properties beg end)))
         (tok-beg 0)
         (tokens '())
@@ -100,7 +103,8 @@
         (push (make-aforth-token :type 'comment
                                  :value value
                                  :start (+ beg tok-beg)
-                                 :end (+ beg tok-end))
+                                 :end (+ beg tok-end)
+                                 :file aforth-parse-current-file)
               tokens)
         (setq tok-end (- tok-end 1))
         (setq first nil))
@@ -122,7 +126,8 @@
           (push (make-aforth-token :type 'op
                                    :value token
                                    :start (+ beg tok-beg)
-                                   :end (+ beg tok-end))
+                                   :end (+ beg tok-end)
+                                   :file aforth-parse-current-file)
                 tokens)
           (cond ((equal token "node")
                  (setq aforth-reading-node t))
@@ -167,6 +172,21 @@
         (if neg (- n)
           n)))))
 
+(defun aforth-include-file (filename &optional no-comments)
+  (if (file-exists-p filename)
+      (with-temp-buffer
+        (let ((buffer-file-name filename)
+              (aforth-parse-current-buffer (current-buffer))
+              (aforth-error-message nil)
+              (aforth-current-node nil)
+              (aforth-current-token nil)
+              (aforth-compile-stage nil)
+              (aforth-parse-buffer nil))
+          (insert-file-contents-literally filename)
+          ;;TODO: check for parse error
+          (aforth-parse-region (point-min) (point-max) nil no-comments)))
+    (aforth-compile-error (format "included file does not exist: %s" filename))))
+
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
@@ -203,7 +223,14 @@
                                          name nil start (aforth-token-end next))
 
                        out)
-               (aforth-compile-error (format "Expected definition name" val))))
+               (aforth-compile-error (format "Expected %s definition name" val))))
+            ((string= val "include")
+             (setq next (pop! tokens))
+             (setq name (aforth-token-value next))
+             (if name
+                 (setq out (append (nreverse (setq _x (aforth-include-file name no-comments))) out))
+               (aforth-compile-error "Expected include filename")))
+
             ((or (string-match "^-?0x\\([0-9a-fA-F]+\\)$" val)
                  (string-match "^-?0b\\([01]+\\)$" val)
                  (string-match "^\\(-?[0-9]+\\)$" val))
