@@ -1459,7 +1459,7 @@
         (while (not (or (eq? v 'end)
                         (>= i n)))
           (begin (set! v (vector-ref memory i))
-                 (printf "~x " v)
+                 (printf (if (numberp v) "~x " "%s") v)
                  (set! i (add1 i))))
         (printf "\n")))
 

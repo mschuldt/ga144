@@ -96,3 +96,7 @@
 (define rkt-format format)
 (define token-start false)
 (define token-end false)
+(define intern false)
+(define mapc false)
+(define gethash false)
+

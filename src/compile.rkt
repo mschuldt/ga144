@@ -701,6 +701,8 @@
   (define index (coord->index coord))
   ;;TODO: validate 'node'
   ;;assert (node-coord node) == coord
+  (when (vector-ref nodes index)
+    (err "repeated node definition"))
   (set! current-node (get-node coord))
   (set! memory (node-mem current-node))
   (set! buffer-mappings (node-buffer-map current-node))

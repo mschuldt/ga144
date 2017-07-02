@@ -7,6 +7,7 @@
 (defstruct error-data message stage node line col input-type token)
 
 (setq aforth-error-message nil)
+(setq aforth-error-token nil)
 (setq aforth-current-node nil)
 (setq aforth-current-token nil)
 (setq aforth-compile-stage nil)
@@ -41,11 +42,11 @@
           (aforth-token-file token)))
 
 (defsubst aforth-token-delimiter-p (c)
-  (or (eq c ?\[)
+  (or (eq c ? )
+      (eq c ?\n)
+      (eq c ?\[)
       (eq c ?\])
-      (eq c ? )
-      (eq c ?\t)
-      (eq c ?\n)))
+      (eq c ?\t)))
 
 (defun aforth-comment-at-point-p (point)
   (save-excursion
@@ -191,7 +192,7 @@
   (setq aforth-compile-stage "parsing")
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
   (let ((tokens (or tokens (aforth-tokenize-region beg end)))
-        next type out token)
+        next type out token val a)
     (while tokens
       (setq token (car tokens)
             aforth-current-token token
@@ -296,6 +297,7 @@
     (nreverse out)))
 
 (defun aforth-parse-nodes (beg end &optional tokens no-comments)
+  ;; parse nodes and library words from region
   (aforth-begin-parse)
   (let ((tokens (or tokens (aforth-parse-region beg end nil no-comments)))
         nodes current-node current-code type)
