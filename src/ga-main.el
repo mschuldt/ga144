@@ -28,6 +28,7 @@
 (setq verbose? nil)
 (setq working-dir nil)
 (setq bowman-format nil)
+(setq sim? t)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -80,6 +81,8 @@
                (setq working-dir dir))
               (("--bowman") nil ""
                (setq bowman-format t))
+              (("--sim") nil ""
+               (setq sim? t))
               (position (file) "aforth file"
                         (setq in-file file))
               )
@@ -129,6 +132,7 @@
                   "src/rkt.el"
                   "src/ga-loadup.el"
                   "src/ga144-sim.el"
+                  "src/ga-run-simulator.el"
                   ))
     (byte-compile-file (expand-file-name file))))
 
@@ -184,6 +188,10 @@
 (when run?
   (require 'ga144-sim)
   (ga144-run-file (expand-file-name in-file))
+  (ga-main-exit))
+
+(when sim?
+  (shell-command  (concat "ga-sim " in-file))
   (ga-main-exit))
 
 (progn ;;for .rkt compatibility
