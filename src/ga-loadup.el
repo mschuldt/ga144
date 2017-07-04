@@ -17,7 +17,7 @@
   (load file nil t))
 
 (defun ga-compiler-loadup ()
-
+  (assert lexical-binding)
   (ga-el-load "rkt.el")
 
   (ga-rkt-load "rom.rkt")
