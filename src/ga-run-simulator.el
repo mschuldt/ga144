@@ -23,7 +23,7 @@
 
 (blink-cursor-mode 0)
 
-(when (< (length command-line-args) 4)
+(when (< (length command-line-args) 5)
   (princ "Usage: ga-sim FILE\n" #'external-debugging-output)
   (kill-emacs))
 
@@ -32,7 +32,8 @@
 
 (add-to-list 'load-path (concat base "src"))
 
-(setq filename (nth 3 command-line-args))
+(setq dir (nth 3 command-line-args))
+(setq filename (concat (file-name-as-directory dir)  (nth 4 command-line-args)))
 
 (load "ga-loadup.el")
 (ga-compiler-loadup)
@@ -53,6 +54,7 @@
   (setq mode-line-format "Simulation")
   ;;(redraw-display)
   ;;(redraw-frame)
+  (delete-other-windows)
   (message ""))
 
 
