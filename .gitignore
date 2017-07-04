@@ -3,7 +3,7 @@ test-out/
 
 compiled/
 TAGS
-_*
+_[^_]*
 *.elc
 *.pyc
 *~
