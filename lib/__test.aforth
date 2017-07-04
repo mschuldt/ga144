@@ -1,0 +1,6 @@
+( This file is for testing the include feature *DO NOT CHANGE* )
+
+@p
+: x + ;
+: xx x ;
+-

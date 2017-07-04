@@ -144,7 +144,7 @@
         ("next" 1 "." ".")
         (";" "." "." ".")))
 
-    ("node 1 dup + + + include testlib.afl over "
+    ("node 1 dup + + + include __test.aforth over "
      (1 ("dup" "+" "+" "+")
         ("@p" "." "." ".")
         ("+" ";" "." ".")
