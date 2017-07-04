@@ -575,17 +575,19 @@
             (progn
               (switch-to-buffer-other-window found-buff)
               (goto-char point))
+
           (message "Node %s not found." node)))
     (message "Error: invalid node: %s" node)))
 
 (defun ga-goto-node (node)
+  "Jump to node location in source if it exists, if not jump to end"
   (if (ga-valid-coord-p node)
       (let ((point (cdr (assoc node ga-node-locations))))
+        (switch-to-buffer-other-window ga-project-aforth-buffer)
         (if point
-            (progn
-              (switch-to-buffer-other-window ga-project-aforth-buffer)
-              (goto-char point))
-          (message "no source for node %s" node)))
+            (goto-char point)
+          (goto-char (point-max))
+          (insert (format "\nnode %s\n" node))))
     (message "Error: invalid node: %s" node)))
 
 (defun ga-goto-source-buffer ()
