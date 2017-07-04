@@ -1,0 +1,9 @@
+( wire pin J30.4 to pin J23.11
+(  J23.11 is async out for port C
+(  J30.4 is for 600.17
+
+: val 1 and if 0x20000 ; then 0x30000 ;
+: out18 0 out8 drop out8 out8
+: out8 0 out1 7 for dup out1 2/ next 1
+: out1 val !b drop 865 for unext ;
+: exit 1 out8

@@ -1,0 +1,33 @@
+( shared code for driving the crystal
+( see examples/crystal.aforth for how to use it
+
+( taken from colorforth block 980 )
+
+( 32.768 khz watch crystal from 715.17 to gnd )
+: -osc ( kn-f )
+( -osc tries exciting the crystal with n cycles of period k returning nonzero
+( if it didn't come back high after last cycle )
+  io b! for
+  0x30000 !b dup .. 2/ dup for unext
+  0x20000 !b .. over 1 and .. + for unext next
+  dup or !b dup 30000 for
+  drop @b - -while next ;
+  then dup or pop drop ;
+: clang
+( clang searches for resonant frequency over a reasonable range.
+(  Initially we use 5000 cycles and may be able to shorten this. When we find 
+(  resonance, falls thru into 'prep' which sets up registers and finally we
+(  camp in 'run' which is the low power, low duty cycle oscillator )
+  12700 200 for dup 5000 -osc while
+  drop 1 . + next clang ; then
+: prep 0 0x20000 0x800 0x30800 0 0x20000 0x800 0x30800
+   dup up a! drop
+: main clang ;
+( : run !b !b @ drop run ;  ( <= must be provided after including this file
+
+( : try ( test code for finding resonance)
+(   dup 5000 -osc over 1 . + ;
+
+( do not connect any kind of conventional probe to the crystal; this oscillator
+( will not work if you load it down even that much)
+( => successfully tested with the Agilent MSO-X 2014A oscilloscope )

@@ -1,0 +1,12 @@
+( b must be set to io)
+: out18 ( n - n )
+    ( 18bit words sent using 4 bytes in this order: wordcode lower8 middle8 upper2)
+    0 out8 drop
+    out8 out8
+: out8 ( n - n )
+    0 out1
+    7 for dup out1 2/ next 1
+: out1 ( n )
+    1 and 3 or !b
+    904 for unext ; ( unext delay = [1/baud_rate]/[2.4*10^-9] )
+: exit 1 out8 ;

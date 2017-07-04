@@ -1,24 +1,20 @@
 (
-demo using node 600 instead of 708 to send async data.
-usefull in cases when node 708 pins are busy with something else.
+( demo using node 600 instead of 708 to send async data.
+( useful in cases when node 708 pins are busy with something else.
+( 
+( load code into target chip through node 300 using the host chip
+( 
+( wire pin J30.4 to pin J23.11
+(  J23.11 is async out for port C
+(  J30.4 is for 600.17
+( 
+( on eval board, bootstream is loaded into port A, data is read from port C
 
-load code into target chip through node 300 using the host chip
-
-wire pin J30.4 to pin J23.11
- J23.11 is async out for port C
- J30.4 is for 600.17
-
-on eval board, bootstream is loaded into port A, data is read from port C
-)
 ( ./cal node600-async.aforth /dev/ttyUSB0 -s 460800 -b async-target )
 
 node 600
+include 600serial.aforth
 
-: val 1 and if 0x20000 ; then 0x30000 ;
-: out18 0 out8 drop out8 out8
-: out8 0 out1 7 for dup out1 2/ next 1
-: out1 val !b drop 865 for unext ;
-: exit 1 out8
 : main
     io b! east a!
     15 for @ out18 drop next
