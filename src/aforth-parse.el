@@ -2,6 +2,7 @@
 
 (require 'cl)
 (require 'gv)
+
 (defstruct aforth-token type value args start end overlay subtoks file)
 (defstruct aforth-node coord code location)
 (defstruct error-data message stage node line col input-type token)
@@ -15,6 +16,12 @@
 (setq aforth-parse-current-buffer nil)
 (setq aforth-parse-currrent-point nil)
 (setq aforth-compile-input-type nil)
+
+(let ((base (file-name-directory (or buffer-file-name load-file-name))))
+  (setq ga-lib-dirs (list (concat (file-name-directory (substring base 0 -1)) "lib/"))))
+
+(defun ga-add-search-path (dir)
+  (setq ga-lib-dirs (cons dir ga-lib-dirs)))
 
 (defun aforth-set-token (old type value &optional args start end file)
   (if old
@@ -173,20 +180,34 @@
         (if neg (- n)
           n)))))
 
-(defun aforth-include-file (filename &optional no-comments)
+(defun aforth-find-lib-file (filename)
   (if (file-exists-p filename)
-      (with-temp-buffer
-        (let ((buffer-file-name filename)
-              (aforth-parse-current-buffer (current-buffer))
-              (aforth-error-message nil)
-              (aforth-current-node nil)
-              (aforth-current-token nil)
-              (aforth-compile-stage nil)
-              (aforth-parse-buffer nil))
-          (insert-file-contents-literally filename)
-          ;;TODO: check for parse error
-          (aforth-parse-region (point-min) (point-max) nil no-comments)))
-    (aforth-compile-error (format "included file does not exist: %s" filename))))
+      filename
+    (let ((dirs ga-lib-dirs)
+          name found)
+      (while dirs
+        (setq name (concat (file-name-as-directory (car dirs)) filename)
+              dirs (cdr dirs))
+        (when (file-exists-p name)
+          (setq dirs nil
+                found t)))
+      (and found name))))
+
+(defun aforth-include-file (filename &optional no-comments)
+  (let ((file (aforth-find-lib-file filenmae)))
+    (if file
+        (with-temp-buffer
+          (let ((buffer-file-name file)
+                (aforth-parse-current-buffer (current-buffer))
+                (aforth-error-message nil)
+                (aforth-current-node nil)
+                (aforth-current-token nil)
+                (aforth-compile-stage nil)
+                (aforth-parse-buffer nil))
+            (insert-file-contents-literally file)
+            ;;TODO: check for parse error
+            (aforth-parse-region (point-min) (point-max) nil no-comments)))
+      (aforth-compile-error (format "included file does not exist: %s" filename)))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
