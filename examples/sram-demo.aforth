@@ -29,118 +29,55 @@
 ( Where ... are random numbers
 
 
-node 708
-: out18 0 out8 drop out8 out8
-: out8 0 out1 7 for dup out1 2/ next 1
-: out1 1 and 3 or !b 904 for unext ;
-: exit 1 out8 ;
-: main
-    io b! south a!
-15 for @ out18 next
-exit warm ;
 
-node 608
-: main north b! south a!
-: loop @ !b loop ;
-
-node 508
-: main north b! south a!
-: loop @ !b loop ;
-
-node 408
-: main north b! south a!
-: loop @ !b loop ;
-
-node 308
-: main  north b! west a!
-: loop @ !b loop ;
-
-node 307
-: main  west a! east b! 
-: loop @ !b loop ;
-
-node 306
-: main south a! east b! 
-: loop @ !b loop ;
-
-node 206
-: main south a! north b!
-: loop @ !b loop ;
-
-( - user ) node 106 ( node 106, 108, or 207.)
+( (   block 278:
+(     example code for memory master nodes.
+(     memory-access words assume that addresses and
+(     data are 16-bit parameters with the upper two
+(     bits zero and pages are 4-bits with the upper
+(     14 bits zero. p.a is thus a 20-bit address.
+(
+(     ex@ a p - w fetch w from p.a
+(     ex! w a p store w at p.a
+(     mk! w f -0 set masks from w per f.
+(     cx? w a p n - f comp-and-exch
+(
+(     cx? compares value at p.a to n. if same, write
+(     s w to p.a and returns true. otherwise, only
+(     returns false. x@ and x! are 16-bit versions to
+(     access the lowest 64k of available memory.
+(
+(     mk! sets mask from w when f is 0;
+(     posts stimuli when f is 1.                        )
+( - user )node 106 ( node 106, 108, or 207.)
 : x! ( wa) ( 39) dup dup or
 : ex! ( wap) : mk! ( mfp') ( 3A) - !b - !b !b ;
 : x@ ( a-w) ( 3C) dup dup or
 : ex@ ( ap-w) ( 3D) !b !b @b ;
 : cx? ( wapn-f) ( 3E) - !b !b !b !b @b ; ( 40)
-
 : main
-north a!
-east b!
-
+north a! east b!
 0 10 for dup dup . + over  x! 1 . + next
 0 15 for dup dup  x@ ! 1 . + next
 warm
 
-node 9 ( sram.16 address-bus )
-org 0x20
+
+include sram.aforth
+include sram-minimal-master.aforth
+
+
+node 708
+include 708serial.aforth
 : main
-: start west ( right) b! .. data a! .. 0x3 ( mask)
-: cmd ( m) @b ( a16) 2* 2* over @b -if
-   - ( p04) and or ( a18) ! cmd ;
-   then ( p04) and or .. ( a18) ! cmd ;
-
-node 8 ( control-pins )
-org 0
-:: 'r-l- 0x1F5 lit ;  ( TODO: why?
-( 'start' pin control table 0-7)
-, 0x2556E ( r00) , 0x2557E ( r01)
-, 0x3556E ( r10) , 0x3557E ( r11)
-, 0x3557A ( w11) , 0x3556A ( w10)
-, 0x2557A ( w01) , 0x2556A ( w00)
-org 0x20
-
-: main
-: start 'r-l- b! io a!
-: cmd @b ( stop) ! a push 0x7 ( mask) ..
-   @b ( a16) !b @b ( +p/-p) dup !b
-   2/ 2/ and ( i3) a! .. @ ( ctrl) pop a!
-   ( start) ! cmd ;
-
-node 7 ( data-bus)
-org 0x20
-:: in 0x14555 lit ;
-:: out 0x15555 lit ;
-:: stop 0x3557F lit ;
-
-: main
-: start east ( left) b! out io data stop
-   out io data stop in io a! ( in) !
-   north ( down) a! ( stop) !b
-: cmd ( /soid/) @ ( a16 ) !b @ ( +p/-p ) -if
-
-: w16 ( /soid/p-) ( +p/-p) !b
-( /- setup + 45ns) @ ( w) a push push ( data) a!
-pop ! ( io) a! ( out) ! ( 40) 13 for unext ( stop) !b
-( -/) in ! pop a! cmd ;
-
-: r16 ( /soid/p-) then ( +p/-p) !b
-( /- setup + 55ns) a push ( data) a!
-( io) drop ( out) drop ( 50) 40 for unext ( stop) !b ( -/ )
-@ ( w) pop a! ! cmd ;
+io b! south a!
+15 for @ out18 next
+exit warm ;
 
 
-node 107 org 0 
-
-: cx ( wp-) over push @ dup 
-   ( a)  !b over ( p) !b @b ( w) pop - ( w1) or if 
-( ne) @ ( w2) dup or ( ff) ! ;
-( eq) then drop ( a) !b - ( -p) !b @ ( w2) !b 0xffff ! ; 
-
-: cmd  @ -if @ ' cx -until ( .e!) - !b !b @ !b ;
-then @  ( .e@) ( a) !b ( p) !b @b ( w) ! ;
-org 0x17
-
-: main : start  down b! right a!
-: run cmd run ; 
-
+node 608 : main north b! south a! : loop @ !b loop ;
+node 508 : main north b! south a! : loop @ !b loop ;
+node 408 : main north b! south a! : loop @ !b loop ;
+node 308 : main north b! west a! : loop @ !b loop ;
+node 307 : main west a! east b! : loop @ !b loop ;
+node 306 : main south a! east b!  : loop @ !b loop ;
+node 206 : main south a! north b! : loop @ !b loop ;

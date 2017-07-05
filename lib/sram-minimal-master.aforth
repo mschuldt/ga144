@@ -1,0 +1,32 @@
+
+( node 107 minimal capability version. cr
+( single master, no polling, no stimuli. cr
+( maximum speed, minimum power.
+(
+( all requests are atomic. passes ex@ and ex! cr
+( requests on to node 007, performs cx? locally
+( using those primitives.
+(
+( requests are variable length messages decoded
+( as shown below where - means 18-bit inverse of
+( 16 bit argument.
+(
+( ex@ +p +a fetch
+( cx? -w1 +p a w2 comp-and-exch
+( ex! -p -a w store
+ ( 280 list  degenerate sram 107 node
+
+node 107 org 0
+
+: cx ( wp-) over push @ dup
+   ( a)  !b over ( p) !b @b ( w) pop - ( w1) or if
+( ne) @ ( w2) dup or ( ff) ! ;
+( eq) then drop ( a) !b - ( -p) !b @ ( w2) !b 0xffff ! ;
+
+: cmd  @ -if @ ' cx -until ( .e!) - !b !b @ !b ;
+then @ ( .. here to conform with softsim ) ( .e@) ( a) !b ( p) !b @b ( w) ! ;
+( TODO: in softsim the '@' after 'then' is in its own word, why?
+org 0x17
+
+: main : start  down b! right a!
+: run cmd run ;
