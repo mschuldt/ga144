@@ -8,7 +8,7 @@
           (make-variable-buffer-local ',name)
           (put ',name 'permanent-local t)))
 
-(def-local ga-default-node-size 3)
+(setq ga-default-node-size 3)
 (def-local ga-project-name nil)
 (def-local ga-project-file nil)
 (def-local ga-nodes nil)
@@ -143,8 +143,11 @@
   (setq ga-display-hex (not ga-display-hex))
   (ga-sim-update-display))
 
-(defun ga-format-num (n)
-  (format (if ga-display-hex "%x" "%d") n))
+(defun ga-format-num (n &optional 2comp)
+  (let ((fmt (if ga-display-hex "%s%x" "%s%d"))
+        (num (if (and 2comp (> n #x20000)) (& (+ (~ n) 1) #x1ffff) n))
+        (sgn (if (and 2comp (> (& n #x20000) 0)) "-" "")))
+    (format fmt sgn num)))
 
 (defun ga-current-node-display-fn (_ _)
   (let ((s (format "node %s" ga-current-coord))

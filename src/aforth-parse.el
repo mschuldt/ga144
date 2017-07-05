@@ -194,7 +194,7 @@
       (and found name))))
 
 (defun aforth-include-file (filename &optional no-comments)
-  (let ((file (aforth-find-lib-file filenmae)))
+  (let ((file (aforth-find-lib-file filename)))
     (if file
         (with-temp-buffer
           (let ((buffer-file-name file)

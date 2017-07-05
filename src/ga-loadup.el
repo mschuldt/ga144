@@ -43,10 +43,10 @@
 (defun ga-sim-loadup()
   (ga-rkt-load "f18a.rkt")
   (ga-rkt-load "ga144.rkt")
-  (ga-rkt-load "stack.rkt")  )
-
+  (ga-rkt-load "stack.rkt"))
 
 ;; (ga-compiler-loadup)
+;; (ga-sim-loadup)
 
 
 (provide 'ga-loadup)
