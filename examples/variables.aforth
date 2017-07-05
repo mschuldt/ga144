@@ -1,0 +1,11 @@
+node 1
+: var! @p drop !p ;
+: var@ 0 ;
+
+: main
+5 var! ( set variable
+  var@ ( read variable
+
+  var@ . + var!
+
+
