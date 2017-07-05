@@ -1,0 +1,209 @@
+( -*- mode: aforth -*- )
+
+( block 1428 )
+( spi boot top/bot) 4 kind 0xaa reset host  :: ---  0x2a  lit ; ( do, ce-, clk) :: --+  0x2b  lit ; :: +--  0x3a  lit ; :: +-+  0x3b  lit ; :: -++  0x2f  lit ; target
+org 0xa1 1388 load ( relay)
+
+org 0xc2 
+: 8obits ( dw-dw') 7 for leap ( obit) 2* *next ;
+: ibit ( 0xc7 ) ( dw-dw')
+     @b . -if drop - 2* ;  then drop 2* - ;
+: half ( 0xca ) ( dwc-dw) !b over for . . unext ;
+: select ( 0xcc ) ( dw-dw) -++ half --+ half ;
+: obit ( 0xd0 ) ( dw-dw) then
+     -if +-- half +-+ half ;  then
+: rbit ( 0xd5 ) ( dw-dw) --- half --+ half ;
+: 18ibits ( 0xd9 ) ( d-dw) dup 17 ( for) push
+: ibits begin rbit ibit - next ;
+
+: u2/ 2/ 0x1ffff and ; ( 0xe1 )
+org 0xa9
+( 0xa9 ) : warm await ;
+( 0xaa ) 1430 load ( the rest)
+( 0xc1 )
+
+( block 1429 )
+( clock management is mode 3, high when idle.)
+( : ibits ( is entered by jump with count already on return stack. no rom effect to adding this.)
+
+( block 1430 )
+( more spi)
+: cold ( 0xaa ) @b - ..  0x1b5 ( 'rdl-)  -until
+     spispeed spiadr push spicmd
+: spi-boot ( 0xb0 ) ( dly adrh . adrl - dly x)
+     select 8obits 8obits
+     drop pop . 8obits 8obits
+: spi-exec ( 0xb6 ) ( dx-dx) drop 18ibits
+     0x1e000 . +  0x1b5 ( 'rdl-)  -until
+     push 18ibits a! 18ibits
+: spi-copy ( 0xbc ) ( dn-dx) push zif ;  then begin
+     18ibits ( push 18ibits pop !+) !+ next dup ; ( 0xc1 ) ( was) ( 0xc2 )
+
+
+
+
+( block 404 )
+( spi flash sst25wf080) reclaim node 705 org 0 
+: entry ( 0x0 ) pop a! ( delay) @
+: nxt ( 0x1 ) ( d-d) @ push ex . nxt ;
+: null ( 0x3 ) ( d) dup !
+: done ( 0x4 ) ( d) -++ !b await ;
+: cmd ( 0x7 ) ( d) dup select
+: out ( 0x8 ) ( d) @ for @ 2* 2* 8obits zif drop ( pop drop) ;  then 8obits drop next ;
+: byte ( 0x10 ) ( d-dw) dup dup or
+: +byte ( 0x11 ) ( dw-dw) 7 push begin begin --- !b --+ !b . @b -while drop - 2* - next ;  then drop 2* next ;
+: bytin ( 0x1e ) ( d) @ for byte zif ! done ;  then +byte ! next done ;
+: wout ( 0x25 ) ( d) @ push .. zif begin select 0x2b400 8obits drop  swap  then @ 2* 2* 8obits 8obits drop select dup begin drop @b -until drop next null ;
+: slob ( 0x33 ) ( d-dw) dup dup or
+: +slob ( 0x34 ) ( dw-dw) 7 push ibits ;
+: slowin ( 0x37 ) ( d) @ for slob zif ! done ;  then +slob ! next done ; ( 0x3e ) 1606 bin reclaim
+
+( block 405 )
+( timing roughly) ( 53 ) ( ns 19.2 mhz read clock) ( clk low 16.5 ns 30. mhz so this is good for) ( all sst25wfxxx parts as well. with mk1 sram) ( we get) ( 555 ) ( us block read time.) ( registers b-io a-boss t-delay r-cmd. command) ( stream starts with dly and then funcs...)
+( : done ( deselect)  ( and end operation. 
+( : null ( does so after sending a dummy byte in.)
+( : cmd ( selects and pumps a command)
+( : out ( given nbyt-1 sends nbyt bytes to device.)
+( : bytin ( given nbyt-1 receives nbyt bytes from) ( the device)  ( and ends operation. 
+( : wout ( given nwds writes nwds 16-bit words to) ( the device in aai mode. used immed after) ( address, should be followed by wrdi rdsr.)
+( : slowin ( given nbyt-1 receives nbyt bytes from) ( the device. used for slow mmc.)
+
+( block 406 )
+( minimal spi) reclaim node 705 org 0 ( working before speed up)
+: entry ( 0x0 ) pop a! ( delay) @
+: nxt ( 0x1 ) ( d-d) @ push ex . nxt ;
+: null ( 0x3 ) ( d) dup !
+: done ( 0x4 ) ( d) -++ !b await ;
+: cmd ( 0x7 ) ( d) dup select
+: out ( 0x8 ) ( d) @ for @ 2* 2* 8obits zif drop ;  then 8obits drop next ;
+: byte ( 0x10 ) ( d-dw) dup dup or
+: +byte ( 0x11 ) ( dw-dw) 7 push ibits ;
+: bytin ( 0x14 ) ( d) @ for byte zif ! done ;  then +byte ! next done ; ( 0x1b ) 1606 bin reclaim
+
+( block 407 )
+( minimal code but slow; timing roughly) ( 64 ) ( ns or 15.4 mhz read clock, low) ( 31 ) ( ns; write) ( 76 ) ( ns or 13.2 mhz. when delay is zero. addl delay about) ( 4 ) ( ns per count.) ( command stream starts with dly and then funcs)
+( : done ( deselect)  (and end operation. 
+( : null ( does so after sending a dummy byte in.)
+( : cmd ( selects and pumps a command)
+( : out ( given nbyt-1 sends nbyt bytes to device.)
+( : bytin ( given nbyt-1 receives nbyt bytes from) ( the device)  ( and ends operation.
+
+
+( block 1115 )
+( notes-)
+      xm!  mask ( sets which neighbor nodes get access to memory.) ( 0x8000 ) ( is 106,) ( 0x800 ) ( is 108,) ( 0x200 ) ( is 207,) ( 0x8a00 ) ( is all three.) use carefully!
+
+( block 1116 )
+( -- eforth flash interface) org 0x0 
+: 2cmd ( dw-d) select ( +2r) : +cmd ( dw-d) 8obits ( +4r)
+: cmd ( db-d) select : !8 ( db-d) 8obits drop ;
+: reading ( dh-d) ( 0x5 ) io b! over . ( read) 0xc00 cmd ( +5r)
+: !24h ( dhd-d) ( 0x9 ) drop 8obits
+: !16 ( dw-d) ( 0xa ) 8obits !8 ;
+: @16 ( d-dw) ( 0xc ) 15 dup push dup or ( 'ibits)  0xdb  end
+: set ( ndo-n) ( 0xf ) down a! ! drop dup ! ;
+: f2s ( dndh-d) ( 0x12 ) reading ( +6r) @p set ( /) @p hf2s ( /)
+: readn ( dn-d) ( 0x15 ) for @16 ( +4r) ! next ;
+: start ( dx-dx) ( 0x19 ) drop ( n-1) over 512 f2s ( +7r)
+: restart ( d-dx) ( 0x1d ) ( resume) reading dup spi-exec ;
+: deselect ( dx-dx) ( 0x20 ) io b! -++ half warm ;
+( 0x25 ) exit 
+: +wr ( d-d wren+wrsr) 0x1804 2cmd ( 0+ebsy) 0x1c0 +cmd ;
+: er32k ( dh-dd) ( 0x29 ) over +wr ( +6r)
+     ( wren+ers32) 0x1948 2cmd !24h dup select ;
+: writing ( dh-d) ( 0x2e ) over +wr ( +6r)
+     ( wren+aaip) 0x1ab4 2cmd !24h ;
+: s2f ( dndh-d) ( 0x32 ) writing ( +7r) @p set ( /) @p hs2f ( /)
+: writn ( dn-d) ( 0x35 ) push ahead begin  swap
+     ( aaip)  0x2b400 cmd then @ !16 ( +5r)
+     ( wait) dup select ( 0x3a ) begin drop @b -until
+( 0x3b ) drop next ( wrdi+dbsy) 0x1200 2cmd ; ( 0x3e )
+
+( block 1117 )
+( notes-)
+     ( assumes that during booting the delay value is on the top of the data stack and is preserved during all flash accesses.)
+     ( also assumes b contains io.)
+
+
+
+
+
+( block 1171 )
+( minimal version of plumbing for sram boot from flash. wires are compiled only once and are) ( initialized with source port in a and dest) ( port in b.) ( message consists of word count n-1 followed by n words to be passed along.)
+( block 1172 )
+( - spi flash) ( 8 ) ( bits) node 705 org 0 host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
+     18 8 */ 4 * lit ; target 
+: wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x4 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0x9 ) io b! ( fast) 5 ;
+: fet ( ah al-d) ( 0xc ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: 16ibits ( d-db) ( 0x12 ) dup 15 for
+rbit ibit - next 0xffff and ;
+: start ( 0x19 ) down a! 0 0x20000 fet
+16ibits dup ! for 16ibits ! next
+     resume fet 18ibits 0x1e000 . + - -if
+: done io b! 20 20 -++ half warm ;  then
+5 resume push spicmd spi-boot ;
+( 0x34 ) 1814 bin
+
+
+
+
+( block 1352 )
+( erase flash) org 0 
+: wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x4 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0x9 ) io b! ( fast) 5 ;
+: fet ( ah al-d) ( 0xc ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: +wr ( -d) ( 0x12 ) set ( wren+wrsr) 0x1804 2cmd
+     ( hi8 zero) dup !8 ( ebsy) 0x1c000 cmd ;
+: ers32k ( 0x18 ) +wr ( wren+ers32) 0x1948 2cmd
+0 !8 0 8obits !8 dup select ;
+: ersall ( 0x21 ) +wr ( wren+eras) 0x1980 2cmd
+dup select ;
+: 16ibits ( d-db) ( 0x25 ) dup 15 for
+rbit ibit - next 0xffff and ;
+: stash ( d-d) ( 0x2c ) a push 0x3f a! 16ibits ! pop a! ; ( 0x30 )
+
+
+
+
+( block 1364 )
+( spi flash writer michael + greg 2.1) org 0 
+: 2o ( dw-dw') ( 0x0 ) obit 2* obit ;
+: wait ( dw-dw) ( 0x2 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x6 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0xb ) io b! ( fast) 5 ( 20 ) ;
+: fet ( ah al-d) ( 0xe ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: +wr ( -d) ( 0x14 ) set ( wren+wrsr) 0x1804 2cmd
+     ( hi8 zero) dup !8 ( ebsy) 0x1c000 cmd ;
+: aaip ( d-d) ( 0x1a ) 0x2b400 wait !8 ;
+: x8p ( hln-d asrc) ( 0x1d ) +wr ( wren+aaip) 0x1ab4 2cmd
+drop push push push set pop !8 pop 8obits
+!8 ahead begin aaip  swap  then 7 for
+     pop dup push push @+
+     begin 2o 2* next push aaip pop
+     7 pop dup push or push
+     begin 2o 2* next drop next next
+( wrdi+dbsy) 0x1200 wait 2cmd -++ !b rdl- ; ( 0x3b )
+: ers32 ( 0x3b ) ( h-dd +wr wren+ers32) ( 0x1948 ) ( 2cmd)
+( over 8obits 8obits !8 dup select ;) ( 0x3b )
+
+( block 1365 )
+( run by an adjacent node through a port.)
+ $ 24 bit addresses ( are represented in two) ( 18 ) ( bit words. for continuous bit sync, all operations must start on) ( 0 ) ( mod) ( 18 ) ( byte boundaries.)
+ high ( word contains the most significant) ( 8 ) ( bits of the address shifted left) ( 10 ) ( bits.)
+low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
+
+
+: x8p ( writes)  n ( words into flash starting at address whose) high ( and) low ( parts are given. the data are read from wherever) a ( points; to feed a stream through a port,) a ( must be focused to the port before starting.)
+
+
+: fet ( starts a read operation)
+: 18ibits ( reads one word; take care with)  'd'
