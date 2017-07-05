@@ -1,11 +1,8 @@
 ( prints the first 15 numbers of the Lucas sequence )
-( ./cal lucas-series.aforth /dev/ttyUSB3 -s 460800 -b async-target )
+( ga-load lucas-series.aforth /dev/ttyUSB0 )
 
 node 708
-: out18 0 out8 drop out8 out8
-: out8 0 out1 7 for dup out1 2/ next 1
-: out1 1 and 3 or !b 904 for unext ;
-: exit 1 out8 ;
+include 708serial.aforth
 : main
     io b! south a!
     15 for @ out18 drop next
