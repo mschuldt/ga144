@@ -1,5 +1,275 @@
 ( -*- mode: aforth -*- )
 
+
+( block 250 )
+( ers flash erase function) overlay
+len ! dest !
+serial load -canon
+a-com sport ! a-bps bps ! !nam panel 
+: esc key? esc ;
+: wait esc 0  keych  ! ;
+: expand ( n-lh) dup 0xffff and  4  * swap
+0xf0000 and 64 / ;
+: ersall  0x21  call ;
+: ers32  0x18  call ;
+: ers  dest  @ pause
+ 0  + drop if ersall ;  then ers32 ;
+: read ( a-a') dup expand lit' lit'  0xc  call  -2  + ;
+: r ( d-dw)  2  + rdrop  0x25  call upd ;
+: check  dest  @ read  len  @ for
+r 0xffff or drop if pop  0  ;  then -next  -1  ;
+nores 285 list
+.noboot pause wait ( ** install noboot jumper)
+talk ( check a-com) 0 705 hook 0x0 64 1613 boot
+.boot pause wait ( *** remove noboot jumper)
+( ers) .erasing pause ersall chill ( check) overlay
+
+( block 251 )
+( erasing flash)
+
+
+: ers ( an)
+ a ( byte address in flash on 4k boundary)
+n ( number of)  16 bit words ( to erase)
+
+( block 252 )
+( flash writer) ( 18 ) ( bit) overlay
+7 + -8 and len ! dest ! source !
+serial load -canon
+a-com sport ! a-bps bps ! !nam talk
+
+0 705 hook 0x0 64 1609 boot focus
+0 706 hook 0x0 64 1610 boot
+
+( flash commands) ( 1214 ) 2 fh load
+
+285 list nosay
+.burning pause burn chill
+.checking pause check
+overlay
+
+( block 253 )
+( writing a boot stream into flash)
+
+( force length to) ( 0 ) ( mod) ( 8 ) ( so operation ends)
+( at a) ( 16 ) ( bit boundary)
+
+
+: 18burn ( sdn)
+ s ( source address of buffer in host memory)
+d ( destination) ( 8 ) ( bit address in flash)
+n ( length of stream in) ( 18 ) ( bit words)
+
+( block 254 )
+( - code for flash writer)
+: read ( a) left lit' ra! dup 0xf0000 and 64 /
+swap 0xffff and 4 * lit' lit'  0x23  call ;
+: r left lit' ra!  0x29  call upd ;
+: commence left lit' ra!  len  @ 8 / -1 +
+ dest  @ dup 0xf0000 and 64 / lit'
+0xffff and 4 * lit' lit'  0x2d  call ;
+: git ( a-an) dup  1  + swap @  0x15555  or ;
+: get ( a-a) git lit' ;
+: burning  source  @  len  @ for get !+ next drop ;
+: fetch ( -n)  0x37  call ( 0x3f )  0x3a  r@ ;
+: check ( -t)  dest  @ read  source  @  len  @
+for git fetch over ( pause) over or
+drop if pop fail ;
+ then drop drop next drop good ;
+: burn commence burning ;
+
+
+: f 0 706 hook fetch 0 705 hook upd ;
+: b 0 706 hook burn ;
+
+( block 255 )
+
+
+( block 256 )
+( exercising flash) org 0x20 
+: focus ( 0x20 ) @p dup a! .. ( /) --l- ( /) ! ;
+: reading ( 0x23 ) ( l h) focus @p ! .. ( /) @p @p .. ( /)
+! ! .. @p ! ; ( /) , 0x1200e ( /)
+: @word ( 0x29 ) ( -n) @p ! .. ( /)  , 0x120d9 ( /)
+ @p ! @ ; ( /)  !p .. ( /)
+: writing ( 0x2d ) ( h l n) focus
+left @p ! .. ( /) @p a! .. ( /)
+! @p ! .. ( /) @p @p @p .. ( /) push push !
+pop ! pop ! @p ! ; ( /) , 0x1201d ( /)
+: stash ( 0x37 ) focus @word !p ; ( 0x3a ) , 0
+
+exit 
+: stash ( 0x37 ) focus a push @word 0x3f a! ! pop a! ;
+
+( block 257 )
+
+
+( block 258 )
+( writing flash) ( 8 ) ( bits) overlay
+len ! dest ! source !
+serial load -canon
+a-com sport ! a-bps bps ! !nam talk
+
+( flash commands) ( 1220 ) 2 fh load
+
+0 705 hook 0 64 1611 boot
+285 list nosay ( nores)
+.burning pause burn chill
+.checking pause check
+overlay
+
+( block 259 )
+( programming) ( 8 ) ( bit flash)
+
+
+: burn ( sdn)
+ s ( source address of buffer in host memory)
+d ( destination) ( 8 ) ( bit address in flash)
+n ( length of stream in) ( 16 ) ( bit words)
+
+( block 260 )
+( code for reading and writing flash) ( 8 ) ( bits)
+
+: out 0 706 hook ; : in 0 705 hook ;
+: read ( a-a') in dup dup 0xf0000 and 64 / lit'
+0xffff and  4  * lit'  0xe  call rdup upd  -2  + ;
+: r ( d-dw)  2  + rdrop  0x14  call upd ;
+: r18 ( d-dw)  2  + rdrop  0xd9  call upd ;
+: rr  0x8000  read r ;
+: ers  0x24  call ; : pr  0x28  call ;
+: send ( n) left ( pause) r! ;
+: 2@+ ( b-b'h) dup 2 + swap 2@ 0xffff and swab ;
+: burn in  dest  @ dup  0xf0000  and  64  / lit'
+ 0xffff  and  4  * lit'  len  @ lit'
+left lit' ra! pr out  source  @  len  @
+for 2@+  4  * send -next drop ;
+: check ( -t)  dest  @ read drop
+ source  @  len  @ for 2@+ ( 0x39 )  0x3b  call  0x3f  r@ or
+drop if pop drop fail ;  then -next drop fair ;
+
+( block 261 )
+( reading and writing flash)
+
+
+: read ( begin at) ( 20 ) ( bit flash byte address)
+: r ( read the next) ( 16 ) ( bit word from flash)
+: r18 ( read the next) ( 18 ) ( bit word from flash)
+: rr ( begin and read first word at) ( 0x8000 )
+: ers ( erase whole flash)
+: pr ( program assuming already erased)
+: back ( back out to node) ( 706 ) ( for streaming)
+: send ( one word into node) ( 705 ) ( , pause to display)
+: 2@+ ( fetch) ( 16 ) ( bit word + byte swap)
+: burn n ( start programming flash in) ( 705 ) ( ,)
+( then back out to) ( 706 ) ( and stream words from)
+( the stream buffer into) ( 705 ) ( .)
+
+( block 262 )
+( default flash path for whole chip)
+: line ( ncd) swap push swap begin dup , over + -next drop drop ;
+: count ( nc-ncd) dup  100  mod  0  + if ( horz) swap drop  1  ; ( vert)  then drop  100  /  100  ;
+: to ( nn) over negate + -if ( back) negate count negate line ; ( forw)  then count line ;
+: entire align create  705 701 to 700 0 to 1 17 to 117 101 to 201 217 to 317 301 to 401 417 to 517 501 to 601 617 to 717 709 to , -1 ( retain asynch boot) 708 +node 0xaa /p
+
+( block 263 )
+
+: line ncd ( comma nodes into a table starting at node) n ( for) c ( nodes incrementing by) d
+
+: /left ( extend line toward the left)
+: /right ( extend line toward the right)
+: /up ( extend line upward)
+: /down ( extend line downward)
+: entire ( default path table that)
+( covers the whole virginal chip)
+
+
+
+( block 283 )
+( stream building utilities)
+( persistant streamer variables)
+ source ( word address in host memory buffer)
+dest ( byte address in flash)
+len ( length of stream in words)
+: stream -an ( returns)  source ( an) len 
+: 18burn sdn ( burn flash in) ( 18 ) ( bit words)
+: burn sdn ( burn flash in) ( 16 ) ( bit words)
+: ers an ( erase 4k blocks containing range)  an
+: framer ( location of boot frame vocabulary)
+: chill ( delay a long enough time to be sure)
+( that the previous operation is complete)
+: overlay ( remember point for streamer utility)
+( saying)  overlay ( restores the dictionary to)
+( its state when overlay was defined)
+
+( block 284 )
+( flash utilties feedback)
+:var loaded [0x1d0] :var result
+:var 'say [0x102f8d6f] :var 'ask [0x102f8c17]
+: nosay  'say  assign nop ; nosay 
+: noask  'ask  assign nop ; noask 
+: .now blu  'say  xqt ;
+: .ask blu  'ask  xqt ;
+: .at. blu silver  loaded  @ . ;
+: chs ( ...n) for emit next ; 2 fh load 
+: .res blu  result  @
+( -1 )  0  + -if .fair ;  then
+( 0 )  -1  + -if drop .good ;  then
+( 1 )  -1  + -if drop .fail ;  then ;
+: fair -1  result  ! ;
+: good 0  result  ! ;
+: fail 1  result  ! ;
+: nores 2  result  ! ; :var leng [0x1d11] 36 leng ! 
+: .str blu silver .' ( stream) space .' ( length) space  leng  @ . .' ( words) space  leng  @ 18 8 */ . .' ( bytes) space ;
+
+( block 285 )
+( flash utilities)
+
+
+( block 290 )
+( speedup spi boot) node 705 org 0 
+: start 5 dup spi-exec ;
+( 0x3 ) 1608 bin
+
+
+
+( block 286 )
+( - flash utilities feedback)
+: .erasing noask ( nores)  'say  assign silver
+( erasing) 0 0xd 0x6 0x7 0x8 0x5 0x1 0x4 8 chs ;
+: .burning noask ( nores)  'say  assign silver
+( burning) 0 0xd 0x6 0x7 0x6 0x1 0x16 0x13 8 chs ;
+: .checking noask ( nores)  'say  assign silver
+( checking) 0 0xd 0x6 0x7 0x24 0xa 0x4 0x14 0xa 9 chs ;
+: .fair silver ( so far) 0 0x1 0x5 0xe 0 0x3 0x8 7 chs
+( so good) 0 0x10 0x3 0x3 0xd 0 0x3 0x8 8 chs ;
+: .good green ( good) 0 0x10 0x3 0x3 0xd 5 chs ;
+: .fail red ( fail) 0 0xc 0x7 0x5 0xe 5 chs ;
+: .boot nosay ( nores)  'ask  assign green
+( remove) 0 0x4 0x11 0x3 0x9 0x4 0x1 7 chs
+: .j26
+( j26) 0 0x1e 0x1a 0x22 4 chs
+( then) 0 0x6 0x4 0x14 0x2 5 chs
+( press) 0 0x8 0x8 0x4 0x1 0x12 6 chs
+( key) 0 0xb 0x4 0x24 4 chs ;
+: .noboot nosay ( nores)  'ask  assign green
+( install) 0 0xc 0xc 0x5 0x2 0x8 0x6 0x7 8 chs .j26 ;
+
+( block 287 )
+
+
+( block 288 )
+( pf to flash)
+
+( read/write) ( 18 ) ( bit flash)
+     node 705 1364 load 1609 bin
+     node 706 256 load 1610 bin
+( read/write) ( 8 ) ( bit flash)
+     node 705 1370 load 1611 bin
+( erase flash)
+     node 705 1352 load 1613 bin
+
+
+
 ( block 1428 )
 ( spi boot top/bot) 4 kind 0xaa reset host  :: ---  0x2a  lit ; ( do, ce-, clk) :: --+  0x2b  lit ; :: +--  0x3a  lit ; :: +-+  0x3b  lit ; :: -++  0x2f  lit ; target
 org 0xa1 1388 load ( relay)
@@ -89,6 +359,28 @@ org 0xa9
 ( : bytin ( given nbyt-1 receives nbyt bytes from) ( the device)  ( and ends operation.
 
 
+( block 447 )
+( minimal version of plumbing for sram boot from flash. wires are compiled only once and are) ( initialized with source port in a and dest) ( port in b.) ( message consists of word count n-1 followed by n words to be passed along.) ( node) ( 108 ) ( now loads the image received from) ( flash into sram.) ( 208 ) ( is just another wire) ( however, the generic sram interface code is) ( compiled at the usual place anyway, so this) ( bin can be used by both the streamer and the) ( ide)
+
+( block 448 )
+( - spi flash) ( 8 ) ( bits) node 705 org 0 host  :: resume nnc 2 * 0x8000 + block @ 0xfffff and
+     18 8 */ 4 * lit ; target 
+: wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x4 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0x9 ) io b! ( fast) 5 ;
+: fet ( ah al-d) ( 0xc ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: 16ibits ( d-db) ( 0x12 ) dup 15 for
+rbit ibit - next 0xffff and ;
+: start ( 0x19 ) down a! 0 0x20000 fet
+16ibits dup ! for 16ibits ! next
+     resume fet 18ibits 0x1e000 . + - -if
+: done io b! 20 20 -++ half warm ;  then
+5 resume push spicmd spi-boot ;
+( 0x34 ) 1710 bin
+
+
 ( block 1115 )
 ( notes-)
       xm!  mask ( sets which neighbor nodes get access to memory.) ( 0x8000 ) ( is 106,) ( 0x800 ) ( is 108,) ( 0x200 ) ( is 207,) ( 0x8a00 ) ( is all three.) use carefully!
@@ -171,6 +463,41 @@ rbit ibit - next 0xffff and ;
 
 
 
+( block 1300 )
+ unused  see 150 ( test code for chip) reclaim
+
+( ide parts) 1372 5 loads reclaim
+
+( custom code) 1302 load ( exit)
+
+( polyforth) 730 load
+( smtm test) node 0 1342 load exit
+
+( */ exerciser) node 402 1354 load
+     node 401 1356 load node 400 1358 load
+( serdes) node 1 1360 load node 701 1362 load
+( spi flash write) node 702 1364 load
+( ana) node 715 1366 load node 717 1368 load
+
+
+( block 1352 )
+( erase flash) org 0 
+: wait ( dw-dw) ( 0x0 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x4 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0x9 ) io b! ( fast) 5 ;
+: fet ( ah al-d) ( 0xc ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: +wr ( -d) ( 0x12 ) set ( wren+wrsr) 0x1804 2cmd
+     ( hi8 zero) dup !8 ( ebsy) 0x1c000 cmd ;
+: ers32k ( 0x18 ) +wr ( wren+ers32) 0x1948 2cmd
+0 !8 0 8obits !8 dup select ;
+: ersall ( 0x21 ) +wr ( wren+eras) 0x1980 2cmd
+dup select ;
+: 16ibits ( d-db) ( 0x25 ) dup 15 for
+rbit ibit - next 0xffff and ;
+: stash ( d-d) ( 0x2c ) a push 0x3f a! 16ibits ! pop a! ; ( 0x30 )
+
 
 ( block 1364 )
 ( spi flash writer michael + greg 2.1) org 0 
@@ -207,3 +534,39 @@ low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
 
 : fet ( starts a read operation)
 : 18ibits ( reads one word; take care with)  'd'
+
+
+
+( block 1370 )
+( spi flash) ( 8 ) ( bits) org 0 
+: 2o ( dw-dw') ( 0x0 ) obit 2* obit ;
+: wait ( dw-dw) ( 0x2 ) select dup begin drop @b -until drop select ;
+: 2cmd ( dw-d) ( 0x6 ) select 8obits
+: cmd ( dw-d) select
+: !8 ( dw-d) 8obits drop ;
+: set ( -d) ( 0xb ) io b! ( fast) 5 ;
+: fet ( ah al-d) ( 0xe ) push push set ( read) 0xc00 cmd pop !8 pop 8obits !8 ;
+: 16ibits ( d-db) ( 0x14 ) dup 15 for
+rbit ibit - next 0xffff and ;
+: +wr ( -d) ( 0x1b ) set ( wren+wrsr) 0x1804 2cmd
+( hi8 zero) dup !8 ( ebsy) 0x1c000 cmd ;
+: aaip ( d-d) ( 0x21 ) 0x2b400 wait !8 ;
+: ers ( 0x24 ) +wr ( wren+eras) 0x1980 2cmd dup select ;
+: wp ( hln-d asrc) ( 0x28 ) +wr ( wren+aaip) 0x1ab4 2cmd
+drop push push push set pop !8 pop 8obits
+!8 ahead begin aaip  swap  then @+ 8obits !8
+next ( wrdi+dbsy) 0x1200 wait 2cmd -++ !b rdl- ;
+: stash ( d-d) ( 0x3b ) a push 0x3f a! 16ibits ! pop a! ; ( 0x3f )
+
+( block 1371 )
+( run by an adjacent node through a port.)
+ $ 24 bit addresses ( are represented in two) ( 18 ) ( bit words. for continuous bit sync, all operations must start on) ( 0 ) ( mod) ( 18 ) ( byte boundaries.)
+ high ( word contains the most significant) ( 8 ) ( bits of the address shifted left) ( 10 ) ( bits.)
+low ( word contains the least significant) ( 16 ) ( bits shifted left two bits.)
+
+
+: wp ( writes)  n ( words into flash starting at address whose) high ( and) low ( parts are given. the data are read from wherever) a ( points; to feed a stream through a port,) a ( must be focused to the port before starting.)
+
+
+: fet ( starts a read operation)
+: 16ibits ( reads one word; take care with)  'd'
