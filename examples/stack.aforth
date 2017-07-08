@@ -1,0 +1,22 @@
+node 1 ( stack node)
+/p west /a 63
+org 0
+: Spush
+  -1 a . + a! ! ;
+
+node 0 ( client node)
+/b east
+: Spop
+  @p !b @b
+  .. @+ !p ..
+  ;
+: Spush
+ @p !b !b @p
+ .. @p ..
+ .. Spush@1 ..
+ !b ;
+
+: main
+1 Spush 2 Spush 3 Spush
+Spop Spop Spop
+5 Spush
