@@ -330,12 +330,20 @@
 
 (defalias 'string? 'stringp)
 (defalias 'string-length 'length)
-(defalias 'string->number 'string-to-number)
 (defalias 'string-append 'concat)
 (defalias 'string->list 'string-to-list)
 (defalias 'string-ref 'aref)
 
 (defun list->string (lst) (mapconcat 'identity (mapcar 'byte-to-string lst) ""))
+
+(defun string->number (s)
+  (let ((n (string-to-number s)))
+    (if (= n 0)
+        (if (string= (number-to-string n) s)
+            0
+          nil)
+      n
+      )))
 
 (setq _char-hash ?#)
 (setq _char-0 ?0)
