@@ -297,12 +297,15 @@
 (setq racket-magic-set-key '__racket_set_key__
       racket-magic-set-value '__racket_set_value__)
 
-(defun make-set (&rest items)
+(defun list->set (lst)
   (let ((s (make-hash-table :test 'equal)))
     (puthash racket-magic-set-key racket-magic-set-value s)
-    (dolist (x items)
+    (dolist (x lst)
       (puthash x t s))
     s))
+
+(defsubst make-set (&rest items)
+  (list->set items))
 
 (defsubst set? (s)
   (and (hash-table-p s)
