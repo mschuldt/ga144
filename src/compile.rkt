@@ -454,13 +454,9 @@
 
 (define (compile-call! word (address false))
   (when DEBUG? (printf "    compile-call!(~a)\n" word))
-  (let* ((compiler-word-p (compiler-word? word))
-         (addr (and (not compiler-word-p)
-                    (or address (get-word-address word))))
-         (cell false))
-    (if compiler-word-p
-        (exec-compiler-word word)
-      (compile-transfer-instruction (get-call-instruction) word addr))))
+  (if (compiler-word? word)
+      (exec-compiler-word word)
+    (compile-transfer-instruction (get-call-instruction) word address)))
 
 (define extern-funcalls false)
 
