@@ -17,8 +17,8 @@
 (provide aforth-compile aforth-compile-file display-compiled)
 
 (define 64-word-mem true)
-
-(define DEBUG? false) ;;does not work in elisp
+(define ignore-overwrite false) ;;used to keep going when some nodes overflow
+(define DEBUG? false)
 
 (define nodes false) ;;node# -> code struct
 (define used-nodes '())
@@ -267,13 +267,7 @@
        (hash-ref directives name)))
 
 (define (create-memory-array)
-  (let ((mem (make-vector num-words false))
-        (i 0))
-    (while (< i num-words)
-      (begin
-        (vector-set! mem i (make-vector 4 false))
-        (set! i (add1 i))))
-    mem))
+  (make-vector num-words false))
 
 (define (get-node coord)
   ;; returns the node for COORDinate, creating if it does not exist
@@ -370,6 +364,29 @@
     (set! current-token false)
     tok))
 
+(define (get-word n (verify-unused false) (no-overwrite false))
+  (when DEBUG? (printf "get-word(~a, ~a)\n" n verify-unused))
+  (when (or (< n 0)
+            (> n num-words))
+    (err (format "invalid memory index: %s" n)))
+  (if save-buffer-mappings
+      ;; (and save-buffer-mappings
+      ;;      (null? (vector-ref buffer-mappings n)))
+      (vector-set! buffer-mappings n (make-vector 4 false)))
+  ;; ignore overwrite by always fetching a new word
+  ;; sometimees, like when resolving backreferences, no-overwrite is used to
+  ;; signal that the word must not be overwritten
+  (let ((word (if (and ignore-overwrite (not no-overwrite)) false (vector-ref memory n))))
+    (if (null? word)
+        (progn
+          (setq word (make-vector 4 false))
+          (vector-set! memory n word)
+          word)
+      (when (and verify-unused
+                 (not (equal? word (vector false false false false))))
+        (err (format "overwriting word at address (node overflow?) %s" n)))
+      word)))
+
 (define (org n)
   (when DEBUG? (printf "        org(~a)\n" n))
   (when 64-word-mem
@@ -377,8 +394,8 @@
   (set! current-addr n)
   (set! next-addr (if 64-word-mem
                       (remainder (add1 n) #x40)
-                      (add1 n)))
-  (set! current-word (vector-ref memory n))
+                    (add1 n)))
+  (set! current-word (get-word n true))
   (set! current-word-i n)
   (when save-buffer-mappings
     (set! current-word-buffer-mapping (vector-ref buffer-mappings n)))
@@ -931,7 +948,7 @@ otherwise decrements R and jumps to matching 'then'"
             n)
         false))
   (define max-slot-num (vector 262144 8192 256 8))
-  (let* ((word (vector-ref memory slot))
+  (let* ((word (get-word slot false true))
          (buf-map (and save-buffer-mappings (vector-ref buffer-mappings slot)))
          (last (and (vector? word) (find-first-empty word))))
     (if last
