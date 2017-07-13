@@ -226,6 +226,16 @@
             (and DEBUG? (printf "          x = ~a\n" addr))
             (set! addr (and x (get-remote-addr (car x) (cdr x))))
             (and DEBUG? (printf "          (global)addr = ~a\n" addr))))))
+
+  (when (and (null? addr) bowman-format)
+    (if (number? name)
+        (setq addr name)
+      (setq addr (string->number name))))
+
+  (when (and (null? addr) ;; bwoman-format forms like "jump east"
+             (member name '("north" "south" "east" "west")))
+    (setq addr (hash-ref names->addresses (convert-direction current-node-coord name))))
+
   (if (address-cell? addr)
       (address-cell-val addr)
       addr))
