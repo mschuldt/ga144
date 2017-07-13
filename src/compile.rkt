@@ -407,6 +407,8 @@
   ;;this assumes that we are not going to be overwriting code
   (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
   (unless current-word (err "You probably forgot to use 'node' first"))
+  (unless (vector? current-word)
+    (err (format "'current-word' is not a vector: %s" current-word)))
   (vector-set! current-word current-slot inst)
   (when save-buffer-mappings
     (vector-set! current-word-buffer-mapping current-slot current-token-buffer-position))
@@ -634,6 +636,9 @@
 (define (address-fits? destination-addr jump-slot (P false))
   ;; returns t if DESTINATION-ADDR is reachable from the current word
   ;; JUMP-SLOT is the slot of the jump/call instruction
+  (assert (not (null destination-addr)))
+  (if (consp destination-addr)
+      (setq destination-addr (car destination-addr)))
   (set! P (or P next-addr))
   (and jump-slot
        (>= jump-slot 0)
@@ -703,12 +708,13 @@
          (set-next-empty-word! data)))))
 
 (define (set-current-node-length)
-  (let ((i (- (vector-length memory) 1)))
+  (let ((i (- (vector-length memory) 1))
+        (empty-word [nil nil nil nil]))
     (while (and (>= i 0)
-                (not (vector-ref memory i)))
+                (or (not (vector-ref memory i))
+                    (equal? (vector-ref memory i) empty-word)))
       (set! i (- i 1)))
-    (set! i (max i 0))
-    (set-node-len! current-node i)))
+    (set-node-len! current-node (add1 i))))
 
 (define (start-new-node coord)
   (when memory ;;make sure last instruction is full
@@ -763,7 +769,7 @@ jump, call, execute or return to those places."
 
 (define (here)
   (fill-rest-with-nops)
-  (push (make-addr current-addr) stack))
+  (push (cons (make-addr current-addr) next-addr) stack))
 (when elisp?
   (setq here 'here))
 
@@ -792,6 +798,8 @@ case you may write 'push <other things> begin'"
 
 (define (compile-next-type inst)
   (let ((addr (pop stack)))
+    (when (null addr)
+      (err "address from stack is nil"))
     (unless (address-fits? addr current-slot)
       (fill-rest-with-nops))
     (add-to-next-slot inst)
@@ -1004,7 +1012,8 @@ otherwise decrements R and jumps to matching 'then'"
           (next-addr false))
 
      (set! x (pop stack))
-     (assert (consp x))
+     (unless (consp x)
+       (err (rkt-format "expected type cons from stack, got ~a ~a"  (type-of x) x)))
      (set! addr (car x))
      (set! next-addr (cdr x))
      (add-to-slot addr (make-new-address-cell current-addr "then" next-addr)))))
@@ -1046,7 +1055,7 @@ which following code will be compiled into"
    (let* ((word (read-tok-name))
           (addr (get-word-address word)))
      (if addr
-         (push addr stack)
+         (push (cons addr next-addr) stack)
          (err (rkt-format "\"~a\" is not defined" word))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
