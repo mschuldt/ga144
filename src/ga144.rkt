@@ -136,8 +136,9 @@
     (define/public (step-program-n! n)
       (set! breakpoint false)
       (while (and (> n 0)
-                 (not breakpoint))
-        (step-program!))
+                  (not breakpoint))
+        (step-program!)
+        (setq n (1- n)))
       breakpoint)
 
     ;;step program until all nodes are non-active

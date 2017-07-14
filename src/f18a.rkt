@@ -1284,7 +1284,10 @@
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)
-      (for ((i (in-range 0 n))) (step-program!)))
+      (while (and (> n 0)
+                  (not suspended))
+        (step-program!)
+        (setq n (1- n))))
 
     (define/public (get-inst-counters)
       inst-counters)
