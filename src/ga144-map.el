@@ -53,6 +53,8 @@
 (def-local ga-data-display nil) ;; data stack
 (def-local ga-return-display nil) ;;return stack
 (def-local ga-register-display nil)
+(def-local ga-sim-step-increment 1) ;; instructions to execute with each step
+
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
 (def-local ga-node-ram-display-position nil)
@@ -1292,14 +1294,17 @@ This resets the simulation"
   (let* ((registers (send ga-sim-current-node get-registers)))
     (setq ga-sim-node-P (aref registers 2))
     (setq ga-sim-node-inst-i (send ga-sim-current-node get-inst-index))
-    (setq ga-sim-node-word-i (aref registers 8))))
+    (setq ga-sim-node-word-i (aref registers 8))
+    ;;(message "ga-sim-node-inst-i = %s" ga-sim-node-inst-i)
+    ;;(message "ga-sim-node-word-i = %s" ga-sim-node-inst-i)
+    ))
 
 (defun ga-sim-step-node ()
   "Steps the current selected node one instruction"
   ;;TODO: support for stepping variable
   (interactive)
   (ga-check-sim
-   (send ga-sim-current-node step-program!)
+   (send ga-sim-current-node step-program-n! ga-sim-step-increment)
    (when (send ga-sim-current-node suspended?)
      (message "node suspended"))
    (ga-update-current-node-registers)
@@ -1311,11 +1316,20 @@ This resets the simulation"
   ;;TODO: support for stepping variable
   (interactive)
   (ga-check-sim
-   (send ga-sim-ga144 step-program!)
+   (send ga-sim-ga144 step-program-n! ga-sim-step-increment)
    (message "%s active nodes" (send ga-sim-ga144 num-active-nodes))
    (ga-update-current-node-registers)
    (ga-sim-update-display)
    ))
+
+(defun ga-set-step-increment ()
+  (interactive)
+  (ga-check-sim
+   (let* ((s (number-to-string ga-sim-step-increment))
+          (n (string-to-number (read-string "step incrment> " s nil s))))
+     (if (> n 0)
+         (setq ga-sim-step-increment n)
+       (message "invalid step increment: %s" n)))))
 
 (defun ga-convert-stack-list (data)
   (list->vector (mapcar (lambda (x) (format "%-5s" (ga-format-num x t))) data)))
@@ -1438,6 +1452,7 @@ This resets the simulation"
         (define-key map (kbd "x") 'ga-toggle-hex)
         (define-key map (kbd ".") 'ga-sim-ram-center-on-P)
         (define-key map (kbd "b") 'ga-load-from-bootstream)
+        (define-key map (kbd "n") 'ga-set-step-increment)
         map))
 
 (defun ga-map-buffer-valid (buf)
