@@ -1259,10 +1259,13 @@ This resets the simulation"
       (aforth-update-compilation-for-map-buffer this-buffer)))
   (ga-sim-reset))
 
-(defun ga-sim-reset ()
+(defun ga-sim-reset (&optional bootstream)
   (send ga-sim-ga144 reset!)
   ;;TODO: rese also wipes the nodes - need to reload
-  (send ga-sim-ga144 load ga-assembly-data)
+  (if bootstream
+      (let ((bs (make-bootstream ga-assembly-data "async")))
+        (send ga-sim-ga144 load-bootstream bs))
+    (send ga-sim-ga144 load ga-assembly-data))
   (ga-update-current-node-registers)
   (ga-sim-update-display))
 
@@ -1272,6 +1275,13 @@ This resets the simulation"
    (when (or t (y-or-n-p "Reset simulation?"))
      (ga-sim-reset)
      (message "reset"))))
+
+(defun ga-load-from-bootstream ()
+  (interactive)
+  (ga-check-sim
+   (when (or t (y-or-n-p "Reset simulation?"))
+     (ga-sim-reset t)
+     (message "Reset! *loading from bootstream*"))))
 
 (defun ga-sim-set-current-node (coord)
   (assert ga-sim-ga144)
@@ -1427,6 +1437,7 @@ This resets the simulation"
         (define-key map (kbd "D") 'ga-node-debug-dump)
         (define-key map (kbd "x") 'ga-toggle-hex)
         (define-key map (kbd ".") 'ga-sim-ram-center-on-P)
+        (define-key map (kbd "b") 'ga-load-from-bootstream)
         map))
 
 (defun ga-map-buffer-valid (buf)
