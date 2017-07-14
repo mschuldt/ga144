@@ -83,6 +83,9 @@ if __name__ == "__main__":
 
     cmd = "ga --bootstream-type {} --only-bootstream {}".format(bootstream_type, filename)
     bootstream = run_command(cmd).split(" ")
+    if "DEBUG" in bootstream:
+        print "Error: compiler debug mode must be disabled"
+        exit(1)
     host = Serial(port, speed)
     # target chip serial for resetting
     target = None #Serial("/dev/ttyUSB4", 921600)

@@ -9,6 +9,7 @@
 (rkt-require "bootstream.rkt")
 
 (defun aforth-compile-buffer (&optional buffer) ;
+  (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (with-current-buffer (or buffer (current-buffer))
     (save-excursion
       (let (parsed-nodes ret locations)
