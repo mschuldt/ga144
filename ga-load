@@ -35,7 +35,7 @@ def listen(port, speed, serial, verbose=True):
             n = read_n( 3 )
             print n & 0x3ffff
         else:
-            print "ERROR -- unknown code:", s
+            print "ERROR -- unknown code:", n
 
 def run_command(cmd):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
