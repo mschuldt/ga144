@@ -89,10 +89,17 @@
         (setq c (car str)
               str (cdr str)
               tok-beg (1+ tok-beg))
-        (unless (aforth-token-delimiter-p c)
-          (setq first c
-                tok-end tok-beg
-                tok-beg (1- tok-beg))))
+        (if (eq c ?\n)
+            (push (make-aforth-token :type 'newline
+                                     :value ""
+                                     :start nil
+                                     :end nil
+                                     :file aforth-parse-current-file)
+                  tokens)
+          (unless (aforth-token-delimiter-p c)
+            (setq first c
+                  tok-end tok-beg
+                  tok-beg (1- tok-beg)))))
       ;;comment
       (when (or (eq first ?\()
                 (eq first ?\\)) ;; bowman comment syntax
@@ -227,6 +234,10 @@
             ((eq type 'comment)
              (unless no-comments
                (push token out)))
+            ((eq type 'newline)
+             (when bowman-format
+               (push (aforth-set-token token 'directive "..")
+                     out)))
             ((member val '("org" "node"))
              (setq next (pop! tokens))
              (setq a (aforth-parse-number next))

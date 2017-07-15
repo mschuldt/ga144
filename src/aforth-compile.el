@@ -8,7 +8,9 @@
 (rkt-require "compile.rkt")		;
 (rkt-require "bootstream.rkt")
 
-(defun aforth-compile-buffer (&optional buffer) ;
+(setq bowman-format nil)
+
+(defun aforth-compile-buffer (&optional buffer)
   (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (with-current-buffer (or buffer (current-buffer))
     (save-excursion
