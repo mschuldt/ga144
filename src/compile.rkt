@@ -1116,11 +1116,10 @@ the routine warm in every node's ROM."
  "/stack"
  "/stack n <n values>
 Specifies up to ten values to be pushed onto the data stack, with the
-rightmost value on top. For example 30 20 10 3 /stack produces the same
+rightmost value on top. For example /stack 3 30 20 10 produces the same
 effect as though a program had executed code 30 20 10"
  (lambda ()
-   (let* ((tok (read-tok-name))
-          (len (and tok (string->number tok)))
+   (let* ((len (read-tok-name))
           (stack '())
           (val false))
      (when (or (not len)
@@ -1130,13 +1129,12 @@ effect as though a program had executed code 30 20 10"
 
      (while (> len 0)
        (begin
-         (set! tok (read-tok-name))
-         (set! val (and tok (string->number tok)))
-         (when (and (not val)
-                    (not (setq val (get-word-address tok))))
-           (err (rkt-format "invalid stack value: ~a" tok)))
-         (push val stack)
-         (set! len (sub1 len))))
+        (set! val (read-tok-name))
+        (when (and (not (number? val))
+                   (not (setq val (get-word-address val))))
+          (err (rkt-format "invalid stack value: ~a" val)))
+        (push val stack)
+        (set! len (sub1 len))))
      (set-node-stack! current-node (reverse stack)))))
 
 (add-directive!

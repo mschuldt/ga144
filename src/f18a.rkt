@@ -1019,7 +1019,8 @@
       (set! A (or (node-a node) A))
       (set! B (or (node-b node) B))
       (set! IO (or (node-io node) IO))
-
+      (for ((v (node-stack node)))
+           (d-push! v))
       (let ((funcs (node-extern-funcs node)))
         (when funcs
           (set! extern-functions (make-vector MEM-SIZE false))

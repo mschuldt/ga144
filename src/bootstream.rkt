@@ -160,6 +160,14 @@
                            (vector (word "@p" "b!" "." ".")
                                    (word (node-b node)))
                            nothing)
+                       ;; load stack values
+                       (if (node-stack node)
+                           (vector (word "@p" "push")
+                                   (word (sub1 (length (node-stack node))))
+                                   (word "@p" "unext"))
+                           nothing)
+                       (if (node-stack node) (list->vector (node-stack node)) nothing)
+
                        ;; jump to starting address
                        (vector (word "jump" (or (node-p node) 0)))
                        )
