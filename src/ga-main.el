@@ -173,6 +173,10 @@
     (ga-main-exit))
   (ga-main-exit))
 
+(when (and in-file (not (file-exists-p in-file)))
+  (message "File does not exist: %s\n" in-file)
+  (ga-main-exit))
+
 (setq file-extension (file-name-extension in-file))
 
 (when (not (or (member file-extension aforth-file-extensions)
