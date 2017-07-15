@@ -29,6 +29,7 @@
 (setq working-dir nil)
 (setq bowman-format nil)
 (setq sim? t)
+(setq bowman-expand? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -80,7 +81,9 @@
                ;;(cd dir)
                (setq working-dir dir))
               (("--bowman") nil ""
-               (setq bowman-format t))
+               (setq bowman-format? t))
+              (("--bowman-expand") nil "expand .ga into aforth compatible format and print"
+               (setq bowman-expand? t))
               (("--sim") nil ""
                (setq sim? t))
               (position (file) "aforth file"
@@ -196,6 +199,12 @@
 
 (when sim?
   (shell-command  (concat "ga-sim " in-file))
+  (ga-main-exit))
+
+(when bowman-expand?
+  (with-temp-buffer
+    (convert-from-bowman-format in-file)
+    (message (buffer-string)))
   (ga-main-exit))
 
 (progn ;;for .rkt compatibility
