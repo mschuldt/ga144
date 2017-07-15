@@ -27,8 +27,8 @@
 (setq run? nil)
 (setq verbose? nil)
 (setq working-dir nil)
-(setq bowman-format nil)
 (setq sim? t)
+(setq bowman-format? nil)
 (setq bowman-expand? nil)
 
 (defun ga-print-help-and-exit ()
@@ -103,6 +103,8 @@
 (load "ga-loadup.el" nil t)
 (ga-compiler-loadup)
 
+(setq bowman-format bowman-format?)
+
 (when only-bootstream?
   (setq verbose? nil))
 
@@ -119,7 +121,7 @@
                   "src/common.rkt"
                   "src/rom.rkt"
                   "src/rom-dump.rkt"
-                  ;;"tests/test-compiler.rkt"
+                  "tests/test-compiler.rkt"
                   "src/ga144.rkt"
                   "src/f18a.rkt"
                   "src/stack.rkt"
