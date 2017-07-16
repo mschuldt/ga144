@@ -992,7 +992,8 @@ otherwise decrements R and jumps to matching 'then'"
  "jump"
  ""
  (lambda ()
-   (assert bowman-format)
+   (unless bowman-format
+     (err "jump instruction only supported in bowman mode. Use \"WORD ;\" to compile a jump to WORD" ))
    (compile-transfer-instruction "jump" (read-tok-name))))
 
 (add-directive!
