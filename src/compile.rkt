@@ -394,7 +394,7 @@
           word)
       (when (and verify-unused
                  (not (equal? word (vector false false false false))))
-        (err (format "overwriting word at address (node overflow?) %s" n)))
+        (err (format "overwriting word at address %s (node overflow?)" n)))
       word)))
 
 (define (org n)
@@ -513,6 +513,7 @@
     (compile-constant! addr)))
 
 (define (fill-rest-with-nops)
+  (when DEBUG? (printf "(fill-rest-with-nops)\n"))
   (unless (= current-slot 0)
     (add-to-next-slot ".")
     (fill-rest-with-nops)))
@@ -599,7 +600,7 @@
                           (vector-set! word (sub1 slot-index) ".")
                           (vector-set! word slot-index ".")
                           ;; create and set call in new word
-                          (set! word (vector call-inst (add1 addr) "." "."))
+                          (set! word (vector call-inst (add1 addr) nil nil))
                           (vector-set! mem new-word-index word)
                           )
                        (vector-set! word slot-index addr)))))))
@@ -807,15 +808,23 @@ case you may write 'push <other things> begin'"
    (here)))
 
 (define (compile-next-type inst)
-  (let ((addr (pop stack)))
+  (let ((addr (pop stack))
+        (next false))
     (when (null addr)
       (err "address from stack is nil"))
+    (unless (consp addr)
+      (err (rkt-format "expected type cons from stack, got ~a ~a"  (type-of addr) addr)))
+    (set! next (cdr addr))
+    (set! addr (car addr))
+
+    ;;(add-to-slot addr (make-new-address-cell current-addr "then" next-addr))
     (unless (address-fits? addr current-slot)
       (fill-rest-with-nops))
     (add-to-next-slot inst)
-    (add-to-next-slot (make-new-address-cell addr inst))
+    (add-to-next-slot (make-new-address-cell addr inst next))
     (unless (= current-slot 0)
-      (goto-next-word))))
+      (goto-next-word))
+    ))
 
 (add-directive!
  "next"
