@@ -572,8 +572,8 @@
            (set! n (add1 n))))
     n)
 
-  (for ((word mem)
-        (word-index (vector-length mem)))
+  (define word-index 0)
+  (for ((word mem))
        (cond ((address-cell? word)
               (vector-set! mem word-index (get-address-cell-val word)))
              ((vector? word)
@@ -602,8 +602,10 @@
                           ;; create and set call in new word
                           (set! word (vector call-inst (add1 addr) nil nil))
                           (vector-set! mem new-word-index word)
+                          (setq word-index new-word-index)
                           )
-                       (vector-set! word slot-index addr)))))))
+                       (vector-set! word slot-index addr))))))
+       (setq word-index (add1 word-index)))
   node)
 
 (define (increment-address address-cells from)
