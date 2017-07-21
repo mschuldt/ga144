@@ -11,46 +11,58 @@
 (setq bowman-format nil)
 
 (defun aforth-compile-buffer (&optional buffer)
-  (when DEBUG? (printf "DEBUG PRINT MODE\n"))
   (with-current-buffer (or buffer (current-buffer))
-    (save-excursion
-      (let (parsed-nodes ret locations)
-        (reset!)
-        (catch 'aforth-error
-          (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
-          (setq aforth-compile-stage "compiling")
-          (dolist (node parsed-nodes)
-            (setq aforth-current-node (aforth-node-coord node))
-            (push (cons aforth-current-node (aforth-node-location node))
-                  locations)
-            (start-new-node aforth-current-node)
-            (setq current-token-list (aforth-node-code node))
+    ;;(and buffer-file-name (save-buffer))
+    (if (and buffer-file-name
+             (string= (file-name-extension buffer-file-name) "ga"))
+        (let ((expanded (shell-command-to-string (concat "m4 " buffer-file-name))))
+          (with-temp-buffer
+            (insert expanded)
+            (convert-bowman-to-aforth)
+            (aforth-compile-aforth-buffer)))
+      (aforth-compile-aforth-buffer))))
 
-            (while current-token-list
-              (setq aforth-current-token (read-tok))
-              (compile-token aforth-current-token)))
-          (when memory
-            (fill-rest-with-nops) ;;make sure last instruction is full
-            (set-current-node-length))
-          (when current-node
-            (set-node-address-cells! current-node address-cells))
+(defun aforth-compile-aforth-buffer ()
+  ;; compile the current buffer
+  (when DEBUG? (printf "DEBUG PRINT MODE\n"))
+  (save-excursion
+    (let (parsed-nodes ret locations)
+      (reset!)
+      (catch 'aforth-error
+        (setq parsed-nodes (aforth-parse-nodes (point-min) (point-max) nil 'no-comments))
+        (setq aforth-compile-stage "compiling")
+        (dolist (node parsed-nodes)
+          (setq aforth-current-node (aforth-node-coord node))
+          (push (cons aforth-current-node (aforth-node-location node))
+                locations)
+          (start-new-node aforth-current-node)
+          (setq current-token-list (aforth-node-code node))
 
-          (when DEBUG? (display-compiled (compiled used-nodes nil)))
+          (while current-token-list
+            (setq aforth-current-token (read-tok))
+            (compile-token aforth-current-token)))
+        (when memory
+          (fill-rest-with-nops) ;;make sure last instruction is full
+          (set-current-node-length))
+        (when current-node
+          (set-node-address-cells! current-node address-cells))
 
-          ;; errors from this point on are not associated with line numbers
-          (setq current-tok-line nil
-                current-tok-col nil)
+        (when DEBUG? (display-compiled (compiled used-nodes nil)))
 
-          (setq aforth-compile-stage "checking")
-          (mapc 'check-for-undefined-words used-nodes)
+        ;; errors from this point on are not associated with line numbers
+        (setq current-tok-line nil
+              current-tok-col nil)
 
-          (setq aforth-compile-stage "finalizing")
-          (setq used-nodes (mapcar 'remove-address-cells used-nodes))
-          ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
-          (setq ret (compiled used-nodes nil locations)))
+        (setq aforth-compile-stage "checking")
+        (mapc 'check-for-undefined-words used-nodes)
 
-        (or ret
-            (compiled nil (aforth-get-error-data)))))))
+        (setq aforth-compile-stage "finalizing")
+        (setq used-nodes (mapcar 'remove-address-cells used-nodes))
+        ;;(setq used-nodes (mapcar 'aforth-trim-memory used-nodes))
+        (setq ret (compiled used-nodes nil locations)))
+
+      (or ret
+          (compiled nil (aforth-get-error-data))))))
 
 (defun aforth-compile (code) ;;shadows racket version
   (setq aforth-compile-input-type 'string)
@@ -142,14 +154,19 @@
   (setq aforth-compile-input-type 'file)
   (with-temp-buffer
     (if (string= (file-name-extension in-file) "ga")
-        (convert-from-bowman-format filename)
+        (open-file-from-bowman-format filename)
       (insert-file-contents-literally filename))
     (aforth-compile-buffer)))
 
-(defun convert-from-bowman-format (filename)
+(defun open-file-from-bowman-format (filename)
   (setq bowman-format t)
   (setq filename (expand-file-name filename))
   (insert (shell-command-to-string (concat "m4 " filename)))
+  (convert-bowman-to-aforth)
+  ;;(write-file (concat filename ".aforth"))
+  )
+
+(defun convert-bowman-to-aforth ()
   (goto-char 1)
   (while (re-search-forward "^ *-+ \\([0-9]+\\) -+ *$" nil t)
     (replace-match (format "node %s" (match-string 1))))
@@ -157,9 +174,7 @@
   (dolist (d '("NORTH" "SOUTH" "EAST" "WEST"))
     (goto-char 1)
     (while (re-search-forward d nil t)
-      (replace-match (downcase d) t)))
-  ;;(write-file (concat filename ".aforth"))
-  )
+      (replace-match (downcase d) t))))
 
 (defmacro compiler-binop(op)
   `(push (funcall ',op (pop stack) (pop stack)) stack))

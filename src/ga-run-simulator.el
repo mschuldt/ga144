@@ -40,6 +40,9 @@
 (ga-sim-loadup)
 (setq ga-default-node-size 6)
 
+(when (string= (file-name-extension filename) "ga")
+  (setq bowman-format t))
+
 (defun open-sim ()
   (find-file filename)
   (setq mode-line-format filename) 
