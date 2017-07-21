@@ -1,6 +1,5 @@
 ;; -*- lexical-binding: t -*-
 
-(add-to-list 'load-path "~/a/projects/ga144/src")
 (setq byte-compiled-p (file-exists-p "ga-main.elc"))
 
 (defun ga-rkt-load (file)
