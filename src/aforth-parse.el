@@ -411,8 +411,11 @@
     ;;  (message "While %s" (error-data-stage data)))
     ))
 
-(defun aforth-compile-error (msg)
+(defun aforth-compile-error (msg &optional token)
   (setq aforth-error-message msg)
+  ;; if the error is post compilation the token needs to be specified
+  ;; or the error position will always be at the end of the buffer
+  (setq aforth-error-token token)
   (throw 'aforth-error nil))
 
 

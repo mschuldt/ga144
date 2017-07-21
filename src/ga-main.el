@@ -27,9 +27,9 @@
 (setq run? nil)
 (setq verbose? nil)
 (setq working-dir nil)
-(setq sim? t)
 (setq bowman-format? nil)
 (setq bowman-expand? nil)
+(setq sim? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")

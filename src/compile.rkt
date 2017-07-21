@@ -622,7 +622,7 @@
   (for ((cell address-cells))
        (when (>= (address-cell-val cell) from)
          (set-address-cell-val! cell (add1 (address-cell-val cell))))
-       (when  (>= (address-cell-next-addr cell) from)
+       (when (>= (address-cell-next-addr cell) from)
          (set-address-cell-next-addr! cell (add1 (address-cell-next-addr cell))))))
 
 (define (shift-words-down memory from node end)
@@ -696,9 +696,8 @@
          (waiting-list (get-waiting-list word)))
     (when waiting-list
       (for ((cell waiting-list))
-        (set-address-cell-val! cell address))
+           (set-address-cell-val! cell address))
       (waiting-clear word))
-
     (when (hash-has-key? words word)
       (err (rkt-format "redefinition of word '~a' in node ~a"
                        word current-node-coord)))
@@ -706,8 +705,9 @@
       (if (node-p current-node)
           (err (rkt-format "use of /p overrides 'main' in node ~a\n"
                            current-node-coord))
-          (set-node-p! current-node (make-addr current-addr))))
+        (set-node-p! current-node (make-addr current-addr))))
     (add-word! word address)))
+
 (when elisp?
   (setq start-word-def 'start-word-def))
 

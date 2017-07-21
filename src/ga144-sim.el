@@ -59,6 +59,7 @@
   (setq ga144-name-to-chip (make-hash-table))
   (setq num-chips 0))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq ga-extern-functions (make-hash-table))
 
@@ -73,6 +74,8 @@ the node object the function is called from will be bound to 'node'"
 (ga-define printS
            (princ "S: %s\n" (cadr (send node get-dstack-as-list))))
 
+(ga-define _test-inc ;; used by tests
+           (send node d-push! (1+ (send node d-pop!))))
 
 (ga144-clear-all)
 
