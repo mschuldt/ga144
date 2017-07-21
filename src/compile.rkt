@@ -322,7 +322,7 @@
   (set! prev-current-tok-line 0)
   (set! prev-current-tok-col 0)
   (set! current-token-list false)
-  (set! address-cells false)
+  (set! address-cells '())
   (set! extended-arith 0)
   (set! current-node false)
   (set! extern-funcalls false)
@@ -535,11 +535,10 @@
   ;; name is an optional tag, usually the name of the word, that discribes the address.
   ;; it is use for debug only
   (define cell (address-cell val (or next next-addr) name))
-  (set! address-cells (set-add address-cells cell))
+  (set! address-cells (cons cell address-cells))
   cell)
 
 (define (check-for-undefined-words node)
-  (define addr-cells (node-address-cells node))
   (for ((word (node-mem node)))
     (when (vector? word)
       (when (vector? word)
@@ -730,6 +729,8 @@
     (set-node-len! current-node (add1 i))))
 
 (define (start-new-node coord)
+  (when current-node
+    (set-node-address-cells! current-node address-cells))
   (when memory ;;make sure last instruction is full
     (fill-rest-with-nops)
     (set-current-node-length))
@@ -743,7 +744,7 @@
   (set! memory (node-mem current-node))
   (set! buffer-mappings (node-buffer-map current-node))
   (set! words (node-word-dict current-node))
-  (set! address-cells (node-address-cells current-node))
+  (set! address-cells '())
   (set! rom (get-node-rom coord))
   ;;TODO: should calling 'node' multiple times be ok?
   ;;      if so, don't add current-node to used-nodes again

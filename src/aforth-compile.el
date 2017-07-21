@@ -32,6 +32,8 @@
           (when memory
             (fill-rest-with-nops) ;;make sure last instruction is full
             (set-current-node-length))
+          (when current-node
+            (set-node-address-cells! current-node address-cells))
 
           (when DEBUG? (display-compiled (compiled used-nodes nil)))
 
