@@ -41,8 +41,8 @@
 (def-local ga-node-usage-list nil)
 (def-local ga-node-usage-hash nil)
 (def-local ga-node-locations nil)
-(def-local ga-ram-display nil)
-(def-local ga-current-node-display nil)
+(def-local ga-ram-display nil) ;; displays instructions (follows P)
+(def-local ga-ram-data-display nil) ;; displays data (follows A or B )
 (def-local ga-sim-ga144 nil) ;; ga44 simulation - object type ga144%
 (def-local ga-sim-current-node nil) ;;The currently selected f18a node
 (def-local ga-sim-p nil) ;; true if simulation is active
@@ -212,6 +212,27 @@
                                     1 (+ map-width 3) ;; line column position
                                     map-height ;; display length
                                     27)) ;; display width
+    ;; ram displays
+    ;; in simulation mode show two displays
+    ;;    (let ((ram-display-x-pos (+ map-width 3))
+    ;;          (ram-data-display-width 10))
+    ;;
+    ;;      (when ga-sim-p
+    ;;        (setq ga-ram-data-display
+    ;;              (sd-create (make-vector 769 "~ ~ ~ ~")
+    ;;                         1 ram-display-x-pos  ;; line column position
+    ;;                         map-height
+    ;;                         ram-data-display-width)) ;; display width
+    ;;
+    ;;        (setq ram-display-x-pos (+ ram-display-x-pos ram-data-display-width  1)))
+    ;;
+    ;;      (setq ga-ram-display (sd-create (if ga-sim-p
+    ;;                                          (make-vector 769 "~ ~ ~ ~")
+    ;;                                        ga-empty-node-ram-display-data)
+    ;;                                      1 ram-display-x-pos ;; line column position
+    ;;                                      map-height ;; display length
+    ;;                                      27)) ;; display width
+    ;;      )
     (sd-set-display-function ga-ram-display 0 'ga-current-node-display-fn)
 
     (goto-char (point-max))
