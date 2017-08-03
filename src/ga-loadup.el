@@ -2,6 +2,8 @@
 
 (setq byte-compiled-p (file-exists-p "ga-main.elc"))
 
+(require 'cl)
+
 (defun ga-rkt-load (file)
   (let ((lexical-binding t)
         (racket? nil))
@@ -15,8 +17,11 @@
   
   (load file nil t))
 
+(setq _ga_loadup_file load-file-name)
+
 (defun ga-compiler-loadup ()
-  (assert lexical-binding)
+  (let ((lexical-binding t))
+    (buffer-file-name _ga_loadup_file))
   (ga-el-load "rkt.el")
 
   (ga-rkt-load "rom.rkt")
@@ -36,13 +41,16 @@
   (ga-el-load "aforth-compile"))
 
 (defun ga-tests-loadup()
-  (ga-rkt-load "../tests/test-compiler.rkt"))
-
+  (let ((lexical-binding t)
+        (buffer-file-name _ga_loadup_file))  
+    (ga-rkt-load "../tests/test-compiler.rkt")))
 
 (defun ga-sim-loadup()
-  (ga-rkt-load "f18a.rkt")
-  (ga-rkt-load "ga144.rkt")
-  (ga-rkt-load "stack.rkt"))
+  (let ((lexical-binding t)
+        (buffer-file-name _ga_loadup_file))
+    (ga-rkt-load "f18a.rkt")
+    (ga-rkt-load "ga144.rkt")
+    (ga-rkt-load "stack.rkt")))
 
 ;; (ga-compiler-loadup)
 ;; (ga-sim-loadup)

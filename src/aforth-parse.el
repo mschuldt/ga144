@@ -216,6 +216,12 @@
             (aforth-parse-region (point-min) (point-max) nil no-comments)))
       (aforth-compile-error (format "included file does not exist: %s" filename)))))
 
+(defun aforth-load-lisp-file (filename)
+  (let ((file (aforth-find-lib-file filename)))
+    (if file
+        (load-file file)
+      (aforth-compile-error (format "unknown file: %s" filename)))))
+
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
@@ -261,7 +267,9 @@
              (setq next (pop! tokens))
              (setq name (aforth-token-value next))
              (if name
-                 (setq out (append (nreverse (setq _x (aforth-include-file name no-comments))) out))
+                 (if (string= (file-name-extension name) "el")
+                     (aforth-load-lisp-file name)
+                   (setq out (append (nreverse (setq _x (aforth-include-file name no-comments))) out)))
                (aforth-compile-error "Expected include filename")))
 
             ((or (string-match "^-?0x\\([0-9a-fA-F]+\\)$" val)
