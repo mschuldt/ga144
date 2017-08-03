@@ -56,6 +56,10 @@
 (define current-word-buffer-mapping false)
 (define current-token-buffer-position false)
 
+;; word and slot where the last instruction to be compiled was placed
+(define last-instruction-word 0)
+(define last-instruction-slot 0)
+
 (when elisp?
   (set! save-buffer-mappings true))
 
@@ -326,6 +330,8 @@
   (set! extended-arith 0)
   (set! current-node false)
   (set! extern-funcalls false)
+  (set! last-instruction-word 0)
+  (set! last-instruction-slot 0)
   (define-named-addresses!))
 
 (define (read-tok)
@@ -420,6 +426,9 @@
   (unless (vector? current-word)
     (err (format "'current-word' is not a vector: %s" current-word)))
   (vector-set! current-word current-slot inst)
+  (when (instruction? inst)
+    (set! last-instruction-word current-word-i)
+    (set! last-instruction-slot current-slot))
   (when save-buffer-mappings
     (vector-set! current-word-buffer-mapping current-slot current-token-buffer-position))
   (set! current-slot (add1 current-slot))
@@ -473,16 +482,17 @@
 (define extern-funcalls false)
 
 (define (compile-funcall! name)
+  ;; inserts the function NAME into the extern-funcalls array
+  ;; at the location of the last compiled instruction
   (unless extern-funcalls
     (set! extern-funcalls (make-vector 64 false))
     (set-node-extern-funcs! current-node extern-funcalls))
 
-  (let ((word (vector-ref extern-funcalls current-word-i)))
+  (let ((word (vector-ref extern-funcalls last-instruction-word)))
     (unless word
       (set! word (make-vector 4 false))
-      (vector-set! extern-funcalls current-word-i word))
-
-    (vector-set! word current-slot (cons (intern name) (vector-ref word current-slot)))))
+      (vector-set! extern-funcalls last-instruction-word word))
+    (vector-set! word last-instruction-slot  (cons (intern name) (vector-ref word current-slot)))))
 
 ;;TODO:
 ;; support for calling remote words in nodes that are defined later in the program
