@@ -721,10 +721,8 @@
         ;; Finish fetching an instruction or data word
         (finish-fetch))
 
-      (when extern-word-functions
-        (mapc (lambda (fn)
-                (funcall (gethash fn ga-extern-functions) this))
-              (vector-ref extern-word-functions iI)))
+
+      (define _i iI)
 
       (cond ((= iI 0)
              ;; check if this word has a breakpoint stet
@@ -746,6 +744,12 @@
             ((= iI 3)
              (execute! (<< (bitwise-bit-field I^ 0 3) 2))
              (set! iI 0)))
+
+      (when extern-word-functions
+        (mapc (lambda (fn)
+                (funcall (gethash fn ga-extern-functions 'identity) this))
+              (vector-ref extern-word-functions _i)))
+
       ;; fetch next word if index is zero and we are not in a unext loop
       (when (= iI 0)
         (if unext-jump-p
