@@ -219,7 +219,7 @@
 (defun aforth-load-lisp-file (filename)
   (let ((file (aforth-find-lib-file filename)))
     (if file
-        (load-file file)
+        (load (expand-file-name file) nil t t)
       (aforth-compile-error (format "unknown file: %s" filename)))))
 
 (defun aforth-parse-region (beg end &optional tokens no-comments)
