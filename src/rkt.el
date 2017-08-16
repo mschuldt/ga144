@@ -5,6 +5,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 'define' macro
 
+(setq print-receive-function-warnings nil)
+
 (defun racket-gather-local-vars (form &optional exclude)
   "collects variables defined in FORM with `define' but excludes those bound with let macros"
   (let (vars)
@@ -53,7 +55,8 @@
 
         ((member (car form) local-functions)
          ;;translate call to local function -
-         (when (member (car form) fn-names)
+         (when (and (member (car form) fn-names)
+                    print-receive-function-warnings)
            (message "Warning: recursive call detected: %s (in file %s)" (car form) buffer-file-name))
          (cons 'funcall (cons (car form) (racket-translate-define-body (cdr form) local-functions fn-names))))
         (t (let (body)
