@@ -660,6 +660,8 @@
     (for ((sym (node-symbols node)))
          (set! a (symbol-address sym))
          (when (>= a from)
+           (when (equal? (symbol-val sym) "main")
+             (set-node-p! node (1+ a)))
            (set-symbol-address! sym (1+ a))))))
 
 ;; map jump instruction slots to bit masks for their address fields
