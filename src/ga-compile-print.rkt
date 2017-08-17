@@ -93,13 +93,18 @@
 
   (printf "{~a}\n" (comma-join x)))
 
-(define (print-count input-file) 
+(define (ga-n val (hex? false) (pre ""))
+  (let ((n (abs val))
+        (s (if (< val 0) "-" "")))
+  (rkt-format (if hex? "~a~a~x" "~a~a~a") s pre n)))
+
+(define (print-count input-file)
   (define compiled (aforth-compile-file input-file))
   (elisp-maybe-print-and-exit compiled)
   (define total 0)
   (define (percent a b)
     (exact->inexact (* (/ (* a 1.0) b) 100)))
-  (for ((n (compiled-nodes compiled)))
+  (for ((n (compiled-nodes compiled) hex?))
     (printf "~a  ~a~a ~a%\n"
             (node-coord n)
             (node-len n)
@@ -108,6 +113,17 @@
     (set! total (+ total (node-len n))))
   (printf "Total: ~a nodes, ~a words, ~a%\n"
           (length (compiled-nodes compiled)) total (percent total (* 64 144))))
+
+(define (ga-make-symbol-hash syms)
+    (let ((ht (make-hash)))
+      (for ((sym syms))
+        (hash-set! ht (symbol-address sym) (symbol-val sym) ))
+      ht))
+
+(define (ga-print-get-name ht index)
+    (if (hash-has-key? ht index)
+        (hash-ref ht index)
+        false))
 
 (define (print-pretty input-file (hex? false))
   (define compiled (aforth-compile-file input-file))
@@ -123,7 +139,7 @@
   (define i 0)
   (define name false)
 
-
+  (define hex? (hex?))
   (define (pad-print thing (pad 20))
     (let* ((s (rkt-format "~a" thing))
            (len (string-length s))
@@ -135,36 +151,118 @@
         (vector->list thing)
         thing))
 
-  (define (make-symbol-hash syms)
-    (let ((ht (make-hash)))
-      (for ((sym syms))
-        (hash-set! ht (symbol-address sym) (symbol-val sym) ))
-      ht))
-
-  (define (get-name ht index)
-    (if (hash-has-key? ht index)
-        (hash-ref ht index)
-        false))
-
-  (set! hex? (hex?))
-  (define (n val)
-    (rkt-format (if hex? "~x" "~a") val))
-
   (for ((node (compiled-nodes assembled)))
     (define coord (node-coord node))
-    (define symbols (make-symbol-hash (node-symbols node)))
-    (define comp (hash-ref compiled-hash coord))
+    (define symbols (ga-make-symbol-hash (node-symbols node)))
+    (define comp (hash-ref compiled-hash coord)) ;;why not access directly???
     (define asm (node-mem node))
     (define word false)
     (printf "\n\n__________________ node ~a ____________________\n" coord)
-    (printf "P = ~a\n" (n (or (node-p node) 0)))
+    (printf "P = ~a\n" (ga-n (or (node-p node) 0) hex?))
     (printf "     Compiled            Assembled    Disassembled\n")
     (for ((i (node-len node)))
       (set! word (vector-ref comp i))
       (unless (equal? word (vector false false false false))
-        (set! name (get-name symbols i))
+        (set! name (ga-print-get-name symbols i))
         (when name (printf "~a:\n" name))
-        (printf "~a    " (n i))
+        (printf "~a    " (ga-n i hex?))
         (pad-print (make-pretty word))
-        (pad-print (rkt-format "~a" (n (vector-ref asm i))) 13)
+        (pad-print (rkt-format "~a" (ga-n (vector-ref asm i) hex?)) 13)
         (printf "~a\n" (make-pretty (disassemble-word (vector-ref asm i))))))))
+
+
+(define ga-transfer-insts '("jump" "call" "next" "if" "-if"))
+
+(define (ga-get-transfer-addr word)
+  ;; return the destination address if word contains a transfer instruction, nil if none
+  (when (vector? word)
+    (let ((addr false)
+          (instr false)
+          (i 0))
+      (while (< i (length word))
+        (set! instr (vector-ref word i))
+        (if (member instr ga-transfer-insts)
+            (begin (set! addr (vector-ref word (1+ i)))
+                   (set! i 5))
+            (set! i (add1 i))))
+      addr)))
+
+(define (ga-collect-transfer-addrs mem len)
+  (let ((a false)
+        (h (make-hash)))
+    (for ((i len))
+      (set! a (ga-get-transfer-addr (vector-ref mem i)))
+      (when a
+        (if (hash-has-key? address-names a)
+            (hash-set! h a (hash-ref address-names a))
+            (hash-set! h a (format "_%s" i)))
+        ))
+    h))
+
+(define (print-bowman-format input-file (hex? false) (full true))
+  (when full (printf "include(ga144.hdr)\n"))
+  (define compiled (aforth-compile-file input-file))
+  (elisp-maybe-print-and-exit compiled)
+  (define (make-pretty thing)
+    (if (vector? thing)
+        (vector->list thing)
+        thing))
+  (define hex? (hex?))
+  (define (get-addr* name)
+    (or (get-address name)
+        (cdr (assoc name io-places))))
+
+  (for ((node (compiled-nodes compiled)))
+    (define coord (node-coord node))
+    (define symbols (ga-make-symbol-hash (node-symbols node)))
+
+    (define mem (node-mem node))
+    (define len (node-len node))
+    (define word false)
+    (when (> len 0)
+      (printf "\n\n ---------------------------- ~a ----------------------------\n" coord)
+      (define p (node-p node))
+      ;;TODO: print boot descriptors
+      (when full (printf "jump ~a\n" (or p 0))
+            (printf ": start\n")) ;;TODO: needed?
+      (define addr-names (ga-collect-transfer-addrs mem len))
+      (define ok false)
+      (define a false)
+
+      (define (get-name i)
+        (or (ga-print-get-name symbols i)
+            (hash-ref addr-names i)))
+
+      (for ((i len))
+        (set! word (vector-ref mem i))
+        (if (or (not word)
+                (equal? word (vector false false false false)))
+            (printf ".\n");;correct?
+            (begin
+              (set! name (get-name i))
+              (when name
+                (printf ": ~a\n" name))
+
+              (printf "    ")
+              (set! ok true)
+              (set! comment false)
+              (for ((instr (if (number? word)
+                               (list (ga-n word hex? "0x"))
+                               word))
+                    (i 4))
+                (when (and instr ok)
+                  (printf "~a " instr)
+                  (when (member instr ga-transfer-insts)
+                    (set! a (vector-ref word (1+ i)))
+                    (set! name (get-name a))
+                    (if name
+                        ;; convert names like ---l to their address
+                        (begin (set! a (get-addr* name))
+                               (set! comment (and a (format "  \\ %s" name)))
+                               (set! name (or a name)))
+                        (set! name a))
+                    (printf "~a" name)
+                    (when comment (printf comment))
+                    (set! ok false))))
+              (printf "\n")
+              ))))))

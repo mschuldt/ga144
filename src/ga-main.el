@@ -29,6 +29,7 @@
 (setq working-dir nil)
 (setq bowman-format? nil)
 (setq bowman-expand? nil)
+(setq print-bowman? t)
 (setq sim? nil)
 
 (defun ga-print-help-and-exit ()
@@ -84,6 +85,8 @@
                (setq bowman-format? t))
               (("--bowman-expand") nil "expand .ga into aforth compatible format and print"
                (setq bowman-expand? t))
+              (("--print-as-bowman") nil ""
+               (setq print-bowman? t))
               (("--sim") nil ""
                (setq sim? t))
               (position (file) "aforth file"
@@ -220,11 +223,10 @@
   (princ (mapconcat 'number-to-string (compile-file-to-bootstream in-file bootstream-type) " ") standard-output)
   (ga-main-exit))
 
-(if count?
-    (print-count in-file)
-  (if pretty?
-      (print-pretty in-file hex?)
-    (print-json in-file bootstream-type symbols?)))
+(cond (count? (print-count in-file))
+      (pretty? (print-pretty in-file hex?))
+      (print-bowman? (print-bowman-format in-file hex?))
+      (t (print-json in-file bootstream-type symbols?)))
 
 (when verbose?
   (message "compile time: %s" (float-time (time-since _start-time))))
