@@ -222,6 +222,11 @@
         (load (expand-file-name file) nil t t)
       (aforth-compile-error (format "unknown file: %s" filename)))))
 
+;; ignore-nops is used in bowman mode to ignore the trailing nops in a word
+;; otherwise the nops in a line like " ; . . . " will get compiled into a seporate wod
+;; because the compiler automatically word aligns after ';' or 'ex'
+(setq ignore-nops nil)
+
 (defun aforth-parse-region (beg end &optional tokens no-comments)
   (setq aforth-compile-stage "parsing")
   ;; tokenize region BEG END-or use TOKENS from list. tokens are modified
@@ -242,6 +247,7 @@
                (push token out)))
             ((eq type 'newline)
              (when bowman-format
+               (setq ignore-nops nil)
                (push (aforth-set-token token 'directive "..")
                      out)))
             ((member val '("org" "node"))
@@ -285,7 +291,12 @@
                    out))
 
             ((set-member? aforth-instruction-map val)
-             (push token out))
+             (when (and bowman-format
+                        (member val instructions-using-rest-of-word))
+               (setq ignore-nops t))
+             (unless (and ignore-nops
+                          (equal val "."))
+               (push token out)))
 
             ((set-member? boot-descriptors-map val)
              (push (aforth-set-token token 'boot-descriptor val nil start end)
