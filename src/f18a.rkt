@@ -698,7 +698,7 @@
                  (set! I #x134a9)) ;; 0x134a9 = "warm" = 'call 169'
           (set! I^ (^ I #x15555))))
 
-    (define (fetch-I)
+    (define/public (fetch-I)
       (set! I-index P)
       (when extern-functions
         (set! extern-word-functions (vector-ref extern-functions (region-index P))))
@@ -1005,7 +1005,7 @@
     (define/public (load node)
       ;;CODE is a vector of assembled code
       ;;load N words from CODE into memory, default = len(code)
-      (reset!)
+      ;;(reset!) -> must be reset externally before loading
       (define code (node-mem node))
       (define n (or (node-len node) (vector-length code)))
       (define index 0)
@@ -1155,7 +1155,7 @@
                 (set-memory! i (vector-ref frames index))
                 (set! index (add1 index)))
               (set! P jump-addr)
-              (error "TODO: Untested case")
+              ;;(error "TODO: Untested case")
               (set! iI 0)
               (fetch-I))))
 
@@ -1262,8 +1262,7 @@
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
-      (setup-ports)
-      (fetch-I))
+      (setup-ports))
 
     ;; Resets only p
     (define/public (reset-p! (start false))

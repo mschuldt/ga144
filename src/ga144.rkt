@@ -107,11 +107,15 @@
 
     (define/public (load compiled)
       ;; Places code into each node's RAM/ROM
+      (reset! false)
       (for ((n (compiled-nodes compiled)))
-        (send (coord->node (node-coord n)) load n)))
+        (send (coord->node (node-coord n)) load n))
+      ;;(fetch-I)
+      )
 
     (define/public (load-bootstream bs (input-node 708))
       ;;Load a bootstream through INPUT-NODE
+      (reset!)
       (send (coord->node input-node) load-bootstream bs))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -160,7 +164,10 @@
 
       breakpoint)
 
-    (define/public (reset!)
+    (define/public (fetch-I)
+      (vector-map (lambda (node) (send node fetch-I)) nodes))
+
+    (define/public (reset! (fetch true))
       (set! time 0)
       (set! active-nodes (vector-copy nodes))
       (set! last-active-index 143)
@@ -169,7 +176,8 @@
       (set! breakpoint false)
       (set! cli-active? false)
       (set! breakpoint-node false)
-      (vector-map (lambda (node) (send node reset!)) nodes))
+      (vector-map (lambda (node) (send node reset!)) nodes)
+      (when fetch (fetch-I)))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display functions
