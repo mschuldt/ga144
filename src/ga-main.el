@@ -29,7 +29,7 @@
 (setq working-dir nil)
 (setq bowman-format? nil)
 (setq bowman-expand? nil)
-(setq print-bowman? t)
+(setq print-bowman? nil)
 (setq sim? nil)
 
 (defun ga-print-help-and-exit ()
