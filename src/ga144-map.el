@@ -744,6 +744,7 @@
                (setq c (ga-format-inst (aref word 2)))
                (when (not (number? (aref word 2)))
                  (setq d (ga-format-inst (aref word 3)))))))
+          ((null word) "---")
           (t (error "unknow type for compiled word: '%s'"  word)))
     (format "%2s  %-5s %-5s %-5s %-5s" (ga-format-num i) a b c d)))
 
