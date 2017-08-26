@@ -13,6 +13,7 @@
   dup or !b dup 30000 for
   drop @b - -while next ;
   then dup or pop drop ;
+: main
 : clang
 ( clang searches for resonant frequency over a reasonable range.
 (  Initially we use 5000 cycles and may be able to shorten this. When we find 
@@ -22,7 +23,6 @@
   drop 1 . + next clang ; then
 : prep 0 0x20000 0x800 0x30800 0 0x20000 0x800 0x30800
    dup up a! drop
-: main clang ;
 ( : run !b !b @ drop run ;  ( <= must be provided after including this file
 
 ( : try ( test code for finding resonance)
