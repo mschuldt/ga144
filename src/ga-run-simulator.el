@@ -36,8 +36,8 @@
 (setq filename (concat (file-name-as-directory dir)  (nth 4 command-line-args)))
 
 (load "ga-loadup.el")
-(ga-compiler-loadup)
-(ga-sim-loadup)
+(ga-loadup)
+
 (setq ga-default-node-size 6)
 
 (when (string= (file-name-extension filename) "ga")
