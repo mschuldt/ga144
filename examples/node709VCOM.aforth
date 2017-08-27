@@ -1,0 +1,66 @@
+( toggle 709.a0 at 10hz
+
+node 715
+/b io /a up
+: -osc
+  for
+  0x30000 !b dup .. 2/ dup for unext
+  0x20000 !b .. over 1 and .. + for unext next
+  dup or !b dup 30000 for
+  drop @b - -while next ;
+  then dup or pop drop ;
+: main
+: clang
+  12895 ( 12700) 2000 for dup 5000 -osc while
+  drop 1 . + next clang ; then
+: prep
+   0 0x20000 0x800 0x30800 0 0x20000 0x800 0x30800
+: run !b !b @ drop run ;
+
+node 709  (709.a0 = j32.5
+/b io
+( update vcom, send 10hz signal to 710
+(/stack 10 0x155 0x8AA 0x155 0x8AA 0x155 0x8AA 0x155 0x8AA 0x155 0x8AA
+(
+: main
+0x155 0x0AA
+0
+: count
+ up a!
+ @low (0)     !b dup !
+ @high (0x800) !b dup !
+ dup -3200 (-32000) . +
+ -if drop 1 . + count ; then
+     west a! 
+     drop drop
+     update_vcom
+    up a!
+    0 count ;
+: update_vcom
+over
+dup !low
+dup 0x800 . + !high
+dup ! ;
+: !low @p drop !p ;
+: @low @p ;
+, 0
+: !high @p drop !p ;
+: @high @p ;
+, 0x800
+
+node 7 ( d12 = J31.1
+: main
+data b!
+east a!
+\0x02800   \reset pin state
+0x03800   \reset pin state
+\0x1000
+!b @
+
+
+node 708
+: emit1 1 and 3 or !b 904 for unext ; 
+: emit8 0 emit1 7 for dup emit1 2/ next 1 emit1 ;
+: emit18 0 emit8 drop emit8 emit8 emit8 ;
+: main io b! east a!
+: loop @ emit18 loop ;
