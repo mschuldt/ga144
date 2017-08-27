@@ -63,14 +63,13 @@
     (define current-node false)
 
     (define/public (remove-from-active-list node)
-      (let ((last-active-node (vector-ref active-nodes last-active-index)))
+      (let ((last-active-node (vector-ref active-nodes last-active-index))
+            (index (get-field active-index node)))
         ;;swap self with current node in 'active-nodes'
-        (vector-set! active-nodes
-                     (get-field active-index node)
-                     last-active-node)
+        (vector-set! active-nodes index last-active-node)
         (vector-set! active-nodes last-active-index node)
         ;;save the new node indices
-        (set-field! active-index last-active-node (get-field active-index node))
+        (set-field! active-index last-active-node index)
         (set-field! active-index node last-active-index)
         ;;decrement the number of active nodes
         (set! last-active-index (sub1 last-active-index)))
@@ -79,14 +78,13 @@
 
     (define/public (add-to-active-list node)
       (set! last-active-index (add1 last-active-index))
-      (let ((first-inactive-node (vector-ref active-nodes last-active-index)))
+      (let ((first-inactive-node (vector-ref active-nodes last-active-index))
+            (index (get-field active-index node)))
         ;;swap self with first inactive node in 'active-nodes'
-        (vector-set! active-nodes
-                     (get-field active-index node)
-                     first-inactive-node)
+        (vector-set! active-nodes index first-inactive-node)
         (vector-set! active-nodes last-active-index node)
         ;;save the new node indices
-        (set-field! active-index first-inactive-node (get-field active-index node))
+        (set-field! active-index first-inactive-node index)
         (set-field! active-index node last-active-index))
       (when show-io-changes?
         (print-active)))
