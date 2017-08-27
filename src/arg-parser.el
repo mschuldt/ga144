@@ -61,7 +61,7 @@
             (setq nargs (length (cadr fn)))
             (setq fn-args (popn args nargs))
             (when (not (= (length fn-args) nargs))
-              (error "option %s expected at least %d args" nargs))
+              (error "option %s expected at least %d args" a nargs))
             (apply fn fn-args))
 
         (setq fn (car positional-args)
