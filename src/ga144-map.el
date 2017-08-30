@@ -1353,6 +1353,26 @@ This resets the simulation"
          (setq ga-sim-step-increment n)
        (message "invalid step increment: %s" n)))))
 
+;;;TODO: need to update the display on some interval
+(defun ga-sim-continue ()
+  (interactive)
+  (ga-check-sim
+   (let ((again true)
+         (breakpoint? nil)
+         (nactive nil))
+     (while (and again
+                 (not breakpoint?))
+       (set! again nil)
+       (setq nactive (send ga-sim-ga144 num-active-nodes))
+       (when (and (> nactive 0)
+                  (not breakpoint?))
+         (setq again t)
+         (setq breakpoint? (send ga-sim-ga144 step-program-n! 1000)))
+       (ga-sim-update-display)
+       (redisplay)
+       (message "%s active"  nactive) ;;TODO: don't display as message (or disable messages), display total steps
+       ))))
+
 (defun ga-convert-stack-list (data)
   (list->vector (mapcar (lambda (x) (format "%-5s" (ga-format-num x t))) data)))
 
@@ -1475,6 +1495,7 @@ This resets the simulation"
         (define-key map (kbd ".") 'ga-sim-ram-center-on-P)
         (define-key map (kbd "b") 'ga-load-from-bootstream)
         (define-key map (kbd "n") 'ga-set-step-increment)
+        (define-key map (kbd "c") 'ga-sim-continue)
         map))
 
 (defun ga-map-buffer-valid (buf)
