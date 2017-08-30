@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t -*-
 
-(setq gc-cons-threshold most-positive-fixnum)
+;;(setq gc-cons-threshold most-positive-fixnum)
 
 (setq aforth-file-extensions '("aforth" "af" "ga"))
 
