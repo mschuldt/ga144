@@ -1,27 +1,18 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
-(require "stack.rkt"
-         "f18a.rkt"
-         "common.rkt"
-         "el.rkt")
-
-(provide (all-defined-out))
-
 (define DEBUG? false)
 (define _PORT-DEBUG? false)
 (define DISPLAY_STATE? false)
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
 
-(define (make-ga144 name_ (interactive_ false))
-  (if elisp?
-      (funcall 'new ga144% name_ interactive_)
-      (new ga144% (name name_) (interactive interactive_))))
+(define (make-ga144 name_ (interactive_ false) (source-buffer_ false))
+  (new ga144% name_ interactive_))
 
 (define ga144%
   (class object%
     (super-new)
-    (init-field (name false) (interactive false))
+    (init-field (name false) (interactive false) (source-buffer false))
 
     (define time 0)
     (define breakpoint false) ;; set to t when a breakpoint is reached
@@ -34,7 +25,7 @@
     ;;builds matrix of 144 f18 nodes
     (define (build-node-matrix)
       (for ((i 144))
-        (vector-set! nodes i (new-f18a i this)))
+        (vector-set! nodes i (new f18a% i this source-buffer)))
       (vector-map (lambda (node) (send node init)) nodes))
 
     (define (index->node index)
@@ -143,7 +134,7 @@
       (set! breakpoint false)
       (while (and (> n 0)
                   (not breakpoint))
-        (step-program!)
+        (setq breakpoint (step-program!))
         (setq n (1- n)))
       breakpoint)
 

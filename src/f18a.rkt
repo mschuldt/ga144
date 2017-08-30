@@ -1,21 +1,7 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
-(require compatibility/defmacro
-         "stack.rkt"
-         "common.rkt"
-         "disassemble.rkt"
-         "el.rkt")
-
-(when elisp? (_def '(f18a%)))
-(provide (all-defined-out))
-
-(define save-history true)
+(define save-history false)
 (define count-instructions true)
-
-(define (new-f18a index_ ga144_)
-  (if elisp?
-      (funcall 'new f18a% index_ ga144_) ;;why funcall? so the racket compiler does not notice...
-      (new f18a% (index index_) (ga144 ga144_))))
 
 
 (define obj-map_ (make-hash)) ;;maps names to objects
@@ -46,7 +32,7 @@
     (define ga144-key (register-obj ga144))
     (define ga144-nodes-key (register-obj (send ga144 get-nodes)))
     (set! ga144 false)
-    (when elisp? (set '__optional__ga144 false))
+    (set '__optional__ga144 false)
     (define (get-ga144)
       (lookup-obj ga144-key))
 
@@ -665,8 +651,7 @@
 
     (define/public (execute! opcode (jump-addr-pos 0) (addr-mask false))
       (when count-instructions
-        (when elisp?
-          (assert (not (= most-positive-fixnum step-counter))))
+        (assert (not (= most-positive-fixnum step-counter)))
         (set! step-counter (add1 step-counter))
         (when (eq? step-counter break-at-step)
           (break (rkt-format "step ~a" break-at-step)))
@@ -1159,9 +1144,8 @@
               (set! iI 0)
               (fetch-I))))
 
-      (if elisp? ;; stupid hack needed because of the way classes where implemented in elisp
-          (set! load-bootframe-fn (lambda (x) (load-bootframe x)))
-          (set! load-bootframe-fn load-bootframe))
+      ;; stupid hack needed because of the way classes where implemented in elisp
+      (set! load-bootframe-fn (lambda (x) (load-bootframe x)))
 
       (load-bootframe))
 
@@ -1280,9 +1264,7 @@
     ;; returns false when P = 0, else t
     (define/public (step-program!)
       (unless suspended
-        (if elisp?
-            (funcall step! this)
-            (step!))
+        (step!)
         (when print-state
           (send (get-ga144) display-node-states (list coord))))
       suspended)
@@ -1339,20 +1321,20 @@
         (vector-set! ludr-port-nodes (convert "north")
                      (if (< coord 700)
                          north
-                         (new-f18a 145 (get-ga144))))
+                         (new f18a% 145 (get-ga144))))
 
         (vector-set! ludr-port-nodes (convert "east")
                      (if (< (modulo coord 100) 17)
                          east
-                         (new-f18a 145 (get-ga144))))
+                         (new f18a% 145 (get-ga144))))
         (vector-set! ludr-port-nodes (convert "south")
                      (if (> coord 17)
                          south
-                         (new-f18a 145 (get-ga144))))
+                         (new f18a% 145 (get-ga144))))
         (vector-set! ludr-port-nodes (convert "west")
                      (if (> (modulo coord 100) 0)
                          west
-                         (new-f18a 145 (get-ga144))))))
+                         (new f18a% 145 (get-ga144))))))
 
     ;;(define/public (get-ludr-port-nodes) ludr-port-nodes) ;; update -- ludr-port-nodes does not contain the nodes any more
 
