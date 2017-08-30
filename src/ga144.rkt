@@ -113,7 +113,6 @@
 
     (define/public (load-bootstream bs (input-node 708))
       ;;Load a bootstream through INPUT-NODE
-      (reset!)
       (send (coord->node input-node) load-bootstream bs))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
