@@ -1,0 +1,30 @@
+( ga --run fast-ram-node.aforth
+(
+( 61 word ram node
+(  minimizes code needed in the client
+
+node 1 ( ram node
+/b west /a 0
+org 60
+: read
+a! @ !b
+: main
+@b -if: read
+  - a! @b ! main ;
+
+
+node 0 ( test node
+/b east
+: write ( xa - )
+- !b !b ;
+: read ( a - x )
+!b @b ;
+: main
+55 5 write
+2 3 write
+88 59 write
+
+3 read . !!printT
+59 read . !!printT
+5 read . !!printT
+warm
