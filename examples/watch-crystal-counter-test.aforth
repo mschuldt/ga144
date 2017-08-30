@@ -1,0 +1,48 @@
+( ga --run watch-crystal-counter-test.aforth
+(
+( Tests a watch counter
+( Crystal frequency: 32768Hz
+( node 0 supplies stream of words to simulate the crystal pulses
+( node 1 waits for each pulse and increments its counter
+( node 2 receives words 8hz and 1second intervals
+(        0 used for 8hz signal, <0 used for 1 second signal
+node 0 ( test node)
+/a east
+: main ! main ;
+
+node 2 ( test node)
+/a west
+: main @ !!printT main ;
+
+
+node 1
+/a west /b east
+/stack 6 0 2 2 2 2 2
+: main
+: inc
+@ drop
+2* -if drop
+    ( 2048Hz
+    2* -if drop
+       ( 128Hz
+        2* -if (drop)
+           ( 8hz) dup or !b
+           2* 2* -if (drop)
+              (1s) !b
+              2* -if drop
+                 16s
+              two then
+           two then
+        two then
+     two then
+ two then
+inc ;
+: two 2 ;
+: 16s
+ 1 . + dup -225 . + -if drop ;
+ then @hours 1 . + !hours dup or ;
+: !hours @p drop !p ;
+: @hours @p ;
+, 0
+
+( TODO: use rstack as a a stream of 2s  )
