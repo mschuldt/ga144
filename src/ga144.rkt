@@ -123,14 +123,19 @@
     (define/public (step-program!)
       (set! breakpoint false)
       (set! time (add1 time))
-      (define index -1)
+      (define index 0)
       (when (>= last-active-index 0)
-        (while (and (< index last-active-index)
+        (while (and (<= index last-active-index)
                     (not breakpoint))
           (begin
-            (set! index (add1 index))
             (set! current-node (vector-ref active-nodes index))
-            (send current-node step-program!))))
+
+            (unless (send current-node step-program!)
+              ;; if node gets suspended during this step it will swap itself
+              ;; with the last active node, declrementing last-active-index.
+              ;; if that happens we need to step the node at the same index again.
+              (set! index (add1 index)))
+            )))
       ;;TODO: use current-node-index to correctly resume after a breakpoint
       breakpoint)
 

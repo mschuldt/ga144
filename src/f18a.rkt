@@ -1284,14 +1284,16 @@
             (funcall step! this)
             (step!))
         (when print-state
-          (send (get-ga144) display-node-states (list coord)))))
+          (send (get-ga144) display-node-states (list coord))))
+      suspended)
 
     ;; Steps the program n times.
     (define/public (step-program-n! n)
       (while (and (> n 0)
                   (not suspended))
         (step-program!)
-        (setq n (1- n))))
+        (setq n (1- n)))
+      suspended)
 
     (define/public (get-inst-counters)
       inst-counters)
