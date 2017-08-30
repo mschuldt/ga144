@@ -74,6 +74,10 @@ the node object the function is called from will be bound to 'node'"
 (ga-define printS
            (princ "S: %s\n" (cadr (send node get-dstack-as-list))))
 
+(ga-define break
+           (send node break "source breakpoint")
+           (message "breakpoint (node %s)" (send node get-coord)))
+
 (ga-define _test-inc ;; used by tests
            (send node d-push! (1+ (send node d-pop!))))
 
