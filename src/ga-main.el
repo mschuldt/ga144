@@ -1,7 +1,5 @@
 ;; -*- lexical-binding: t -*-
 
-;;(setq gc-cons-threshold most-positive-fixnum)
-
 (setq aforth-file-extensions '("aforth" "af" "ga"))
 
 (setq debug-on-error t)
@@ -89,6 +87,10 @@
                (setq print-bowman? t))
               (("--sim") nil ""
                (setq sim? t))
+              (("--print-gc") nil ""
+               (add-hook 'post-gc-hook (lambda () (message "GC: %ss(%s)" gc-elapsed gcs-done))))
+              (("--no-gc") nil ""
+               (setq gc-cons-threshold most-positive-fixnum))
               (position (file) "aforth file"
                         (setq in-file file))
               )
