@@ -93,10 +93,10 @@
 
   (printf "{~a}\n" (comma-join x)))
 
-(define (ga-n val (hex? false) (pre ""))
+(define (ga-n val (hex? false) (pre false))
   (let ((n (abs val))
         (s (if (< val 0) "-" "")))
-  (rkt-format (if hex? "~a~a~x" "~a~a~a") s pre n)))
+  (rkt-format (if hex? "~a~a~x" "~a~a~a") s (if (and hex? pre) "0x" "") n)))
 
 (define (print-count input-file)
   (define compiled (aforth-compile-file input-file))
@@ -199,7 +199,7 @@
         ))
     h))
 
-(define (print-bowman-format input-file (hex? false) (full true))
+(define (print-bowman-format input-file (hex? false) (full true) (aforth-sim false))
   (when full (printf "include(ga144.hdr)\n"))
   (define compiled (aforth-compile-file input-file))
   (elisp-maybe-print-and-exit compiled)

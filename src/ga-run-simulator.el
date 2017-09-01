@@ -4,6 +4,7 @@
 ;; 
 ;;  emacs -l ga-run-simulator.el FILE.aforth
 
+(toggle-debug-on-error)
 (load-theme 'wombat t)
 (set-cursor-color "#ff4500")
 (setq frame-title-format "GA144")
@@ -17,7 +18,7 @@
 (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
 ;;(set-fringe-mode 0)
-(kill-buffer "*scratch*")
+;;(kill-buffer "*scratch*")
 ;;(setq message-log-max nil)
 ;;(kill-buffer "*Messages*")
 

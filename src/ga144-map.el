@@ -153,7 +153,9 @@
 
 (defun ga-current-node-display-fn (_ _)
   (let ((s (format "node %s" ga-current-coord))
-        (n (gethash ga-current-coord ga-node-usage-hash)))
+        (n (if ga-node-usage-hash
+               (gethash ga-current-coord ga-node-usage-hash)
+             0)))
     (put-text-property 0 (length s) 'font-lock-face '(:foreground "yellow") s)
     (if n
         (format "%s  %s words, %s%%" s n (/ (* n 100) 64))
@@ -629,10 +631,20 @@
       (puthash (car x) (cdr x) ht))
     ht))
 
+(defun clear-compilation-data ()
+  (setq ga-compilation-data nil
+        ga-assembly-data nil
+        ga-node-usage-list nil
+        ga-node-usage-hash nil
+        ga-node-locations nil))
+
 (defun ga-set-compilation-data (data)
   (setq ga-error-data (compiled-error-info data))
   (if ga-error-data
-      (ga-set-compilation-status  (format "FAIL: %s" (error-data-message ga-error-data)))
+      (progn (ga-set-compilation-status (format "FAIL: %s" (error-data-message ga-error-data)))
+             (message "Compilation fail: %s" (error-data-message ga-error-data))
+             (clear-compilation-data)
+             )
     (progn
       (setq ga-compilation-data data)
       (setq ga-compiled-nodes (let ((ht (make-hash-table)))
@@ -1431,9 +1443,6 @@ This resets the simulation"
     (ga-update-ram-display-node)
     )
   (ga-update-stack-displays))
-
-(defun ga-sim-step-all ()
-  )
 
 (defun ga-sim-set-breakpoint ()
   )

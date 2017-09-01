@@ -355,15 +355,25 @@
     (setq aforth-compile-stage "parsing nodes")
     (dolist (token tokens)
       (setq type (aforth-token-type token))
-      (if (equal (aforth-token-value token) "node")
-          (progn (when current-node
-                   (setf (aforth-node-code current-node) (nreverse current-code))
-                   (setq nodes (cons current-node nodes)))
-                 (setq current-node (make-aforth-node :coord (aforth-token-args token)
-                                                      :location (aforth-token-start token))
+      (cond ((and (or (eq type 'word-def)
+                      (eq type 'compile-def))
+                  (not current-node))
+             (aforth-compile-error "TODO - word defined outside node")
+             ;; word defined outside node
+             ;;DOING: need some struct like aforth-node but for words
+             )
+            ((equal (aforth-token-value token) "node")
+             (progn (when current-node
+                      ;; (when (= (length current-code) 0)
+                      ;;   (aforth-compile-error (format "node %s body is empty" (aforth-node-coord current-node))
+                      ;;                         aforth-compile-error))
+                      (setf (aforth-node-code current-node) (nreverse current-code))
+                      (setq nodes (cons current-node nodes)))
+                    (setq current-node (make-aforth-node :coord (aforth-token-args token)
+                                                         :location (aforth-token-start token))
 
-                       current-code nil))
-        (setq current-code (cons token current-code))))
+                          current-code nil)))
+            (t (setq current-code (cons token current-code)))))
     (when current-node
       (setf (aforth-node-code current-node) (nreverse current-code))
       (setq nodes (cons current-node nodes)))
