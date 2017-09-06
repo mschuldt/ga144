@@ -97,6 +97,7 @@
     (define extern-functions false) ;;vector of vectors with extern functions for each word
     (define extern-word-functions false) ;;vector containing extern functions for the current word
 
+    (define map-node false)
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -986,6 +987,9 @@
     (define/public (get-inst-index) iI)
 
     (define/public (suspended?) suspended)
+    (define/public (set-map-node node)
+      (printf "set-map-node: ~a ~a" (ga-node-coord node) coord)
+      (set! map-node node))
 
     (define/public (load node)
       ;;CODE is a vector of assembled code

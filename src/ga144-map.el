@@ -1515,6 +1515,16 @@ This resets the simulation"
            (buffer-live-p ga-project-aforth-buffer)
            ))))
 
+(defun ga-set-map-nodes ()
+  (let (f18node coord)
+    (assert ga-sim-ga144)
+    (loop-nodes node
+      (setq coord (ga-node-coord node))
+      (assert coord)
+      (setq f18node (send ga-sim-ga144 coord->node coord))
+      (assert f18node)
+      (send f18node set-map-node node))))
+
 (defun ga-open-map-for-buffer (aforth-buffer &optional buf-name-fmt)
   (let* ((filename (buffer-file-name aforth-buffer))
          (buffer-name (format (or buf-name-fmt "*GA144-%s*") (file-name-base filename)))
@@ -1537,6 +1547,7 @@ This resets the simulation"
     (with-current-buffer buf
       (setq ga-sim-p t)
       (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
+      (ga-set-map-nodes)
       (ga-sim-set-current-node ga-current-coord)
       (ga-sim-recompile)
       (ga-draw-map-in-frame-limits);;need to redraw to display simulation
