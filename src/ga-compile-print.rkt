@@ -212,6 +212,10 @@
     (or (get-address name)
         (cdr (assoc name io-places))))
 
+  (define (print-boot-descriptor word val)
+    (when val
+      (printf (format "   %s\n   %s\n" word val))))
+
   (for ((node (compiled-nodes compiled)))
     (define coord (node-coord node))
     (define symbols (ga-make-symbol-hash (node-symbols node)))
@@ -219,50 +223,76 @@
     (define mem (node-mem node))
     (define len (node-len node))
     (define word false)
-    (when (> len 0)
-      (printf "\n\n ---------------------------- ~a ----------------------------\n" coord)
-      (define p (node-p node))
-      ;;TODO: print boot descriptors
-      (when full (printf "jump ~a\n" (or p 0))
-            (printf ": start\n")) ;;TODO: needed?
-      (define addr-names (ga-collect-transfer-addrs mem len))
-      (define ok false)
-      (define a false)
+    (printf (format "\n\n---------------------------- %03d ----------------------------\n"
+                    coord))
+    (when full
+      (print-boot-descriptor "@p a!" (node-a node))
+      (when (node-io node)
+        (printf "   @p @p b!\n")
+        (printf "   ~a\n" (node-io node))
+        (printf "   0x15d\n") ;; io
+        (printf "   !b\n"))
+      (print-boot-descriptor "@p b!" (node-b node))
+      (when (node-stack node)
+        (for ((val (node-stack node)))
+          (printf "   @p\n") ;:TODO: load multiple per word
+          (printf "   ~a\n" val)))
 
-      (define (get-name i)
-        (or (ga-print-get-name symbols i)
-            (hash-ref addr-names i)))
+      ;;initial jump currently defaults to 0 so don't insert an extra jump
+      ;;(printf "   jump ~a\n" (or (node-p node) 0))
 
-      (for ((i len))
-        (set! word (vector-ref mem i))
-        (if (or (not word)
-                (equal? word (vector false false false false)))
-            (printf ".\n");;correct?
-            (begin
-              (set! name (get-name i))
-              (when name
-                (printf ": ~a\n" name))
+      (printf ": __start\n"))
+    (when aforth-sim
+      (when (and (node-p node)
+                 (not (member "main" (hash-values symbols))))
+        (printf "/p ~a\n"  (node-p node)))
+      (when (node-io node)
+        (printf "/io ~a\n"  (node-io node)))
+      (when (node-b node)
+        (printf "/b ~a\n"  (node-b node)))
+      (when (node-a node)
+        (printf "/a ~a\n"  (node-a node)))
+      (when (node-stack node)
+        (error "printing /stack is unimplemented")))
 
-              (printf "    ")
-              (set! ok true)
-              (set! comment false)
-              (for ((instr (if (number? word)
-                               (list (ga-n word hex? "0x"))
-                               word))
-                    (i 4))
-                (when (and instr ok)
-                  (printf "~a " instr)
-                  (when (member instr ga-transfer-insts)
-                    (set! a (vector-ref word (1+ i)))
-                    (set! name (get-name a))
-                    (if name
-                        ;; convert names like ---l to their address
-                        (begin (set! a (get-addr* name))
-                               (set! comment (and a (format "  \\ %s" name)))
-                               (set! name (or a name)))
-                        (set! name a))
-                    (printf "~a" name)
-                    (when comment (printf comment))
-                    (set! ok false))))
-              (printf "\n")
-              ))))))
+    (define addr-names (ga-collect-transfer-addrs mem len))
+    (define ok false)
+    (define a false)
+
+    (define (get-name i)
+      (or (ga-print-get-name symbols i)
+          (hash-ref addr-names i)))
+
+    (for ((i len))
+      (set! word (vector-ref mem i))
+      (if (or (not word)
+              (equal? word (vector false false false false)))
+          (printf ".\n");;correct?
+          (begin
+            (set! name (get-name i))
+            (when name
+              (printf ": ~a\n" name))
+
+            (printf "    ")
+            (set! ok true)
+            (set! comment false)
+            (for ((instr (if (number? word)
+                             (list (ga-n word hex? true))
+                             word))
+                  (i 4))
+              (when (and instr ok)
+                (printf "~a " instr)
+                (when (member instr ga-transfer-insts)
+                  (set! a (vector-ref word (1+ i)))
+                  (set! name (get-name a))
+                  (if name
+                      ;; convert names like ---l to their address
+                      (begin (set! a (get-addr* name))
+                             (set! comment (and a (format "  \\ %s" name)))
+                             (set! name (or a name)))
+                      (set! name a))
+                  (printf "~a" name)
+                  (when comment (printf comment))
+                  (set! ok false))))
+            (printf "\n")
+            )))))
