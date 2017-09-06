@@ -98,6 +98,7 @@
     (define extern-word-functions false) ;;vector containing extern functions for the current word
 
     (define map-node false)
+    (define map-buffer false)
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -987,9 +988,26 @@
     (define/public (get-inst-index) iI)
 
     (define/public (suspended?) suspended)
-    (define/public (set-map-node node)
+    (define/public (set-map-node node buffer)
       (printf "set-map-node: ~a ~a" (ga-node-coord node) coord)
-      (set! map-node node))
+      (set! map-node node)
+      (set! map-buffer buffer))
+
+    (define (update-display-color color)
+      ;; if color is false, clear the display
+      (with-current-buffer map-buffer
+        (ga-set-usage-color coord color)))
+
+    (define/public (update-map-display global-steps)
+      ;; only called when map-node is non-nil
+      ;;(assert map-node)
+      (let* ((n (floor (* (/ step-counter (if (= global-steps 0)
+                                              1.0 (* global-steps 1.0))) 255)))
+             (s (to-hex-str (- 255 n)))
+             (c (format "#ff%s%s" s s)))
+        (printf "[~a] ~a\n" coord c)
+        (update-display-color c)
+        ))
 
     (define/public (load node)
       ;;CODE is a vector of assembled code

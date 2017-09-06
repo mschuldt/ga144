@@ -17,6 +17,9 @@
     (define time 0)
     (define breakpoint false) ;; set to t when a breakpoint is reached
     (define breakpoint-node false) ;;node where breakpoint originated
+    ;;set by map when it wants the node to update the map with its activity
+    (define display-node-activity false)
+    (define map-buffer false)
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; 8x18 node matrix
 
@@ -127,6 +130,8 @@
               ;; if that happens we need to step the node at the same index again.
               (set! index (add1 index)))
             )))
+      (when display-node-activity
+        (display-activity))
       ;;TODO: use current-node-index to correctly resume after a breakpoint
       breakpoint)
 
@@ -171,6 +176,16 @@
       (set! breakpoint-node false)
       (vector-map (lambda (node) (send node reset!)) nodes)
       (when fetch (fetch-I)))
+
+    (define/public (show-activity state)
+      (set! display-node-activity state)
+       (when state
+           (update-activity)))
+
+    (define (update-activity)
+      (vector-map (lambda (node)
+                    (send node update-map-display time))
+                  nodes))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display functions

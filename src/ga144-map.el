@@ -54,6 +54,7 @@
 (def-local ga-return-display nil) ;;return stack
 (def-local ga-register-display nil)
 (def-local ga-sim-step-increment 1) ;; instructions to execute with each step
+(def-local ga-update-node-colors-fn 'ga-update-usage-colors)
 
 (setq ga-empty-node-ram-display-data (make-vector 64 "~ ~ ~ ~"))
 ;; maps nodes to their current position in their ram display window
@@ -656,7 +657,7 @@
       (setq ga-node-usage-list (ga-calculate-node-usage ga-assembly-data)) ;;TODO: remove
       (setq ga-node-usage-hash (ga-alist->hash ga-node-usage-list)) ;;TODO: remove
       (setq ga-node-locations (compiled-node-locations data))
-      (ga-update-node-usage-colors ga-node-usage-list) ;;TODO: remove
+      (funcall ga-update-node-colors-fn)
       (ga-update-node-usage ga-assembly-data)
       (when ga-ram-display
         (ga-update-ram-display-node)
@@ -714,17 +715,45 @@
           (to-hex-str (- 255 n))
           (to-hex-str (- 255 n))))
 
-(defun ga-update-node-usage-colors (usage)
+(defun ga-update-usage-colors ()
   ;; USAGE format: ((code . word-count)...)
   (loop-nodes node
     ;;reset node colors
     (ga-set-usage-color (ga-node-coord node) nil))
-  (dolist (node usage)
+  (dolist (node ga-node-usage-list)
     (if (> (cdr node) 64)
         (ga-set-usage-color (car node) ga-node-overflow-color)
 
       (ga-set-usage-color (car node)
                           (ga-get-scaled-color "#ff%s%s" (cdr node))))))
+
+(defun ga-update-activity-colors ()
+  (send ga-sim-ga144 show-activity t)
+  )
+
+(defun ga-switch-node-color-method (method)
+  ;; cleanup current method
+  (cond ((eq ga-update-node-colors-fn 'ga-update-activity-colors)
+         (send ga-sim-ga144 show-activity nil))
+        )
+  ;; set new method
+  (cond ((eq method 'usage)
+         (setq ga-update-node-colors-fn 'ga-update-usage-colors))
+        ((eq method 'activity)
+         (setq ga-update-node-colors-fn 'ga-update-activity-colors))
+        (t (error "unknown color update type: %s" method)))
+
+  (funcall ga-update-node-colors-fn))
+
+(defun ga-display-node-usage ()
+  (interactive)
+  (ga-switch-node-color-method 'usage)
+  (message "Node Usage"))
+
+(defun ga-display-node-activity ()
+  (interactive)
+  (ga-switch-node-color-method 'activity)
+  (message "Node Activity"))
 
 (defun ga-format-str (str color)
   (when color
@@ -1505,6 +1534,9 @@ This resets the simulation"
         (define-key map (kbd "b") 'ga-load-from-bootstream)
         (define-key map (kbd "n") 'ga-set-step-increment)
         (define-key map (kbd "c") 'ga-sim-continue)
+        ;;display views
+        (define-key map (kbd "u") 'ga-display-node-usage)
+        (define-key map (kbd "a") 'ga-display-node-activity)
         map))
 
 (defun ga-map-buffer-valid (buf)
@@ -1523,7 +1555,7 @@ This resets the simulation"
       (assert coord)
       (setq f18node (send ga-sim-ga144 coord->node coord))
       (assert f18node)
-      (send f18node set-map-node node))))
+      (send f18node set-map-node node (current-buffer)))))
 
 (defun ga-open-map-for-buffer (aforth-buffer &optional buf-name-fmt)
   (let* ((filename (buffer-file-name aforth-buffer))
