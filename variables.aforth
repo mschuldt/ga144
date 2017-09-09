@@ -1,0 +1,7 @@
+node 1
+ : x! @p drop !p ;
+ : x 0 ;
+ : main
+ 5 x! ( set
+ x ( reference
+
