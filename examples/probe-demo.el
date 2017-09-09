@@ -1,17 +1,4 @@
-;; ./probe-demo.sh
-
-(let ((base (file-name-directory (or buffer-file-name load-file-name))))
-  (setq ga-base-dir (file-name-directory (substring base 0 -1))))
-
-(add-to-list 'load-path (concat ga-base-dir "src"))
-(add-to-list 'load-path (concat ga-base-dir "tests"))
-
-(require 'cl)
-(require 'gv)
-(require 'rkt)
-(require 'ga144-sim)
-(require 'ga-loadup)
-(ga-loadup)
+;; ga probe-demo.el
 
 (setq code "
 node 705
