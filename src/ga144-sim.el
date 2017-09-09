@@ -39,6 +39,50 @@
                 (send to-node set-pin! to-pin (= x 3)))))
     (send from-node set-gpio-handler from-pin wire)))
 
+
+(setq ga-probe-count 0)
+(setq ga-probes (make-hash-table))
+
+(defun ga-new-probe ()
+  (let ((id ga-probe-count))
+    (puthash id nil ga-probes)
+    (setq ga-probe-count (1+ id))
+    id))
+
+(defun ga-probe-record (node probe-id state)
+  (let* ((state (if (= state 3) 1 0))
+         (history (gethash probe-id ga-probes))
+         (last-time (car (car history)))
+         (last-state (cdr (car history)))
+         (time (send (send node get-ga144) get-time)))
+    (when last-state
+      (setq history (cons (cons time last-state) history)))
+    (puthash probe-id (cons (cons time state) history) ga-probes)))
+
+(defun ga-connect-probe (node pin)
+  (let* ((probe-id (ga-new-probe))
+         (probe (lambda (x)
+                  (ga-probe-record node probe-id x))))
+    (send node set-gpio-handler pin probe)
+    probe-id))
+
+(defun ga144-probe-save (&optional filename)
+  (let ((shift 0))
+    (with-temp-buffer
+      (insert "import matplotlib.pyplot as plt\n")
+      (maphash (lambda (k v)
+                 (setq v (nreverse v))
+                 (when v
+                   (insert (format "plt.plot([%s], [%s])\n"
+                                   (mapconcat (lambda (x) (number-to-string (car x))) v ",")
+                                   (mapconcat (lambda (x) (number-to-string (+ (cdr x) shift))) v ",")))
+                   (setq shift (+ shift 1.02))))
+               ga-probes)
+      ;; TODO: labels
+      (insert "plt.show()\n")
+      (write-file (or filename "ga144-probe-graph.py"))
+      )))
+
 (defun ga144-step* (&optional chip)
   (let ((chips (or (and chip (list chip))
                    ga144-chips))
