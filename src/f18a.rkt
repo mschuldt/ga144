@@ -710,12 +710,13 @@
 
 
       (define _i iI)
+      (define nobreak true)
 
       (cond ((= iI 0)
-             ;; check if this word has a breakpoint stet
-             (when (funcall (vector-ref breakpoints (if (port-addr? P)
-                                                        (& P #x1ff)
-                                                        (region-index P))))
+             ;; check if this word has a breakpoint set
+             (when (setq nobreak (funcall (vector-ref breakpoints (if (port-addr? I-index)
+                                                                     (& I-index #x1ff)
+                                                                     (region-index I-index)))))
                (set! iI (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
                             1
                             0))))
@@ -737,8 +738,11 @@
                 (funcall (gethash fn ga-extern-functions 'identity) this))
               (vector-ref extern-word-functions _i)))
 
-      ;; fetch next word if index is zero and we are not in a unext loop
-      (when (= iI 0)
+      ;; Fetch next word if index is zero and we are not in a unext loop
+      ;; Don't fetch a word if a breakpoint is triggered, breakpoints trigger
+      ;; at slot 0 but don't execute the instruction in slot 0. On next step
+      ;; we need to resume at the same word.
+      (when (and nobreak (= iI 0))
         (if unext-jump-p
             (set! unext-jump-p false)
             (fetch-I))))
@@ -1390,14 +1394,18 @@
       (set! break-at-step step))
 
     (define/public (set-breakpoint line-or-word)
+      (define break-count -1)
       (define (break-fn)
-        (let ((name (get-memory-name P)))
-          ;;TODO: fix - what to do here
-          ;;  (set! step-fn (lambda ()
-          ;;                  (set! P (incr P))
-          ;;                  (step-0-execute)))
-          (break name)
-          false))
+        (let ((name (get-memory-name I-index)))
+          ;; The first time this is called it triggers a breakpoint.
+          ;; The instruction in the slot that triggers the breakpoint is not executed.
+          ;; On next step the simulation resumes where it left off but
+          ;; the breakpoint must not trigger.
+          (set! break-count (1+ break-count))
+          (if (eq (% break-count 2) 0) ;;trigger breakpoint on every other call
+              (begin (break name)
+                     false)
+              true)))
       (define addr (get-breakpoint-address line-or-word))
       (when addr
         (log (rkt-format "setting breakpoint for '~a' at word ~a\n" line-or-word addr))
