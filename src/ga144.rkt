@@ -131,14 +131,15 @@
               (set! index (add1 index)))
             )))
       (when display-node-activity
-        (display-activity))
+        (update-activity))
       ;;TODO: use current-node-index to correctly resume after a breakpoint
       breakpoint)
 
     (define/public (step-program-n! n)
       (set! breakpoint false)
       (while (and (> n 0)
-                  (not breakpoint))
+                  (not (or (= last-active-index -1)
+                           breakpoint)))
         (setq breakpoint (step-program!))
         (setq n (1- n)))
       breakpoint)
@@ -185,7 +186,8 @@
     (define (update-activity)
       (vector-map (lambda (node)
                     (send node update-map-display time))
-                  nodes))
+                  nodes)
+      (redisplay))
 
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; state display functions
