@@ -2,6 +2,8 @@
 
 (define save-history false)
 (define count-instructions true)
+(define activity-history-length 10)
+(define activity-history-bucket-size 10)
 
 (define obj-map_ (make-hash)) ;;maps names to objects
 (define obj-alist_ '()) ;;maps ojbects to names
@@ -92,6 +94,9 @@
 
     (define inst-counters false) ;; vector that records instruction execution counts
     (define step-counter 0) ;; number of steps this node has taken
+    (define activity-history-index 0)
+    (define activity-history false)
+    (define activity-sum 0)
 
     (define extern-functions false) ;;vector of vectors with extern functions for each word
     (define extern-word-functions false) ;;vector containing extern functions for the current wor
@@ -656,6 +661,9 @@
         (set! step-counter (add1 step-counter))
         (when (eq? step-counter break-at-step)
           (break (rkt-format "step ~a" break-at-step)))
+        (set! activity-sum (add1 activity-sum))
+        (vector-set! activity-history activity-history-index
+                     (add1 (vector-ref activity-history activity-history-index)))
 
         (vector-set! inst-counters opcode (add1 (vector-ref inst-counters opcode))))
 
@@ -1004,14 +1012,26 @@
     (define/public (update-map-display global-steps)
       ;; only called when map-node is non-nil
       ;;(assert map-node)
-      (let* ((gsteps (max step-counter global-steps))
-             (n (floor (* (/ step-counter (if (= gsteps 0)
-                                              1.0 (* gsteps 1.0))) 255)))
-             (s (to-hex-str (- 255 n)))
-             (c (format "#ff%s%s" s s)))
-        ;;(printf "[~a] ~a ~a ~a\n" coord c n s)
-        (update-display-color c)
-        ))
+      (when (= (% global-steps activity-history-bucket-size) 0)
+        ;; move to next activity history bucket
+        (set! activity-history-index (% (add1 activity-history-index)
+                                        activity-history-length))
+        (set! activity-sum (- activity-sum
+                              (vector-ref activity-history activity-history-index)))
+        (vector-set! activity-history activity-history-index 0))
+
+      ;;test
+      (let ((global-steps (* activity-history-length activity-history-bucket-size))
+            (step-counter activity-sum))
+
+        (let* ((gsteps (max step-counter global-steps))
+               (n (floor (* (/ step-counter (if (= gsteps 0)
+                                                1.0 (* gsteps 1.0))) 255)))
+               (s (to-hex-str (- 255 n)))
+               (c (format "#ff%s%s" s s)))
+          ;;(printf "[~a] ~a ~a ~a\n" coord c n s)
+          (update-display-color c)
+          )))
 
     (define/public (load node)
       ;;CODE is a vector of assembled code
@@ -1269,6 +1289,9 @@
       (set! step-counter 0)
       (set! extern-functions false)
       (set! extern-word-functions false)
+      (set! activity-history-index 0)
+      (set! activity-history (make-vector activity-history-length 0))
+      (set! activity-sum 0)
       (reset-breakpoints)
       (reset-p!)
       (load-rom)
