@@ -15,6 +15,40 @@
                         "2*" "2/" "-" "+" "and" "or" "drop" "dup" "pop"
                         "over" "a" "." "push" "b!" "a!"))
 
+;; from DB002. Typical time. pico seconds
+(define opcode-time '((";" . 5200)
+                      ("ex" . 5200)
+                      ("jump" . 5200)
+                      ("call" . 5200)
+                      ("unext" . 2400)
+                      ("next" . 5200)
+                      ("if" . 5200)
+                      ("-if" . 5200)
+                      ("@p" . 5000)  ;; TODO @p time is slot dependent
+                      ("@+" . 5000) ;; 3500 when reading from IO register
+                      ("@b" . 5000)
+                      ("@" . 5000)
+                      ("!p" . 5000)
+                      ("!+" . 5000)
+                      ("!b" . 5000)
+                      ("!" . 5000)
+                      ("+*" . 1400)
+                      ("2*" . 1400)
+                      ("2/" . 1400)
+                      ("-" . 1400)
+                      ("+" . 1400)
+                      ("and" . 1400)
+                      ("or" . 1400)
+                      ("drop" . 1400)
+                      ("dup" . 1400)
+                      ("pop" . 1400)
+                      ("over" . 1400)
+                      ("a" . 1400)
+                      ("." . 1400)
+                      ("push" . 1400)
+                      ("b!" . 1400)
+                      ("a!" . 1400)))
+
 (define opcode-set (list->set (vector->list opcodes)))
 
 (defconst address-required '("jump" "call" "next" "if" "-if"))
