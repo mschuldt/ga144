@@ -125,7 +125,8 @@
           (begin
             (set! current-node (vector-ref active-nodes index))
 
-            (unless (send current-node step-program!)
+            (unless (and (send current-node step-program!)
+                         (not (= index last-active-index)))
               ;; if node gets suspended during this step it will swap itself
               ;; with the last active node, declrementing last-active-index.
               ;; if that happens we need to step the node at the same index again.
