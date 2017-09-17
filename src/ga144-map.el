@@ -559,8 +559,6 @@
         ga-current-coord coord)
   (when ga-sim-p
     (ga-sim-set-current-node coord))
-  (ga-update-ram-display-node)
-  (ga-update-stack-displays)
   (update-position)
   ;; ram-display-moved is set to nil after all the update functions run
   ;; so that they can tell that the display for ga-prev-coord moved
@@ -1043,6 +1041,7 @@ Called after ga-current-node is set"
       (ga-clear-selection))
     (move-selected-node-overlay prev-coord ga-current-coord))
   ;;(message "current coord: %s" ga-current-coord)
+  (ga-sim-update-display)
   )
 
 (defun ga-draw-map-in-frame-limits ()
@@ -1422,7 +1421,6 @@ This resets the simulation"
          (setq again t)
          (setq breakpoint? (send ga-sim-ga144 step-program-n! 1000)))
        (ga-sim-update-display)
-       (redisplay)
        (message "%s active"  nactive) ;;TODO: don't display as message (or disable messages), display total steps
        ))))
 
@@ -1483,7 +1481,8 @@ This resets the simulation"
   (when ga-ram-display
     (ga-update-ram-display-node)
     )
-  (ga-update-stack-displays))
+  (ga-update-stack-displays)
+  (redisplay))
 
 (defun ga-sim-set-breakpoint ()
   )
