@@ -29,6 +29,7 @@
 (setq bowman-expand? nil)
 (setq print-bowman? nil)
 (setq sim? nil)
+(setq sim-bootstream? "")
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -87,6 +88,9 @@
                (setq print-bowman? t))
               (("--sim") nil ""
                (setq sim? t))
+              (("--sim-bootstream") nil ""
+               (setq sim? t
+                     sim-bootstream? "--sim-bootstream"))
               (("--print-gc") nil ""
                (add-hook 'post-gc-hook (lambda () (message "GC: %ss(%s)" gc-elapsed gcs-done))))
               (("--no-gc") nil ""
@@ -205,7 +209,7 @@
   (ga-main-exit))
 
 (when sim?
-  (shell-command  (concat "ga-sim " in-file))
+  (shell-command  (concat "ga-sim " in-file " " sim-bootstream?))
   (ga-main-exit))
 
 (when bowman-expand?

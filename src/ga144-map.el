@@ -1310,8 +1310,20 @@ Elements of ALIST that are not conses are ignored."
        (progn ,@body)
      (message "Not in GA144 simulation mode")))
 
+
+;; set by ga-run-simulator.el to force loading the simulated bootstream without
+;; having to reset the chip (which is currently broken)
+(setq ga-load-bootstream nil)
+
 (defun ga-sim-load (assembly)
-  (send ga-sim-ga144 load assembly)
+  (if ga-load-bootstream
+      (progn
+        (message "Simulating bootstream")
+        (let ((bs (make-bootstream assembly "async"))) ;;TODO: other bootstream types
+          (ga-sim-continue) ;;leaves all nodes in port exec mode
+          (send ga-sim-ga144 load-bootstream bs))
+        (send ga-sim-ga144 reset-time))
+    (send ga-sim-ga144 load assembly))
   (ga-update-current-node-registers))
 
 (defun ga-sim-recompile ()
