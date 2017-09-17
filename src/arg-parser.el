@@ -1,5 +1,9 @@
 (require 'cl)
 
+(defun arg-parse-error (msg)
+  (message msg)
+  (kill-emacs))
+
 (defun verify-commandline-spec (spec)
   (let ((spec-checkers '((lambda (x) (unless (eq x 'position)
                                        (let (ret)
@@ -16,7 +20,7 @@
             spec (cdr spec)
             funcs spec-checkers)
       (unless (>= (length s) 4)
-        (error "expected length >= 4: '%s' " s))
+        (arg-parse-error (format "Expected length >= 4: '%s' " s)))
       (while (and spec-checkers s funcs (not error-str))
         (setq fn (car funcs)
               funcs (cdr funcs)
@@ -24,7 +28,7 @@
               s (cdr s))
         (setq error-str (funcall fn item))))
     (when error-str
-      (error "command-line option spec error: '%s', form='%s" error-str current-form))))
+      (arg-parse-error (format "command-line option spec error: '%s', form='%s" error-str current-form)))))
 
 (defmacro popn (lst n)
   "remove and return the first N items of list LST as a list"
@@ -61,14 +65,14 @@
             (setq nargs (length (cadr fn)))
             (setq fn-args (popn args nargs))
             (when (not (= (length fn-args) nargs))
-              (error "option %s expected at least %d args" a nargs))
+              (arg-parse-error (format "Option %s expected at least %d args" a nargs)))
             (apply fn fn-args))
 
         (setq fn (car positional-args)
               positional-args (cdr positional-args))
         (if fn
             (funcall fn a)
-          (error "unexpected positional arg: %s" a)))
+          (arg-parse-error (format "Unexpected arg: %s" a))))
       )))
 
 (provide 'arg-parser)
