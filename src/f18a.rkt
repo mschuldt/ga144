@@ -3,7 +3,6 @@
 (define save-history false)
 (define count-instructions true)
 
-
 (define obj-map_ (make-hash)) ;;maps names to objects
 (define obj-alist_ '()) ;;maps ojbects to names
 (define obj-key-counter 0)
@@ -33,7 +32,7 @@
     (define ga144-nodes-key (register-obj (send ga144 get-nodes)))
     (set! ga144 false)
     (set '__optional__ga144 false)
-    (define (get-ga144)
+    (define/public (get-ga144)
       (lookup-obj ga144-key))
 
     (set! active-index index);;index of this node in the 'active-nodes' vector
@@ -95,7 +94,7 @@
     (define step-counter 0) ;; number of steps this node has taken
 
     (define extern-functions false) ;;vector of vectors with extern functions for each word
-    (define extern-word-functions false) ;;vector containing extern functions for the current word
+    (define extern-word-functions false) ;;vector containing extern functions for the current wor
 
     (define map-node false)
     (define map-buffer false)
@@ -224,12 +223,14 @@
     (define (remove-from-active-list)
       (if suspended
           (err "cannot remove suspended node from active list")
-          (send (get-ga144) remove-from-active-list this)))
+          (send (get-ga144) remove-from-active-list this))
+      (set! suspended t))
 
     (define (add-to-active-list)
       (if suspended
           (send (get-ga144) add-to-active-list this)
-          (err "cannot add active node to active list")))
+          (err "cannot add active node to active list"))
+      (set! suspended false))
 
     (define (suspend (reason false))
       (when debug
@@ -237,7 +238,6 @@
         (printf "suspending due to ~a\n" reason))
       (when debug-ports (log "suspending"))
       (remove-from-active-list)
-      (set! suspended t)
       (when break-at-io-change
         (when break-at-io-change-autoreset
           (set! break-at-wakeup false)) ;;TODO:???
@@ -246,7 +246,6 @@
     (define (wakeup)
       (when debug-ports (log "wakeup"))
       (add-to-active-list)
-      (set! suspended false)
       (if break-at-wakeup
           (begin
             (when break-at-wakeup-autoreset
