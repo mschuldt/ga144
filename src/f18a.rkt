@@ -1005,11 +1005,12 @@
     (define/public (update-map-display global-steps)
       ;; only called when map-node is non-nil
       ;;(assert map-node)
-      (let* ((n (floor (* (/ step-counter (if (= global-steps 0)
-                                              1.0 (* global-steps 1.0))) 255)))
+      (let* ((gsteps (max step-counter global-steps))
+             (n (floor (* (/ step-counter (if (= gsteps 0)
+                                              1.0 (* gsteps 1.0))) 255)))
              (s (to-hex-str (- 255 n)))
              (c (format "#ff%s%s" s s)))
-        (printf "[~a] ~a\n" coord c)
+        ;;(printf "[~a] ~a ~a ~a\n" coord c n s)
         (update-display-color c)
         ))
 
@@ -1035,7 +1036,7 @@
       (set! B (or (node-b node) B))
       (set! IO (or (node-io node) IO))
       (for ((v (node-stack node)))
-           (d-push! v))
+        (d-push! v))
       (let ((funcs (node-extern-funcs node)))
         (when funcs
           (set! extern-functions (make-vector MEM-SIZE false))
@@ -1289,10 +1290,12 @@
     ;; p and executing the word.
     ;; returns false when P = 0, else t
     (define/public (step-program!)
-      (unless suspended
-        (step!)
-        (when print-state
-          (send (get-ga144) display-node-states (list coord))))
+      (if suspended
+          (message "Node %s suspended" coord)
+          (begin
+            (step!)
+            (when print-state
+              (send (get-ga144) display-node-states (list coord)))))
       suspended)
 
     ;; Steps the program n times.
