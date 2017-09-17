@@ -115,7 +115,7 @@
 
     ;; step functions return true if a breakpoint has been reached, else false
 
-    (define/public (step-program!)
+    (define/public (step-program! (display-update-ok true))
       (set! breakpoint false)
       (set! time (add1 time))
       (define index 0)
@@ -132,7 +132,8 @@
               ;; if that happens we need to step the node at the same index again.
               (set! index (add1 index)))
             )))
-      (when display-node-activity
+      (when (and display-node-activity
+                 display-update-ok)
         (update-activity))
       ;;TODO: use current-node-index to correctly resume after a breakpoint
       breakpoint)
@@ -142,8 +143,10 @@
       (while (and (> n 0)
                   (not (or (= last-active-index -1)
                            breakpoint)))
-        (setq breakpoint (step-program!))
+        (setq breakpoint (step-program! false))
         (setq n (1- n)))
+      (when display-node-activity
+        (update-activity))
       breakpoint)
 
     ;;step program until all nodes are non-active
@@ -156,7 +159,9 @@
             (step-program!))
           (while (not (or (= last-active-index -1)
                           breakpoint))
-            (step-program!)))
+            (set! breakpoint (step-program! false))))
+      (when display-node-activity
+        (update-activity))
 
       ;; (when (= (num-active-nodes) 0)
       ;;   (when interactive
@@ -178,7 +183,9 @@
       (set! cli-active? false)
       (set! breakpoint-node false)
       (vector-map (lambda (node) (send node reset!)) nodes)
-      (when fetch (fetch-I)))
+      (when fetch (fetch-I))
+      (when display-node-activity
+        (update-activity)))
 
     (define/public (show-activity state)
       (set! display-node-activity state)
@@ -248,6 +255,7 @@
       (set! show-io-changes? show))
 
     (define/public (get-time) time)
+    (define/public (reset-time) (set! time 0))
 
     (define/public (disassemble-memory coord (start 0) (end #xff))
       ;;  disassemble and print a nodes memory
