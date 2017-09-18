@@ -663,5 +663,6 @@ node 4
     (printf "failed: ~a\n" tests-failed)))
 
 (require 'ga-test-target-chip)
+(require 'ga-test-pins)
 
 (provide 'ga-tests)
