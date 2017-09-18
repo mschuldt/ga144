@@ -1497,6 +1497,16 @@ This resets the simulation"
                    (buffer-string)))
       (message "no node selected"))))
 
+(define (ga-call-word)
+  (interactive)
+  (assert ga-sim-current-node)
+  (let ((word (read-string "word> ")))
+    (when word
+      (send ga-sim-current-node call-word! word)
+      (ga-update-current-node-registers)
+      (ga-sim-update-display)
+      )))
+
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
         (define-key map "+" 'ga-inc-node-size)
@@ -1545,6 +1555,7 @@ This resets the simulation"
         (define-key map (kbd "b") 'ga-load-from-bootstream)
         (define-key map (kbd "n") 'ga-set-step-increment)
         (define-key map (kbd "c") 'ga-sim-continue)
+        (define-key map (kbd "w") 'ga-call-word)
         ;;display views
         (define-key map (kbd "u") 'ga-display-node-usage)
         (define-key map (kbd "a") 'ga-display-node-activity)
