@@ -1715,6 +1715,14 @@
     (define/public (get-extern-functions)
       extern-functions)
 
+    (define/public (get-execution-time)
+      (when inst-counters
+        (let ((sum 0))
+          (for ((i 32))
+            (set! sum (+ sum (* (vector-ref inst-counters i)
+                                (vector-ref opcode-time-v i)))))
+          (cons coord sum))))
+
     (when (valid-coord? coord)
       ;;; dummy edge nodes have a invalid coord so things like rom
       ;;; hash table indexes fail in reset

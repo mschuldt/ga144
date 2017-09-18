@@ -265,6 +265,12 @@
       ;;  disassemble and print a nodes memory
       (send (coord->node coord) disassemble-local))
 
+    (define/public (get-execution-time)
+      (let ((ret nil))
+        (for ((node nodes))
+          (push (send node get-execution-time) ret))
+        ret))
+
     (build-node-matrix)
     (reset!)
     ))

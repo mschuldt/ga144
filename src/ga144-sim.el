@@ -103,6 +103,20 @@
   (setq ga144-name-to-chip (make-hash-table))
   (setq num-chips 0))
 
+(defun ga-format-ps (time)
+  (cond ((< time 1000000)
+         (format "%sns" (/ time 1000)))
+        ((< time 1000000000)
+         (format "%sus" (/ time 1000000)))
+        (t (error "todo"))
+        ))
+
+(defun ga-print-execution-time (&optional chip)
+  (dolist (x (sort (send chip get-execution-time)
+                   (lambda (a b) (< (cdr a) (cdr b)))))
+    (if (> (cdr x) 5200)
+        (printf (format "%-3s  %s\n" (car x) (ga-format-ps (cdr x)))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq ga-extern-functions (make-hash-table))
