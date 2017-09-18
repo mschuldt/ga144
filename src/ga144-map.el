@@ -1332,8 +1332,7 @@ This resets the simulation"
   (assert ga-project-aforth-buffer)
   (let ((this-buffer (current-buffer)))
     (with-current-buffer ga-project-aforth-buffer
-      (aforth-update-compilation-for-map-buffer this-buffer)))
-  (ga-sim-reset))
+      (aforth-update-compilation-for-map-buffer this-buffer))))
 
 (defun ga-sim-reset (&optional bootstream)
   (send ga-sim-ga144 reset!)
@@ -1605,7 +1604,7 @@ This resets the simulation"
       (ga-sim-set-current-node ga-current-coord)
       (ga-sim-recompile)
       (ga-draw-map-in-frame-limits);;need to redraw to display simulation
-      (ga-sim-reset)
+      ;(ga-sim-reset)
       ;;TODO: this duplicate display should not be necessary
       )
     buf))
