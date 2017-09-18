@@ -239,7 +239,8 @@
           (printf "   ~a\n" val)))
 
       ;;initial jump currently defaults to 0 so don't insert an extra jump
-      ;;(printf "   jump ~a\n" (or (node-p node) 0))
+      ;; => ga144tools version always inserts jump, GA144-watch requires jump
+      (printf "   jump ~a\n" (or (node-p node) 0))
 
       (printf ": __start\n"))
     (when aforth-sim
