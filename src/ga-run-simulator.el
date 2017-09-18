@@ -35,10 +35,11 @@
 
 (setq dir (nth 3 command-line-args))
 (setq filename (concat (file-name-as-directory dir)  (nth 4 command-line-args)))
-(setq ga-load-bootstream (member "--sim-bootstream" command-line-args))
 
 (load "ga-loadup.el")
 (ga-loadup)
+
+(setq ga-load-bootstream (member "--sim-bootstream" command-line-args))
 
 (setq ga-default-node-size 6)
 
