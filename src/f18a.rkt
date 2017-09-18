@@ -1102,10 +1102,12 @@
       (if (hash-has-key? symbols word)
           (let ((addr (symbol-address (hash-ref symbols word))))
             (log (rkt-format "call-word!: ~a -> ~a\n" word addr))
-            (apply (vector-ref instructions 3) (list addr 0))
+            (funcall (vector-ref instructions 3) addr 0)
             (set! iI 0)
             (when suspended
               (wakeup))
+            (set! fetching-in-progress false)
+            (fetch-I)
             t)
           false))
 
