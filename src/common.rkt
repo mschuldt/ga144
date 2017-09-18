@@ -49,6 +49,8 @@
                       ("b!" . 1400)
                       ("a!" . 1400)))
 
+(define opcode-time-v (list->vector (map cdr opcode-time)))
+
 (define opcode-set (list->set (vector->list opcodes)))
 
 (defconst address-required '("jump" "call" "next" "if" "-if"))

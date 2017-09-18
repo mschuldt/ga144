@@ -119,6 +119,7 @@
       (set! breakpoint false)
       (set! time (add1 time))
       (define index 0)
+      ;;(setq inhibit-redisplay t)
       (when (>= last-active-index 0)
         (while (and (<= index last-active-index)
                     (not breakpoint))
@@ -132,6 +133,7 @@
               ;; if that happens we need to step the node at the same index again.
               (set! index (add1 index)))
             )))
+      ;;(setq inhibit-redisplay nil)
       (when (and display-node-activity
                  display-update-ok)
         (update-activity))

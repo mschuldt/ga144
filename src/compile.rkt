@@ -400,7 +400,7 @@
           word)
       (when (and verify-unused
                  (not (equal? word (vector false false false false))))
-        (err (format "overwriting word at address %s (node overflow?)" n)))
+        (err (format "overwriting word %s at address %s (node overflow?)" word n)))
       word)))
 
 (define (org n)
@@ -751,6 +751,7 @@
     (set-node-len! current-node (add1 i))))
 
 (define (start-new-node coord)
+  (when DEBUG? (printf "new node: ~a\n" coord))
   (when current-node
     (set-node-address-cells! current-node address-cells))
   (when memory ;;make sure last instruction is full
@@ -1273,16 +1274,18 @@ effect as though a program had executed code 30 20 10"
 (add-directive! "lit" "todo" lit-directive)
 
 (define (err msg)
-  (when elisp?
-    (set 'aforth-error-message msg)
-    (throw 'aforth-error nil))
-
   (printf "ERROR")
   (when (and current-tok-line current-tok-col)
     (printf (rkt-format "[~a:~a]" current-tok-line current-tok-col)))
   (printf (rkt-format " ~a\n" msg))
   (when current-token
     (printf "  (while compiling token '~a')\n" current-token))
+  (when elisp?
+    (set 'aforth-error-message msg)
+    ;;TODO: need to set current node and other info here
+    ;;  currently that info is updated in the parse stage.
+    ;;  if the error occurs during compilation then the node is always the last from the file
+    (throw 'aforth-error nil))
   (exit 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1303,19 +1306,21 @@ effect as though a program had executed code 30 20 10"
   (assert (not _no-compiler-op-def))
   (hash-set! compiler-ops name fn))
 
-(define (compiler-binop op)
-  (push (op (pop stack) (pop stack)) stack))
+(define (_compiler-binop op)
+  (check-stack stack 2)
+  (push (funcall op (pop stack) (pop stack)) stack))
 
-(define (compiler-unop op)
+(define (_compiler-unop op)
+  (check-stack stack 1)
   (push (op (pop stack)) stack))
 
-(def-compiler-op! "+" (lambda () (compiler-binop +)))
-(def-compiler-op! "sub" (lambda () (compiler-binop -)))
-(def-compiler-op! "*" (lambda () (compiler-binop *)))
-(def-compiler-op! "/" (lambda () (compiler-binop /)))
-(def-compiler-op! "or" (lambda () (compiler-binop bitwise-xor)))
-(def-compiler-op! "ior" (lambda () (compiler-binop bitwise-ior)))
-(def-compiler-op! "-" (lambda () (compiler-unop bitwise-not)))
+(def-compiler-op! "+" (lambda () (_compiler-binop '+)))
+(def-compiler-op! "sub" (lambda () (_compiler-binop '-)))
+(def-compiler-op! "*" (lambda () (_compiler-binop '*)))
+(def-compiler-op! "/" (lambda () (_compiler-binop '/)))
+(def-compiler-op! "or" (lambda () (_compiler-binop 'bitwise-xor)))
+(def-compiler-op! "ior" (lambda () (_compiler-binop 'bitwise-ior)))
+(def-compiler-op! "-" (lambda () (_compiler-unop 'bitwise-not)))
 
 (def-compiler-op!
   "dup"
