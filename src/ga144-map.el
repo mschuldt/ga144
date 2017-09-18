@@ -1418,7 +1418,7 @@ This resets the simulation"
        (when (and (> nactive 0)
                   (not breakpoint?))
          (setq again t)
-         (setq breakpoint? (send ga-sim-ga144 step-program-n! 1000)))
+         (setq breakpoint? (send ga-sim-ga144 step-program-n! 100)))
        (ga-sim-update-display)
        (message "%s active"  nactive) ;;TODO: don't display as message (or disable messages), display total steps
        ))))
