@@ -286,7 +286,10 @@
 
             ((or (set-member? aforth-directive-map val)
                  (set-member? aforth-port-map val)
-                 (equal val "next"))
+                 (equal val "next")
+                 (or (and bowman-format
+                          (set-member? io-place-names-map val)))
+                 )
              (push (aforth-set-token token 'directive val nil start end)
                    out))
 

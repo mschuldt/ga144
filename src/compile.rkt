@@ -236,7 +236,7 @@
         (setq addr name)
       (setq addr (string->number name))))
 
-  (when (and (null? addr) ;; bwoman-format forms like "jump east"
+  (when (and (null? addr) ;; bowman-format forms like "jump east"
              (member name '("north" "south" "east" "west")))
     (setq addr (hash-ref names->addresses (convert-direction current-node-coord name))))
 
@@ -1262,7 +1262,9 @@ effect as though a program had executed code 30 20 10"
     dir)))
 
 (define (define-named-addresses!)
-  (for ((addr named-addresses))
+  (for ((addr (if (or bowman-format true)
+                  (append named-addresses io-places)
+                  named-addresses)))
     (add-directive!
      (car addr)
      (format "Compile the address for the ~a port" (car addr))
