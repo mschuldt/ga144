@@ -30,6 +30,7 @@
 (setq print-bowman? nil)
 (setq sim? nil)
 (setq sim-bootstream? "")
+(setq ga-print-execution-time? nil)
 
 (defun ga-print-help-and-exit ()
   (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
@@ -93,6 +94,8 @@
                      sim-bootstream? "--sim-bootstream"))
               (("--print-gc") nil ""
                (add-hook 'post-gc-hook (lambda () (message "GC: %ss(%s)" gc-elapsed gcs-done))))
+              (("--print-time") nil "print an estimate node execution time when the program exists"
+               (setq ga-print-execution-time? t))
               (("--no-gc") nil ""
                (setq gc-cons-threshold most-positive-fixnum))
               (position (file) "aforth file"
@@ -198,13 +201,17 @@
   (message "Error: unknown file type")
   (ga-main-exit))
 
-(when (string= file-extension "el")
+(defun ga-require-ga144-sim ()
   (require 'ga144-sim)
+  (setq ga-print-execution-time ga-print-execution-time?))
+
+(when (string= file-extension "el")
+  (ga-require-ga144-sim)
   (load (expand-file-name in-file working-dir))
   (ga-main-exit))
 
 (when run?
-  (require 'ga144-sim)
+  (ga-require-ga144-sim)
   (ga144-run-file (expand-file-name in-file))
   (ga-main-exit))
 

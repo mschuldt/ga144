@@ -7,6 +7,8 @@
 (require 'aforth-compile)
 (require 'rkt)
 
+(setq ga-print-execution-time nil)
+
 (defun ga144-run-file (file)
   (let* ((compiled (aforth-compile-file file))
          (assembled (assemble compiled))
@@ -15,6 +17,8 @@
     (send chip load assembled)
     (send (send chip coord->node 705) set-pin! 0 t) ;; set 705.17 high to prevent spi boot
     (send chip step-program!*)
+    (when ga-print-execution-time
+      (ga-print-execution-time chip))
     ))
 
 (setq ga144-chips nil)
@@ -112,10 +116,11 @@
         ))
 
 (defun ga-print-execution-time (&optional chip)
+  (message "node | time\n-----------")
   (dolist (x (sort (send chip get-execution-time)
                    (lambda (a b) (< (cdr a) (cdr b)))))
     (if (> (cdr x) 5200)
-        (printf (format "%-3s  %s\n" (car x) (ga-format-ps (cdr x)))))))
+        (printf (format "%-3s   %s\n" (car x) (ga-format-ps (cdr x)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
