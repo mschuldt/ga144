@@ -1,0 +1,11 @@
+( ga test-print2.aforth --run )
+include test-print.el
+
+node 0
+: main
+1 1
+10 for
+ over over + !!saveT
+next
+warm !!end
+

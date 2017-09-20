@@ -1,0 +1,18 @@
+\ ga test-print.aforth --run 
+\
+\ calculate the Fibonacci sequence and print the results
+\ demo loading a lisp file and calling a lisp function
+\ with the !!<function> syntax
+
+include test-print.el
+
+node 0
+: main
+1 1
+10 for
+over over + !!showT
+next
+
+warm
+
+
