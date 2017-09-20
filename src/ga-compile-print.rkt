@@ -225,7 +225,7 @@
     (define word false)
     (printf (format "\n\n---------------------------- %03d ----------------------------\n"
                     coord))
-    (when full
+    (when (and full (not aforth-sim))
       (print-boot-descriptor "@p a!" (node-a node))
       (when (node-io node)
         (printf "   @p @p b!\n")
