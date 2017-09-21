@@ -92,9 +92,11 @@
                    ga144-chips))
         (again true)
         (breakpoint? nil))
+    (setq ga-run-sim t)
 
     (while (and again
-                (not breakpoint?))
+                (not breakpoint?)
+                ga-run-sim)
       (set! again nil)
       (for ((chip chips))
            (when (and (> (send chip num-active-nodes) 0)

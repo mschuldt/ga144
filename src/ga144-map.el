@@ -1411,8 +1411,10 @@ This resets the simulation"
    (let ((again true)
          (breakpoint? nil)
          (nactive nil))
+     (setq ga-run-sim t)
      (while (and again
-                 (not breakpoint?))
+                 (not breakpoint?)
+                 ga-run-sim)
        (set! again nil)
        (setq nactive (send ga-sim-ga144 num-active-nodes))
        (when (and (> nactive 0)

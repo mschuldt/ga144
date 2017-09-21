@@ -6,6 +6,10 @@
 (define port-debug-list '(1 2))
 (define (PORT-DEBUG? coord) (and _PORT-DEBUG? (member coord port-debug-list)))
 
+(define ga-run-sim t) ;;global variable used for halting the simulation
+(define (ga-stop-sim!)
+  (set! ga-run-sim nil))
+
 (define (make-ga144 name_ (interactive_ false) (source-buffer_ false))
   (new ga144% name_ interactive_))
 
@@ -142,9 +146,11 @@
 
     (define/public (step-program-n! n)
       (set! breakpoint false)
+      (set! ga-run-sim true)
       (while (and (> n 0)
                   (not (or (= last-active-index -1)
-                           breakpoint)))
+                           breakpoint))
+                   ga-run-sim)
         (setq breakpoint (step-program! false))
         (setq n (1- n)))
       (when display-node-activity
@@ -154,13 +160,16 @@
     ;;step program until all nodes are non-active
     (define/public (step-program!* (max-time false))
       (set! breakpoint false)
+      (set! ga-run-sim true)
       (if max-time
           (while (and (not (or (= last-active-index -1)
                                breakpoint))
-                      (< time 1000000))
+                      (< time 1000000)
+                      ga-run-sim)
             (step-program!))
-          (while (not (or (= last-active-index -1)
-                          breakpoint))
+          (while (and (not (or (= last-active-index -1)
+                               breakpoint))
+                      ga-run-sim)
             (set! breakpoint (step-program! false))))
       (when display-node-activity
         (update-activity))
