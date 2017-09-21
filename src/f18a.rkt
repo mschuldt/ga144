@@ -423,6 +423,7 @@
       ;;or when a pin change causes node to awaken
       (when debug-ports (log (rkt-format "(finish-port-read  ~a)\n" val)))
       (set! fetched-data val)
+      (when suspended (wakeup))
       (if fetching-in-progress
           ;; call finish-fetch here instead of waiting for it to happen at the start
           ;; of the next step so that the received word is visable immediately in the map
@@ -437,7 +438,6 @@
         (set! multiport-read-ports false))
       (set! current-reading-port false)
       (set! waiting-for-pin false)
-      (wakeup)
       (and post-finish-port-read (funcall post-finish-port-read)))
 
     (define post-finish-port-write false)
