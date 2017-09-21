@@ -729,11 +729,11 @@
                             0))))
 
             ((= iI 1)
-             (set! iI (if (execute! (bitwise-bit-field I^ 8 13) 8 #x3ff00)
+             (set! iI (if (execute! (bitwise-bit-field I^ 8 13) 8 #x3fe00)
                           2
                           0)))
             ((= iI 2)
-             (set! iI (if (execute! (bitwise-bit-field I^ 3 8) 3 #x3fff8)
+             (set! iI (if (execute! (bitwise-bit-field I^ 3 8) 3 #x3fef8)
                           3
                           0)))
             ((= iI 3)
