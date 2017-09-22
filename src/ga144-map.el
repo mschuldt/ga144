@@ -1592,7 +1592,7 @@ This resets the simulation"
           (with-current-buffer buf
             (setq ga-map-view-mode t)
             (setq ga-project-aforth-buffer aforth-buffer)
-            (setq ga-project-aforth-files filename)
+            (setq ga-project-aforth-file filename)
             (ga-mode)
             (ga-set-aforth-source filename))
           buf))))

@@ -240,7 +240,7 @@
     (define (suspend (reason false))
       (when debug
         (set! reason (or reason "<unspecified>"))
-        (printf "suspending due to ~a\n" reason))
+        (log (rkt-format "suspending due to ~a\n" reason)))
       (when debug-ports (log "suspending"))
       (remove-from-active-list)
       (when break-at-io-change
@@ -683,6 +683,9 @@
 
     (define (finish-I-fetch)
       (set! I fetched-data)
+      (when (null I)
+        (log "Error: invalid null value for fetched data\n")
+        (set! I 0))
       (set! fetched-data false)
       (set! P (incr P))
       (if (or (eq? I 'end) (eq? I false))
@@ -1328,10 +1331,7 @@
     (define/public (step-program!)
       (if suspended
           (message "Node %s suspended" coord)
-          (begin
-            (step!)
-            (when print-state
-              (send (get-ga144) display-node-states (list coord)))))
+          (step!))
       suspended)
 
     ;; Steps the program n times.
@@ -1485,7 +1485,7 @@
              (log (rkt-format "ERR: invalid breakpoint '~a'" line-or-word))
              false)))
 
-    (define (break (reason false))
+    (define/public (break (reason false))
       (log (rkt-format "Breakpoint: ~a "
                        (or reason (rkt-format "~x(~x)" P (region-index P)))))
       (send (get-ga144) break this))

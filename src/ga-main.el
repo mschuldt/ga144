@@ -201,6 +201,8 @@
   (message "Error: unknown file type")
   (ga-main-exit))
 
+(require 'ga144-sim)
+
 (defun ga-require-ga144-sim ()
   (require 'ga144-sim)
   (setq ga-print-execution-time ga-print-execution-time?))
