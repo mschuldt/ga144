@@ -709,13 +709,21 @@
              (finish-I-fetch)))
       (set! fetching-in-progress false))
 
+    (define fetch-next false)
+
     (define (step!)
-      (when fetching-in-progress
-        ;; This is the first step since the node suspended waiting for a read
-        ;; Finish fetching an instruction or data word
-        (finish-fetch))
+      ;;(when suspended (log "(step!) SUSPENDED"))
 
+      (cond (fetching-in-progress
+             ;; This is the first step since the node suspended waiting for a read
+             ;; Finish fetching an instruction or data word
+             (finish-fetch))
+            (fetch-next
+             (set! fetch-next false)
+             (fetch-I))
+            (true (do-step!))))
 
+    (define (do-step!)
       (define _i iI)
       (define nobreak true)
 
@@ -752,7 +760,11 @@
       (when (and nobreak (= iI 0))
         (if unext-jump-p
             (set! unext-jump-p false)
-            (fetch-I))))
+            (if suspended
+                (set! fetch-next true)
+                ;;if not suspended fetch here instead of doing it on the next step.
+                ;; This provides better visual indication in the simulator
+                (fetch-I)))))
 
     (define (get-current-slot-index) iI) ;;TODO: dup of get-inst-index
 
