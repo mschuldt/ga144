@@ -1,0 +1,411 @@
+( adapted from https://github.com/jamesbowman/ga144tools/blob/master/src/nt.ga
+
+include flash-sim.el
+
+node 705 ( test flash controller that calls the lisp simulation
+
+/a east /b io /stack 2 0x2b 0x2a
+: main
+: again
+    0xc00 drop \cmd \ 0xc00 = eval(`0x03 << 10')    \ read
+(       !!break    
+    south a! @
+     \    24o
+    . !!set-addr
+    dup push
+    over over over
+   over over over
+
+   east a!
+   \in8
+    . !!read-len
+    pop !
+    dup !
+
+ 63 and for
+  \in18
+  . !!read-next
+ ! next
+  again ;
+
+: cmd   \ n-
+    0x2f !b 0x2b !b
+    7 push
+    oloop ;
+: 24o
+     23 push
+: oloop
+ -if
+    2* 0x3a !b 0x3b
+    !b next: oloop
+    drop ;
+then \ tx0
+
+    push dup !b
+    over !b pop
+    2* next: oloop
+    drop ;
+
+    .
+
+: in8
+    dup dup or 7
+    push inloop ;
+
+: in18
+    17 push dup
+
+: inloop
+    push !b !b
+    pop @b -if: got0
+    drop - 2*
+    - next: inloop
+    ;
+: got0
+    drop 2* next: inloop
+    ;
+\
+\node 705
+\\ See block 1428 for ROM definitions
+\\ For usage notes:
+\\   https://mschuldt.github.io/www.colorforth.com/flash.htm
+\\   http://ww1.microchip.com/downloads/en/DeviceDoc/25024C.pdf
+\\ EVB001 note: check jumpers J20 and J26
+\
+\/a east /b io /stack 2 0x2b 0x2a
+\: main
+\: again
+\    0xc00 cmd \ 0xc00 = eval(`0x03 << 10')    \ read
+\    south a! @
+\    24o
+\    dup push
+\    over over over
+\    over over over east
+\    a! in8
+\    pop !
+\    dup !
+\
+\ 63 and for in18 ! next
+\   again ;
+\
+\: cmd   \ n-
+\    0x2f !b 0x2b !b
+\    7 push
+\    oloop ;
+\: 24o
+\     23 push
+\: oloop
+\ -if
+\    2* 0x3a !b 0x3b
+\    !b next: oloop
+\    drop ;
+\then \ tx0
+\
+\    push dup !b
+\    over !b pop
+\    2* next: oloop
+\    drop ;
+\
+\    .
+\
+\: in8
+\    dup dup or 7
+\    push inloop ;
+\
+\: in18
+\    17 push dup
+\
+\: inloop
+\    push !b !b
+\    pop @b -if: got0
+\    drop - 2*
+\    - next: inloop
+\    ;
+\: got0
+\    drop 2* next: inloop
+\    ;
+
+node 506
+\ attr: render color 0 .3 .3
+/b north /p north
+
+. .. ( jump NORTH 
+ 
+: addr                      \ ( -- o )
+                            \ fetch byte address 0-383
+                            \ set A to bank
+                            \ o to offset 0-63
+    2/ dup 2/
+    2/ 2/ 2/
+    2/ 2/ tab
+    , 373 \west
+    , 277 \south
+    , 469 \east
+: tab
+    pop + a!
+    @ a!
+    63 and ;
+
+: @
+    @b addr 
+  ..  @p ! !
+  ..    @p a! @ !p ..
+    @ !b ;
+
+: !
+    @b addr
+ ..  @p ! ! @p
+  ..   @p a! . . ..
+  ..   @p ! . . ..
+    ! @b ! ;
+
+: c@
+  @b dup dup addr
+..  @p ! !
+..    @p a! @ !p ..
+  2/ 2* or                \ low bit of addr
+  2* 2* 2*                \ 0 or 8
+  push @ next: hibyte
+: lo8
+  255 and !b ;
+
+: hibyte
+  begin 2/ unext lo8 ;
+
+: c!
+    @b dup addr
+..    @p ! !
+  ..    @p a! . . ..
+    ! @b ! ;
+
+\ The three banks for the RAM
+node 505
+\ attr: render color .3 .3 0
+/p east
+, 50502
+, 50504
+
+node 507
+\ attr: render color .3 .3 0
+/p west
+, 50702
+, 50704
+
+node 406
+\ attr: render color .3 .3 0
+/p north
+, 40602
+, 40604
+
+
+node 605
+\ R stk
+/b north /a 50 \ TODO: fix, temp value for testing,should be RSTACKTOP
+/p east \ port exe from X
+
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+: RSTACKTOP
+: RETURN
+    @+ !b ;
+: RPUSH
+    -1 a +
+     a! ! ;
+
+node 606
+\ D stk and execute
+/b west
+\ /a  STACKTOP
+/a 40 \ approx for testing
+/stack 1 0x947
+: main
+: again
+    0 GO
+    -d-- ; \jump NORTH      \ port exe from D
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+..    .
+: STACKTOP
+: TO_R
+    @p !b !b ;
+   ..   @p RPUSH@605
+: DORETURN
+    @p !b ;
+    ..  RETURN@605
+: IFELSE          \ a b f : if [f] a else b
+    if: TWOD
+    drop
+: TWOD
+    drop
+: GO
+    @p !b !b ;
+  ..    @p !b
+: LIT
+    over
+: -!
+    -1 a + a! ! ;
+: 18shr
+  8 push
+  2/ 2/ unext ;
+: swap
+  over push over
+  or or pop
+  -d-- ; \ jump NORTH \ why?
+
+
+node 706
+/a west /b south
+: again
+    @ @
+    dup 9 push
+    begin 2* unext
+    -if: noreturn
+(      . !!break
+..    @p !b
+..      DORETURN@606  ..
+: noreturn
+    drop
+    63 and push
+    begin @ !b unext
+    again ;
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+node 608
+/a west /b east
+run ;
+emit ;
+\!b @b ! ; ( wait )
+wait ;
+: run @ dup (!b) push ex run ;
+: emit north b! @ !b east b! ;
+: wait !b @ !b @ !b @b ! ;
+
+
+node 609
+/a west /b east
+main ;
+;      ( emit )
+\!b @b ! ; ( wait )
+wait ; ( wait )
+: main
+: run @ dup (!b) push ex run ;
+: wait !b @ !b @ !b @b ! ;
+
+
+node 610
+/a west /b east
+main ;
+;      ( emit )
+wait ; ( wait )
+: main
+: run @ dup push ex run
+: wait
+ north b!
+    !b @ !b @ !b @b !
+ east b!
+ ;
+
+
+
+node 607
+/a west /b east
+run ;
+@ drop ; ( emit )
+wait ;
+: main
+: run @ dup (!b) push ex run ;
+: wait @ !b @ !b @b ! ;
