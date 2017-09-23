@@ -11,7 +11,7 @@
   (set! ga-run-sim nil))
 
 (define (make-ga144 name_ (interactive_ false) (source-buffer_ false))
-  (new ga144% name_ interactive_))
+  (new ga144% name_ interactive_ source-buffer_))
 
 (define ga144%
   (class object%

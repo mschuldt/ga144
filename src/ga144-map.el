@@ -1594,14 +1594,15 @@ This resets the simulation"
             (setq ga-project-aforth-buffer aforth-buffer)
             (setq ga-project-aforth-file filename)
             (ga-mode)
-            (ga-set-aforth-source filename))
+            ;;(ga-set-aforth-source filename)
+            )
           buf))))
 
 (defun ga-open-map-for-simulation (aforth-buffer)
   (let ((buf (ga-open-map-for-buffer aforth-buffer "*GA144 SIM: %s*")))
     (with-current-buffer buf
       (setq ga-sim-p t)
-      (setq ga-sim-ga144 (make-ga144 buffer-file-name nil))
+      (setq ga-sim-ga144 (make-ga144 buffer-file-name nil aforth-buffer))
       (ga-set-map-nodes)
       (ga-sim-set-current-node ga-current-coord)
       (ga-sim-recompile)

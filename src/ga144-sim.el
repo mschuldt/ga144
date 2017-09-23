@@ -25,8 +25,8 @@
 (setq ga144-name-to-chip nil)
 (setq num-chips nil)
 
-(defun ga144-new (name)
-  (let ((chip (make-ga144 name t)))
+(defun ga144-new (name &optional buffer)
+  (let ((chip (make-ga144 name t buffer)))
     (push chip ga144-chips)
     (hash-set! ga144-name-to-chip name chip)
     (set! num-chips (add1 num-chips))

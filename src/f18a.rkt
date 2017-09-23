@@ -9,6 +9,8 @@
 (define obj-alist_ '()) ;;maps ojbects to names
 (define obj-key-counter 0)
 
+(define ga-show-source-position nil)
+
 (define (register-obj obj)
   ;; used to register a ga144 object and returns a key that can be used to access it
   (let* ((key (assq obj obj-alist_)))
@@ -25,7 +27,7 @@
 (define f18a%
   (class object%
     (super-new)
-    (init-field index ga144 (active-index 0))
+    (init-field index ga144 (active-index 0) (source-buffer false))
 
     ;; register the ga144 object and keep a key to refer to it this prevents
     ;; the ga144 <-> f18a circular reference which results in the elisp error:
@@ -101,8 +103,14 @@
     (define extern-functions false) ;;vector of vectors with extern functions for each word
     (define extern-word-functions false) ;;vector containing extern functions for the current wor
 
+    ;; Used if loaded with buffer mappings,
+    ;; support for overlaying the position of the currently executing instruction
+    (define buffer-map false) ;; mappings of instructions to buffer locations,
+    (define word-buffer-map false) ;; mappings of instructions of the current word
+    (define buffer-inst-overlay false) ;; overlay of the currently executing instruction
     (define map-node false)
     (define map-buffer false)
+    ;;(define source-buffer false) ;; buffer with .aforth source
     (define/public (set-debug (general t) (ports false) (state false) (io false))
       (set! debug general)
       (set! debug-ports ports)
@@ -686,6 +694,12 @@
       (when (null I)
         (log "Error: invalid null value for fetched data\n")
         (set! I 0))
+      (if (and ga-show-source-position
+               buffer-map
+               (< (region-index I-index) 64) true)
+          (begin
+            (set! word-buffer-map (vector-ref buffer-map (region-index I-index))))
+          (set! word-buffer-map false))
       (set! fetched-data false)
       (set! P (incr P))
       (if (or (eq? I 'end) (eq? I false))
@@ -716,7 +730,6 @@
 
     (define (step!)
       ;;(when suspended (log "(step!) SUSPENDED"))
-
       (cond (fetching-in-progress
              ;; This is the first step since the node suspended waiting for a read
              ;; Finish fetching an instruction or data word
@@ -733,8 +746,8 @@
       (cond ((= iI 0)
              ;; check if this word has a breakpoint set
              (when (setq nobreak (funcall (vector-ref breakpoints (if (port-addr? I-index)
-                                                                     (& I-index #x1ff)
-                                                                     (region-index I-index)))))
+                                                                      (& I-index #x1ff)
+                                                                      (region-index I-index)))))
                (set! iI (if (execute! (bitwise-bit-field I^ 13 18) 10 #x3fc00)
                             1
                             0))))
@@ -767,7 +780,10 @@
                 (set! fetch-next true)
                 ;;if not suspended fetch here instead of doing it on the next step.
                 ;; This provides better visual indication in the simulator
-                (fetch-I)))))
+                (fetch-I))))
+
+      (when (and ga-show-source-position word-buffer-map)
+        (ga-update-buffer-overlay (vector-ref word-buffer-map iI))))
 
     (define (get-current-slot-index) iI) ;;TODO: dup of get-inst-index
 
@@ -1053,6 +1069,7 @@
       ;;load N words from CODE into memory, default = len(code)
       ;;(reset!) -> must be reset externally before loading
       (define code (node-mem node))
+      (set! buffer-map (node-buffer-map node))
       (define n (or (node-len node) (vector-length code)))
       (define index 0)
       (while (< index n)
@@ -1741,4 +1758,27 @@
       ;;; dummy edge nodes have a invalid coord so things like rom
       ;;; hash table indexes fail in reset
       (reset!))
+
+    (define _last-instruction-buffer false)
+    (define (ga-update-buffer-overlay position)
+      (if position
+        (let* ((file (car position))
+               (buf (and file (find-buffer-visiting file))))
+          (when file
+            (unless buf
+              (set! buf (find-file-other-window file)))
+            (set! _last-instruction-buffer buf)
+            (with-current-buffer buf
+              (unless buffer-inst-overlay
+                (set! buffer-inst-overlay (make-overlay 0 0 buf)))
+              (move-overlay buffer-inst-overlay (cadr position) (caddr position))
+              (overlay-put buffer-inst-overlay 'face (list :background "#ff0000"))
+              )))
+
+        ;;if position is null, change the color of the overlay to yellow to indicate
+        ;;that the current position is lost, but this is the last known location
+        (when (and buffer-inst-overlay _last-instruction-buffer)
+          (overlay-put buffer-inst-overlay 'face (list :background "#ffff00")))
+        )
+      )
     ))
