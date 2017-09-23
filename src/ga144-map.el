@@ -1515,6 +1515,13 @@ This resets the simulation"
                "Source view enabled"
              "Source view disabled")))
 
+(defun ga-toggle-history-display-length ()
+  (interactive)
+  (setq activity-history-show-total (not activity-history-show-total))
+  (message (if activity-history-show-total
+               "Showing total activity"
+             "Showing recent activity")))
+
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
         (define-key map "+" 'ga-inc-node-size)
@@ -1565,6 +1572,7 @@ This resets the simulation"
         (define-key map (kbd "c") 'ga-sim-continue)
         (define-key map (kbd "w") 'ga-call-word)
         (define-key map (kbd "p") 'ga-toggle-source-view)
+        (define-key map (kbd "t") 'ga-toggle-history-display-length)
         ;;display views
         (define-key map (kbd "u") 'ga-display-node-usage)
         (define-key map (kbd "a") 'ga-display-node-activity)
