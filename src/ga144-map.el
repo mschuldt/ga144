@@ -1508,6 +1508,13 @@ This resets the simulation"
       (ga-sim-update-display)
       )))
 
+(defun ga-toggle-source-view ()
+  (interactive)
+  (setq ga-show-source-position (not ga-show-source-position))
+  (message (if ga-show-source-position
+               "Source view enabled"
+             "Source view disabled")))
+
 (setq ga-mode-map
       (let ((map (make-sparse-keymap 'ga-mode-map)))
         (define-key map "+" 'ga-inc-node-size)
@@ -1557,6 +1564,7 @@ This resets the simulation"
         (define-key map (kbd "n") 'ga-set-step-increment)
         (define-key map (kbd "c") 'ga-sim-continue)
         (define-key map (kbd "w") 'ga-call-word)
+        (define-key map (kbd "p") 'ga-toggle-source-view)
         ;;display views
         (define-key map (kbd "u") 'ga-display-node-usage)
         (define-key map (kbd "a") 'ga-display-node-activity)
