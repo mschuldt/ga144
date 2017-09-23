@@ -225,8 +225,8 @@
                              ))
 (define default-bootstream-type "async")
 
-(define (create-node coord (mem false) (buffer-map false) (len 0))
-  (let ((new (node coord mem buffer-map len)))
+(define (create-node coord (mem false) (buffer-map false) (len 0) (buffer false))
+  (let ((new (node coord mem buffer-map len buffer)))
     (set-node-symbols! new (list))
     (set-node-word-dict! new (make-hash))
     (set-node-address-cells! new (make-set))

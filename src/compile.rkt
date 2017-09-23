@@ -419,7 +419,7 @@
 
 (define (goto-next-word) (org next-addr))
 
-(define (add-to-next-slot inst)
+(define (add-to-next-slot inst (save-mapping true))
   ;;this assumes that we are not going to be overwriting code
   (when DEBUG? (printf "        add-to-next-slot(~a)\n" inst))
   (unless current-word (err "You probably forgot to use 'node' first"))
@@ -429,7 +429,7 @@
   (when (instruction? inst)
     (set! last-instruction-word current-word-i)
     (set! last-instruction-slot current-slot))
-  (when save-buffer-mappings
+  (when (and save-buffer-mappings save-mapping)
     (vector-set! current-word-buffer-mapping current-slot current-token-buffer-position))
   (set! current-slot (add1 current-slot))
   (when (= current-slot 4)
@@ -441,10 +441,10 @@
   (when (and auto-nop-insertion
              (member inst instructions-preceded-by-nops)
              (not (equal? last-inst ".")))
-    (add-to-next-slot "."))
+    (add-to-next-slot "." false))
   (when (and (equal? current-slot 3)
              (not (member inst last-slot-instructions)))
-    (add-to-next-slot "."))
+    (add-to-next-slot "." false))
   (add-to-next-slot inst)
   (when (member inst instructions-using-rest-of-word)
     (fill-rest-with-nops)))
@@ -525,18 +525,27 @@
 (define (fill-rest-with-nops)
   (when DEBUG? (printf "(fill-rest-with-nops)\n"))
   (unless (= current-slot 0)
-    (add-to-next-slot ".")
+    (add-to-next-slot "." false)
     (fill-rest-with-nops)))
 
 (define (set-next-empty-word! word)
   (if (= current-slot 0)
       (begin (vector-set! memory current-addr word)
              (when save-buffer-mappings
-               (vector-set! buffer-mappings current-addr current-token-buffer-position))
+               (vector-set! buffer-mappings current-addr
+                            ;; store as [x x x x] to keep the format the same
+                            (vector current-token-buffer-position
+                                    current-token-buffer-position
+                                    current-token-buffer-position
+                                    current-token-buffer-position)))
              (org next-addr))
       (begin (vector-set! memory next-addr word)
              (when save-buffer-mappings
-               (vector-set! buffer-mappings next-addr current-token-buffer-position))
+               (vector-set! buffer-mappings next-addr
+                            (vector current-token-buffer-position
+                                    current-token-buffer-position
+                                    current-token-buffer-position
+                                    current-token-buffer-position)))
              (set! next-addr (if 64-word-mem
                                  (remainder (add1 next-addr) #x40)
                                  (add1 next-addr))))))
@@ -912,7 +921,7 @@ into any of the four slots."
        (add-to-next-slot inst)
        (add-to-next-slot (if (address-cell? addr)
                              addr
-                           (make-new-address-cell addr name)))
+                           (make-new-address-cell addr name)) false)
        (unless (= current-slot 0)
          (goto-next-word)))
     ;;else
@@ -922,7 +931,7 @@ into any of the four slots."
      (add-to-next-slot inst)
      (set! cell (make-new-address-cell false name))
      (add-to-waiting name cell)
-     (add-to-next-slot cell)
+     (add-to-next-slot cell false)
      (unless (= current-slot 0)
        (goto-next-word))
      )))
@@ -932,7 +941,7 @@ into any of the four slots."
   (setq immediate (or immediate bowman-format))
   (when (and (equal? current-slot 3)
              (not (member inst last-slot-instructions)))
-    (add-to-next-slot "."))
+    (add-to-next-slot "." false))
 
   (if immediate
       (compile-transfer-instruction inst (read-tok-name))

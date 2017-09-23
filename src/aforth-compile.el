@@ -101,7 +101,8 @@
         (token-val (aforth-token-value token))
         (token-args (aforth-token-args token))
         func)
-    (setq current-token-buffer-position (cons (aforth-token-start token)
+    (setq current-token-buffer-position (list (aforth-token-file token)
+                                              (aforth-token-start token)
                                               (aforth-token-end token)))
     (setq current-token token)
     (cond ((or (eq token-type 'word-def)
@@ -156,6 +157,7 @@
     (if (string= (file-name-extension in-file) "ga")
         (open-file-from-bowman-format filename)
       (insert-file-contents-literally filename))
+    (setq buffer-file-name filename)
     (aforth-compile-buffer)))
 
 (defun open-file-from-bowman-format (filename)

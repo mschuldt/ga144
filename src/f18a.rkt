@@ -4,12 +4,15 @@
 (define count-instructions true)
 (define activity-history-length 10)
 (define activity-history-bucket-size 10)
+ ;;if true show total accumulated history,
+ ;;otherwise display recent activity
+(define activity-history-show-total false)
 
 (define obj-map_ (make-hash)) ;;maps names to objects
 (define obj-alist_ '()) ;;maps ojbects to names
 (define obj-key-counter 0)
 
-(define ga-show-source-position nil)
+(define ga-show-source-position false)
 
 (define (register-obj obj)
   ;; used to register a ga144 object and returns a key that can be used to access it
@@ -1052,11 +1055,15 @@
         (vector-set! activity-history activity-history-index 0))
 
       ;;test
-      (let ((global-steps (* activity-history-length activity-history-bucket-size))
-            (step-counter activity-sum))
+      (let ((global-steps (if activity-history-show-total
+                              global-steps
+                              (* activity-history-length activity-history-bucket-size)))
+            (step-counter_ (if activity-history-show-total
+                              step-counter
+                              activity-sum)))
 
-        (let* ((gsteps (max step-counter global-steps))
-               (n (floor (* (/ step-counter (if (= gsteps 0)
+        (let* ((gsteps (max step-counter_ global-steps))
+               (n (floor (* (/ step-counter_ (if (= gsteps 0)
                                                 1.0 (* gsteps 1.0))) 255)))
                (s (to-hex-str (- 255 n)))
                (c (format "#ff%s%s" s s)))
