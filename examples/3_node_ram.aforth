@@ -1,0 +1,106 @@
+( pulled from: https://github.com/jamesbowman/ga144tools/blob/master/src/nt.ga
+
+node 505
+/p east
+
+node 507
+/p west
+
+node 406
+/p north
+
+
+node 506
+/b north /p north
+
+: addr \ ( -- o )
+ \ fetch byte address 0-383
+ \ set A to bank
+ \ o to offset 0-63
+   dup 2/ 2/ 2/ 2/ 2/ 2/
+   .. tab
+    , 0x175 \ west
+    , 0x115 \ south
+    , 0x1D5 \ east
+
+: tab
+    pop + a! @ a! 63 and ;
+: read
+     @b addr
+..    @p ! !
+..      @p a! @ !p
+..    @ !b ;
+
+: write
+    @b addr
+..    @p ! ! @p
+..      @p a! . .
+..      @p ! . .
+    ! @b ! ;
+
+: read_byte
+  @b dup dup addr
+..  @p ! !
+..    @p a! @ !p
+..  2/ 2* or                \ low bit of addr
+    2* 2* 2*                \ 0 or 8
+   push @ hibyte
+: lo8
+   255 and !b ;
+
+: hibyte
+  2/ unext lo8 ;
+
+: write_byte
+    @b dup
+    addr
+..  @p ! !
+..    @p a! . .
+..  ! @b ! ;
+
+: erase
+    @b push @b
+begin
+    dup addr
+..    @p ! ! @p
+..      @p a! dup
+..      or !
+..    ! 1 . +
+    next ;
+
+node 606 ( test node
+/a south
+: write ( v a - )
+..   @p !
+..     write@506
+! ! ;
+
+: read ( a - v )
+..   @p !
+..     read@506
+! @ ;
+
+: erase ( a n - )
+( . !!break
+..   @p !
+..     erase@506
+! ! ;
+
+: main
+\   111 0 write
+\   222 1 write
+
+191 for
+  pop dup push dup write
+  next
+60 20 erase
+
+10 read
+    . !!printT
+
+
+warm ;
+
+node 705
+: main
+warm
