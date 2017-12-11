@@ -1,48 +1,277 @@
-This is an alternative Arrayforth toolchain targeting the GA144 multi-processor
-chip.
+An alternative Arrayforth toolchain targeting the GA144 multi-processor chip.
 
-It includes a compiler, bootstreamer/loader, and simulator.
-They are all independent of the Greenarrays tools.
+It includes a compiler, loader, and simulator. All independent of the Greenarrays tools.
 
-This was originally built to support work with [[http://pl.eecs.berkeley.edu/projects/chlorophyll/][Chlorophyll]] but is
-useful for manually writing Arrayforth as well.
+Supports the colorforth [[https://mschuldt.github.io/www.colorforth.com/inst.htm][instruction set]]
 
-All tools are writen in Elisp, the simulator is implemented as an Emacs mode.
-The compiler and loader can used through the bash program =ga=,
+[[https://github.com/mschuldt/www.colorforth.com][colorforth documentation]] can be used as reference but there are some [[#heading_comparison_to_greenarrays_arrayforth][differences]] and many extensions.
 
-The Greenarrays Arrayforth documentation may be used for reference.
-This compiler is not fully compatible and differs in a few ways,
-They are listed below.
+This tools are compatible with [[https://github.com/mangpo/chlorophyll][chlorophyll]] generated arrayforth and have some compatibility with James Bowman's [[https://github.com/jamesbowman/ga144tools][ga144tools]]
 
-** Setup
-*** Requirements:
-  - Emacs
-  - Python, pyserial
-  - Linux (only tested on Ubuntu)
-*** Compiling + installation
+* Setup
+** Requirements:
+ - Emacs
+ - Python, pyserial
+ - Linux (only tested on Ubuntu)
+** Compiling + installation
 
 =make= to byte compile
 
 =make install= to install the =ga= and =ga-load= commands
 
+The installed =ga= script points to the source directory so that files may be edited without having to re-install.
 Byte compilation must be done for performance.
 
-The installed ga script points to the source directory so that files may be edited without having to re-install
+** Emacs setup
+In your emacs config:
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "PATH/TO/ga144/src")
+  (require 'ga-loadup)
+  (ga-loadup)
+#+END_SRC
+** Testing
+=ga --test= runs compiler tests.
 
-=ga --test= and =ga --test-all= can be used to test the compiler and simulator
-*** Emacs setup
-TODO
+=ga --test-all= includes simulator tests (but is much slower).
 * First program
 To check that everything works, first connect the GA144 eval board or chip.
-Run 'dmesg' to find the serial port it is connected on.
+Run =dmesg= to find the serial port it is connected on.
 Try running the lucas series example program:
 #+BEGIN_SRC bash
   ga-load examples/lucas-series.aforth /dev/ttyUSB3 460800
 #+END_SRC
- Replace /dev/ttyUSB3 with the actual serial port.
+ Replace =/dev/ttyUSB3= with the correct serial port.
 This should print out the first 15 numbers of the [[https://en.wikipedia.org/wiki/Lucas_number][lucas series]] before exiting
 
+* Compiling and Loading
+
+The command =ga-load= is used to compile and load code into the GA144.
+After loading it enters into a listen mode and will print words the GA144
+sends back over the serial port.
+
+: ga-load filename.aforth /dev/ttyUSB<N> baud-rate
+
+ <N> is the serial port number. On Linux this can be found by running 'dmesg' after inserting the port.
+ baud-rate defaults to 460800
+
+** bootstream types
+
+The option ~--bootstream-type~ is used to indicate the bootstream type.
+
+Three types of bootstreams are supported 'async', '2wire', and 'async-target'.
+
+'async' - load through node 708 serial. Default
+
+'2wire - load through node 300 2wire interface
+
+'async-target' - Used to load code into the target chip through the host chip.
+  code is streamed into the the host through node 705 and from the host to the
+  target via the node 300 2wire connection.
+
+* Dumping compilation data
+
+Data from various compilation stages can be dumped for inspection or as input to other programs.
+Output format defaults to json.
+
+: ga [options] file.aforth
+
+related options:
+ | -p | pretty print the compiled data   |
+ | -n | Only print data for a given node |
+ | -b | include the bootstream           |
+ | -s | include the symbol table         |
+ | -h | print help                       |
+
+* Simulation
+
+The =--sim= option runs the visual simulator:
+: ga --sim FILE.aforth
+
+The currently selected node is highlighted in green
+
+** non-interactive simulation
+To run an aforth program at the cli:
+: ga --run FILE.aforth
+
+Values can be printed from the simulation using the support for [[#heading_lisp_function_calls][lisp functions]] like ~!!printT~
+
+Simulation exits when all nodes are suspended.
+** lisp simulations
+The most simulation options are available when setup from elisp.
+
+To run elisp simulation files:
+: ga FILE.el
+
+=examples/probe-demo.el= is an example of a program intended to be run like this.
+
+** breakpoints
+Set a breakpoint at a word:
+#+BEGIN_SRC emacs-lisp
+(setq host (ga144-new "host"))
+(send host load assembled) ;; code must be loaded before breakpoints can be set
+(setq node (ga144-get-node host 705))
+(send node set-breakpoint "word")
+(send node set-breakpoint 12)
+#+END_SRC
+
+see =tests/ga-test-pins.el= for an example using ~set-breakpoint~
+
+*** aforth source breakpoints with !!break
+In aforth source use ~!!break~ to mark a location to trigger a breakpoint at.
+This will trigger a breakpoint immediately after that instruction as executed,
+If you want to trigger a breakpoint after a call to a word has returned
+like ~word !!break~ then you must insert a nop ~word . !!break~ before the
+break or move the !!break forward one instruction. This is because the breakpoint
+triggers after the call instruction executes (pushing P to the return stack and setting new P),
+not after the word returns to the current context.
+
+** simulation control
+keys:
+| s | Step the selected one by the current step increment (default 1) |
+| S | Like 's' but steps all nodes                                    |
+| c | Continue stepping until quit 'g' or all nodes are suspended     |
+| n | Set the step increment used by 's'                              |
+| u | usage view (default)                                            |
+| a | activity view                                                   |
+| + | incrase map size                                                |
+| - | decrease map size                                               |
+| p | enable source-level debug mode                                  |
+TODO: other keys
+** simulating bootstreams
+TODO:
+not about but in node 708
+ (activity in this node is not too important as serial protocol is not being simulated, instead it is loaded a simulated port)
+
+** ROM
+The rom loaded in the simulator is dumped from a ga144
+TODO: how to update it
+
+** testbed support
+GPIO pins values can be set with ~set-pin!~
+Functions that to react to pin changes are set with ~set-gpio-handler~
+
+#+BEGIN_SRC emacs-lisp
+(send node300 set-gpio-handler 0 (lambda (x) (message "node 300.17 changed to: %s" x)))
+#+END_SRC
+
+~set-gpio-handlers~ can be used to set all the pin handlers at once:
+#+BEGIN_SRC emacs-lisp
+(send host-node set-gpio-handlers pin1Callback pin2Callback ...)
+#+END_SRC
+
+Example: =tests/ga-test-pins.el=
+
+There is currently only support for a one pin handler per pin.
+Connecting multiple handlers with ~ga-connect-pins~ or ~set-gpio-handlers~
+will overwrite exiting handlers.
+
+No support for setting analog pin values.
+
+[[#heading_lisp_function_calls][lisp functions]] can be created to produce side effects to mimic the presence of other forth functionality
+in the interior of the chip. This can be useful for testing components in isolation or simulating
+access to complicated external functionality faster then through the GPIO interface.
+
+** Connecting pins
+
+Virtually connect pins of separate GA144 instances:
+#+BEGIN_SRC emacs-lisp
+  (setq host (ga144-new "host"))
+  (setq target (ga144-new "target"))
+  (ga-connect-pins (ga144-get-node host 300) 0
+                   (ga-get-node target 300) 0)
+  (ga-connect-pins (ga144-get-node host 300) 1
+                   (ga-get-node target 300) 1)
+#+END_SRC
+
+~ga-connect-pins~ is a convenience wrapper around ~set-gpio-handler~ and ~set-pin!~
+
+Example: =tests/ga-test-target-chip.el=
+** Simulating bootstream
+When the option =--sim-bootstream=  is used the full bootstream loading will be simulated instead of
+starting the simulation with the code pre-loaded in all the nodes. This is very slow and usually undesirable.
+
+: ga --sim --sim-bootstream FILE.aforth
+
+The only supported bootstream in simulation is through node 708.
+
+** Virtual digital analyzer
+Virtual probes can be connected to GPIO pins to record their state over time.
+
+ ~ga-connect-probe~ attaches a probe to a node's pin. ~ga144-probe-save~ generates
+ A python program (which depends on matplotlib),
+running it will display the graphed pin activity of all instrumented pins.
+
+#+BEGIN_SRC emacs-lisp
+  (setq chip (ga144-new "host"))
+  (setq node705 (send chip coord->node 705))
+  (ga-connect-probe node705 0)
+(ga144-probe-save)
+#+END_SRC
+
+Runnable example: =ga examples/probe-demo.el=
+
+** Lisp function calls
+   :PROPERTIES:
+   :CUSTOM_ID: heading_lisp_function_calls
+   :END:
+
+Functions defined in lisp may be called from the arrayforth program with the syntax ~!!FUNCTION~
+These functions must be defined with the ~(ga-define NAME BODY...)~ macro.
+
+An example function that prints the dstack:
+#+BEGIN_SRC elisp
+  (ga-define printDstack
+             (princ (format "%s\n" (send node get-dstack-as-list))))
+#+END_SRC
+This can then be called in the aforth program with ~!!printDstack~
+The node that it is called from is bound to the variable =node=
+
+It will be called after the execution of the instruction that precedes it.
+
+Lisp files that define these functions are loaded into arrayforth with the =include= directive:
+
+: include FILENAME.el
+
+Built in words include ~!!printT~ and ~!!break~, they are defined in =src/ga144-sim.el=
+
+Example programs that use these features: =example/test-print.el=, =example/test-print.aforth=,
+and =example/test-print2.aforth=
+
+** known issues
+- reset with 'g' and 'b' fail to reset the chip properly,
+   If stepping the whole chip with 'c' or 'S'  restart simulation instead of reset
+- TODO: others?
+
+* converting colorforth forth to arrayforth
+
+The utility ref/cf2f.py converts colorFrth source to mostly legal arrayforth.
+It is useful for referencing colorForth sources, the entire translated colorforth source
+is included as ref/OkadBack.txt
+
+* boot descriptors
+boot descriptors are the mechanism for specifying the initial state of an f18 computer.
+This includes the values in the registers and on the stacks.
+
+The following boot descriptors are supported: ~/p~, ~/b~,  ~/a~, ~/stack~
+
+For example, to set the inital value of register =a= to 5 and =b= to the west port:
+: /a 5 /b west
+
+=/stack= takes the number of items to leave on the data stack followed by their values:
+: /stack 3 11 22 33
+
+* Chlorophyll compatibility
+
+This was originally built to support work with [[http://pl.eecs.berkeley.edu/projects/chlorophyll/][Chlorophyll]] and will remain useful for doing so.
+Any incompatibility with the output of Chlorophyll is considered a bug.
+
+* jamesbowman/ga144tools compatibility
+TODO
 * Comparison to Greenarrays arrayforth
+  :PROPERTIES:
+  :CUSTOM_ID:  heading_comparison_to_greenarrays_arrayforth
+  :END:
+
 This compiler differs from the Greenarrays version in several ways.
 Knowing the differences are helpful if you already know arrayforth or if you want to use the Greenarrays documentation.
 
@@ -63,33 +292,60 @@ Knowing the differences are helpful if you already know arrayforth or if you wan
 - Generalized host computations during compilation are not supported.
   The compiler is not a forth interpreter.
 - There are no grey words
+- Automatically shift words when destination address does not fit in word
+   arrayforth does not compile in such situations, manual word alignment is necessary
+- possible call words before definition
+- All comments are terminated by newlines
+- Use ~swap!~ instead of ~swap~
 
-* Compiling and Loading
+* references
 
-The program ga-load is used to compile and load code into the GA144.
-After loading it enters into a listen mode and will print words the GA144
-sends back over the serial port.
+Useful links from colorforth.com for programming the ga144:
+https://github.com/mschuldt/www.colorforth.com
 
-: ga-load filename.aforth /dev/ttyUSB<N> baud-rate
+* extended instructions
+~next:~, ~-if:~
 
- <N> is the serial port number. On Linux this can be found by running 'dmesg' after inserting the port.
- baud-rate defaults to 460800
+Used when converting .ga files to .aforth or when optimizing code.
+Also when translating from bowman mode, need to use ~begin~ for each corresponding ~unext~
 
-* Dumping compilation data
-
-Data from various compilation stages can be dumped in json or a more human readable format:
-
-: ga [-b] [-s] [-c] file
-
-Includes the compiled code, boot descriptors, and assembled code
-Options:
-| -b | include the bootstream       |
-| -s | include the symbol table     |
-| -c | count the words in each node |
-| -h | human readable               |
-
-* Interpreter/Debugger
-TODO
-
+TODO: document
+* list of unsupported simulation features
+- analog pins
+- phantom wakeups
+- shared pins?
+TODO: anything else?
+* source-level debuging
 * Limitations, known problems
 TODO
+
+sometimes line numbers reported in error messages are wrong
+
+~org~ can only be used at the beginning of a node, before all instructions. Using it after instructions can result in a compile error
+line numbers in errors for undefined words are wrong
+
+make does not aboart when there is a compilation error. must search the output for 'Error:'
+
+The =--run= option does not print anything if their is a compilation error, it just exists.
+best to check with ga =-p= or =-c= before trying to run or simulate
+
+simulation is broken after reset.  (nodes suspended nodes in the active list)
+  This also means that the load from bootstream option is broken because
+
+
+crash when loading bootstream in simulator with node 708 selected.
+
+chlorophyll compatibility problems
+  in simulation can't return from main with ';' do nothing for call warm. this results in invalid port read error
+
+simulator gets stuck entering debugger sometimes
+ when this happens it's possible to run the program with the =--run= option in instead of =--sim= to view the error.
+
+
+No support for setting analog pin values in simulator
+
+bug: word@node forms can only reference words in nodes that have already been defined
+
+problem with !!words, getting set in the wrong location, so sometimes breakpoints dont work.
+if there is space in the node one workaround is to define a word in low memory that contains the
+beakpoint or call to other !!word that call that when needed.
