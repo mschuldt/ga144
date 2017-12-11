@@ -1,6 +1,5 @@
 #lang racket ;; -*- lexical-binding: t -*-
 
-(define DEBUG? false)
 (define _PORT-DEBUG? false)
 (define DISPLAY_STATE? false)
 (define port-debug-list '(1 2))
