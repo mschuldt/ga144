@@ -6,7 +6,7 @@ Supports the colorforth [[https://mschuldt.github.io/www.colorforth.com/inst.htm
 
 [[https://github.com/mschuldt/www.colorforth.com][colorforth documentation]] can be used as reference but there are some [[#heading_comparison_to_greenarrays_arrayforth][differences]] and many extensions.
 
-This tools are compatible with [[https://github.com/mangpo/chlorophyll][chlorophyll]] generated arrayforth and have some compatibility with James Bowman's [[https://github.com/jamesbowman/ga144tools][ga144tools]]
+These tools are compatible with [[https://github.com/mangpo/chlorophyll][chlorophyll]] generated arrayforth and have some compatibility with James Bowman's [[https://github.com/jamesbowman/ga144tools][ga144tools]]
 
 * Setup
 ** Requirements:
