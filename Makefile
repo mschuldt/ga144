@@ -1,4 +1,5 @@
 lisp: ga
+	rm -f src/*.elc
 	./ga --byte-compile
 
 ga:
