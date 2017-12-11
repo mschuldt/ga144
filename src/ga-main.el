@@ -30,14 +30,8 @@
 (setq print-bowman? nil)
 (setq sim? nil)
 (setq sim-bootstream? "")
+(setq ga-only-print-nodes nil)
 (setq ga-print-execution-time? nil)
-
-(defun ga-print-help-and-exit ()
-  (message "ga [--byte-compile, --create-docs, --test, [-b], [-s], [-p], [-x]] FILE")
-  (kill-emacs))
-
-(when (<= (length command-line-args) 5)
-  (ga-print-help-and-exit))
 
 (let ((base (file-name-directory (or buffer-file-name load-file-name))))
   (setq ga-base-dir (file-name-directory (substring base 0 -1))))
@@ -47,61 +41,71 @@
 
 (require 'arg-parser)
 
-(parse-args '((("-b" "--bootstream") nil "include bootstream"
-               (setq bootstream? t))
-              (("--bootstream-type") (type) "bootstream type"
-               (setq bootstream-type type))
-              (("--only-bootstream") nil "only output loadable bootstream"
-               (setq only-bootstream? t))
-              (("-s" "--symbols") nil "include symboltable"
-               (setq symbols? t))
-              (("-p" "--pretty") nil "print in human readable"
-               (setq pretty? t))
-              (("-c" "--count") nil "count ram usage"
-               (setq count? t))
-              (("-x" "--hex") nil  "print numbers in hexadecimal format"
-               (setq hex? t))
-              (("--byte-compile") nil  "byte compile .rkt files"
-               (setq byte-compile? t))
-              (("--profile") nil "save cpu profile data in file INFILE_profile"
-               (setq profile? t))
-              (("--create-docs") nil "generate documentation"
-               (setq create-docs? t))
-              (("-t" "--test") nil "run compiler tests" ;;TODO -t, -T does not work "Option '-T' requires an argument"
-               (setq test? t))
-              (("-T" "--test-all") nil "run all tests (compiler + simulator)"
-               (setq test? t
-                     test-all? t))
-              (("-r" "--run") nil "run in simulator" ;;TODO: -r option does not work
-               (setq run? t))
-              (("-v" "--verbose") nil ""
-               (setq verbose? t))
-              (("-h") nil "print usage"
-               (ga-print-help-and-exit))
-              (("--wd") (dir) "" ;; for internal use
-               ;;(cd dir)
-               (setq working-dir dir))
-              (("--bowman") nil ""
-               (setq bowman-format? t))
-              (("--bowman-expand") nil "expand .ga into aforth compatible format and print"
-               (setq bowman-expand? t))
-              (("--print-as-bowman") nil ""
-               (setq print-bowman? t))
-              (("--sim") nil ""
-               (setq sim? t))
-              (("--sim-bootstream") nil ""
-               (setq sim? t
-                     sim-bootstream? "--sim-bootstream"))
-              (("--print-gc") nil ""
-               (add-hook 'post-gc-hook (lambda () (message "GC: %ss(%s)" gc-elapsed gcs-done))))
-              (("--print-time") nil "print an estimate node execution time when the program exists"
-               (setq ga-print-execution-time? t))
-              (("--no-gc") nil ""
-               (setq gc-cons-threshold most-positive-fixnum))
-              (position (file) "aforth file"
-                        (setq in-file file))
-              )
-            (cdddr command-line-args) t)
+(setq ga-arg-spec '((("-b" "--bootstream") nil "include bootstream"
+                    (setq bootstream? t))
+                   (("--bootstream-type") (type) "bootstream type"
+                    (setq bootstream-type type))
+                   (("--only-bootstream") nil "only output loadable bootstream"
+                    (setq only-bootstream? t))
+                   (("-s" "--symbols") nil "include symboltable"
+                    (setq symbols? t))
+                   (("-p" "--pretty") nil "print in human readable"
+                    (setq pretty? t))
+                   (("-c" "--count") nil "count ram usage"
+                    (setq count? t))
+                   (("-x" "--hex") nil  "print numbers in hexadecimal format"
+                    (setq hex? t))
+                   (("-n" "--node") (n)  "Only print data for select nodes"
+                    (setq ga-only-print-nodes (cons n ga-only-print-nodes)))
+                   (("--byte-compile") nil  "byte compile .rkt files"
+                    (setq byte-compile? t))
+                   (("--profile") nil "save cpu profile data in file INFILE_profile"
+                    (setq profile? t))
+                   (("--create-docs") nil "generate documentation"
+                    (setq create-docs? t))
+                   (("-t" "--test") nil "run compiler tests" ;;TODO -t, -T does not work "Option '-T' requires an argument"
+                    (setq test? t))
+                   (("-T" "--test-all") nil "run all tests (compiler + simulator)"
+                    (setq test? t
+                          test-all? t))
+                   (("-r" "--run") nil "run in simulator" ;;TODO: -r option does not work
+                    (setq run? t))
+                   (("-v" "--verbose") nil ""
+                    (setq verbose? t))
+                   (("-h") nil "print usage"
+                    (ga-print-help-and-exit))
+                   (("--wd") (dir) "" ;; for internal use
+                    ;;(cd dir)
+                    (setq working-dir dir))
+                   (("--bowman") nil ""
+                    (setq bowman-format? t))
+                   (("--bowman-expand") nil "expand .ga into aforth compatible format and print"
+                    (setq bowman-expand? t))
+                   (("--print-as-bowman") nil ""
+                    (setq print-bowman? t))
+                   (("--sim") nil ""
+                    (setq sim? t))
+                   (("--sim-bootstream") nil ""
+                    (setq sim? t
+                          sim-bootstream? "--sim-bootstream"))
+                   (("--print-gc") nil ""
+                    (add-hook 'post-gc-hook (lambda () (message "GC: %ss(%s)" gc-elapsed gcs-done))))
+                   (("--print-time") nil "print an estimate node execution time when the program exists"
+                    (setq ga-print-execution-time? t))
+                   (("--no-gc") nil ""
+                    (setq gc-cons-threshold most-positive-fixnum))
+                   (position (file) "aforth file"
+                             (setq in-file file))
+                   ))
+
+(defun ga-print-help-and-exit ()
+  (print-arg-help ga-arg-spec "ga")
+  (kill-emacs))
+
+(when (<= (length command-line-args) 5)
+  (ga-print-help-and-exit))
+
+(parse-args ga-arg-spec (cdddr command-line-args) t)
 
 (when profile?
   (require 'profiler)
