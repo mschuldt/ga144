@@ -1087,7 +1087,7 @@ Called after ga-current-node is set"
           (push (cons (buffer-name) buffer) maps))))
     maps))
 
-(defun assoc-delete-all (key alist)
+(defun ga-assoc-delete-all (key alist)
   "Delete from ALIST all elements whose car is `equal' to KEY.
 Return the modified alist.
 Elements of ALIST that are not conses are ignored."
@@ -1122,7 +1122,7 @@ Elements of ALIST that are not conses are ignored."
     (when (eq ga-current-focus-buffer (current-buffer))
       (setq ga-current-focus-buffer nil))
 
-    (setq ga-maps (assoc-delete-all (buffer-name) ga-maps))
+    (setq ga-maps (ga-assoc-delete-all (buffer-name) ga-maps))
     (unless ga-maps
       ;; There are no more maps so there is no need to track focus, and
       ;; if the hook is not removed we will end up iterating through all buffers with ga-rescan-buffers-for-maps
