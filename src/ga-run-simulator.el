@@ -51,6 +51,7 @@
   (setq mode-line-format filename) 
   (read-only-mode 1)
 
+  (buffer-disable-undo)
   (setq ga-sim-buffer (ga-open-map-for-simulation (current-buffer)))
   (switch-to-buffer ga-sim-buffer)
   ;;(pop-to-buffer-same-window ga-sim-buffer)
