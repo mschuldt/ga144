@@ -1,3 +1,8 @@
+
+*The new version of these tools is located here:* [[https://github.com/mschuldt/ga-tools][https://github.com/mschuldt/ga-tools]] \\
+*This repo will no longer be maintained.*
+
+
 An alternative Arrayforth toolchain targeting the GA144 multi-processor chip.
 
 It includes a compiler, loader, and simulator. All independent of the Greenarrays tools.
@@ -273,7 +278,7 @@ TODO
   :END:
 
 This compiler differs from the Greenarrays version in several ways.
-Knowing the differences are helpful if you already know arrayforth or if you want to use the Greenarrays documentation.
+Knowing the differences is helpful if you already know arrayforth or if you want to use the Greenarrays documentation.
 
 - No semantic color
    - standard forth syntax for words and comments
@@ -292,9 +297,9 @@ Knowing the differences are helpful if you already know arrayforth or if you wan
 - Generalized host computations during compilation are not supported.
   The compiler is not a forth interpreter.
 - There are no grey words
-- Automatically shift words when destination address does not fit in word
+- Automatically shift words when destination address does not fit in word.
    arrayforth does not compile in such situations, manual word alignment is necessary
-- possible call words before definition
+- words may be called before their definition
 - All comments are terminated by newlines
 - Use ~swap!~ instead of ~swap~
 
